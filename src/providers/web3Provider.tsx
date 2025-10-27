@@ -1,6 +1,10 @@
 "use client";
 import "@rainbow-me/rainbowkit/styles.css";
-import { getDefaultConfig, RainbowKitProvider, Chain } from "@rainbow-me/rainbowkit";
+import {
+  getDefaultConfig,
+  RainbowKitProvider,
+  type Chain,
+} from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 import {
   mainnet,
@@ -33,7 +37,7 @@ const monadTestnet: Chain = {
     default: { http: [config.chainRpcUrl] },
   },
   blockExplorers: {
-    default: { name: 'MonVision', url: config.chainBlockExplorerUrl },
+    default: { name: "MonVision", url: config.chainBlockExplorerUrl },
   },
   testnet: config.chainTestnet,
   iconUrl: config.chainIconUrl,
@@ -67,7 +71,9 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={config.chainId} modalSize="compact">{children}</RainbowKitProvider>
+        <RainbowKitProvider initialChain={config.chainId} modalSize="compact">
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

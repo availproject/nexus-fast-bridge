@@ -21,7 +21,7 @@ import AllowanceModal from "./components/allowance-modal";
 import useListenTransaction from "./hooks/useListenTransaction";
 import useBridge from "./hooks/useBridge";
 import SourceBreakdown from "./components/source-breakdown";
-import { UserAsset, type SUPPORTED_TOKENS } from "@avail-project/nexus-core";
+import type { UserAsset, SUPPORTED_TOKENS } from "@avail-project/nexus-core";
 import { type Address } from "viem";
 import config from "../../../config";
 import BalanceBreakdown from "./components/balance-breakdown";
@@ -127,34 +127,63 @@ const FastBridge: React.FC<FastBridgeProps> = ({ connectedAddress }) => {
         )}
 
         {/* Show loading state while fetching intent */}
-        {!intent?.intent && inputs?.chain && inputs?.token && inputs?.amount && parseFloat(inputs?.amount || '0') > 0 && inputs?.recipient && filteredUnifiedBalance && parseFloat(inputs?.amount || '0') <= parseFloat(filteredUnifiedBalance.balance || '0') && (
-          <div className="flex items-center justify-center gap-2 py-4">
-            <LoaderPinwheel className="animate-spin size-5" />
-            <span className="text-base text-muted-foreground">Fetching bridge details...</span>
-          </div>
-        )}
-        
+        {!intent?.intent &&
+          inputs?.chain &&
+          inputs?.token &&
+          inputs?.amount &&
+          parseFloat(inputs?.amount || "0") > 0 &&
+          inputs?.recipient &&
+          filteredUnifiedBalance &&
+          parseFloat(inputs?.amount || "0") <=
+            parseFloat(filteredUnifiedBalance.balance || "0") && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <LoaderPinwheel className="animate-spin size-5" />
+              <span className="text-base text-muted-foreground">
+                Fetching bridge details...
+              </span>
+            </div>
+          )}
+
         {/* Show amount exceeds balance message */}
-        {!intent?.intent && inputs?.chain && inputs?.token && inputs?.amount && parseFloat(inputs?.amount || '0') > 0 && inputs?.recipient && filteredUnifiedBalance && parseFloat(inputs?.amount || '0') > parseFloat(filteredUnifiedBalance.balance || '0') && (
-          <div className="text-center py-4">
-            <p className="text-base text-red-600">
-              Amount exceeds available balance. Please enter a valid amount to see bridge details.
-            </p>
-          </div>
-        )}
-        
+        {!intent?.intent &&
+          inputs?.chain &&
+          inputs?.token &&
+          inputs?.amount &&
+          parseFloat(inputs?.amount || "0") > 0 &&
+          inputs?.recipient &&
+          filteredUnifiedBalance &&
+          parseFloat(inputs?.amount || "0") >
+            parseFloat(filteredUnifiedBalance.balance || "0") && (
+            <div className="text-center py-4">
+              <p className="text-base text-red-600">
+                Amount exceeds available balance. Please enter a valid amount to
+                see bridge details.
+              </p>
+            </div>
+          )}
+
         {/* Show form completion message when form is incomplete */}
-        {!intent?.intent && (!inputs?.chain || !inputs?.token || !inputs?.amount || parseFloat(inputs?.amount || '0') <= 0 || !inputs?.recipient) && (
-          <div className="text-center py-4">
-            <p className="text-base text-muted-foreground">
-              Complete the form above to see bridge details
-            </p>
-          </div>
-        )}
+        {!intent?.intent &&
+          (!inputs?.chain ||
+            !inputs?.token ||
+            !inputs?.amount ||
+            parseFloat(inputs?.amount || "0") <= 0 ||
+            !inputs?.recipient) && (
+            <div className="text-center py-4">
+              <p className="text-base text-muted-foreground">
+                Complete the form above to see bridge details
+              </p>
+            </div>
+          )}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           {intent && (
             <div className="w-full flex items-center gap-x-2 justify-between">
-              <Button variant={"outline"} size={"lg"} onClick={reset} className="w-1/2 text-base font-semibold">
+              <Button
+                variant={"outline"}
+                size={"lg"}
+                onClick={reset}
+                className="w-1/2 text-base font-semibold"
+              >
                 Cancel
               </Button>
               <DialogTrigger asChild>
@@ -163,7 +192,10 @@ const FastBridge: React.FC<FastBridgeProps> = ({ connectedAddress }) => {
                   onClick={startTransaction}
                   className="w-1/2 text-base font-semibold"
                   disabled={refreshing}
-                  style={{ backgroundColor: config.primaryColor, color: config.secondaryColor }}
+                  style={{
+                    backgroundColor: config.primaryColor,
+                    color: config.secondaryColor,
+                  }}
                 >
                   {refreshing ? "Refreshing..." : "Accept"}
                 </Button>
@@ -208,9 +240,20 @@ const FastBridge: React.FC<FastBridgeProps> = ({ connectedAddress }) => {
 
         {/* Powered by Avail */}
         <div className="w-full flex items-center gap-x-1 justify-center">
-          <p className="text-sm font-light" style={{ color: '#666666' }}>Powered by</p>
-          <a href="https://availproject.org" target="_blank" rel="noopener noreferrer">
-            <img src="/avail_logo.svg" alt="Avail Logo" className="w-16 h-auto" style={{ opacity: 0.5 }} />
+          <p className="text-sm font-light" style={{ color: "#666666" }}>
+            Powered by
+          </p>
+          <a
+            href="https://availproject.org"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="/avail_logo.svg"
+              alt="Avail Logo"
+              className="w-16 h-auto"
+              style={{ opacity: 0.5 }}
+            />
           </a>
         </div>
       </CardContent>
