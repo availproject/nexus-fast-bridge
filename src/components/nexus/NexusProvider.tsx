@@ -60,7 +60,7 @@ const NexusProvider = ({
   const [intent, setIntent] = useState<OnIntentHookData | null>(null);
   const [allowance, setAllowance] = useState<OnAllowanceHookData | null>(null);
 
-  const initializeNexus = async (provider: EthereumProvider) => {
+  const initializeNexus = useCallback(async (provider: EthereumProvider) => {
     setLoading(true);
     try {
       if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
@@ -77,9 +77,9 @@ const NexusProvider = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [sdk, config?.network]);
 
-  const deinitializeNexus = async () => {
+  const deinitializeNexus = useCallback(async () => {
     try {
       if (!sdk.isInitialized()) throw new Error("Nexus is not initialized");
       await sdk.deinit();
@@ -87,9 +87,9 @@ const NexusProvider = ({
     } catch (error) {
       console.error("Error deinitializing Nexus:", error);
     }
-  };
+  }, [sdk]);
 
-  const attachEventHooks = () => {
+  const attachEventHooks = useCallback(() => {
     sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
       setAllowance(data);
     });
@@ -97,7 +97,7 @@ const NexusProvider = ({
     sdk.setOnIntentHook((data) => {
       setIntent(data);
     });
-  };
+  }, [sdk, setAllowance, setIntent]);
 
   const handleInit = useCallback(
     async (provider: EthereumProvider) => {
@@ -108,17 +108,17 @@ const NexusProvider = ({
       await initializeNexus(provider);
       attachEventHooks();
     },
-    [sdk],
+    [sdk, initializeNexus, attachEventHooks],
   );
 
-  const fetchUnifiedBalance = async () => {
+  const fetchUnifiedBalance = useCallback(async () => {
     try {
       const unifiedBalance = await sdk?.getUnifiedBalances();
       setUnifiedBalance(unifiedBalance);
     } catch (error) {
       console.error("Error fetching unified balance:", error);
     }
-  };
+  }, [sdk]);
 
   const value = useMemo(
     () => ({

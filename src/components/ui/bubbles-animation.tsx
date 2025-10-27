@@ -16,7 +16,7 @@ export default function BubbleAnimation({
   const wrapperRef = useRef(null);
 
   useEffect(() => {
-    const wrapper = wrapperRef.current;
+    const wrapper = wrapperRef.current as HTMLElement | null;
     if (!wrapper) return;
 
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");

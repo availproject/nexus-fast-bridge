@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { LoaderPinwheel } from "lucide-react";
 import { EthereumProvider } from "@avail-project/nexus-core";
 import { useAccount } from "wagmi";

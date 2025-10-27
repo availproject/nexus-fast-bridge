@@ -101,6 +101,8 @@ const StepList: React.FC<{ steps: DisplayStep[]; currentIndex: number }> =
     );
   });
 
+StepList.displayName = "StepList";
+
 const TransactionProgress: React.FC<TransactionProgressProps> = ({
   timer,
   steps,

@@ -1,14 +1,12 @@
 import {
-  type NexusNetwork,
   NexusSDK,
   type OnAllowanceHookData,
   type OnIntentHookData,
-  SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
   type UserAsset,
 } from "@avail-project/nexus-core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Address, isAddress } from "viem";
 import { useNexus } from "../../nexus/NexusProvider";
 import config from "../../../../config";
@@ -21,7 +19,6 @@ interface FastBridgeState {
 }
 
 interface UseBridgeProps {
-  network: NexusNetwork;
   connectedAddress: Address;
   nexusSDK: NexusSDK | null;
   intent: OnIntentHookData | null;
@@ -33,7 +30,6 @@ interface UseBridgeProps {
 }
 
 const useBridge = ({
-  network,
   connectedAddress,
   nexusSDK,
   intent,
@@ -51,7 +47,6 @@ const useBridge = ({
 
   const [timer, setTimer] = useState(0);
   const [startTxn, setStartTxn] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
@@ -66,7 +61,26 @@ const useBridge = ({
     return hasToken && hasChain && hasAmount && hasValidRecipient;
   }, [inputs]);
 
-  const handleTransaction = async () => {
+  const onSuccess = useCallback(async () => {
+    // Close dialog and stop timer on success
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setStartTxn(false);
+    setIntent(null);
+    setAllowance(null);
+    setInputs({
+      chain: config.chainId as SUPPORTED_CHAINS_IDS,
+      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
+      amount: undefined,
+      recipient: connectedAddress,
+    });
+    setRefreshing(false);
+    await fetchUnifiedBalance();
+  }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance]);
+
+  const handleTransaction = useCallback(async () => {
     if (
       !inputs?.amount ||
       !inputs?.recipient ||
@@ -76,7 +90,6 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
-    setLoading(true);
     setTxError(null);
     try {
       if (inputs?.recipient !== connectedAddress) {
@@ -121,39 +134,19 @@ const useBridge = ({
       }
       setIsDialogOpen(false);
     } finally {
-      setLoading(false);
       setStartTxn(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-  };
-
-  const onSuccess = async () => {
-    // Close dialog and stop timer on success
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setStartTxn(false);
-    setIntent(null);
-    setAllowance(null);
-    setInputs({
-      chain: config.chainId as SUPPORTED_CHAINS_IDS,
-      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
-      amount: undefined,
-      recipient: connectedAddress,
-    });
-    setRefreshing(false);
-    await fetchUnifiedBalance();
-  };
+  }, [inputs, connectedAddress, nexusSDK, onSuccess]);
 
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.filter((bal) => bal?.symbol === inputs?.token)[0];
   }, [unifiedBalance, inputs?.token]);
 
-  const refreshIntent = async () => {
+  const refreshIntent = useCallback(async () => {
     setRefreshing(true);
     try {
       await intent?.refresh([]);
@@ -162,7 +155,7 @@ const useBridge = ({
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [intent]);
 
   const reset = () => {
     intent?.deny();
@@ -174,7 +167,6 @@ const useBridge = ({
       amount: undefined,
       recipient: connectedAddress,
     });
-    setLoading(false);
     setStartTxn(false);
     setRefreshing(false);
   };
@@ -196,7 +188,7 @@ const useBridge = ({
     return () => {
       clearInterval(interval);
     };
-  }, [intent]);
+  }, [intent, refreshIntent]);
 
   useEffect(() => {
     if (startTxn) {
@@ -218,15 +210,15 @@ const useBridge = ({
       intent.deny();
       setIntent(null);
     }
-  }, [inputs]);
+  }, [inputs, intent, setIntent]);
 
   useEffect(() => {
-    if (intent || loading || !areInputsValid || txError) return;
+    if (intent || !areInputsValid || txError) return;
     const timeout = setTimeout(() => {
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-  }, [inputs, areInputsValid, intent, loading, txError]);
+  }, [inputs, areInputsValid, intent, txError, handleTransaction]);
 
   // Stop timer when dialog closes
   useEffect(() => {
@@ -244,7 +236,7 @@ const useBridge = ({
     if (txError) {
       setTxError(null);
     }
-  }, [inputs]);
+  }, [inputs, txError]);
 
   const stopTimer = () => {
     if (timerRef.current) {
@@ -260,7 +252,6 @@ const useBridge = ({
     timer,
     setIsDialogOpen,
     setTxError,
-    loading,
     refreshing,
     isDialogOpen,
     txError,

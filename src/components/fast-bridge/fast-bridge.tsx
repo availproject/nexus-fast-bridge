@@ -38,18 +38,15 @@ const FastBridge: React.FC<FastBridgeProps> = ({ connectedAddress }) => {
     unifiedBalance,
     allowance,
     setAllowance,
-    network,
   } = useNexus();
 
   const {
     inputs,
     setInputs,
     timer,
-    loading,
     refreshing,
     isDialogOpen,
     txError,
-    handleTransaction,
     reset,
     filteredUnifiedBalance,
     startTransaction,
@@ -57,7 +54,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({ connectedAddress }) => {
     setTxError,
     stopTimer,
   } = useBridge({
-    network: network ?? "mainnet",
     connectedAddress,
     nexusSDK,
     intent,
