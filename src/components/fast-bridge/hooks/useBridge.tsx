@@ -47,10 +47,12 @@ const useBridge = ({
 
   const [timer, setTimer] = useState(0);
   const [startTxn, setStartTxn] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const processingRef = useRef(false);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -80,7 +82,8 @@ const useBridge = ({
     await fetchUnifiedBalance();
   }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance]);
 
-  const handleTransaction = useCallback(async () => {
+  const handleTransaction = async () => {
+    if (processingRef.current) return;
     if (
       !inputs?.amount ||
       !inputs?.recipient ||
@@ -90,6 +93,8 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+    processingRef.current = true;
+    setLoading(true);
     setTxError(null);
     try {
       if (inputs?.recipient !== connectedAddress) {
@@ -134,13 +139,15 @@ const useBridge = ({
       }
       setIsDialogOpen(false);
     } finally {
+      setLoading(false);
       setStartTxn(false);
+      processingRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-  }, [inputs, connectedAddress, nexusSDK, onSuccess]);
+  };
 
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.filter((bal) => bal?.symbol === inputs?.token)[0];
@@ -206,19 +213,20 @@ const useBridge = ({
   }, [startTxn]);
 
   useEffect(() => {
-    if (intent) {
+    if (intent && !processingRef.current) {
       intent.deny();
       setIntent(null);
     }
   }, [inputs, intent, setIntent]);
 
   useEffect(() => {
-    if (intent || !areInputsValid || txError) return;
+    if (intent || loading || !areInputsValid || txError || processingRef.current) return;
     const timeout = setTimeout(() => {
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-  }, [inputs, areInputsValid, intent, txError, handleTransaction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputs, areInputsValid, intent, loading, txError]);
 
   // Stop timer when dialog closes
   useEffect(() => {
