@@ -1,7 +1,6 @@
 import {
   NEXUS_EVENTS,
   NexusSDK,
-  SUPPORTED_CHAINS,
   type BridgeStepType,
   type NexusNetwork,
   type OnAllowanceHookData,
@@ -42,7 +41,6 @@ interface UseBridgeProps {
 }
 
 const buildInitialInputs = (
-  network: NexusNetwork,
   connectedAddress: Address,
   prefill?: {
     token: string;
@@ -73,7 +71,7 @@ const useBridge = ({
 }: UseBridgeProps) => {
   const { fetchUnifiedBalance, handleNexusError } = useNexus();
   const [inputs, setInputs] = useState<FastBridgeState>(() =>
-    buildInitialInputs(network, connectedAddress, prefill)
+    buildInitialInputs(connectedAddress, prefill)
   );
 
   const [timer, setTimer] = useState(0);
@@ -107,27 +105,22 @@ const useBridge = ({
     setStartTxn(false);
     setIntent(null);
     setAllowance(null);
-    setInputs({
-      chain: config.chainId as SUPPORTED_CHAINS_IDS,
-      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
-      amount: undefined,
-      recipient: connectedAddress,
-    });
+    setRefreshing(false);
 
-    setRefreshing(false);
     await fetchUnifiedBalance();
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
     onComplete?.();
-    setStartTxn(false);
-    setIntent(null);
-    setAllowance(null);
-    setInputs(buildInitialInputs(network, connectedAddress, prefill));
-    setRefreshing(false);
-    await fetchUnifiedBalance();
-  }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance]);
+
+    // Reset inputs after balance fetch
+    setInputs(buildInitialInputs(connectedAddress, prefill));
+  }, [
+    connectedAddress,
+    setIntent,
+    setAllowance,
+    fetchUnifiedBalance,
+    network,
+    prefill,
+    onComplete,
+  ]);
 
   // const handleTransaction = async () => {
   //   if (processingRef.current) return;
@@ -196,16 +189,18 @@ const useBridge = ({
   //   }
   // };
 
-  const handleTransaction = async () => {
+  const handleTransaction = useCallback(async () => {
     if (
       !inputs?.amount ||
       !inputs?.recipient ||
       !inputs?.chain ||
-      !inputs?.token
+      !inputs?.token ||
+      commitLockRef.current
     ) {
       console.error("Missing required inputs");
       return;
     }
+    commitLockRef.current = true;
     setLoading(true);
     setTxError(null);
     try {
@@ -308,12 +303,13 @@ const useBridge = ({
     } finally {
       setLoading(false);
       setStartTxn(false);
+      commitLockRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-  };
+  }, [inputs, connectedAddress, nexusSDK, onSuccess, handleNexusError]);
 
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.find((bal) => bal?.symbol === inputs?.token);
@@ -379,10 +375,12 @@ const useBridge = ({
   }, [startTxn]);
 
   useEffect(() => {
-    if (intent && !commitLockRef.current) {
-      intent.deny();
-      setIntent(null);
-    }
+    // Deny intent only when user edits inputs; avoid denying on intent updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!intent) return;
+    if (commitLockRef.current || loading) return;
+    intent.deny();
+    setIntent(null);
   }, [inputs]);
 
   useEffect(() => {
@@ -398,8 +396,7 @@ const useBridge = ({
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputs, areInputsValid, intent, loading, txError, commitLockRef]);
+  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction]);
 
   // Stop timer when dialog closes
   useEffect(() => {
@@ -414,28 +411,22 @@ const useBridge = ({
 
   // Dismiss error upon any input edit to allow re-attempt
   useEffect(() => {
-    if (txError) {
+    if (txError && !loading) {
       setTxError(null);
     }
-  }, [inputs, txError]);
+  }, [inputs, txError, loading]);
 
-  const stopTimer = () => {
+  const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setStartTxn(false);
-  };
-  const commitAmount = async () => {
-    if (commitLockRef.current) return;
+  }, []);
+  const commitAmount = useCallback(async () => {
     if (intent || loading || txError || !areInputsValid) return;
-    commitLockRef.current = true;
-    try {
-      await handleTransaction();
-    } finally {
-      commitLockRef.current = false;
-    }
-  };
+    await handleTransaction();
+  }, [intent, loading, txError, areInputsValid, handleTransaction]);
 
   return {
     inputs,
