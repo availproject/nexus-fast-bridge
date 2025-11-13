@@ -93,21 +93,21 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         <ChainSelect
           selectedChain={inputs?.chain}
           handleSelect={(chain) =>
-            setInputs({
-              ...inputs,
+            setInputs((prev) => ({
+              ...prev,
               chain,
-            })
+            }))
           }
           label="To"
         />
         <TokenSelect
           selectedChain={inputs?.chain}
           selectedToken={inputs?.token}
-          handleTokenSelect={(token) => setInputs({ ...inputs, token })}
+          handleTokenSelect={(token) => setInputs((prev) => ({ ...prev, token }))}
         />
         <AmountInput
           amount={inputs?.amount}
-          onChange={(amount) => setInputs({ ...inputs, amount })}
+          onChange={(amount) => setInputs((prev) => ({ ...prev, amount }))}
           unifiedBalance={filteredUnifiedBalance}
           onCommit={() => commitAmount()}
           disabled={refreshing || !!prefill?.amount}
@@ -117,7 +117,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         <ReceipientAddress
           address={inputs?.recipient}
           onChange={(address) =>
-            setInputs({ ...inputs, recipient: address as `0x${string}` })
+            setInputs((prev) => ({ ...prev, recipient: address as `0x${string}` }))
           }
         />
         <hr className="my-4" />

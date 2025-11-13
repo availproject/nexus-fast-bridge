@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef } from "react";
+import { type FC, useEffect, useRef, useMemo } from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { type UserAsset } from "@avail-project/nexus-core";
@@ -24,6 +24,31 @@ const AmountInput: FC<AmountInputProps> = ({
 }) => {
   const { nexusSDK } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Calculate adjusted balance (unified balance minus balance on destination chain)
+  const adjustedBalance = useMemo(() => {
+    if (!unifiedBalance?.balance || !inputs?.chain) {
+      return unifiedBalance?.balance || "0";
+    }
+
+    // Find the balance already on the destination chain
+    let balanceOnDestinationChain = "0";
+    if (unifiedBalance?.breakdown) {
+      const destinationBalance = unifiedBalance.breakdown.find(
+        (balance) => balance.chain.id === inputs.chain
+      );
+      if (destinationBalance) {
+        balanceOnDestinationChain = destinationBalance.balance || "0";
+      }
+    }
+
+    // Calculate unified balance minus balance on destination chain
+    const unifiedBal = Number.parseFloat(unifiedBalance.balance || "0");
+    const destBal = Number.parseFloat(balanceOnDestinationChain);
+    const adjusted = Math.max(0, unifiedBal - destBal);
+
+    return adjusted.toFixed(6);
+  }, [unifiedBalance, inputs?.chain]);
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -86,7 +111,7 @@ const AmountInput: FC<AmountInputProps> = ({
         <div className="flex items-center gap-x-3 min-w-max">
           {unifiedBalance && (
             <p className="text-base font-light">
-              {Number.parseFloat(unifiedBalance?.balance)?.toFixed(6)}{" "}
+              {adjustedBalance}{" "}
               {unifiedBalance?.symbol}
             </p>
           )}

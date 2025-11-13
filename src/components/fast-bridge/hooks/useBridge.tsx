@@ -83,6 +83,7 @@ const useBridge = ({
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
+  const inputsRef = useRef<FastBridgeState>(inputs);
   const [steps, setSteps] = useState<
     Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
@@ -190,11 +191,13 @@ const useBridge = ({
   // };
 
   const handleTransaction = useCallback(async () => {
+    // Use ref to get the latest inputs value to avoid stale closures
+    const currentInputs = inputsRef.current;
     if (
-      !inputs?.amount ||
-      !inputs?.recipient ||
-      !inputs?.chain ||
-      !inputs?.token ||
+      !currentInputs?.amount ||
+      !currentInputs?.recipient ||
+      !currentInputs?.chain ||
+      !currentInputs?.token ||
       commitLockRef.current
     ) {
       console.error("Missing required inputs");
@@ -204,14 +207,14 @@ const useBridge = ({
     setLoading(true);
     setTxError(null);
     try {
-      if (inputs?.recipient !== connectedAddress) {
+      if (currentInputs?.recipient !== connectedAddress) {
         // Transfer
         const transferTxn = await nexusSDK?.bridgeAndTransfer(
           {
-            token: inputs?.token,
-            amount: inputs?.amount,
-            toChainId: inputs?.chain,
-            recipient: inputs?.recipient,
+            token: currentInputs?.token,
+            amount: currentInputs?.amount,
+            toChainId: currentInputs?.chain,
+            recipient: currentInputs?.recipient,
           },
           {
             onEvent: (event) => {
@@ -255,9 +258,9 @@ const useBridge = ({
       // Bridge
       const bridgeTxn = await nexusSDK?.bridge(
         {
-          token: inputs?.token,
-          amount: inputs?.amount,
-          toChainId: inputs?.chain,
+          token: currentInputs?.token,
+          amount: currentInputs?.amount,
+          toChainId: currentInputs?.chain,
         },
         {
           onEvent: (event) => {
@@ -309,7 +312,12 @@ const useBridge = ({
         timerRef.current = null;
       }
     }
-  }, [inputs, connectedAddress, nexusSDK, onSuccess, handleNexusError]);
+  }, [connectedAddress, nexusSDK, onSuccess, handleNexusError]);
+
+  // Keep inputsRef in sync with inputs state
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
 
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.find((bal) => bal?.symbol === inputs?.token);
@@ -326,19 +334,14 @@ const useBridge = ({
     }
   }, [intent]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     intent?.deny();
     setIntent(null);
     setAllowance(null);
-    setInputs({
-      chain: config.chainId as SUPPORTED_CHAINS_IDS,
-      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
-      amount: undefined,
-      recipient: connectedAddress,
-    });
+    setInputs(buildInitialInputs(connectedAddress, prefill));
     setStartTxn(false);
     setRefreshing(false);
-  };
+  }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
     // Reset timer for a fresh run
@@ -378,10 +381,20 @@ const useBridge = ({
     // Deny intent only when user edits inputs; avoid denying on intent updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
     if (!intent) return;
-    if (commitLockRef.current || loading) return;
+    // Reset commit lock when inputs change to allow new intent to be fetched
+    if (commitLockRef.current) {
+      commitLockRef.current = false;
+    }
+    // Allow intent to be denied even if loading, so user can edit inputs at any time
+    // Only prevent denial if we're actually submitting a transaction (startTxn is true)
+    if (loading && startTxn) return;
+    // Reset loading if we're just fetching an intent (not submitting)
+    if (loading && !startTxn) {
+      setLoading(false);
+    }
     intent.deny();
     setIntent(null);
-  }, [inputs]);
+  }, [inputs, startTxn]);
 
   useEffect(() => {
     if (
@@ -411,10 +424,30 @@ const useBridge = ({
 
   // Dismiss error upon any input edit to allow re-attempt
   useEffect(() => {
-    if (txError && !loading) {
+    if (txError) {
       setTxError(null);
     }
-  }, [inputs, txError, loading]);
+  }, [inputs]);
+
+  // Reset form when amount becomes empty
+  const prevAmountRef = useRef<string | undefined>(inputs?.amount);
+  useEffect(() => {
+    const prevAmount = prevAmountRef.current;
+    const currentAmount = inputs?.amount;
+    
+    // If amount was previously set (not undefined/empty) and is now empty, reset the form
+    const wasNonEmpty = prevAmount && prevAmount.trim() !== "";
+    const isEmpty = !currentAmount || currentAmount.trim() === "";
+    
+    if (wasNonEmpty && isEmpty) {
+      reset();
+      // Update ref to the reset value to prevent infinite loop
+      const resetInputs = buildInitialInputs(connectedAddress, prefill);
+      prevAmountRef.current = resetInputs.amount;
+    } else {
+      prevAmountRef.current = currentAmount;
+    }
+  }, [inputs?.amount, reset, connectedAddress, prefill]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
