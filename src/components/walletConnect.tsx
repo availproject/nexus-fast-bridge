@@ -67,7 +67,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       )}
       {status !== "connected" && (
         <div className="text-center">
-          <img src={config.chainGifUrl} alt={config.chainGifAlt} width={400} height={400} className="mb-4" style={{ marginLeft: "auto", marginRight: "auto" }} />
+          <img src={config.chainGifUrl} alt={config.chainGifAlt} width={400} height={400} className="mb-4" style={{ marginLeft: "auto", marginRight: "auto", borderRadius: "10px" }} />
           <div className="text-5xl font-bold mb-4" style={{ fontSize: "3.5rem", lineHeight: "2.4" }}>
             {config.heroText}
           </div>
