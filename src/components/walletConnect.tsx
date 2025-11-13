@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { useNexus } from "./nexus/NexusProvider";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import config from "../../config";
 
 interface PreviewPanelProps {
   children: React.ReactNode;
@@ -66,6 +67,10 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       )}
       {status !== "connected" && (
         <div className="text-center">
+          <img src={config.chainGifUrl} alt={config.chainGifAlt} width={400} height={400} className="mb-4" style={{ marginLeft: "auto", marginRight: "auto" }} />
+          <div className="text-5xl font-bold mb-4" style={{ fontSize: "3.5rem", lineHeight: "2.4" }}>
+            {config.heroText}
+          </div>
           <p className="text-muted-foreground mb-4">
             Please connect your wallet using the button in the navbar to use the
             bridge.

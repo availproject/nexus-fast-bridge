@@ -15,6 +15,9 @@ const config = {
   useChainLogo: false,
   chainIconUrl: "/Monad_Logomark.svg",
   chainLogoUrl: "/Monad_Logo.svg",
+  chainGifUrl: "/salmonad.gif",
+  chainGifAlt: "Fast Salmonad",
+  heroText: "Move your assets to Monad faster than ever!",
 
   appTitle: "Monad Fast Bridge",
   appDescription: "Monad Fast Bridge",
