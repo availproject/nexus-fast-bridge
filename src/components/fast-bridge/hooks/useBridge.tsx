@@ -262,34 +262,34 @@ const useBridge = ({
           amount: currentInputs?.amount,
           toChainId: currentInputs?.chain,
         },
-        {
-          onEvent: (event) => {
-            if (event.name === NEXUS_EVENTS.STEPS_LIST) {
-              const list = Array.isArray(event.args) ? event.args : [];
-              setSteps((prev) => {
-                const completedTypes = new Set(
-                  prev
-                    .filter((s) => s.completed)
-                    .map((s) => s.step?.typeID ?? "")
+          {
+            onEvent: (event) => {
+              if (event.name === NEXUS_EVENTS.STEPS_LIST) {
+                const list = Array.isArray(event.args) ? event.args : [];
+                setSteps((prev) => {
+                  const completedTypes = new Set(
+                    prev
+                      .filter((s) => s.completed)
+                      .map((s) => s.step?.typeID ?? "")
+                  );
+                  return list.map((step, index) => ({
+                    id: index,
+                    completed: completedTypes.has(step?.typeID ?? ""),
+                    step,
+                  }));
+                });
+              }
+              if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+                const step = event.args;
+                setSteps((prev) =>
+                  prev.map((s) =>
+                    s.step && s.step.typeID === step?.typeID
+                      ? { ...s, completed: true }
+                      : s
+                  )
                 );
-                return list.map((step, index) => ({
-                  id: index,
-                  completed: completedTypes.has(step?.typeID ?? ""),
-                  step,
-                }));
-              });
-            }
-            if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-              const step = event.args;
-              setSteps((prev) =>
-                prev.map((s) =>
-                  s.step && s.step.typeID === step?.typeID
-                    ? { ...s, completed: true }
-                    : s
-                )
-              );
-            }
-          },
+              }
+            },
         }
       );
       if (!bridgeTxn) {
@@ -341,6 +341,8 @@ const useBridge = ({
     setInputs(buildInitialInputs(connectedAddress, prefill));
     setStartTxn(false);
     setRefreshing(false);
+    // Reset steps when form is reset
+    setSteps([]);
   }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
@@ -429,6 +431,20 @@ const useBridge = ({
     }
   }, [inputs]);
 
+  // Clear amount field when steps start (transaction has been accepted)
+  const hasClearedAmountRef = useRef<boolean>(false);
+  useEffect(() => {
+    // When steps appear and dialog is open, clear the amount field
+    if (steps.length > 0 && isDialogOpen && !hasClearedAmountRef.current) {
+      setInputs((prev) => ({ ...prev, amount: undefined }));
+      hasClearedAmountRef.current = true;
+    }
+    // Reset the flag when dialog closes or steps are cleared
+    if ((!isDialogOpen || steps.length === 0) && hasClearedAmountRef.current) {
+      hasClearedAmountRef.current = false;
+    }
+  }, [steps.length, isDialogOpen]);
+
   // Reset form when amount becomes empty
   const prevAmountRef = useRef<string | undefined>(inputs?.amount);
   useEffect(() => {
@@ -440,14 +456,23 @@ const useBridge = ({
     const isEmpty = !currentAmount || currentAmount.trim() === "";
     
     if (wasNonEmpty && isEmpty) {
-      reset();
-      // Update ref to the reset value to prevent infinite loop
-      const resetInputs = buildInitialInputs(connectedAddress, prefill);
-      prevAmountRef.current = resetInputs.amount;
+      // If steps are active (transaction in progress), just clear intent details without denying
+      if (steps.length > 0) {
+        setIntent(null);
+        setAllowance(null);
+        // Don't deny intent or reset inputs fully - let transaction continue
+        prevAmountRef.current = undefined;
+      } else {
+        // Normal reset when no transaction is in progress
+        reset();
+        // Update ref to the reset value to prevent infinite loop
+        const resetInputs = buildInitialInputs(connectedAddress, prefill);
+        prevAmountRef.current = resetInputs.amount;
+      }
     } else {
       prevAmountRef.current = currentAmount;
     }
-  }, [inputs?.amount, reset, connectedAddress, prefill]);
+  }, [inputs?.amount, reset, connectedAddress, prefill, steps.length]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
