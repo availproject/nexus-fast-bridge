@@ -1,9 +1,7 @@
 import {
   NEXUS_EVENTS,
   NexusSDK,
-  SUPPORTED_CHAINS,
   type BridgeStepType,
-  type NexusNetwork,
   type OnAllowanceHookData,
   type OnIntentHookData,
   type SUPPORTED_CHAINS_IDS,
@@ -23,7 +21,6 @@ export interface FastBridgeState {
 }
 
 interface UseBridgeProps {
-  network: NexusNetwork;
   connectedAddress: Address;
   nexusSDK: NexusSDK | null;
   intent: OnIntentHookData | null;
@@ -42,7 +39,6 @@ interface UseBridgeProps {
 }
 
 const buildInitialInputs = (
-  network: NexusNetwork,
   connectedAddress: Address,
   prefill?: {
     token: string;
@@ -67,13 +63,12 @@ const useBridge = ({
   setIntent,
   setAllowance,
   unifiedBalance,
-  network,
   prefill,
   onComplete,
 }: UseBridgeProps) => {
   const { fetchUnifiedBalance, handleNexusError } = useNexus();
   const [inputs, setInputs] = useState<FastBridgeState>(() =>
-    buildInitialInputs(network, connectedAddress, prefill)
+    buildInitialInputs(connectedAddress, prefill)
   );
 
   const [timer, setTimer] = useState(0);
@@ -124,7 +119,7 @@ const useBridge = ({
     setStartTxn(false);
     setIntent(null);
     setAllowance(null);
-    setInputs(buildInitialInputs(network, connectedAddress, prefill));
+    setInputs(buildInitialInputs(connectedAddress, prefill));
     setRefreshing(false);
     await fetchUnifiedBalance();
   }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance]);
@@ -334,6 +329,8 @@ const useBridge = ({
     intent?.deny();
     setIntent(null);
     setAllowance(null);
+    setSteps([]);
+    setLastExplorerUrl("");
     setInputs({
       chain: config.chainId as SUPPORTED_CHAINS_IDS,
       token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
@@ -342,11 +339,14 @@ const useBridge = ({
     });
     setStartTxn(false);
     setRefreshing(false);
+    setIsDialogOpen(false);
   };
 
   const startTransaction = () => {
     // Reset timer for a fresh run
     setTimer(0);
+    setSteps([]);
+    setLastExplorerUrl("");
     setStartTxn(true);
     intent?.allow();
     setIsDialogOpen(true);

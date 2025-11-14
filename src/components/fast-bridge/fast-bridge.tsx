@@ -48,7 +48,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     unifiedBalance,
     allowance,
     setAllowance,
-    network,
   } = useNexus();
 
   const {
@@ -70,7 +69,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     steps,
   } = useBridge({
     prefill,
-    network: network ?? "mainnet",
     connectedAddress,
     nexusSDK,
     intent,
