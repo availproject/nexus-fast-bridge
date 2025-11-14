@@ -1,69 +1,37 @@
 "use client";
-import "@rainbow-me/rainbowkit/styles.css";
+import { createConfig, WagmiProvider } from "wagmi";
 import {
-  getDefaultConfig,
-  RainbowKitProvider,
-  type Chain,
-} from "@rainbow-me/rainbowkit";
-import { WagmiProvider } from "wagmi";
-import {
-  mainnet,
-  scroll,
-  polygon,
-  optimism,
-  arbitrum,
-  base,
-  avalanche,
-  sophon,
-  kaia,
   sepolia,
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
   polygonAmoy,
+  monadTestnet,
+  type Chain,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import config from "../../config";
 
-const monadTestnet: Chain = {
-  id: config.chainId,
-  name: config.chainName,
-  nativeCurrency: {
-    name: config.chainNativeCurrency.name,
-    symbol: config.chainNativeCurrency.symbol,
-    decimals: config.chainNativeCurrency.decimals,
-  },
-  rpcUrls: {
-    default: { http: [config.chainRpcUrl] },
-  },
-  blockExplorers: {
-    default: { name: "MonVision", url: config.chainBlockExplorerUrl },
-  },
-  testnet: config.chainTestnet,
-  iconUrl: config.chainIconUrl,
-};
+const monadTestnetChain = {
+  ...monadTestnet,
+  logo: <img src={config.chainIconUrl} alt={config.chainName} />,
+} as unknown as Chain;
 
-const wagmiConfig = getDefaultConfig({
-  appName: "Nexus Elements",
-  projectId: config.projectId,
-  chains: [
-    mainnet,
-    base,
-    sophon,
-    kaia,
-    arbitrum,
-    avalanche,
-    optimism,
-    polygon,
-    scroll,
-    sepolia,
-    baseSepolia,
-    arbitrumSepolia,
-    optimismSepolia,
-    polygonAmoy,
-    monadTestnet,
-  ],
-});
+const wagmiConfig = createConfig(
+  getDefaultConfig({
+    appName: "Nexus Elements",
+    walletConnectProjectId: config.projectId,
+    chains: [
+      sepolia,
+      baseSepolia,
+      arbitrumSepolia,
+      optimismSepolia,
+      polygonAmoy,
+      monadTestnetChain,
+    ],
+  })
+);
 
 const queryClient = new QueryClient();
 
@@ -71,9 +39,9 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={config.chainId} modalSize="compact">
+        <ConnectKitProvider options={{ initialChainId: config.chainId }}>
           {children}
-        </RainbowKitProvider>
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
