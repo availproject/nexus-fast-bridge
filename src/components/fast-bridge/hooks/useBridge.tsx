@@ -80,6 +80,7 @@ const useBridge = ({
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
+  const inputsRef = useRef<FastBridgeState>(inputs);
   const [steps, setSteps] = useState<
     Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
@@ -102,19 +103,9 @@ const useBridge = ({
     setStartTxn(false);
     setIntent(null);
     setAllowance(null);
-    setInputs({
-      chain: config.chainId as SUPPORTED_CHAINS_IDS,
-      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
-      amount: undefined,
-      recipient: connectedAddress,
-    });
-
     setRefreshing(false);
+
     await fetchUnifiedBalance();
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
     onComplete?.();
     setStartTxn(false);
     setIntent(null);
@@ -122,7 +113,7 @@ const useBridge = ({
     setInputs(buildInitialInputs(connectedAddress, prefill));
     setRefreshing(false);
     await fetchUnifiedBalance();
-  }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance]);
+  }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance, prefill]);
 
   // const handleTransaction = async () => {
   //   if (processingRef.current) return;
@@ -191,27 +182,31 @@ const useBridge = ({
   //   }
   // };
 
-  const handleTransaction = async () => {
+  const handleTransaction = useCallback(async () => {
+    // Use ref to get the latest inputs value to avoid stale closures
+    const currentInputs = inputsRef.current;
     if (
-      !inputs?.amount ||
-      !inputs?.recipient ||
-      !inputs?.chain ||
-      !inputs?.token
+      !currentInputs?.amount ||
+      !currentInputs?.recipient ||
+      !currentInputs?.chain ||
+      !currentInputs?.token ||
+      commitLockRef.current
     ) {
       console.error("Missing required inputs");
       return;
     }
+    commitLockRef.current = true;
     setLoading(true);
     setTxError(null);
     try {
-      if (inputs?.recipient !== connectedAddress) {
+      if (currentInputs?.recipient !== connectedAddress) {
         // Transfer
         const transferTxn = await nexusSDK?.bridgeAndTransfer(
           {
-            token: inputs?.token,
-            amount: inputs?.amount,
-            toChainId: inputs?.chain,
-            recipient: inputs?.recipient,
+            token: currentInputs?.token,
+            amount: currentInputs?.amount,
+            toChainId: currentInputs?.chain,
+            recipient: currentInputs?.recipient,
           },
           {
             onEvent: (event) => {
@@ -255,9 +250,9 @@ const useBridge = ({
       // Bridge
       const bridgeTxn = await nexusSDK?.bridge(
         {
-          token: inputs?.token,
-          amount: inputs?.amount,
-          toChainId: inputs?.chain,
+          token: currentInputs?.token,
+          amount: currentInputs?.amount,
+          toChainId: currentInputs?.chain,
         },
         {
           onEvent: (event) => {
@@ -303,12 +298,18 @@ const useBridge = ({
     } finally {
       setLoading(false);
       setStartTxn(false);
+      commitLockRef.current = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-  };
+  }, [connectedAddress, nexusSDK, onSuccess, handleNexusError]);
+
+  // Keep inputsRef in sync with inputs state
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
 
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.find((bal) => bal?.symbol === inputs?.token);
@@ -325,22 +326,17 @@ const useBridge = ({
     }
   }, [intent]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     intent?.deny();
     setIntent(null);
     setAllowance(null);
     setSteps([]);
     setLastExplorerUrl("");
-    setInputs({
-      chain: config.chainId as SUPPORTED_CHAINS_IDS,
-      token: config.nexusPrimaryToken as SUPPORTED_TOKENS,
-      amount: undefined,
-      recipient: connectedAddress,
-    });
+    setInputs(buildInitialInputs(connectedAddress, prefill));
     setStartTxn(false);
     setRefreshing(false);
     setIsDialogOpen(false);
-  };
+  }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
     // Reset timer for a fresh run
@@ -379,11 +375,23 @@ const useBridge = ({
   }, [startTxn]);
 
   useEffect(() => {
-    if (intent && !commitLockRef.current) {
-      intent.deny();
-      setIntent(null);
+    // Deny intent only when user edits inputs; avoid denying on intent updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!intent) return;
+    // Reset commit lock when inputs change to allow new intent to be fetched
+    if (commitLockRef.current) {
+      commitLockRef.current = false;
     }
-  }, [inputs]);
+    // Allow intent to be denied even if loading, so user can edit inputs at any time
+    // Only prevent denial if we're actually submitting a transaction (startTxn is true)
+    if (loading && startTxn) return;
+    // Reset loading if we're just fetching an intent (not submitting)
+    if (loading && !startTxn) {
+      setLoading(false);
+    }
+    intent.deny();
+    setIntent(null);
+  }, [inputs, startTxn]);
 
   useEffect(() => {
     if (
@@ -398,8 +406,7 @@ const useBridge = ({
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputs, areInputsValid, intent, loading, txError, commitLockRef]);
+  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction]);
 
   // Stop timer when dialog closes
   useEffect(() => {
@@ -417,25 +424,62 @@ const useBridge = ({
     if (txError) {
       setTxError(null);
     }
-  }, [inputs, txError]);
+  }, [inputs]);
 
-  const stopTimer = () => {
+  // Clear amount field when steps start (transaction has been accepted)
+  const hasClearedAmountRef = useRef<boolean>(false);
+  useEffect(() => {
+    // When steps appear and dialog is open, clear the amount field
+    if (steps.length > 0 && isDialogOpen && !hasClearedAmountRef.current) {
+      setInputs((prev) => ({ ...prev, amount: undefined }));
+      hasClearedAmountRef.current = true;
+    }
+    // Reset the flag when dialog closes or steps are cleared
+    if ((!isDialogOpen || steps.length === 0) && hasClearedAmountRef.current) {
+      hasClearedAmountRef.current = false;
+    }
+  }, [steps.length, isDialogOpen]);
+
+  // Reset form when amount becomes empty
+  const prevAmountRef = useRef<string | undefined>(inputs?.amount);
+  useEffect(() => {
+    const prevAmount = prevAmountRef.current;
+    const currentAmount = inputs?.amount;
+
+    // If amount was previously set (not undefined/empty) and is now empty, reset the form
+    const wasNonEmpty = prevAmount && prevAmount.trim() !== "";
+    const isEmpty = !currentAmount || currentAmount.trim() === "";
+
+    if (wasNonEmpty && isEmpty) {
+      // If steps are active (transaction in progress), just clear intent details without denying
+      if (steps.length > 0) {
+        setIntent(null);
+        setAllowance(null);
+        // Don't deny intent or reset inputs fully - let transaction continue
+        prevAmountRef.current = undefined;
+      } else {
+        // Normal reset when no transaction is in progress
+        reset();
+        // Update ref to the reset value to prevent infinite loop
+        const resetInputs = buildInitialInputs(connectedAddress, prefill);
+        prevAmountRef.current = resetInputs.amount;
+      }
+    } else {
+      prevAmountRef.current = currentAmount;
+    }
+  }, [inputs?.amount, reset, connectedAddress, prefill, steps.length]);
+
+  const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setStartTxn(false);
-  };
-  const commitAmount = async () => {
-    if (commitLockRef.current) return;
+  }, []);
+  const commitAmount = useCallback(async () => {
     if (intent || loading || txError || !areInputsValid) return;
-    commitLockRef.current = true;
-    try {
-      await handleTransaction();
-    } finally {
-      commitLockRef.current = false;
-    }
-  };
+    await handleTransaction();
+  }, [intent, loading, txError, areInputsValid, handleTransaction]);
 
   return {
     inputs,
