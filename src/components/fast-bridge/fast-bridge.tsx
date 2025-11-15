@@ -49,6 +49,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     allowance,
     setAllowance,
     network,
+    supportedChainsAndTokens,
   } = useNexus();
 
   const {
@@ -87,18 +88,74 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     }
   }, [allCompleted, stopTimer]);
 
+  // Calculate adjusted balance (unified balance minus balance on destination chain)
+  const adjustedBalance = React.useMemo(() => {
+    if (!filteredUnifiedBalance?.balance || !inputs?.chain) {
+      return filteredUnifiedBalance?.balance || "0";
+    }
+
+    // Find the balance already on the destination chain
+    let balanceOnDestinationChain = "0";
+    if (filteredUnifiedBalance?.breakdown) {
+      const destinationBalance = filteredUnifiedBalance.breakdown.find(
+        (balance) => balance.chain.id === inputs.chain
+      );
+      if (destinationBalance) {
+        balanceOnDestinationChain = destinationBalance.balance || "0";
+      }
+    }
+
+    // Calculate unified balance minus balance on destination chain
+    const unifiedBal = Number.parseFloat(filteredUnifiedBalance.balance || "0");
+    const destBal = Number.parseFloat(balanceOnDestinationChain);
+    const adjusted = Math.max(0, unifiedBal - destBal);
+
+    return adjusted.toString();
+  }, [filteredUnifiedBalance, inputs?.chain]);
+
   return (
     <Card className="w-full max-w-xl">
       <CardContent className="flex flex-col gap-y-4 w-full">
         <ChainSelect
           selectedChain={inputs?.chain}
-          handleSelect={(chain) =>
+          handleSelect={(chain) => {
+            // Get tokens supported on the new chain
+            const newChainTokens = supportedChainsAndTokens?.find(
+              (c) => c.id === chain
+            )?.tokens;
+            
+            // Check if current token is supported on the new chain
+            const isCurrentTokenSupported = newChainTokens?.some(
+              (token) => token.symbol === inputs?.token
+            );
+            
+            // Determine the token to use
+            let newToken: SUPPORTED_TOKENS | undefined = inputs?.token;
+            
+            if (!isCurrentTokenSupported) {
+              // Current token not supported - select a default token
+              if (newChainTokens && newChainTokens.length > 0) {
+                // Prefer USDC if available, otherwise use the first token
+                const usdcToken = newChainTokens.find((t) => t.symbol === "USDC");
+                newToken = (usdcToken?.symbol as SUPPORTED_TOKENS) ?? (newChainTokens[0]?.symbol as SUPPORTED_TOKENS);
+              } else {
+                // No tokens available on new chain - clear token selection
+                newToken = undefined;
+              }
+            }
+            
             setInputs((prev) => ({
               ...prev,
               chain,
-            }))
+              token: newToken,
+            }));
+          }}
+          label={
+            <>
+              <span className="md:hidden">Fast Bridge to</span>
+              <span className="hidden md:inline">To</span>
+            </>
           }
-          label="To"
         />
         <TokenSelect
           selectedChain={inputs?.chain}
@@ -110,7 +167,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           onChange={(amount) => setInputs((prev) => ({ ...prev, amount }))}
           unifiedBalance={filteredUnifiedBalance}
           onCommit={() => commitAmount()}
-          disabled={refreshing || !!prefill?.amount}
+          disabled={!!prefill?.amount}
           inputs={inputs}
         />
         <BalanceBreakdown assetBalances={filteredUnifiedBalance as UserAsset} />
@@ -131,7 +188,18 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               <p className="text-base font-light">You receive</p>
               <div className="flex flex-col gap-y-1 min-w-fit">
                 <p className="text-base font-light text-right">
-                  {intent?.intent?.destination?.amount}{" "}
+                  {(() => {
+                    const amount = intent?.intent?.destination?.amount;
+                    if (!amount) return "0";
+                    const num = Number.parseFloat(String(amount));
+                    if (Number.isNaN(num)) return String(amount);
+                    const str = num.toString();
+                    // Only remove trailing zeros if there's a decimal point
+                    if (str.includes(".")) {
+                      return str.replace(/\.?0+$/, "");
+                    }
+                    return str;
+                  })()}{" "}
                   {filteredUnifiedBalance?.symbol}
                 </p>
                 <p className="text-sm font-light text-right">
@@ -144,23 +212,37 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         )}
 
         {/* Show loading state while fetching intent */}
-        {loading ||
-          (!intent?.intent &&
+        {(() => {
+          // Check if we should show loading
+          const shouldShowLoading = loading || (
+            !intent?.intent &&
             inputs?.chain &&
             inputs?.token &&
             inputs?.amount &&
             parseFloat(inputs?.amount || "0") > 0 &&
             inputs?.recipient &&
             filteredUnifiedBalance &&
-            parseFloat(inputs?.amount || "0") <=
-              parseFloat(filteredUnifiedBalance.balance || "0") && (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <LoaderPinwheel className="animate-spin size-5" />
-                <span className="text-base text-muted-foreground">
-                  Fetching bridge details...
-                </span>
-              </div>
-            ))}
+            parseFloat(inputs?.amount || "0") <= parseFloat(adjustedBalance || "0")
+          );
+          
+          // Also check if intent exists but is missing required data
+          const intentIncomplete = intent?.intent && (
+            !intent.intent.destination?.amount ||
+            !intent.intent.destination?.chainName ||
+            !intent.intent.sources ||
+            intent.intent.sources.length === 0 ||
+            !intent.intent.fees?.total
+          );
+          
+          return (shouldShowLoading || intentIncomplete) && (
+            <div className="flex items-center justify-center gap-2 py-4">
+              <LoaderPinwheel className="animate-spin size-5" />
+              <span className="text-base text-muted-foreground">
+                Fetching bridge details...
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Show amount exceeds balance message */}
         {!intent?.intent &&
@@ -171,7 +253,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           inputs?.recipient &&
           filteredUnifiedBalance &&
           parseFloat(inputs?.amount || "0") >
-            parseFloat(filteredUnifiedBalance.balance || "0") && (
+            parseFloat(adjustedBalance || "0") && (
             <div className="text-center py-4">
               <p className="text-base text-red-600">
                 Amount exceeds available balance. Please enter a valid amount to
@@ -257,8 +339,8 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           </div>
         )}
 
-        {/* Powered by Avail */}
-        <div className="w-full flex items-center gap-x-1 justify-center">
+        {/* Powered by Avail - Hidden on mobile */}
+        <div className="hidden md:flex w-full items-center gap-x-1 justify-center">
           <p className="text-sm font-light" style={{ color: "#666666" }}>
             Powered by
           </p>

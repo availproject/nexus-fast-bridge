@@ -7,6 +7,20 @@ import {
 } from "../../ui/accordion";
 import { type ReadableIntent } from "@avail-project/nexus-core";
 
+// Helper function to format numbers and remove trailing zeros after decimal point
+const formatAmount = (amount: string | number | undefined): string => {
+  if (!amount) return "0";
+  const num = typeof amount === "string" ? Number.parseFloat(amount) : amount;
+  if (Number.isNaN(num)) return String(amount);
+  // Convert to string and remove trailing zeros only after decimal point
+  const str = num.toString();
+  // Only remove trailing zeros if there's a decimal point
+  if (str.includes(".")) {
+    return str.replace(/\.?0+$/, "");
+  }
+  return str;
+};
+
 interface FeeBreakdownProps {
   intent: ReadableIntent;
 }
@@ -20,7 +34,7 @@ const FeeBreakdown: React.FC<FeeBreakdownProps> = ({ intent }) => {
 
           <div className="flex flex-col items-end justify-end-safe gap-y-1">
             <p className="font-light text-base min-w-max">
-              {intent.fees?.total} {intent.token?.symbol}
+              {formatAmount(intent.fees?.total)} {intent.token?.symbol}
             </p>
             <AccordionTrigger
               containerClassName="w-fit"
@@ -36,25 +50,25 @@ const FeeBreakdown: React.FC<FeeBreakdownProps> = ({ intent }) => {
             <div className="flex items-center w-full justify-between">
               <p className="text-sm font-light">Fast Bridge Gas Fee</p>
               <p className="text-sm font-light">
-                {intent?.fees?.caGas} {intent?.token?.symbol}
+                {formatAmount(intent?.fees?.caGas)} {intent?.token?.symbol}
               </p>
             </div>
             <div className="flex items-center w-full justify-between">
               <p className="text-sm font-light">Gas Supplied</p>
               <p className="text-sm font-light">
-                {intent?.fees?.gasSupplied} {intent?.token?.symbol}
+                {formatAmount(intent?.fees?.gasSupplied)} {intent?.token?.symbol}
               </p>
             </div>
             <div className="flex items-center w-full justify-between">
               <p className="text-sm font-light">Solver Fees</p>
               <p className="text-sm font-light">
-                {intent?.fees?.solver} {intent?.token?.symbol}
+                {formatAmount(intent?.fees?.solver)} {intent?.token?.symbol}
               </p>
             </div>
             <div className="flex items-center w-full justify-between">
               <p className="text-sm font-light">Protocol Fees</p>
               <p className="text-sm font-light">
-                {intent?.fees?.protocol} {intent?.token?.symbol}
+                {formatAmount(intent?.fees?.protocol)} {intent?.token?.symbol}
               </p>
             </div>
           </div>

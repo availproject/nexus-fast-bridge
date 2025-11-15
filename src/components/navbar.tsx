@@ -31,7 +31,7 @@ export default function Navbar() {
               </div>
             )}
             <div
-              className="text-xl"
+              className="hidden md:block text-xl"
               style={{
                 marginLeft: "5px",
                 fontWeight: "100",
@@ -41,7 +41,7 @@ export default function Navbar() {
               Fast Bridge by
             </div>
             <a
-              className="text-xl"
+              className="hidden md:block text-xl"
               href="https://availproject.org"
               target="_blank"
               rel="noopener noreferrer"

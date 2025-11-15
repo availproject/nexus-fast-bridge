@@ -15,8 +15,9 @@ interface PreviewPanelProps {
 export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const [loading, setLoading] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = React.useState(true);
   const { status, connector } = useAccount();
-  const { nexusSDK, handleInit } = useNexus();
+  const { nexusSDK, handleInit, loading: nexusLoading } = useNexus();
 
   const initializeNexus = React.useCallback(async () => {
     if (loading || nexusSDK) return; // Prevent multiple calls
@@ -41,6 +42,18 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     }
   }, [connector, handleInit, loading, nexusSDK]);
 
+  // Track initial connection check
+  React.useEffect(() => {
+    // Once we know the connection status, mark initialization as complete
+    if (status === "connected" || status === "disconnected") {
+      // Small delay to ensure status is stable
+      const timer = setTimeout(() => {
+        setIsInitializing(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   // Auto-initialize Nexus when wallet is connected
   React.useEffect(() => {
     if (status === "connected" && !nexusSDK && !loading && !initError) {
@@ -48,35 +61,41 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     }
   }, [status, nexusSDK, loading, initError, initializeNexus]);
 
+  // Show loading during initial connection check or Nexus initialization
+  const showLoading = isInitializing || nexusLoading || (status === "connected" && !nexusSDK && loading);
+
   return (
     <div className="flex items-center justify-center min-h-[400px] relative">
-      {status === "connected" && nexusSDK && <>{children}</>}
-      {status === "connected" && !nexusSDK && loading && (
+      {showLoading ? (
         <div className="flex items-center gap-2">
           <LoaderPinwheel className="size-6 animate-spin" />
           <span>Initializing Nexus...</span>
         </div>
-      )}
-      {status === "connected" && !nexusSDK && !loading && initError && (
+      ) : status === "connected" && nexusSDK ? (
+        <>{children}</>
+      ) : status === "connected" && !nexusSDK && initError ? (
         <div className="text-center">
           <p className="text-red-600 mb-4">
             Failed to initialize Nexus: {initError}
           </p>
           <Button onClick={initializeNexus}>Retry Initialize Nexus</Button>
         </div>
-      )}
-      {status !== "connected" && (
-        <div className="text-center">
-          <img src={config.chainGifUrl} alt={config.chainGifAlt} width={400} height={400} className="mb-4" style={{ marginLeft: "auto", marginRight: "auto", borderRadius: "10px" }} />
-          <div className="text-5xl font-bold mb-4" style={{ fontSize: "3.5rem", lineHeight: "2.4" }}>
+      ) : status !== "connected" ? (
+        <div className="text-center px-4">
+          <img 
+            src={config.chainGifUrl} 
+            alt={config.chainGifAlt} 
+            className="mb-4 mx-auto rounded-lg w-full max-w-[200px] sm:max-w-[300px] md:max-w-[400px] h-auto" 
+          />
+          <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 px-2" style={{ lineHeight: "1.2", marginTop: "4rem" }}>
             {config.heroText}
           </div>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 px-2">
             Please connect your wallet using the button in the navbar to use the
             bridge.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

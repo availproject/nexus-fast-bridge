@@ -17,7 +17,7 @@ interface ChainSelectProps {
   disabled?: boolean;
   hidden?: boolean;
   className?: string;
-  label?: string;
+  label?: string | React.ReactNode;
   handleSelect: (chainId: SUPPORTED_CHAINS_IDS) => void;
 }
 
@@ -47,7 +47,11 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
       }}
     >
       <div className="flex flex-col items-start gap-y-1 w-full">
-        {label && <Label className="text-sm font-light">{label}</Label>}
+        {label && (
+          <Label className="text-sm font-light">
+            {label}
+          </Label>
+        )}
         <SelectTrigger
           disabled={disabled}
           className="text-base font-light w-full"

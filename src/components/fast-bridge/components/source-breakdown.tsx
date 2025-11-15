@@ -9,6 +9,20 @@ import {
   AccordionTrigger,
 } from "../../ui/accordion";
 
+// Helper function to format numbers and remove trailing zeros after decimal point
+const formatAmount = (amount: string | number | undefined): string => {
+  if (!amount) return "0";
+  const num = typeof amount === "string" ? Number.parseFloat(amount) : amount;
+  if (Number.isNaN(num)) return String(amount);
+  // Convert to string and remove trailing zeros only after decimal point
+  const str = num.toString();
+  // Only remove trailing zeros if there's a decimal point
+  if (str.includes(".")) {
+    return str.replace(/\.?0+$/, "");
+  }
+  return str;
+};
+
 interface SourceBreakdownProps {
   intent: ReadableIntent;
   tokenSymbol: SUPPORTED_TOKENS;
@@ -32,7 +46,7 @@ const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
 
               <div className="flex flex-col items-end gap-y-1 min-w-fit">
                 <p className="text-base font-light">
-                  {intent?.sourcesTotal} {tokenSymbol}
+                  {formatAmount(intent?.sourcesTotal)} {tokenSymbol}
                 </p>
                 <AccordionTrigger
                   containerClassName="w-fit"
@@ -65,7 +79,7 @@ const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
                   </div>
 
                   <p className="text-sm font-light">
-                    {source.amount} {tokenSymbol}
+                    {formatAmount(source.amount)} {tokenSymbol}
                   </p>
                 </div>
               ))}

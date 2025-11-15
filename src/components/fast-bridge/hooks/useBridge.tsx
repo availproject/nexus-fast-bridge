@@ -84,6 +84,7 @@ const useBridge = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
   const inputsRef = useRef<FastBridgeState>(inputs);
+  const denyingDueToInvalidInputRef = useRef<boolean>(false);
   const [steps, setSteps] = useState<
     Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
@@ -91,7 +92,10 @@ const useBridge = ({
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
     const hasChain = inputs?.chain !== undefined && inputs?.chain !== null;
-    const hasAmount = Boolean(inputs?.amount) && Number(inputs?.amount) > 0;
+    // More robust amount validation - check that it's a valid number > 0
+    const amountValue = inputs?.amount?.trim();
+    const parsedAmount = amountValue ? Number.parseFloat(amountValue) : 0;
+    const hasAmount = Boolean(amountValue) && !Number.isNaN(parsedAmount) && parsedAmount > 0;
     const hasValidrecipient =
       Boolean(inputs?.recipient) && isAddress(inputs?.recipient as string);
     return hasToken && hasChain && hasAmount && hasValidrecipient;
@@ -299,12 +303,26 @@ const useBridge = ({
         setLastExplorerUrl(bridgeTxn.explorerUrl);
         await onSuccess();
       }
+      // Don't set loading to false here - wait for intent to be populated
+      // Loading will be cleared when intent?.intent becomes available
     } catch (error) {
+      // Don't set error if we're denying due to invalid input (user is just editing)
+      if (denyingDueToInvalidInputRef.current) {
+        setTxError(null);
+        setIsDialogOpen(false);
+        setLoading(false);
+        return;
+      }
       const { message } = handleNexusError(error);
-      setTxError(message);
+      // Don't show "User rejected" errors when denying due to invalid input
+      if (message && message.includes("User rejected") && denyingDueToInvalidInputRef.current) {
+        setTxError(null);
+      } else {
+        setTxError(message);
+      }
       setIsDialogOpen(false);
-    } finally {
       setLoading(false);
+    } finally {
       setStartTxn(false);
       commitLockRef.current = false;
       if (timerRef.current) {
@@ -322,6 +340,31 @@ const useBridge = ({
   const filteredUnifiedBalance = useMemo(() => {
     return unifiedBalance?.find((bal) => bal?.symbol === inputs?.token);
   }, [unifiedBalance, inputs?.token]);
+
+  // Calculate adjusted balance (unified balance minus balance on destination chain)
+  const adjustedBalance = useMemo(() => {
+    if (!filteredUnifiedBalance?.balance || !inputs?.chain) {
+      return "0";
+    }
+
+    // Find the balance already on the destination chain
+    let balanceOnDestinationChain = "0";
+    if (filteredUnifiedBalance?.breakdown) {
+      const destinationBalance = filteredUnifiedBalance.breakdown.find(
+        (balance) => balance.chain.id === inputs.chain
+      );
+      if (destinationBalance) {
+        balanceOnDestinationChain = destinationBalance.balance || "0";
+      }
+    }
+
+    // Calculate unified balance minus balance on destination chain
+    const unifiedBal = Number.parseFloat(filteredUnifiedBalance.balance || "0");
+    const destBal = Number.parseFloat(balanceOnDestinationChain);
+    const adjusted = Math.max(0, unifiedBal - destBal);
+
+    return adjusted.toString();
+  }, [filteredUnifiedBalance, inputs?.chain]);
 
   const refreshIntent = useCallback(async () => {
     setRefreshing(true);
@@ -394,11 +437,71 @@ const useBridge = ({
     if (loading && !startTxn) {
       setLoading(false);
     }
-    intent.deny();
+    
+    // Set flag to ignore errors when denying due to input changes
+    // We always deny silently when inputs change (user is editing, not rejecting)
+    denyingDueToInvalidInputRef.current = true;
+    
+    // Clear any existing errors when inputs change (user is editing, not rejecting)
+    setTxError(null);
+    
+    try {
+      intent.deny();
+    } catch (error) {
+      // Silently ignore errors when denying due to input changes
+      // This is normal behavior when user edits the form
+    }
     setIntent(null);
+    
+    // Reset flag after a short delay to allow any async error callbacks to be ignored
+    setTimeout(() => {
+      denyingDueToInvalidInputRef.current = false;
+    }, 100);
   }, [inputs, startTxn]);
 
+  // Clear loading state when intent details become fully available
+  // Check for all required properties to ensure intent is complete
   useEffect(() => {
+    if (loading && intent?.intent) {
+      // Verify that intent has all the necessary data before clearing loading
+      const hasDestination = intent.intent.destination?.amount && intent.intent.destination?.chainName;
+      const hasSources = intent.intent.sources && intent.intent.sources.length > 0;
+      const hasFees = intent.intent.fees?.total;
+      
+      // Only clear loading if all required data is present
+      if (hasDestination && hasSources && hasFees) {
+        setLoading(false);
+      }
+    }
+  }, [loading, intent?.intent]);
+
+  useEffect(() => {
+    // First check amount validity - this must happen before areInputsValid check
+    // to prevent fetching intent for "0.", "0", etc.
+    if (inputs?.amount) {
+      const amountStr = inputs.amount.trim();
+      // Don't proceed if amount is empty or just whitespace
+      if (!amountStr) {
+        return;
+      }
+      
+      const amount = Number.parseFloat(amountStr);
+      // Don't proceed if amount is zero, negative, or invalid (catches "0.", "0", "0.0", etc.)
+      if (Number.isNaN(amount) || amount <= 0) {
+        return;
+      }
+      
+      // Check if amount exceeds adjusted balance before fetching intent
+      if (filteredUnifiedBalance) {
+        const adjusted = Number.parseFloat(adjustedBalance || "0");
+        if (amount > adjusted) {
+          // Don't fetch intent if amount exceeds available balance
+          return;
+        }
+      }
+    }
+    
+    // Now check other conditions
     if (
       intent ||
       loading ||
@@ -407,11 +510,12 @@ const useBridge = ({
       commitLockRef.current
     )
       return;
+    
     const timeout = setTimeout(() => {
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction]);
+  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction, adjustedBalance, filteredUnifiedBalance]);
 
   // Stop timer when dialog closes
   useEffect(() => {
@@ -430,6 +534,22 @@ const useBridge = ({
       setTxError(null);
     }
   }, [inputs]);
+  
+  // Also clear error when amount becomes invalid (0, 0., etc.) - runs after inputs change
+  useEffect(() => {
+    // Check if amount is invalid
+    const isAmountInvalid = inputs?.amount ? (() => {
+      const amountStr = inputs.amount?.trim();
+      if (!amountStr) return true;
+      const amount = Number.parseFloat(amountStr);
+      return Number.isNaN(amount) || amount <= 0;
+    })() : false;
+    
+    // Clear error if amount is invalid (user is just editing, not rejecting)
+    if (isAmountInvalid && txError) {
+      setTxError(null);
+    }
+  }, [inputs?.amount, txError]);
 
   // Clear amount field when steps start (transaction has been accepted)
   const hasClearedAmountRef = useRef<boolean>(false);
@@ -483,8 +603,24 @@ const useBridge = ({
   }, []);
   const commitAmount = useCallback(async () => {
     if (intent || loading || txError || !areInputsValid) return;
+    
+    // Validate amount before proceeding (same checks as in useEffect)
+    if (inputs?.amount) {
+      const amountStr = inputs.amount.trim();
+      if (!amountStr) return;
+      
+      const amount = Number.parseFloat(amountStr);
+      if (Number.isNaN(amount) || amount <= 0) return;
+      
+      // Check if amount exceeds adjusted balance
+      if (filteredUnifiedBalance) {
+        const adjusted = Number.parseFloat(adjustedBalance || "0");
+        if (amount > adjusted) return;
+      }
+    }
+    
     await handleTransaction();
-  }, [intent, loading, txError, areInputsValid, handleTransaction]);
+  }, [intent, loading, txError, areInputsValid, handleTransaction, inputs?.amount, filteredUnifiedBalance, adjustedBalance]);
 
   return {
     inputs,
