@@ -39,9 +39,7 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider options={{ initialChainId: config.chainId }}>
-          {children}
-        </ConnectKitProvider>
+        <ConnectKitProvider>{children}</ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
