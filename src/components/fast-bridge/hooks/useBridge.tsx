@@ -195,6 +195,8 @@ const useBridge = ({
   // };
 
   const handleTransaction = useCallback(async () => {
+    // Starting a new intent fetch/transaction - reset any previous progress steps
+    setSteps([]);
     // Use ref to get the latest inputs value to avoid stale closures
     const currentInputs = inputsRef.current;
     if (
