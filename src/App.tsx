@@ -13,11 +13,11 @@ export default function App() {
       <NexusProvider
         config={{
           network: config.nexusNetwork as NexusNetwork,
-          debug: true,
+          debug: false,
         }}
       >
         <div className="font-sans min-h-screen">
-        <Navbar />
+          <Navbar />
           <div className="min-h-full w-full flex gap-16">
             <div
               className="absolute inset-0 z-0"

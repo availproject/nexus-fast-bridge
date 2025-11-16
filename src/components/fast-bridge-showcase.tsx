@@ -1,16 +1,15 @@
 "use client";
-import React from "react";
 import { useAccount } from "wagmi";
 import FastBridge from "./fast-bridge/fast-bridge";
-import { PreviewPanel } from "./walletConnect";
+import { WalletConnectWrapper } from "./walletConnect";
 
 const FastBridgeShowcase = () => {
   const { address } = useAccount();
 
   return (
-    <PreviewPanel>
+    <WalletConnectWrapper>
       <FastBridge connectedAddress={address as `0x${string}`} />
-    </PreviewPanel>
+    </WalletConnectWrapper>
   );
 };
 

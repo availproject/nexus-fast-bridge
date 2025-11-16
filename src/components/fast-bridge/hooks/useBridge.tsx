@@ -2,7 +2,6 @@ import {
   NEXUS_EVENTS,
   NexusSDK,
   type BridgeStepType,
-  type NexusNetwork,
   type OnAllowanceHookData,
   type OnIntentHookData,
   type SUPPORTED_CHAINS_IDS,
@@ -22,7 +21,6 @@ export interface FastBridgeState {
 }
 
 interface UseBridgeProps {
-  network: NexusNetwork;
   connectedAddress: Address;
   nexusSDK: NexusSDK | null;
   intent: OnIntentHookData | null;
@@ -65,7 +63,6 @@ const useBridge = ({
   setIntent,
   setAllowance,
   unifiedBalance,
-  network,
   prefill,
   onComplete,
 }: UseBridgeProps) => {
@@ -110,18 +107,13 @@ const useBridge = ({
 
     await fetchUnifiedBalance();
     onComplete?.();
-
-    // Reset inputs after balance fetch
+    setStartTxn(false);
+    setIntent(null);
+    setAllowance(null);
     setInputs(buildInitialInputs(connectedAddress, prefill));
-  }, [
-    connectedAddress,
-    setIntent,
-    setAllowance,
-    fetchUnifiedBalance,
-    network,
-    prefill,
-    onComplete,
-  ]);
+    setRefreshing(false);
+    await fetchUnifiedBalance();
+  }, [connectedAddress, setIntent, setAllowance, fetchUnifiedBalance, prefill]);
 
   // const handleTransaction = async () => {
   //   if (processingRef.current) return;
@@ -262,34 +254,34 @@ const useBridge = ({
           amount: currentInputs?.amount,
           toChainId: currentInputs?.chain,
         },
-          {
-            onEvent: (event) => {
-              if (event.name === NEXUS_EVENTS.STEPS_LIST) {
-                const list = Array.isArray(event.args) ? event.args : [];
-                setSteps((prev) => {
-                  const completedTypes = new Set(
-                    prev
-                      .filter((s) => s.completed)
-                      .map((s) => s.step?.typeID ?? "")
-                  );
-                  return list.map((step, index) => ({
-                    id: index,
-                    completed: completedTypes.has(step?.typeID ?? ""),
-                    step,
-                  }));
-                });
-              }
-              if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-                const step = event.args;
-                setSteps((prev) =>
-                  prev.map((s) =>
-                    s.step && s.step.typeID === step?.typeID
-                      ? { ...s, completed: true }
-                      : s
-                  )
+        {
+          onEvent: (event) => {
+            if (event.name === NEXUS_EVENTS.STEPS_LIST) {
+              const list = Array.isArray(event.args) ? event.args : [];
+              setSteps((prev) => {
+                const completedTypes = new Set(
+                  prev
+                    .filter((s) => s.completed)
+                    .map((s) => s.step?.typeID ?? "")
                 );
-              }
-            },
+                return list.map((step, index) => ({
+                  id: index,
+                  completed: completedTypes.has(step?.typeID ?? ""),
+                  step,
+                }));
+              });
+            }
+            if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+              const step = event.args;
+              setSteps((prev) =>
+                prev.map((s) =>
+                  s.step && s.step.typeID === step?.typeID
+                    ? { ...s, completed: true }
+                    : s
+                )
+              );
+            }
+          },
         }
       );
       if (!bridgeTxn) {
@@ -338,16 +330,19 @@ const useBridge = ({
     intent?.deny();
     setIntent(null);
     setAllowance(null);
+    setSteps([]);
+    setLastExplorerUrl("");
     setInputs(buildInitialInputs(connectedAddress, prefill));
     setStartTxn(false);
     setRefreshing(false);
-    // Reset steps when form is reset
-    setSteps([]);
+    setIsDialogOpen(false);
   }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
     // Reset timer for a fresh run
     setTimer(0);
+    setSteps([]);
+    setLastExplorerUrl("");
     setStartTxn(true);
     intent?.allow();
     setIsDialogOpen(true);
@@ -450,11 +445,11 @@ const useBridge = ({
   useEffect(() => {
     const prevAmount = prevAmountRef.current;
     const currentAmount = inputs?.amount;
-    
+
     // If amount was previously set (not undefined/empty) and is now empty, reset the form
     const wasNonEmpty = prevAmount && prevAmount.trim() !== "";
     const isEmpty = !currentAmount || currentAmount.trim() === "";
-    
+
     if (wasNonEmpty && isEmpty) {
       // If steps are active (transaction in progress), just clear intent details without denying
       if (steps.length > 0) {

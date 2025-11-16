@@ -1,47 +1,22 @@
 "use client";
-import "@rainbow-me/rainbowkit/styles.css";
+import { createConfig, WagmiProvider } from "wagmi";
 import {
-  getDefaultConfig,
-  RainbowKitProvider,
-  type Chain,
-} from "@rainbow-me/rainbowkit";
-import { WagmiProvider } from "wagmi";
-import {
-  mainnet,
-  scroll,
-  polygon,
-  optimism,
-  arbitrum,
-  base,
-  avalanche,
-  sophon,
-  kaia,
   sepolia,
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
   polygonAmoy,
+  monadTestnet,
+  type Chain,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import config from "../../config";
 
-const monadTestnet: Chain = {
-  id: config.chainId,
-  name: config.chainName,
-  nativeCurrency: {
-    name: config.chainNativeCurrency.name,
-    symbol: config.chainNativeCurrency.symbol,
-    decimals: config.chainNativeCurrency.decimals,
-  },
-  rpcUrls: {
-    default: { http: [config.chainRpcUrl] },
-  },
-  blockExplorers: {
-    default: { name: "MonVision", url: config.chainBlockExplorerUrl },
-  },
-  testnet: config.chainTestnet,
-  iconUrl: config.chainIconUrl,
-};
+const monadTestnetChain = {
+  ...monadTestnet,
+  logo: <img src={config.chainIconUrl} alt={config.chainName} />,
+} as unknown as Chain;
 
 const validiumTestnet: Chain = {
   id: 567,
@@ -93,9 +68,7 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={config.chainId} modalSize="compact">
-          {children}
-        </RainbowKitProvider>
+        <ConnectKitProvider>{children}</ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

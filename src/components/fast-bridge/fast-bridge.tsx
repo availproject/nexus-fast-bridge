@@ -48,7 +48,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     unifiedBalance,
     allowance,
     setAllowance,
-    network,
   } = useNexus();
 
   const {
@@ -70,7 +69,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     steps,
   } = useBridge({
     prefill,
-    network: network ?? "mainnet",
     connectedAddress,
     nexusSDK,
     intent,
@@ -103,7 +101,9 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         <TokenSelect
           selectedChain={inputs?.chain}
           selectedToken={inputs?.token}
-          handleTokenSelect={(token) => setInputs((prev) => ({ ...prev, token }))}
+          handleTokenSelect={(token) =>
+            setInputs((prev) => ({ ...prev, token }))
+          }
         />
         <AmountInput
           amount={inputs?.amount}
@@ -117,7 +117,10 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         <ReceipientAddress
           address={inputs?.recipient}
           onChange={(address) =>
-            setInputs((prev) => ({ ...prev, recipient: address as `0x${string}` }))
+            setInputs((prev) => ({
+              ...prev,
+              recipient: address as `0x${string}`,
+            }))
           }
         />
         <hr className="my-4" />
@@ -193,7 +196,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               </p>
             </div>
           )}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen}>
           {intent && (
             <div className="w-full flex items-center gap-x-2 justify-between">
               <Button

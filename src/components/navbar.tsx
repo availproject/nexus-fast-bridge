@@ -1,5 +1,5 @@
 "use client";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectKitButton } from "connectkit";
 import config from "../../config";
 
 export default function Navbar() {
@@ -10,12 +10,12 @@ export default function Navbar() {
           <div className="flex items-center">
             {config.useChainLogo && (
               <img
-              src={config.chainLogoUrl}
-              alt={config.chainName}
-              width={150}
-              height={40}
-              className="h-8 w-auto"
-            />
+                src={config.chainLogoUrl}
+                alt={config.chainName}
+                width={150}
+                height={40}
+                className="h-8 w-auto"
+              />
             )}
             {!config.useChainLogo && (
               <div
@@ -62,7 +62,7 @@ export default function Navbar() {
 
           {/* Right side - Wallet connect only */}
           <div className="flex items-center">
-            <ConnectButton />
+            <ConnectKitButton />
           </div>
         </div>
       </div>

@@ -35,11 +35,9 @@ const TokenSelect = ({
   const { supportedChainsAndTokens } = useNexus();
   const tokenData = useMemo(() => {
     return supportedChainsAndTokens?.filter(
-      (chain) => chain.id === selectedChain,
+      (chain) => chain.id === selectedChain
     )[0]?.tokens;
   }, [selectedChain, supportedChainsAndTokens]);
-
-  console.log({ tokenData })
 
   const selectedTokenData = tokenData?.find((token) => {
     return token.symbol === selectedToken;

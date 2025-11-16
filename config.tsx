@@ -12,7 +12,7 @@ const config = {
   chainRpcUrl: "https://testnet-rpc.monad.xyz",
   chainBlockExplorerUrl: "https://testnet.monadexplorer.com/",
   chainTestnet: false,
-  useChainLogo: false,
+  useChainLogo: true,
   chainIconUrl: "/Monad_Logomark.svg",
   chainLogoUrl: "/Monad_Logo.svg",
   chainGifUrl: "/salmonad.gif",
