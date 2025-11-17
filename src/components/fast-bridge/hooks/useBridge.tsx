@@ -1,6 +1,7 @@
 import {
   NEXUS_EVENTS,
   NexusSDK,
+  TOKEN_METADATA,
   type BridgeStepType,
   type NexusNetwork,
   type OnAllowanceHookData,
@@ -213,60 +214,16 @@ const useBridge = ({
     setLoading(true);
     setTxError(null);
     try {
-      if (currentInputs?.recipient !== connectedAddress) {
-        // Transfer
-        const transferTxn = await nexusSDK?.bridgeAndTransfer(
-          {
-            token: currentInputs?.token,
-            amount: currentInputs?.amount,
-            toChainId: currentInputs?.chain,
-            recipient: currentInputs?.recipient,
-          },
-          {
-            onEvent: (event) => {
-              if (event.name === NEXUS_EVENTS.STEPS_LIST) {
-                const list = Array.isArray(event.args) ? event.args : [];
-                setSteps((prev) => {
-                  const completedTypes = new Set(
-                    prev
-                      .filter((s) => s.completed)
-                      .map((s) => s.step?.typeID ?? "")
-                  );
-                  return list.map((step, index) => ({
-                    id: index,
-                    completed: completedTypes.has(step?.typeID ?? ""),
-                    step,
-                  }));
-                });
-              }
-              if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-                const step = event.args;
-                setSteps((prev) =>
-                  prev.map((s) =>
-                    s?.step?.typeID === step?.typeID
-                      ? { ...s, completed: true }
-                      : s
-                  )
-                );
-              }
-            },
-          }
-        );
-        if (!transferTxn) {
-          throw new Error("Transaction rejected by user");
-        }
-        if (transferTxn) {
-          setLastExplorerUrl(transferTxn.explorerUrl);
-          await onSuccess();
-        }
-        return;
-      }
       // Bridge
       const bridgeTxn = await nexusSDK?.bridge(
         {
           token: currentInputs?.token,
-          amount: currentInputs?.amount,
+          amount: nexusSDK.utils.parseUnits(
+            currentInputs?.amount ?? "0",
+            TOKEN_METADATA[inputs?.token].decimals
+          ),
           toChainId: currentInputs?.chain,
+          recipient: currentInputs?.recipient,
         },
           {
             onEvent: (event) => {
