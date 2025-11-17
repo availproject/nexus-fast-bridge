@@ -109,7 +109,20 @@ const TransactionProgress: React.FC<TransactionProgressProps> = ({
   viewIntentUrl,
   operationType = "bridge",
 }) => {
-  const allCompleted = steps?.length > 0 && steps.every((s) => s.completed);
+  // Check if transaction is completed by looking for INTENT_FULFILLED or TRANSACTION_CONFIRMED
+  // The step type is accessed as s.step?.type in this component
+  const hasCompletionStep = steps?.some(
+    (s) => {
+      const stepType = s.step?.type as unknown as string;
+      return (
+        s.completed &&
+        (stepType === "INTENT_FULFILLED" || stepType === "TRANSACTION_CONFIRMED")
+      );
+    }
+  );
+  // Also check if all steps are completed (fallback)
+  const allStepsCompleted = steps?.length > 0 && steps.every((s) => s.completed);
+  const allCompleted = hasCompletionStep || allStepsCompleted;
   const opText = getOperationText(operationType);
   const headerText = allCompleted
     ? `${opText} Completed`
