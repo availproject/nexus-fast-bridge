@@ -213,16 +213,33 @@ const FastBridge: React.FC<FastBridgeProps> = ({
 
         {/* Show loading state while fetching intent */}
         {(() => {
-          // Check if we should show loading
+          const getBridgeLimit = (tokenSymbol?: string): number => {
+            // Only enforce limits in testnet
+            if (network !== "testnet") return Infinity;
+            
+            if (!tokenSymbol) return Infinity;
+            const upperSymbol = tokenSymbol.toUpperCase();
+            if (upperSymbol === "ETH") return 0.1;
+            if (upperSymbol === "USDC" || upperSymbol === "USDT") return 200;
+            return Infinity;
+          };
+
+          const amount = parseFloat(inputs?.amount || "0");
+          const limit = getBridgeLimit(filteredUnifiedBalance?.symbol);
+          const exceedsLimit = amount > limit;
+          const exceedsBalance = amount > parseFloat(adjustedBalance || "0");
+
+          // Check if we should show loading (only if amount is within limits)
           const shouldShowLoading = loading || (
             !intent?.intent &&
             inputs?.chain &&
             inputs?.token &&
             inputs?.amount &&
-            parseFloat(inputs?.amount || "0") > 0 &&
+            amount > 0 &&
             inputs?.recipient &&
             filteredUnifiedBalance &&
-            parseFloat(inputs?.amount || "0") <= parseFloat(adjustedBalance || "0")
+            !exceedsLimit &&
+            !exceedsBalance
           );
           
           // Also check if intent exists but is missing required data
@@ -244,23 +261,67 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           );
         })()}
 
-        {/* Show amount exceeds balance message */}
-        {!intent?.intent &&
-          inputs?.chain &&
-          inputs?.token &&
-          inputs?.amount &&
-          parseFloat(inputs?.amount || "0") > 0 &&
-          inputs?.recipient &&
-          filteredUnifiedBalance &&
-          parseFloat(inputs?.amount || "0") >
-            parseFloat(adjustedBalance || "0") && (
-            <div className="text-center py-4">
-              <p className="text-base text-red-600">
-                Amount exceeds available balance. Please enter a valid amount to
-                see bridge details.
-              </p>
-            </div>
-          )}
+        {/* Helper function to get bridge limit */}
+        {(() => {
+          const getBridgeLimit = (tokenSymbol?: string): number => {
+            // Only enforce limits in testnet
+            if (network !== "testnet") return Infinity;
+            
+            if (!tokenSymbol) return Infinity;
+            const upperSymbol = tokenSymbol.toUpperCase();
+            if (upperSymbol === "ETH") return 0.1;
+            if (upperSymbol === "USDC" || upperSymbol === "USDT") return 200;
+            return Infinity;
+          };
+
+          const amount = parseFloat(inputs?.amount || "0");
+          const limit = getBridgeLimit(filteredUnifiedBalance?.symbol);
+          const exceedsLimit = amount > limit;
+          const exceedsBalance = amount > parseFloat(adjustedBalance || "0");
+
+          // Show bridge limit exceeded message (higher priority)
+          if (
+            !intent?.intent &&
+            inputs?.chain &&
+            inputs?.token &&
+            inputs?.amount &&
+            amount > 0 &&
+            inputs?.recipient &&
+            filteredUnifiedBalance &&
+            exceedsLimit
+          ) {
+            return (
+              <div className="text-center py-4">
+                <p className="text-base text-red-600">
+                  Maximum bridge limit exceeded. You can bridge up to {limit} {filteredUnifiedBalance.symbol} at a time.
+                </p>
+              </div>
+            );
+          }
+
+          // Show amount exceeds balance message
+          if (
+            !intent?.intent &&
+            inputs?.chain &&
+            inputs?.token &&
+            inputs?.amount &&
+            amount > 0 &&
+            inputs?.recipient &&
+            filteredUnifiedBalance &&
+            exceedsBalance
+          ) {
+            return (
+              <div className="text-center py-4">
+                <p className="text-base text-red-600">
+                  Amount exceeds available balance. Please enter a valid amount to
+                  see bridge details.
+                </p>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* Show form completion message when form is incomplete */}
         {!intent?.intent &&

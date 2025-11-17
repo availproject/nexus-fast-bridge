@@ -434,6 +434,18 @@ const useBridge = ({
     }
   }, [loading, intent?.intent]);
 
+  // Get bridge limit based on token type (only enforced in testnet)
+  const getBridgeLimit = useCallback((tokenSymbol?: string): number => {
+    // Only enforce limits in testnet
+    if (network !== "testnet") return Infinity;
+    
+    if (!tokenSymbol) return Infinity;
+    const upperSymbol = tokenSymbol.toUpperCase();
+    if (upperSymbol === "ETH") return 0.1;
+    if (upperSymbol === "USDC" || upperSymbol === "USDT") return 200;
+    return Infinity; // No limit for other tokens
+  }, [network]);
+
   useEffect(() => {
     // First check amount validity - this must happen before areInputsValid check
     // to prevent fetching intent for "0.", "0", etc.
@@ -448,6 +460,15 @@ const useBridge = ({
       // Don't proceed if amount is zero, negative, or invalid (catches "0.", "0", "0.0", etc.)
       if (Number.isNaN(amount) || amount <= 0) {
         return;
+      }
+      
+      // Check if amount exceeds bridge limit
+      if (filteredUnifiedBalance) {
+        const limit = getBridgeLimit(filteredUnifiedBalance.symbol);
+        if (amount > limit) {
+          // Don't fetch intent if amount exceeds bridge limit
+          return;
+        }
       }
       
       // Check if amount exceeds adjusted balance before fetching intent
@@ -474,7 +495,7 @@ const useBridge = ({
       void handleTransaction();
     }, 800);
     return () => clearTimeout(timeout);
-  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction, adjustedBalance, filteredUnifiedBalance]);
+  }, [inputs, areInputsValid, intent, loading, txError, handleTransaction, adjustedBalance, filteredUnifiedBalance, getBridgeLimit]);
 
   // Stop timer when dialog closes
   useEffect(() => {
@@ -571,6 +592,12 @@ const useBridge = ({
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
       
+      // Check if amount exceeds bridge limit
+      if (filteredUnifiedBalance) {
+        const limit = getBridgeLimit(filteredUnifiedBalance.symbol);
+        if (amount > limit) return;
+      }
+      
       // Check if amount exceeds adjusted balance
       if (filteredUnifiedBalance) {
         const adjusted = Number.parseFloat(adjustedBalance || "0");
@@ -579,7 +606,7 @@ const useBridge = ({
     }
     
     await handleTransaction();
-  }, [intent, loading, txError, areInputsValid, handleTransaction, inputs?.amount, filteredUnifiedBalance, adjustedBalance]);
+  }, [intent, loading, txError, areInputsValid, handleTransaction, inputs?.amount, filteredUnifiedBalance, adjustedBalance, getBridgeLimit]);
 
   return {
     inputs,
