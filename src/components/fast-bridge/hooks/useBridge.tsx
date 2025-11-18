@@ -116,8 +116,14 @@ const useBridge = ({
     await fetchUnifiedBalance();
     onComplete?.();
 
-    // Reset inputs after balance fetch
-    setInputs(buildInitialInputs(connectedAddress, prefill));
+    // Reset inputs after balance fetch, but preserve recipient address
+    setInputs((prev) => {
+      const initialInputs = buildInitialInputs(connectedAddress, prefill);
+      return {
+        ...initialInputs,
+        recipient: prev?.recipient ?? initialInputs.recipient, // Keep current recipient if it exists
+      };
+    });
   }, [
     connectedAddress,
     setIntent,
@@ -340,7 +346,14 @@ const useBridge = ({
     intent?.deny();
     setIntent(null);
     setAllowance(null);
-    setInputs(buildInitialInputs(connectedAddress, prefill));
+    // Preserve current recipient when resetting (don't reset to connectedAddress)
+    setInputs((prev) => {
+      const initialInputs = buildInitialInputs(connectedAddress, prefill);
+      return {
+        ...initialInputs,
+        recipient: prev?.recipient ?? initialInputs.recipient, // Keep current recipient if it exists
+      };
+    });
     setStartTxn(false);
     setRefreshing(false);
     // Reset steps when form is reset
