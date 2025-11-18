@@ -39,8 +39,6 @@ const TokenSelect = ({
     )[0]?.tokens;
   }, [selectedChain, supportedChainsAndTokens]);
 
-  console.log({ tokenData })
-
   const selectedTokenData = tokenData?.find((token) => {
     return token.symbol === selectedToken;
   });

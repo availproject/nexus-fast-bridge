@@ -50,7 +50,6 @@ const buildInitialInputs = (
     recipient?: Address;
   }
 ): FastBridgeState => {
-  console.log("prefill", prefill);
   return {
     chain: config.chainId as SUPPORTED_CHAINS_IDS,
     token: (prefill?.token as SUPPORTED_TOKENS) ?? "USDC",
@@ -82,13 +81,27 @@ const useBridge = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
+  const explorerUrlRef = useRef<string>("");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
   const inputsRef = useRef<FastBridgeState>(inputs);
   const denyingDueToInvalidInputRef = useRef<boolean>(false);
+  const intentRef = useRef(intent);
+  const successDataRef = useRef<{
+    sources: any[];
+    destination: any;
+    token: any;
+    fees: any;
+    explorerUrl?: string;
+  } | null>(null);
   const [steps, setSteps] = useState<
     Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
+  
+  // Keep intentRef in sync with intent
+  useEffect(() => {
+    intentRef.current = intent;
+  }, [intent]);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -103,13 +116,18 @@ const useBridge = ({
   }, [inputs]);
 
   const onSuccess = useCallback(async () => {
+    // Intent data should already be captured in startTransaction before this is called
+    // But DON'T clear intent yet - wait until completion step is detected
+    // This ensures the intent data is still available when STEP_COMPLETE fires
+    
     // Close dialog and stop timer on success
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setStartTxn(false);
-    setIntent(null);
+    // DON'T clear intent here - wait for completion step
+    // setIntent(null);
     setAllowance(null);
     setRefreshing(false);
 
@@ -204,22 +222,44 @@ const useBridge = ({
   const handleTransaction = useCallback(async () => {
     // Starting a new intent fetch/transaction - reset any previous progress steps
     setSteps([]);
+    
+    // Intent data should already be captured in startTransaction
+    // This is just a fallback in case it wasn't captured earlier
+    if (!successDataRef.current) {
+      const currentIntent = intentRef.current;
+      if (currentIntent?.intent) {
+        successDataRef.current = {
+          sources: currentIntent.intent.sources || [],
+          destination: currentIntent.intent.destination || null,
+          token: currentIntent.intent.token || null,
+          fees: currentIntent.intent.fees || null,
+        };
+      }
+    }
     // Use ref to get the latest inputs value to avoid stale closures
     const currentInputs = inputsRef.current;
-    if (
+      if (
       !currentInputs?.amount ||
       !currentInputs?.recipient ||
       !currentInputs?.chain ||
       !currentInputs?.token ||
       commitLockRef.current
     ) {
-      console.error("Missing required inputs");
       return;
     }
     commitLockRef.current = true;
     setLoading(true);
     setTxError(null);
     try {
+      // Ensure we capture intent data before starting bridge
+      if (intent?.intent && !successDataRef.current) {
+        successDataRef.current = {
+          sources: intent.intent.sources || [],
+          destination: intent.intent.destination,
+          token: intent.intent.token,
+          fees: intent.intent.fees,
+        };
+      }
       // Bridge
       const bridgeTxn = await nexusSDK?.bridge(
         {
@@ -250,13 +290,74 @@ const useBridge = ({
               }
               if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
                 const step = event.args;
-                setSteps((prev) =>
-                  prev.map((s) =>
-                    s.step && s.step.typeID === step?.typeID
-                      ? { ...s, completed: true }
-                      : s
-                  )
-                );
+                const stepType = step?.type as unknown as string;
+                
+                // Check if this is a completion step and ensure we have intent data
+                if ((stepType === "INTENT_FULFILLED" || stepType === "TRANSACTION_CONFIRMED")) {
+                  // Try to capture intent data - check multiple sources
+                  if (!successDataRef.current) {
+                    // First try: from current intent (if still available)
+                    if (intent?.intent) {
+                      successDataRef.current = {
+                        sources: intent.intent.sources || [],
+                        destination: intent.intent.destination,
+                        token: intent.intent.token,
+                        fees: intent.intent.fees,
+                      };
+                    } 
+                    // Fallback: use inputs to reconstruct basic info (won't have full details)
+                    else if (currentInputs) {
+                      successDataRef.current = {
+                        sources: [],
+                        destination: { chainName: "Unknown", amount: "0" },
+                        token: { symbol: currentInputs.token || "Unknown" },
+                        fees: { total: "0" },
+                      };
+                    }
+                  }
+                  
+                  // Ensure explorerUrl is preserved/updated if available
+                  // Check all possible sources and use the first available one
+                  if (successDataRef.current) {
+                    let url = successDataRef.current.explorerUrl;
+                    if (!url || url.trim() === "") {
+                      url = explorerUrlRef.current;
+                    }
+                    if (!url || url.trim() === "") {
+                      url = lastExplorerUrl;
+                    }
+                    if (url && url.trim() !== "") {
+                      successDataRef.current.explorerUrl = url;
+                      // Also update the refs for consistency
+                      explorerUrlRef.current = url;
+                      setLastExplorerUrl(url);
+                    }
+                  }
+                  
+                  // Force a re-render by updating steps (this will trigger the toast check)
+                  setSteps((prev) => {
+                    const updated = prev.map((s) =>
+                      s.step && s.step.typeID === step?.typeID
+                        ? { ...s, completed: true }
+                        : s
+                    );
+                    
+                    // Clear intent now that we've captured the data
+                    if (intent) {
+                      setIntent(null);
+                    }
+                    
+                    return updated;
+                  });
+                } else {
+                  setSteps((prev) =>
+                    prev.map((s) =>
+                      s.step && s.step.typeID === step?.typeID
+                        ? { ...s, completed: true }
+                        : s
+                    )
+                  );
+                }
               }
             },
         }
@@ -265,7 +366,32 @@ const useBridge = ({
         throw new Error("Transaction rejected by user");
       }
       if (bridgeTxn) {
-        setLastExplorerUrl(bridgeTxn.explorerUrl);
+        // Debug: Log what bridgeTxn contains
+        console.log("bridgeTxn object:", bridgeTxn);
+        console.log("bridgeTxn.explorerUrl:", (bridgeTxn as any).explorerUrl);
+        console.log("bridgeTxn keys:", Object.keys(bridgeTxn || {}));
+        
+        const explorerUrl = (bridgeTxn as any).explorerUrl || "";
+        // Always set the URL if available, even if empty string
+        setLastExplorerUrl(explorerUrl);
+        explorerUrlRef.current = explorerUrl;
+        
+        // Also store in successDataRef for toast (ensure it exists first)
+        if (!successDataRef.current) {
+          // Create a minimal ref if it doesn't exist yet
+          successDataRef.current = {
+            sources: [],
+            destination: null,
+            token: null,
+            fees: null,
+          };
+        }
+        // Store explorerUrl in successDataRef - always update it here since this is after bridgeTxn resolves
+        successDataRef.current.explorerUrl = explorerUrl || undefined;
+        
+        console.log("Setting explorerUrl in successDataRef:", explorerUrl);
+        console.log("successDataRef.current after setting:", successDataRef.current);
+        
         await onSuccess();
       }
       // Don't set loading to false here - wait for intent to be populated
@@ -336,7 +462,6 @@ const useBridge = ({
     try {
       await intent?.refresh([]);
     } catch (error) {
-      console.error("Transaction failed:", error);
     } finally {
       setRefreshing(false);
     }
@@ -361,6 +486,17 @@ const useBridge = ({
   }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
+    // Capture intent data IMMEDIATELY when user clicks Accept (before anything else)
+    // This is the earliest and most reliable point to capture the data
+    if (intent?.intent) {
+      successDataRef.current = {
+        sources: intent.intent.sources || [],
+        destination: intent.intent.destination || null,
+        token: intent.intent.token || null,
+        fees: intent.intent.fees || null,
+      };
+    }
+    
     // Reset timer for a fresh run
     setTimer(0);
     setStartTxn(true);
@@ -639,6 +775,8 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     loading,
+    successDataRef,
+    explorerUrlRef,
   };
 };
 

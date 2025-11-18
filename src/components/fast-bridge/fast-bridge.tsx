@@ -4,7 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
 import { Button } from "../ui/button";
-import { LoaderPinwheel } from "lucide-react";
+import { LoaderPinwheel, CheckCircle2 } from "lucide-react";
 import { useNexus } from "../nexus/NexusProvider";
 import ReceipientAddress from "./components/receipient-address";
 import AmountInput from "./components/amount-input";
@@ -24,6 +24,7 @@ import type { UserAsset, SUPPORTED_TOKENS } from "@avail-project/nexus-core";
 import { type Address } from "viem";
 import config from "../../../config";
 import BalanceBreakdown from "./components/balance-breakdown";
+import { toast } from "sonner";
 
 interface FastBridgeProps {
   connectedAddress: Address;
@@ -69,6 +70,8 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     commitAmount,
     lastExplorerUrl,
     steps,
+    successDataRef,
+    explorerUrlRef,
   } = useBridge({
     prefill,
     network: network ?? "mainnet",
@@ -82,11 +85,175 @@ const FastBridge: React.FC<FastBridgeProps> = ({
   });
 
   const allCompleted = steps?.length > 0 && steps.every((s) => s.completed);
+  const hasCompletionStep = React.useMemo(() => {
+    return steps.some(
+      (s) => {
+        const stepType = s.step?.type as unknown as string;
+        return (
+          s.completed &&
+          (stepType === "INTENT_FULFILLED" || stepType === "TRANSACTION_CONFIRMED")
+        );
+      }
+    );
+  }, [steps]);
+
+  const hasShownSuccessToastRef = React.useRef(false);
+
   React.useEffect(() => {
     if (allCompleted) {
       stopTimer();
     }
   }, [allCompleted, stopTimer]);
+
+  // Reset toast flag when new transaction starts
+  React.useEffect(() => {
+    if (steps.length === 0) {
+      hasShownSuccessToastRef.current = false;
+    }
+  }, [steps.length]);
+
+  // Show success toast when bridge completes
+  React.useEffect(() => {
+    // Check if bridge is completed (either via completion step or all steps completed)
+    const isCompleted = hasCompletionStep || allCompleted;
+    const hasData = !!successDataRef.current;
+    const shouldShow = isCompleted && hasData && !hasShownSuccessToastRef.current;
+    
+    if (shouldShow) {
+      // Use a small delay to ensure explorer URL is available
+      // This handles the case where the completion step fires before the URL is set
+      const timeoutId = setTimeout(() => {
+        hasShownSuccessToastRef.current = true;
+        const data = successDataRef.current;
+        
+        // Clear intent after capturing data for toast (if we have access to setIntent)
+        // Note: We'll need to pass setIntent to the hook or clear it elsewhere
+        
+        // Helper to format amounts
+        const formatAmount = (amount: string | number | undefined): string => {
+          if (!amount) return "0";
+          const num = typeof amount === "string" ? Number.parseFloat(amount) : amount;
+          if (Number.isNaN(num)) return String(amount);
+          const str = num.toString();
+          if (str.includes(".")) {
+            return str.replace(/\.?0+$/, "");
+          }
+          return str;
+        };
+
+        const tokenSymbol = data?.token?.symbol || "";
+        const sources = data?.sources || [];
+        const sourcesText = sources.length > 0
+          ? sources.map((s: any) => s.chainName).join(", ")
+          : "N/A";
+        const destinationText = data?.destination?.chainName || "Unknown";
+        const amountSpent = sources.length > 0
+          ? sources.reduce((sum: number, s: any) => sum + Number.parseFloat(s.amount || "0"), 0)
+          : 0;
+        const amountReceived = formatAmount(data?.destination?.amount);
+        const totalFees = formatAmount(data?.fees?.total);
+
+        // Get explorer URL from multiple sources - check all possibilities
+        // The URL might be in the data ref, the explorerUrlRef, or the lastExplorerUrl state
+        // Check in order: data ref (most reliable), then explorerUrlRef, then lastExplorerUrl state
+        let explorerUrl: string | null = null;
+        
+        if (data?.explorerUrl && typeof data.explorerUrl === "string" && data.explorerUrl.trim() !== "") {
+          explorerUrl = data.explorerUrl;
+        } else if (explorerUrlRef.current && typeof explorerUrlRef.current === "string" && explorerUrlRef.current.trim() !== "") {
+          explorerUrl = explorerUrlRef.current;
+          // Also update successDataRef with the URL for consistency
+          if (successDataRef.current) {
+            successDataRef.current.explorerUrl = explorerUrlRef.current;
+          }
+        } else if (lastExplorerUrl && typeof lastExplorerUrl === "string" && lastExplorerUrl.trim() !== "") {
+          explorerUrl = lastExplorerUrl;
+          // Also update successDataRef with the URL for consistency
+          if (successDataRef.current) {
+            successDataRef.current.explorerUrl = lastExplorerUrl;
+          }
+        }
+        
+        // Debug: Log URL availability
+        console.log("Explorer URL check:", {
+          dataExplorerUrl: data?.explorerUrl,
+          explorerUrlRef: explorerUrlRef.current,
+          lastExplorerUrl,
+          finalExplorerUrl: explorerUrl,
+        });
+        
+        toast.success(
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 text-green-500" />
+              <span className="font-semibold">Bridge Successful!</span>
+            </div>
+            <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+              <div>
+                <span className="font-medium">Sources:</span> {sourcesText}
+              </div>
+              <div>
+                <span className="font-medium">Destination:</span> {destinationText}
+              </div>
+              <div>
+                <span className="font-medium">Asset:</span> {tokenSymbol}
+              </div>
+              <div>
+                <span className="font-medium">Amount Spent:</span> {formatAmount(amountSpent)} {tokenSymbol}
+              </div>
+              <div>
+                <span className="font-medium">Amount Received:</span> {amountReceived} {tokenSymbol}
+              </div>
+              <div>
+                <span className="font-medium">Total Fees:</span> {totalFees} {tokenSymbol}
+              </div>
+              {explorerUrl ? (
+                <div className="mt-2 pt-2 border-t">
+                  <a
+                    href={explorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    View Intent on Explorer
+                  </a>
+                </div>
+              ) : null}
+            </div>
+          </div>,
+          {
+            duration: Infinity, // Stay until dismissed
+            closeButton: true,
+            icon: null, // Remove default icon since we're adding our own
+          }
+        );
+      }, 100); // Small delay to ensure URL is available
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [hasCompletionStep, allCompleted, steps, lastExplorerUrl]);
+
+  // Helper function to determine if transaction is in progress
+  const isTransactionInProgress = React.useMemo(() => {
+    if (steps.length === 0) return false; // No steps = not started
+    if (txError) return false; // Error = not in progress
+    
+    // Check if transaction is completed
+    const hasCompletionStep = steps.some(
+      (s) => {
+        const stepType = s.step?.type as unknown as string;
+        return (
+          s.completed &&
+          (stepType === "INTENT_FULFILLED" || stepType === "TRANSACTION_CONFIRMED")
+        );
+      }
+    );
+    const allStepsCompleted = steps.length > 0 && steps.every((s) => s.completed);
+    const isCompleted = hasCompletionStep || allStepsCompleted;
+    
+    // In progress if steps exist but not completed
+    return !isCompleted;
+  }, [steps, txError]);
 
   // Calculate adjusted balance (unified balance minus balance on destination chain)
   const adjustedBalance = React.useMemo(() => {
@@ -336,7 +503,17 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               </p>
             </div>
           )}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            // Only allow closing if transaction is not in progress
+            // If user is trying to close (open = false) and transaction is in progress, prevent it
+            if (isTransactionInProgress && !open) {
+              return; // Prevent closing when in progress
+            }
+            setIsDialogOpen(open);
+          }}
+        >
           {intent && (
             <div className="w-full flex items-center gap-x-2 justify-between">
               <Button
@@ -363,7 +540,15 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               </DialogTrigger>
             </div>
           )}
-          <DialogContent>
+          <DialogContent
+            showCloseButton={!isTransactionInProgress}
+            onInteractOutside={(e) => {
+              // Prevent closing by clicking outside when transaction is in progress
+              if (isTransactionInProgress) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader className="sr-only">
               <DialogTitle>Transaction Progress</DialogTitle>
             </DialogHeader>

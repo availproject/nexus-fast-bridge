@@ -5,6 +5,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../ui/tooltip";
+import { Info } from "lucide-react";
 import { type ReadableIntent } from "@avail-project/nexus-core";
 
 // Helper function to format numbers and remove trailing zeros after decimal point
@@ -25,56 +32,97 @@ interface FeeBreakdownProps {
   intent: ReadableIntent;
 }
 
+interface FeeItemProps {
+  label: string;
+  amount: string;
+  tokenSymbol?: string;
+  tooltipContent: string;
+}
+
+const FeeItem: React.FC<FeeItemProps> = ({
+  label,
+  amount,
+  tokenSymbol,
+  tooltipContent,
+}) => {
+  return (
+    <div className="flex items-center w-full justify-between">
+      <div className="flex items-center gap-x-1.5">
+        <p className="text-sm font-light">{label}</p>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center focus:outline-none"
+              aria-label={`Information about ${label}`}
+            >
+              <Info className="size-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">{tooltipContent}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <p className="text-sm font-light">
+        {formatAmount(amount)} {tokenSymbol}
+      </p>
+    </div>
+  );
+};
+
 const FeeBreakdown: React.FC<FeeBreakdownProps> = ({ intent }) => {
   return (
-    <Accordion type="single" collapsible>
-      <AccordionItem value="breakdown">
-        <div className="w-full flex items-start justify-between">
-          <p className="font-light text-base">Total fees</p>
+    <TooltipProvider>
+      <Accordion type="single" collapsible>
+        <AccordionItem value="breakdown">
+          <div className="w-full flex items-start justify-between">
+            <p className="font-light text-base">Total fees</p>
 
-          <div className="flex flex-col items-end justify-end-safe gap-y-1">
-            <p className="font-light text-base min-w-max">
-              {formatAmount(intent.fees?.total)} {intent.token?.symbol}
-            </p>
-            <AccordionTrigger
-              containerClassName="w-fit"
-              className="p-0 items-center gap-x-1"
-              hideChevron={false}
-            >
-              <p className="text-sm font-light">View Breakup</p>
-            </AccordionTrigger>
-          </div>
-        </div>
-        <AccordionContent>
-          <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
-            <div className="flex items-center w-full justify-between">
-              <p className="text-sm font-light">Fast Bridge Gas Fee</p>
-              <p className="text-sm font-light">
-                {formatAmount(intent?.fees?.caGas)} {intent?.token?.symbol}
+            <div className="flex flex-col items-end justify-end-safe gap-y-1">
+              <p className="font-light text-base min-w-max">
+                {formatAmount(intent.fees?.total)} {intent.token?.symbol}
               </p>
-            </div>
-            <div className="flex items-center w-full justify-between">
-              <p className="text-sm font-light">Gas Supplied</p>
-              <p className="text-sm font-light">
-                {formatAmount(intent?.fees?.gasSupplied)} {intent?.token?.symbol}
-              </p>
-            </div>
-            <div className="flex items-center w-full justify-between">
-              <p className="text-sm font-light">Solver Fees</p>
-              <p className="text-sm font-light">
-                {formatAmount(intent?.fees?.solver)} {intent?.token?.symbol}
-              </p>
-            </div>
-            <div className="flex items-center w-full justify-between">
-              <p className="text-sm font-light">Protocol Fees</p>
-              <p className="text-sm font-light">
-                {formatAmount(intent?.fees?.protocol)} {intent?.token?.symbol}
-              </p>
+              <AccordionTrigger
+                containerClassName="w-fit"
+                className="p-0 items-center gap-x-1"
+                hideChevron={false}
+              >
+                <p className="text-sm font-light">View Breakup</p>
+              </AccordionTrigger>
             </div>
           </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+          <AccordionContent>
+            <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
+              <FeeItem
+                label="Fast Bridge Gas Fee"
+                amount={intent?.fees?.caGas}
+                tokenSymbol={intent?.token?.symbol}
+                tooltipContent="The gas fee required for executing the fast bridge transaction on the destination chain."
+              />
+              <FeeItem
+                label="Gas Supplied"
+                amount={intent?.fees?.gasSupplied}
+                tokenSymbol={intent?.token?.symbol}
+                tooltipContent="The amount of gas tokens supplied to cover transaction costs on the destination chain."
+              />
+              <FeeItem
+                label="Solver Fees"
+                amount={intent?.fees?.solver}
+                tokenSymbol={intent?.token?.symbol}
+                tooltipContent="Fees paid to the solver that executes the bridge transaction and ensures fast completion."
+              />
+              <FeeItem
+                label="Protocol Fees"
+                amount={intent?.fees?.protocol}
+                tokenSymbol={intent?.token?.symbol}
+                tooltipContent="Fees collected by the protocol for maintaining and operating the bridge infrastructure."
+              />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </TooltipProvider>
   );
 };
 
