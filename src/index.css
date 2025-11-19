@@ -54,6 +54,7 @@ body,
 #root {
   height: 100svh;
   width: 100svw;
+  overflow-x: hidden;
 }
 
 @media (prefers-color-scheme: light) {

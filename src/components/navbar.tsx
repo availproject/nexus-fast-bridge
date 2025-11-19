@@ -4,10 +4,10 @@ import config from "../../config";
 
 export default function Navbar() {
   return (
-    <nav className="relative border-b border-border z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
+    <nav className="relative border-b border-border z-10 w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="flex items-center justify-between h-16 min-w-0">
+          <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
             {config.useChainLogo && (
               <img
               src={config.chainLogoUrl}
@@ -19,7 +19,7 @@ export default function Navbar() {
             )}
             {!config.useChainLogo && (
               <div
-                className="text-3xl font-light"
+                className="text-2xl sm:text-3xl font-light truncate"
                 style={{
                   marginLeft: "10px",
                   textTransform: "uppercase",
@@ -61,7 +61,7 @@ export default function Navbar() {
           </div>
 
           {/* Right side - Wallet connect only */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink-0">
             <ConnectButton />
           </div>
         </div>

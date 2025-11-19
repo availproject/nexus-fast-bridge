@@ -190,7 +190,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
             </div>
             <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
               <div>
-                <span className="font-medium">Sources:</span> {sourcesText}
+                <span className="font-medium">Source(s):</span> {sourcesText}
               </div>
               <div>
                 <span className="font-medium">Destination:</span> {destinationText}
@@ -585,9 +585,9 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           </div>
         )}
 
-        {/* Powered by Avail - Hidden on mobile */}
-        <div className="hidden md:flex w-full items-center gap-x-1 justify-center">
-          <p className="text-sm font-light" style={{ color: "#666666" }}>
+        {/* Powered by Avail */}
+        <div className="flex w-full items-center gap-x-1 justify-center">
+          <p className="text-xs md:text-sm font-light" style={{ color: "#666666" }}>
             Powered by
           </p>
           <a
@@ -598,7 +598,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
             <img
               src="/avail_logo.svg"
               alt="Avail Logo"
-              className="w-16 h-auto"
+              className="w-12 md:w-16 h-auto"
               style={{ opacity: 0.5 }}
             />
           </a>
