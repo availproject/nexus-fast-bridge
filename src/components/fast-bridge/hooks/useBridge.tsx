@@ -260,14 +260,12 @@ const useBridge = ({
           fees: intent.intent.fees,
         };
       }
+
       // Bridge
       const bridgeTxn = await nexusSDK?.bridge(
         {
           token: currentInputs?.token,
-          amount: nexusSDK.utils.parseUnits(
-            currentInputs?.amount ?? "0",
-            TOKEN_METADATA[inputs?.token].decimals
-          ),
+          amount: nexusSDK.convertTokenReadableAmountToBigInt(currentInputs?.amount ?? "0", currentInputs?.token, currentInputs?.chain),
           toChainId: currentInputs?.chain,
           recipient: currentInputs?.recipient,
         },
