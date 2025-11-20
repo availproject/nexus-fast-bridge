@@ -11,6 +11,7 @@ import {
   type OnSwapIntentHookData,
   NexusError,
   ERROR_CODES,
+  type SupportedChainsAndTokensResult,
 } from "@avail-project/nexus-core";
 import {
   createContext,
@@ -37,7 +38,7 @@ interface NexusContextType {
     React.SetStateAction<OnAllowanceHookData | null>
   >;
   handleInit: (provider: EthereumProvider) => Promise<void>;
-  supportedChainsAndTokens: SupportedChainsResult | null;
+  supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
   swapSupportedChainsAndTokens: SupportedChainsResult | null;
   network?: NexusNetwork;
   loading: boolean;
@@ -67,7 +68,7 @@ const NexusProvider = ({
   const sdk = useMemo(() => new NexusSDK(config), [config]);
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
-    useState<SupportedChainsResult | null>(null);
+    useState<SupportedChainsAndTokensResult | null>(null);
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(null);
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
@@ -121,8 +122,8 @@ const NexusProvider = ({
   const attachEventHooks = () => {
     console.log("attachEventHooks");
     sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
-       data.allow(data.sources.map(() => "min"))
-      });
+      data.allow(data.sources.map(() => "min"));
+    });
 
     sdk.setOnIntentHook((data: OnIntentHookData) => {
       setIntent(data);
