@@ -6,7 +6,7 @@
 
 ### Build project
 
-`npm run build` to build the project
+`npm run build` to build the project.
 
 ### Preview
 
