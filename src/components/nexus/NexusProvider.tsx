@@ -64,7 +64,7 @@ const NexusProvider = ({
     debug?: boolean;
   };
 }) => {
-  const sdk = useMemo(() => new NexusSDK(config), [config]);
+  const sdk = useMemo(() => new NexusSDK({...config, siweChain: 10143}), [config]);
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(null);
@@ -110,11 +110,26 @@ const NexusProvider = ({
 
   const deinitializeNexus = async () => {
     try {
-      if (!sdk.isInitialized()) throw new Error("Nexus is not initialized");
+      if (!sdk.isInitialized()) {
+        // If not initialized, just clear state
+        setNexusSDK(null);
+        setUnifiedBalance(null);
+        setIntent(null);
+        setAllowance(null);
+        return;
+      }
       await sdk.deinit();
       setNexusSDK(null);
+      setUnifiedBalance(null);
+      setIntent(null);
+      setAllowance(null);
     } catch (error) {
       console.error("Error deinitializing Nexus:", error);
+      // Clear state even if deinit fails
+      setNexusSDK(null);
+      setUnifiedBalance(null);
+      setIntent(null);
+      setAllowance(null);
     }
   };
 

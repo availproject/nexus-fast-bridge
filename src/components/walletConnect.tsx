@@ -16,8 +16,9 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const [loading, setLoading] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
   const [isInitializing, setIsInitializing] = React.useState(true);
-  const { status, connector } = useAccount();
-  const { nexusSDK, handleInit, loading: nexusLoading } = useNexus();
+  const { status, connector, address } = useAccount();
+  const { nexusSDK, handleInit, deinitializeNexus, loading: nexusLoading, setIntent, setAllowance } = useNexus();
+  const prevAddressRef = React.useRef<string | undefined>(address);
 
   const initializeNexus = React.useCallback(async () => {
     if (loading || nexusSDK) return; // Prevent multiple calls
@@ -54,12 +55,48 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     }
   }, [status]);
 
-  // Auto-initialize Nexus when wallet is connected
+  // Handle wallet disconnection - clear Nexus state and balances
   React.useEffect(() => {
-    if (status === "connected" && !nexusSDK && !loading && !initError) {
+    if (status === "disconnected" && nexusSDK) {
+      deinitializeNexus();
+      setIntent(null);
+      setAllowance(null);
+      prevAddressRef.current = undefined;
+    }
+  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
+
+  // Handle account change - reinitialize Nexus when account address changes
+  React.useEffect(() => {
+    if (status === "connected" && address && address !== prevAddressRef.current) {
+      const previousAddress = prevAddressRef.current;
+      const currentAddress = address;
+      prevAddressRef.current = address;
+      
+      // If account changed and Nexus is initialized, reinitialize with new account
+      if (nexusSDK && previousAddress !== undefined) {
+        // Account changed - deinitialize and reinitialize
+        deinitializeNexus().then(() => {
+          // Small delay to ensure deinit completes, then reinitialize
+          setTimeout(() => {
+            // Check if still connected and address hasn't changed again
+            if (currentAddress === prevAddressRef.current && !loading && !initError) {
+              initializeNexus();
+            }
+          }, 100);
+        });
+      }
+    } else if (status === "connected" && address && !prevAddressRef.current) {
+      // First connection - set the address
+      prevAddressRef.current = address;
+    }
+  }, [status, nexusSDK, address, loading, initError, initializeNexus, deinitializeNexus]);
+
+  // Auto-initialize Nexus when wallet is connected (first time)
+  React.useEffect(() => {
+    if (status === "connected" && !nexusSDK && !loading && !initError && address) {
       initializeNexus();
     }
-  }, [status, nexusSDK, loading, initError, initializeNexus]);
+  }, [status, nexusSDK, loading, initError, address, initializeNexus]);
 
   // Show loading during initial connection check or Nexus initialization
   const showLoading = isInitializing || nexusLoading || (status === "connected" && !nexusSDK && loading);
