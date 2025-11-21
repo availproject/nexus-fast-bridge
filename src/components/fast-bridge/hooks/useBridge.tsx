@@ -1,7 +1,6 @@
 import {
   NEXUS_EVENTS,
   NexusSDK,
-  TOKEN_METADATA,
   type BridgeStepType,
   type NexusNetwork,
   type OnAllowanceHookData,
@@ -97,6 +96,7 @@ const useBridge = ({
   const [steps, setSteps] = useState<
     Array<{ id: number; completed: boolean; step: BridgeStepType }>
   >([]);
+  const timerStartedRef = useRef<boolean>(false);
   
   // Keep intentRef in sync with intent
   useEffect(() => {
@@ -126,6 +126,7 @@ const useBridge = ({
       timerRef.current = null;
     }
     setStartTxn(false);
+    timerStartedRef.current = false; // Reset timer started flag
     // DON'T clear intent here - wait for completion step
     // setIntent(null);
     setAllowance(null);
@@ -222,6 +223,7 @@ const useBridge = ({
   const handleTransaction = useCallback(async () => {
     // Starting a new intent fetch/transaction - reset any previous progress steps
     setSteps([]);
+    timerStartedRef.current = false; // Reset timer started flag
     
     // Intent data should already be captured in startTransaction
     // This is just a fallback in case it wasn't captured earlier
@@ -279,16 +281,35 @@ const useBridge = ({
                       .filter((s) => s.completed)
                       .map((s) => s.step?.typeID ?? "")
                   );
-                  return list.map((step, index) => ({
+                  const newSteps = list.map((step, index) => ({
                     id: index,
                     completed: completedTypes.has(step?.typeID ?? ""),
                     step,
                   }));
+                  
+                  // Start timer when INTENT_SUBMITTED step appears (after intent is submitted)
+                  const hasIntentSubmitted = newSteps.some(
+                    (s) => s.step?.type === "INTENT_SUBMITTED" || s.step?.type === "INTENT_HASH_SIGNED"
+                  );
+                  if (hasIntentSubmitted && !timerStartedRef.current) {
+                    setTimer(0); // Reset timer to 0
+                    setStartTxn(true); // Start the timer
+                    timerStartedRef.current = true; // Mark timer as started
+                  }
+                  
+                  return newSteps;
                 });
               }
               if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
                 const step = event.args;
                 const stepType = step?.type as unknown as string;
+                
+                // Start timer when INTENT_SUBMITTED step completes
+                if ((stepType === "INTENT_SUBMITTED" || stepType === "INTENT_HASH_SIGNED") && !timerStartedRef.current) {
+                  setTimer(0); // Reset timer to 0
+                  setStartTxn(true); // Start the timer
+                  timerStartedRef.current = true; // Mark timer as started
+                }
                 
                 // Check if this is a completion step and ensure we have intent data
                 if ((stepType === "INTENT_FULFILLED" || stepType === "TRANSACTION_CONFIRMED")) {
@@ -481,6 +502,7 @@ const useBridge = ({
     setRefreshing(false);
     // Reset steps when form is reset
     setSteps([]);
+    timerStartedRef.current = false; // Reset timer started flag
   }, [connectedAddress, prefill, intent]);
 
   const startTransaction = () => {
@@ -495,9 +517,11 @@ const useBridge = ({
       };
     }
     
-    // Reset timer for a fresh run
-    setTimer(0);
-    setStartTxn(true);
+    // Reset timer started flag and ensure timer is stopped
+    timerStartedRef.current = false;
+    setStartTxn(false); // Explicitly stop timer
+    setTimer(0); // Reset timer to 0
+    // Timer will start when INTENT_SUBMITTED step appears
     intent?.allow();
     setIsDialogOpen(true);
     setTxError(null);
@@ -514,10 +538,21 @@ const useBridge = ({
   }, [intent, refreshIntent]);
 
   useEffect(() => {
-    if (startTxn) {
+    // Only start timer if startTxn is true AND INTENT_SUBMITTED step exists
+    const hasIntentSubmitted = steps.some(
+      (s) => s.step?.type === "INTENT_SUBMITTED" || s.step?.type === "INTENT_HASH_SIGNED"
+    );
+    
+    if (startTxn && hasIntentSubmitted) {
       timerRef.current = setInterval(() => {
         setTimer((prev) => prev + 0.1);
       }, 100);
+    } else {
+      // Stop timer if conditions aren't met
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
 
     return () => {
@@ -526,7 +561,7 @@ const useBridge = ({
         timerRef.current = null;
       }
     };
-  }, [startTxn]);
+  }, [startTxn, steps]);
 
   useEffect(() => {
     // Deny intent only when user edits inputs; avoid denying on intent updates
@@ -652,6 +687,7 @@ const useBridge = ({
         timerRef.current = null;
       }
       setStartTxn(false);
+      timerStartedRef.current = false; // Reset timer started flag
     }
   }, [isDialogOpen]);
 

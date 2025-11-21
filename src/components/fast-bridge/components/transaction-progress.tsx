@@ -227,17 +227,25 @@ const TransactionProgress: React.FC<TransactionProgressProps> = ({
           <LoaderPinwheel className="size-6 animate-spin" />
         )}
         <p>{headerText}</p>
-        <div className="flex items-center justify-center w-full">
-          <span className="text-2xl font-semibold font-nexus-primary text-nexus-black">
-            {Math.floor(timer)}
-          </span>
-          <span className="text-base font-semibold font-nexus-primary text-nexus-black">
-            .
-          </span>
-          <span className="text-base font-semibold font-nexus-primary text-nexus-muted-secondary">
-            {String(Math.floor((timer % 1) * 1000)).padStart(3, "0")}s
-          </span>
-        </div>
+        {(() => {
+          // Only show timer after INTENT_SUBMITTED step appears
+          const hasIntentSubmitted = steps.some(
+            (s) => s.step?.type === "INTENT_SUBMITTED" || s.step?.type === "INTENT_HASH_SIGNED"
+          );
+          return hasIntentSubmitted && (
+            <div className="flex items-center justify-center w-full">
+              <span className="text-2xl font-semibold font-nexus-primary text-nexus-black">
+                {Math.floor(timer)}
+              </span>
+              <span className="text-base font-semibold font-nexus-primary text-nexus-black">
+                .
+              </span>
+              <span className="text-base font-semibold font-nexus-primary text-nexus-muted-secondary">
+                {String(Math.floor((timer % 1) * 1000)).padStart(3, "0")}s
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       <StepList steps={effectiveSteps} currentIndex={currentIndex} />
