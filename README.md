@@ -10,4 +10,4 @@
 
 ### Preview
 
-`npm run start` to preview.
+`npm run start` to preview and run.
