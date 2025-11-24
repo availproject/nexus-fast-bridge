@@ -162,8 +162,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
             {config.heroText}
           </div>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 px-2">
-            Please connect your wallet using the button in the navbar to use the
-            bridge.
+            Please connect your wallet to use the fast bridge.
           </p>
         </div>
       ) : null}
