@@ -64,7 +64,10 @@ const NexusProvider = ({
     debug?: boolean;
   };
 }) => {
-  const sdk = useMemo(() => new NexusSDK({...config, siweChain: 10143}), [config]);
+  const sdk = useMemo(
+    () => new NexusSDK({ ...config, siweChain: 143 }),
+    [config]
+  );
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(null);
@@ -136,8 +139,8 @@ const NexusProvider = ({
   const attachEventHooks = () => {
     console.log("attachEventHooks");
     sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
-       data.allow(data.sources.map(() => "min"))
-      });
+      data.allow(data.sources.map(() => "min"));
+    });
 
     sdk.setOnIntentHook((data: OnIntentHookData) => {
       setIntent(data);
