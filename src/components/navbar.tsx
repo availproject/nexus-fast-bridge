@@ -7,15 +7,15 @@ export default function Navbar() {
     <nav className="relative border-b border-border z-10 w-full overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex items-center justify-between h-16 min-w-0">
-          <div className="flex items-center min-w-0 flex-shrink overflow-hidden">
+          <div className="flex items-center min-w-0 shrink overflow-hidden">
             {config.useChainLogo && (
               <img
-              src={config.chainLogoUrl}
-              alt={config.chainName}
-              width={150}
-              height={40}
-              className="h-8 w-auto"
-            />
+                src={config.chainLogoUrl}
+                alt={config.chainName}
+                width={150}
+                height={40}
+                className="h-8 w-auto"
+              />
             )}
             {!config.useChainLogo && (
               <div
@@ -61,7 +61,7 @@ export default function Navbar() {
           </div>
 
           {/* Right side - Wallet connect only */}
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center shrink-0">
             <ConnectButton />
           </div>
         </div>
