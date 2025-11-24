@@ -16,16 +16,11 @@ import {
   avalanche,
   sophon,
   kaia,
-  sepolia,
-  baseSepolia,
-  arbitrumSepolia,
-  optimismSepolia,
-  polygonAmoy,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
 
-const monadTestnet: Chain = {
+const monad: Chain = {
   id: config.chainId,
   name: config.chainName,
   nativeCurrency: {
@@ -43,27 +38,6 @@ const monadTestnet: Chain = {
   iconUrl: config.chainIconUrl,
 };
 
-const validiumTestnet: Chain = {
-  id: 567,
-  name: "Validium Testnet",
-  nativeCurrency: {
-    name: "Validium",
-    symbol: "VLDM",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: ["https://testnet.l2.rpc.validium.network"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Validium Explorer",
-      url: "https://testnet.explorer.validium.network",
-    },
-  },
-  testnet: config.chainTestnet,
-  iconUrl: "/validium_logo.svg",
-};
-
 const wagmiConfig = getDefaultConfig({
   appName: "Nexus Elements",
   projectId: config.projectId,
@@ -77,13 +51,7 @@ const wagmiConfig = getDefaultConfig({
     optimism,
     polygon,
     scroll,
-    sepolia,
-    baseSepolia,
-    arbitrumSepolia,
-    optimismSepolia,
-    polygonAmoy,
-    monadTestnet,
-    validiumTestnet,
+    monad,
   ],
 });
 
