@@ -17,7 +17,14 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const [initError, setInitError] = React.useState<string | null>(null);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const { status, connector, address } = useAccount();
-  const { nexusSDK, handleInit, deinitializeNexus, loading: nexusLoading, setIntent, setAllowance } = useNexus();
+  const {
+    nexusSDK,
+    handleInit,
+    deinitializeNexus,
+    loading: nexusLoading,
+    setIntent,
+    setAllowance,
+  } = useNexus();
   const prevAddressRef = React.useRef<string | undefined>(address);
 
   const initializeNexus = React.useCallback(async () => {
@@ -41,7 +48,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     } finally {
       setLoading(false);
     }
-  }, [connector, handleInit, loading, nexusSDK]);
+  }, [connector, handleInit]);
 
   // Track initial connection check
   React.useEffect(() => {
@@ -67,11 +74,15 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
   // Handle account change - reinitialize Nexus when account address changes
   React.useEffect(() => {
-    if (status === "connected" && address && address !== prevAddressRef.current) {
+    if (
+      status === "connected" &&
+      address &&
+      address !== prevAddressRef.current
+    ) {
       const previousAddress = prevAddressRef.current;
       const currentAddress = address;
       prevAddressRef.current = address;
-      
+
       // If account changed and Nexus is initialized, reinitialize with new account
       if (nexusSDK && previousAddress !== undefined) {
         // Account changed - deinitialize and reinitialize
@@ -79,7 +90,11 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           // Small delay to ensure deinit completes, then reinitialize
           setTimeout(() => {
             // Check if still connected and address hasn't changed again
-            if (currentAddress === prevAddressRef.current && !loading && !initError) {
+            if (
+              currentAddress === prevAddressRef.current &&
+              !loading &&
+              !initError
+            ) {
               initializeNexus();
             }
           }, 100);
@@ -89,17 +104,33 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       // First connection - set the address
       prevAddressRef.current = address;
     }
-  }, [status, nexusSDK, address, loading, initError, initializeNexus, deinitializeNexus]);
+  }, [
+    status,
+    nexusSDK,
+    address,
+    initError,
+    initializeNexus,
+    deinitializeNexus,
+  ]);
 
   // Auto-initialize Nexus when wallet is connected (first time)
   React.useEffect(() => {
-    if (status === "connected" && !nexusSDK && !loading && !initError && address) {
+    if (
+      status === "connected" &&
+      !nexusSDK &&
+      !loading &&
+      !initError &&
+      address
+    ) {
       initializeNexus();
     }
-  }, [status, nexusSDK, loading, initError, address, initializeNexus]);
+  }, [status, nexusSDK, initError, address, initializeNexus]);
 
   // Show loading during initial connection check or Nexus initialization
-  const showLoading = isInitializing || nexusLoading || (status === "connected" && !nexusSDK && loading);
+  const showLoading =
+    isInitializing ||
+    nexusLoading ||
+    (status === "connected" && !nexusSDK && loading);
 
   return (
     <div className="flex items-center justify-center min-h-[400px] relative">
@@ -119,12 +150,15 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         </div>
       ) : status !== "connected" ? (
         <div className="text-center px-4">
-          <img 
-            src={config.chainGifUrl} 
-            alt={config.chainGifAlt} 
-            className="mb-4 mx-auto rounded-lg w-full max-w-[200px] sm:max-w-[300px] md:max-w-[400px] h-auto" 
+          <img
+            src={config.chainGifUrl}
+            alt={config.chainGifAlt}
+            className="mb-4 mx-auto rounded-lg w-full max-w-[200px] sm:max-w-[300px] md:max-w-[400px] h-auto"
           />
-          <div className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 px-2" style={{ lineHeight: "1.2", marginTop: "4rem" }}>
+          <div
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 px-2"
+            style={{ lineHeight: "1.2", marginTop: "4rem" }}
+          >
             {config.heroText}
           </div>
           <p className="text-sm sm:text-base text-muted-foreground mb-4 px-2">
