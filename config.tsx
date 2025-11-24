@@ -1,7 +1,6 @@
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
 
 const config = {
-  projectId: "5ccff0b96382c3591b17a986fc9b4b11",
   chainId: 143,
   chainName: "Monad",
   chainNativeCurrency: {

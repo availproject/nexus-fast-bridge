@@ -20,6 +20,8 @@ import {
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
 
+const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
+
 const monad: Chain = {
   id: config.chainId,
   name: config.chainName,
@@ -40,7 +42,7 @@ const monad: Chain = {
 
 const wagmiConfig = getDefaultConfig({
   appName: "Nexus Elements",
-  projectId: config.projectId,
+  projectId: walletConnectProjectId,
   chains: [
     mainnet,
     base,
