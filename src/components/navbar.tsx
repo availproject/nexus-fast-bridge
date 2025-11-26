@@ -1,5 +1,5 @@
 "use client";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectKitButton } from "connectkit";
 import config from "../../config";
 
 export default function Navbar() {
@@ -62,7 +62,7 @@ export default function Navbar() {
 
           {/* Right side - Wallet connect only */}
           <div className="flex items-center shrink-0">
-            <ConnectButton />
+            <ConnectKitButton />
           </div>
         </div>
       </div>

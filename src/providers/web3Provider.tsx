@@ -1,11 +1,6 @@
 "use client";
-import "@rainbow-me/rainbowkit/styles.css";
-import {
-  getDefaultConfig,
-  RainbowKitProvider,
-  type Chain,
-} from "@rainbow-me/rainbowkit";
-import { WagmiProvider } from "wagmi";
+import { createConfig, WagmiProvider } from "wagmi";
+import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import {
   mainnet,
   scroll,
@@ -16,13 +11,22 @@ import {
   avalanche,
   sophon,
   kaia,
+  type Chain,
+  bsc,
+  sepolia,
+  baseSepolia,
+  arbitrumSepolia,
+  optimismSepolia,
+  polygonAmoy,
+  monadTestnet,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
+import { defineChain } from "viem";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
-const monad: Chain = {
+const monad = {
   id: config.chainId,
   name: config.chainName,
   nativeCurrency: {
@@ -40,32 +44,68 @@ const monad: Chain = {
   iconUrl: config.chainIconUrl,
 };
 
-const wagmiConfig = getDefaultConfig({
-  appName: "Nexus Elements",
-  projectId: walletConnectProjectId,
-  chains: [
-    mainnet,
-    base,
-    sophon,
-    kaia,
-    arbitrum,
-    avalanche,
-    optimism,
-    polygon,
-    scroll,
-    monad,
-  ],
+// Add chain icons for RainbowKit
+type ConnectKitChain = Chain & { iconUrl?: string; iconBackground?: string };
+
+const hyperEVM = defineChain({
+  id: 999,
+  name: "HyperEVM",
+  nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.hyperliquid.xyz/evm"] },
+  },
+  blockExplorers: {
+    default: { name: "HyperEVM Scan", url: "https://hyperevmscan.io" },
+  },
 });
+
+const hyperEVMWithIcon: ConnectKitChain = {
+  ...hyperEVM,
+  iconUrl:
+    "https://assets.coingecko.com/coins/images/50882/standard/hyperliquid.jpg?1729431300",
+  iconBackground: "#0a3cff",
+};
+
+const walletConfig = createConfig(
+  getDefaultConfig({
+    appName: "Monad Fast Bridge",
+    walletConnectProjectId: walletConnectProjectId,
+    chains: [
+      mainnet,
+      base,
+      sophon,
+      bsc,
+      kaia,
+      arbitrum,
+      avalanche,
+      optimism,
+      polygon,
+      scroll,
+      sepolia,
+      baseSepolia,
+      arbitrumSepolia,
+      optimismSepolia,
+      polygonAmoy,
+      monadTestnet,
+      monad,
+      hyperEVMWithIcon,
+    ],
+  })
+);
 
 const queryClient = new QueryClient();
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={walletConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={config.chainId} modalSize="compact">
+        <ConnectKitProvider
+          options={{
+            initialChainId: config.chainId,
+          }}
+        >
           {children}
-        </RainbowKitProvider>
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
