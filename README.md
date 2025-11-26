@@ -2,7 +2,7 @@
 
 ### Run locally
 
-`npm run dev` to run locally
+`npm run dev` to run locally.
 
 ### Build project
 
