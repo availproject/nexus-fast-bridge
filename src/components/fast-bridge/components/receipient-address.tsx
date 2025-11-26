@@ -25,7 +25,7 @@ const ReceipientAddress: React.FC<ReceipientAddressProps> = ({
             value={address}
             placeholder="Enter Recipient Address"
             onChange={(e) => onChange(e.target.value)}
-            className="w-full text-base font-light"
+            className="w-full text-base font-medium"
           />
           <Button
             variant={"ghost"}
@@ -39,9 +39,9 @@ const ReceipientAddress: React.FC<ReceipientAddressProps> = ({
         </div>
       ) : (
         <div className="flex items-center w-full justify-between">
-          <p className="font-light text-base">Recipient Address</p>
+          <p className="font-medium text-base">Recipient Address</p>
           <div className="flex items-center gap-x-3 ">
-            <p className="font-light text-base">
+            <p className="font-medium text-base">
               {nexusSDK?.utils?.truncateAddress(address ?? "", 6, 6)}
             </p>
 

@@ -395,9 +395,9 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               tokenSymbol={filteredUnifiedBalance?.symbol as SUPPORTED_TOKENS}
             />
             <div className="w-full flex items-start justify-between gap-x-4">
-              <p className="text-base font-light">You receive</p>
+              <p className="text-base font-medium">You receive</p>
               <div className="flex flex-col gap-y-1 min-w-fit">
-                <p className="text-base font-light text-right">
+                <p className="text-base font-medium text-right">
                   {(() => {
                     const amount = intent?.intent?.destination?.amount;
                     if (!amount) return "0";

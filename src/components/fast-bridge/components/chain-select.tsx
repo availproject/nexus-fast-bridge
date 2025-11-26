@@ -54,7 +54,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
         )}
         <SelectTrigger
           disabled={disabled}
-          className="text-base font-light w-full"
+          className="text-base font-medium w-full"
         >
           <SelectValue>
             {selectedChainData && (
@@ -68,7 +68,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
                   height={24}
                   className="rounded-full"
                 />
-                <p className="text-primary text-base font-light">
+                <p className="text-primary text-base font-medium">
                   {selectedChainData?.name}
                 </p>
               </div>
@@ -90,7 +90,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
                     height={24}
                     className="rounded-full"
                   />
-                  <p className="text-primary text-base font-light">
+                  <p className="text-primary text-base font-medium">
                     {chain.name}
                   </p>
                 </div>

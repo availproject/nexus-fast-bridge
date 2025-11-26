@@ -36,7 +36,7 @@ const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
           {intent?.sources && (
             <>
               <div className="flex flex-col items-start gap-y-1 min-w-fit">
-                <p className="text-base font-light">You spend</p>
+                <p className="text-base font-medium">You spend</p>
                 <p className="text-sm font-light">
                   {intent?.sources?.length > 1
                     ? `${intent?.sources?.length} assests on ${intent?.sources?.length} chains`
@@ -45,7 +45,7 @@ const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
               </div>
 
               <div className="flex flex-col items-end gap-y-1 min-w-fit">
-                <p className="text-base font-light">
+                <p className="text-base font-medium">
                   {formatAmount(intent?.sourcesTotal)} {tokenSymbol}
                 </p>
                 <AccordionTrigger

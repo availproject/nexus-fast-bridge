@@ -230,7 +230,7 @@ const AmountInput: FC<AmountInputProps> = ({
       <div className="flex items-center justify-end-safe gap-x-4 w-fit px-2 border-l border-border">
         <div className="flex items-center gap-x-3 min-w-max">
           {unifiedBalance && (
-            <p className="text-base font-light">
+            <p className="text-base font-medium">
               {adjustedBalance}{" "}
               {unifiedBalance?.symbol}
             </p>

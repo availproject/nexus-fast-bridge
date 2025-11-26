@@ -635,12 +635,20 @@ const useBridge = ({
       const amountStr = inputs.amount.trim();
       // Don't proceed if amount is empty or just whitespace
       if (!amountStr) {
+        setTxError(null); // Clear error when amount is cleared
         return;
       }
       
       const amount = Number.parseFloat(amountStr);
       // Don't proceed if amount is zero, negative, or invalid (catches "0.", "0", "0.0", etc.)
       if (Number.isNaN(amount) || amount <= 0) {
+        setTxError(null); // Clear error for invalid amounts
+        return;
+      }
+      
+      // Check if amount exceeds maximum limit of 550
+      if (amount > 550) {
+        setTxError("Amount entered exceeds maximum limit");
         return;
       }
       
@@ -660,6 +668,16 @@ const useBridge = ({
           // Don't fetch intent if amount exceeds available balance
           return;
         }
+      }
+      
+      // Clear error if amount is valid and within limits
+      if (txError === "Amount entered exceeds maximum limit") {
+        setTxError(null);
+      }
+    } else {
+      // Clear error when amount is cleared
+      if (txError === "Amount entered exceeds maximum limit") {
+        setTxError(null);
       }
     }
     
@@ -775,6 +793,12 @@ const useBridge = ({
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
       
+      // Check if amount exceeds maximum limit of 550
+      if (amount > 550) {
+        setTxError("Amount entered exceeds maximum limit");
+        return;
+      }
+      
       // Check if amount exceeds bridge limit
       if (filteredUnifiedBalance) {
         const limit = getBridgeLimit(filteredUnifiedBalance.symbol);
@@ -789,7 +813,7 @@ const useBridge = ({
     }
     
     await handleTransaction();
-  }, [intent, loading, txError, areInputsValid, handleTransaction, inputs?.amount, filteredUnifiedBalance, adjustedBalance, getBridgeLimit]);
+  }, [intent, loading, txError, areInputsValid, handleTransaction, inputs?.amount, filteredUnifiedBalance, adjustedBalance, getBridgeLimit, setTxError]);
 
   return {
     inputs,

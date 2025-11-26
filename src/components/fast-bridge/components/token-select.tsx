@@ -66,7 +66,7 @@ const TokenSelect = ({
                   height={24}
                   className="rounded-full"
                 />
-                <p className="text-primary text-base font-light">
+                <p className="text-primary text-base font-medium">
                   {selectedToken}
                 </p>
               </div>
@@ -88,7 +88,7 @@ const TokenSelect = ({
                   className="rounded-full"
                 />
                 <div className="flex flex-col">
-                  <span className="text-primary text-base font-light">
+                  <span className="text-primary text-base font-medium">
                     {isTestnet ? `${token.symbol} (Testnet)` : token.symbol}
                   </span>
                 </div>

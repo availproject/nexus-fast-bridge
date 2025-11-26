@@ -135,9 +135,12 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   return (
     <div className="flex items-center justify-center min-h-[400px] relative">
       {showLoading ? (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-2">
           <LoaderPinwheel className="size-6 animate-spin" />
-          <span>Initializing Nexus...</span>
+          <span>Initializing Avail Nexus...</span>
+          <div>
+            <span>You may need to sign a message in your wallet to continue.</span>
+          </div>
         </div>
       ) : status === "connected" && nexusSDK ? (
         <>{children}</>

@@ -77,10 +77,10 @@ const FeeBreakdown: React.FC<FeeBreakdownProps> = ({ intent }) => {
       <Accordion type="single" collapsible>
         <AccordionItem value="breakdown">
           <div className="w-full flex items-start justify-between">
-            <p className="font-light text-base">Total fees</p>
+            <p className="font-medium text-base">Total fees</p>
 
             <div className="flex flex-col items-end justify-end-safe gap-y-1">
-              <p className="font-light text-base min-w-max">
+              <p className="font-medium text-base min-w-max">
                 {formatAmount(intent.fees?.total)} {intent.token?.symbol}
               </p>
               <AccordionTrigger
