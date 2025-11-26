@@ -4,6 +4,12 @@ import React from "react";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import {
+  injected,
+  metaMask,
+  coinbaseWallet,
+  walletConnect,
+} from "wagmi/connectors";
+import {
   mainnet,
   scroll,
   polygon,
@@ -67,6 +73,13 @@ const defaultConfigParams = getDefaultConfig({
     scroll,
   ],
   transports,
+  enableFamily: false,
+  connectors: [
+    injected(),
+    metaMask(),
+    coinbaseWallet({ appName: "Nexus" }),
+    walletConnect({ projectId: walletConnectProjectId }),
+  ],
 });
 
 const wagmiConfig = createConfig(defaultConfigParams);
