@@ -2,7 +2,7 @@
 import * as React from "react";
 import { LoaderPinwheel } from "lucide-react";
 import type { EthereumProvider } from "@avail-project/nexus-core";
-import { useAccount } from "wagmi";
+import { useAccount, useAccountEffect } from "wagmi";
 import { useNexus } from "./nexus/NexusProvider";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
@@ -13,24 +13,12 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
-  const [loading, setLoading] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
-  const [isInitializing, setIsInitializing] = React.useState(true);
-  const { status, connector, address } = useAccount();
-  const {
-    nexusSDK,
-    handleInit,
-    deinitializeNexus,
-    loading: nexusLoading,
-    setIntent,
-    setAllowance,
-  } = useNexus();
-  const prevAddressRef = React.useRef<string | undefined>(address);
+  const { status, connector } = useAccount();
+  const { nexusSDK, handleInit, loading: nexusLoading } = useNexus();
 
   const initializeNexus = React.useCallback(async () => {
-    if (loading || nexusSDK) return; // Prevent multiple calls
-
-    setLoading(true);
+    if (nexusLoading || nexusSDK) return; // Prevent multiple calls
     setInitError(null);
 
     try {
@@ -45,92 +33,18 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
       toast.error(`Failed to initialize Nexus: ${errorMessage}`);
-    } finally {
-      setLoading(false);
     }
   }, [connector, handleInit]);
 
-  // Track initial connection check
-  React.useEffect(() => {
-    // Once we know the connection status, mark initialization as complete
-    if (status === "connected" || status === "disconnected") {
-      // Small delay to ensure status is stable
-      const timer = setTimeout(() => {
-        setIsInitializing(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [status]);
-
-  // Handle wallet disconnection - clear Nexus state and balances
-  React.useEffect(() => {
-    if (status === "disconnected" && nexusSDK) {
-      deinitializeNexus();
-      setIntent(null);
-      setAllowance(null);
-      prevAddressRef.current = undefined;
-    }
-  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
-
-  // Handle account change - reinitialize Nexus when account address changes
-  React.useEffect(() => {
-    if (
-      status === "connected" &&
-      address &&
-      address !== prevAddressRef.current
-    ) {
-      const previousAddress = prevAddressRef.current;
-      const currentAddress = address;
-      prevAddressRef.current = address;
-
-      // If account changed and Nexus is initialized, reinitialize with new account
-      if (nexusSDK && previousAddress !== undefined) {
-        // Account changed - deinitialize and reinitialize
-        deinitializeNexus().then(() => {
-          // Small delay to ensure deinit completes, then reinitialize
-          setTimeout(() => {
-            // Check if still connected and address hasn't changed again
-            if (
-              currentAddress === prevAddressRef.current &&
-              !loading &&
-              !initError
-            ) {
-              initializeNexus();
-            }
-          }, 100);
-        });
-      }
-    } else if (status === "connected" && address && !prevAddressRef.current) {
-      // First connection - set the address
-      prevAddressRef.current = address;
-    }
-  }, [
-    status,
-    nexusSDK,
-    address,
-    initError,
-    initializeNexus,
-    deinitializeNexus,
-  ]);
-
-  // Auto-initialize Nexus when wallet is connected (first time)
-  React.useEffect(() => {
-    if (
-      status === "connected" &&
-      !nexusSDK &&
-      !loading &&
-      !initError &&
-      address
-    ) {
-      initializeNexus();
-    }
-  }, [status, nexusSDK, initError, address, initializeNexus]);
-
   // Show loading during initial connection check or Nexus initialization
   const showLoading =
-    isInitializing ||
-    nexusLoading ||
-    (status === "connected" && !nexusSDK && loading);
+    nexusLoading || (status === "connected" && !nexusSDK && nexusLoading);
+
+  React.useEffect(() => {
+    if (status === "connected" && !nexusSDK) {
+      initializeNexus();
+    }
+  }, [status]);
 
   return (
     <div className="flex items-center justify-center min-h-[400px] relative">
@@ -139,7 +53,9 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           <LoaderPinwheel className="size-6 animate-spin" />
           <span>Initializing Avail Nexus...</span>
           <div>
-            <span>You may need to sign a message in your wallet to continue.</span>
+            <span>
+              You may need to sign a message in your wallet to continue.
+            </span>
           </div>
         </div>
       ) : status === "connected" && nexusSDK ? (

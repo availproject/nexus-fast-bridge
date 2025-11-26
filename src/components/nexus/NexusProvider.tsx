@@ -20,6 +20,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useAccountEffect } from "wagmi";
 
 interface NexusContextType {
   nexusSDK: NexusSDK | null;
@@ -187,6 +188,12 @@ const NexusProvider = ({
     }
     return { message: (err as Error)?.message || "Unexpected error" };
   };
+
+  useAccountEffect({
+    onDisconnect() {
+      deinitializeNexus();
+    },
+  });
 
   const value = useMemo(
     () => ({
