@@ -1,6 +1,7 @@
 "use client";
 import { ConnectKitButton } from "connectkit";
 import config from "../../config";
+import AvailLogo from "/avail_logo.svg";
 
 export default function Navbar() {
   return (
@@ -51,12 +52,7 @@ export default function Navbar() {
                 paddingTop: "5px",
               }}
             >
-              <img
-                src="/avail_logo.svg"
-                alt="Avail Logo"
-                width={75}
-                height={20}
-              />
+              <img src={AvailLogo} alt="Avail Logo" width={75} height={20} />
             </a>
           </div>
 
