@@ -25,6 +25,7 @@ import { type Address } from "viem";
 import config from "../../../config";
 import BalanceBreakdown from "./components/balance-breakdown";
 import { toast } from "sonner";
+import AvailLogo from "/avail_logo.svg";
 
 interface FastBridgeProps {
   connectedAddress: Address;
@@ -625,7 +626,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
             rel="noopener noreferrer"
           >
             <img
-              src="/avail_logo.svg"
+              src={AvailLogo}
               alt="Avail Logo"
               className="w-12 md:w-16 h-auto"
               style={{ opacity: 0.5 }}

@@ -1,6 +1,7 @@
 "use client";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ConnectKitButton } from "connectkit";
 import config from "../../config";
+import AvailLogo from "/avail_logo.svg";
 
 export default function Navbar() {
   return (
@@ -51,18 +52,13 @@ export default function Navbar() {
                 paddingTop: "5px",
               }}
             >
-              <img
-                src="/avail_logo.svg"
-                alt="Avail Logo"
-                width={75}
-                height={20}
-              />
+              <img src={AvailLogo} alt="Avail Logo" width={75} height={20} />
             </a>
           </div>
 
           {/* Right side - Wallet connect only */}
           <div className="flex items-center shrink-0">
-            <ConnectButton />
+            <ConnectKitButton />
           </div>
         </div>
       </div>
