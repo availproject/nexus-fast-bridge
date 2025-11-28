@@ -14,9 +14,11 @@ import {
   sophon,
   kaia,
   type Chain,
+  bsc,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
+import { defineChain } from "viem";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
@@ -37,6 +39,18 @@ const monad: Chain = {
   testnet: config.chainTestnet,
 };
 
+const hyperEVM = defineChain({
+  id: 999,
+  name: "HyperEVM",
+  nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.hyperliquid.xyz/evm"] },
+  },
+  blockExplorers: {
+    default: { name: "HyperEVM Scan", url: "https://hyperevmscan.io" },
+  },
+});
+
 //ideally we should add private rpcs for each, for now it fallbacks to default rpcs
 const transports = {
   [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC),
@@ -48,6 +62,8 @@ const transports = {
   [avalanche.id]: http(import.meta.env.VITE_AVALANCHE_RPC),
   [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
   [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
+  [bsc.id]: http(import.meta.env.VITE_BSC_RPC),
+  [hyperEVM.id]: http(import.meta.env.VITE_HYPER_EVM_RPC),
   [monad.id]: http(config.chainRpcUrl),
 };
 
@@ -65,6 +81,8 @@ const defaultConfigParams = getDefaultConfig({
     optimism,
     polygon,
     scroll,
+    bsc,
+    hyperEVM,
   ],
   transports,
   enableFamily: false,
