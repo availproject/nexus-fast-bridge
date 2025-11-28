@@ -3,17 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-
-/**
- * Set VITE_BASE before building for production:
- *   VITE_BASE=/a/ npm run build
- *
- * Locally you can keep VITE_BASE unset (defaults to '/').
- */
-const BASE = process.env.VITE_BASE || "/";
+const isProduction = process.env.NODE_ENV === "production";
 
 export default defineConfig({
-  base: BASE,
+  base: isProduction ? "/monad/" : "/",
   plugins: [
     react(),
     tailwindcss(),
@@ -31,11 +24,4 @@ export default defineConfig({
     },
   },
   envPrefix: ["VITE_"],
-  build: {
-    outDir: "dist",
-  },
-  preview: {
-    port: 5173,
-    strictPort: false,
-  },
 });

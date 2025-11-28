@@ -1,4 +1,7 @@
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
+import MonadLogo from "/Monad_Logomark.svg";
+import MonadLogoChain from "/Monad_Logo.svg";
+import FishGIf from "/salmonad.gif";
 
 const config = {
   chainId: 143,
@@ -12,9 +15,9 @@ const config = {
   chainBlockExplorerUrl: "https://monadvision.com/",
   chainTestnet: false,
   useChainLogo: false,
-  chainIconUrl: "/Monad_Logomark.svg",
-  chainLogoUrl: "/Monad_Logo.svg",
-  chainGifUrl: "/salmonad.gif",
+  chainIconUrl: MonadLogo,
+  chainLogoUrl: MonadLogoChain,
+  chainGifUrl: FishGIf,
   chainGifAlt: "Fast Salmonad",
   heroText: "Move your assets to Monad faster than ever!",
 
