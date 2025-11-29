@@ -24,4 +24,7 @@ export default defineConfig({
     },
   },
   envPrefix: ["VITE_"],
+  build: {
+    outDir: isProduction ? "dist/monad" : "dist",
+  }
 });
