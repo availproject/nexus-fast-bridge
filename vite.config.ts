@@ -3,10 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-const isProduction = process.env.NODE_ENV === "production";
+// const isProduction = process.env.NODE_ENV === "production";
 
 export default defineConfig({
-  base: isProduction ? "/monad/" : "/",
+  // base: isProduction ? "/monad/" : "/",
   plugins: [
     react(),
     tailwindcss(),
@@ -25,6 +25,6 @@ export default defineConfig({
   },
   envPrefix: ["VITE_"],
   build: {
-    outDir: isProduction ? "dist/monad" : "dist",
+    // outDir: isProduction ? "dist/monad" : "dist",
   }
 });
