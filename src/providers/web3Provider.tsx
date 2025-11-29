@@ -37,20 +37,6 @@ const monad: Chain = {
   testnet: config.chainTestnet,
 };
 
-//ideally we should add private rpcs for each, for now it fallbacks to default rpcs
-const transports = {
-  [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC),
-  [base.id]: http(import.meta.env.VITE_BASE_RPC),
-  [arbitrum.id]: http(import.meta.env.VITE_ARBITRUM_RPC),
-  [optimism.id]: http(import.meta.env.VITE_OPTIMISM_RPC),
-  [polygon.id]: http(import.meta.env.VITE_POLYGON_RPC),
-  [scroll.id]: http(import.meta.env.VITE_SCROLL_RPC),
-  [avalanche.id]: http(import.meta.env.VITE_AVALANCHE_RPC),
-  [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
-  [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
-  [monad.id]: http(config.chainRpcUrl),
-};
-
 const defaultConfigParams = getDefaultConfig({
   appName: config.appTitle ?? "Nexus Elements",
   walletConnectProjectId,
@@ -66,7 +52,6 @@ const defaultConfigParams = getDefaultConfig({
     polygon,
     scroll,
   ],
-  transports,
   enableFamily: false,
 });
 
