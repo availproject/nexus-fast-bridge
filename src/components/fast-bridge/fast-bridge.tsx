@@ -375,7 +375,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           onChange={(amount) => setInputs((prev) => ({ ...prev, amount }))}
           unifiedBalance={filteredUnifiedBalance}
           onCommit={() => commitAmount()}
-          disabled={!!prefill?.amount}
+          disabled={!!prefill?.amount || loading}
           inputs={inputs}
         />
         <BalanceBreakdown assetBalances={filteredUnifiedBalance as UserAsset} />
