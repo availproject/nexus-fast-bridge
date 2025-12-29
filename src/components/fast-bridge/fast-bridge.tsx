@@ -556,7 +556,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
                   size={"lg"}
                   onClick={startTransaction}
                   className="w-1/2 text-base font-semibold"
-                  disabled={refreshing}
+                  disabled={refreshing || !!txError}
                   style={{
                     backgroundColor: config.primaryColor,
                     color: config.secondaryColor,
