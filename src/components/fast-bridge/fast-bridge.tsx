@@ -82,6 +82,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     setIntent,
     unifiedBalance,
     setAllowance,
+    supportedChainsAndTokens,
     onComplete,
   });
 
@@ -153,9 +154,8 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         const amountSpent =
           sources.length > 0
             ? sources.reduce(
-                (sum: number, s) =>
-                  sum + Number.parseFloat(s.amount || "0"),
-                0
+                (sum: number, s) => sum + Number.parseFloat(s.amount || "0"),
+                0,
               )
             : 0;
         const amountReceived = formatAmount(data?.destination?.amount);
@@ -193,14 +193,6 @@ const FastBridge: React.FC<FastBridgeProps> = ({
             successDataRef.current.explorerUrl = lastExplorerUrl;
           }
         }
-
-        // Debug: Log URL availability
-        console.log("Explorer URL check:", {
-          dataExplorerUrl: data?.explorerUrl,
-          explorerUrlRef: explorerUrlRef.current,
-          lastExplorerUrl,
-          finalExplorerUrl: explorerUrl,
-        });
 
         toast.success(
           <div className="flex flex-col gap-2 w-full">
@@ -249,7 +241,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
             duration: Infinity, // Stay until dismissed
             closeButton: true,
             icon: null, // Remove default icon since we're adding our own
-          }
+          },
         );
       }, 100); // Small delay to ensure URL is available
 
@@ -301,7 +293,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
     let balanceOnDestinationChain = "0";
     if (filteredUnifiedBalance?.breakdown) {
       const destinationBalance = filteredUnifiedBalance.breakdown.find(
-        (balance) => balance.chain.id === inputs.chain
+        (balance) => balance.chain.id === inputs.chain,
       );
       if (destinationBalance) {
         balanceOnDestinationChain = destinationBalance.balance || "0";
@@ -324,12 +316,12 @@ const FastBridge: React.FC<FastBridgeProps> = ({
           handleSelect={(chain) => {
             // Get tokens supported on the new chain
             const newChainTokens = supportedChainsAndTokens?.find(
-              (c) => c.id === chain
+              (c) => c.id === chain,
             )?.tokens;
 
             // Check if current token is supported on the new chain
             const isCurrentTokenSupported = newChainTokens?.some(
-              (token) => token.symbol === inputs?.token
+              (token) => token.symbol === inputs?.token,
             );
 
             // Determine the token to use
@@ -340,7 +332,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
               if (newChainTokens && newChainTokens.length > 0) {
                 // Prefer USDC if available, otherwise use the first token
                 const usdcToken = newChainTokens.find(
-                  (t) => t.symbol === "USDC"
+                  (t) => t.symbol === "USDC",
                 );
                 newToken =
                   (usdcToken?.symbol as SUPPORTED_TOKENS) ??

@@ -7,6 +7,7 @@ import {
   type OnIntentHookData,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
+  type SupportedChainsAndTokensResult,
   type UserAsset,
 } from "@avail-project/nexus-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +15,8 @@ import { type Address, isAddress } from "viem";
 import { useNexus } from "../../nexus/NexusProvider";
 import config from "../../../../config";
 import { readBridgeParams, writeBridgeParams } from "@/lib/url-params";
+
+const ALLOWED_TOKENS = new Set(["USDC", "USDT"]) as Set<SUPPORTED_TOKENS>;
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -40,6 +43,7 @@ interface UseBridgeProps {
     React.SetStateAction<OnAllowanceHookData | null>
   >;
   unifiedBalance: UserAsset[] | null;
+  supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
   prefill?: {
     token: string;
     chainId: number;
@@ -58,11 +62,34 @@ const buildInitialInputs = (
     recipient?: Address;
   },
 ): FastBridgeState => {
+  const validToken =
+    prefill?.token &&
+    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      : "USDC";
+
+  const validAmount = prefill?.amount
+    ? (() => {
+        const sanitized = prefill.amount.trim();
+        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+          return undefined;
+        const num = Number.parseFloat(sanitized);
+        return Number.isNaN(num) || num <= 0 || num > 1e9
+          ? undefined
+          : sanitized;
+      })()
+    : undefined;
+
+  const validRecipient =
+    prefill?.recipient && isAddress(prefill.recipient)
+      ? (prefill.recipient as `0x${string}`)
+      : connectedAddress;
+
   return {
     chain: config.chainId as SUPPORTED_CHAINS_IDS,
-    token: (prefill?.token as SUPPORTED_TOKENS) ?? "USDC",
-    amount: prefill?.amount ?? undefined,
-    recipient: (prefill?.recipient as `0x${string}`) ?? connectedAddress,
+    token: validToken,
+    amount: validAmount,
+    recipient: validRecipient,
   };
 };
 
@@ -74,6 +101,7 @@ const useBridge = ({
   setAllowance,
   unifiedBalance,
   network,
+  supportedChainsAndTokens,
   prefill,
   onComplete,
 }: UseBridgeProps) => {
@@ -150,7 +178,13 @@ const useBridge = ({
 
     // Clear URL params after successful transaction
     writeBridgeParams({});
-  }, [connectedAddress, setAllowance, fetchUnifiedBalance, prefill, onComplete]);
+  }, [
+    connectedAddress,
+    setAllowance,
+    fetchUnifiedBalance,
+    prefill,
+    onComplete,
+  ]);
 
   const handleTransaction = useCallback(async () => {
     // Starting a new intent fetch/transaction - reset any previous progress steps
@@ -330,10 +364,7 @@ const useBridge = ({
         throw new Error("Transaction rejected by user");
       }
       if (bridgeTxn) {
-        // Debug: Log what bridgeTxn contains
-        console.log("bridgeTxn object:", bridgeTxn);
-        console.log("bridgeTxn.explorerUrl:", bridgeTxn.explorerUrl);
-        console.log("bridgeTxn keys:", Object.keys(bridgeTxn || {}));
+        // Debug: Log what bridgeTxn contains;
 
         const explorerUrl = bridgeTxn.explorerUrl || "";
         // Always set the URL if available, even if empty string
@@ -352,13 +383,6 @@ const useBridge = ({
         }
         // Store explorerUrl in successDataRef - always update it here since this is after bridgeTxn resolves
         successDataRef.current.explorerUrl = explorerUrl || undefined;
-
-        console.log("Setting explorerUrl in successDataRef:", explorerUrl);
-        console.log(
-          "successDataRef.current after setting:",
-          successDataRef.current,
-        );
-
         await onSuccess();
       }
       // Don't set loading to false here - wait for intent to be populated
@@ -409,6 +433,32 @@ const useBridge = ({
       amount: urlParams.amount ?? prev.amount,
     }));
   }, []); // Run once on mount
+
+  // Validate chain ID against supported chains after they're loaded
+  useEffect(() => {
+    if (supportedChainsAndTokens && inputs?.chain) {
+      const supportedChainIds = new Set(
+        supportedChainsAndTokens.map((chain) => chain.id),
+      );
+
+      if (!supportedChainIds.has(inputs.chain)) {
+        console.warn(
+          `Invalid chain ID: ${inputs.chain}. Resetting to default.`,
+        );
+        const defaultChain = config.chainId as SUPPORTED_CHAINS_IDS;
+        setInputs((prev) => ({
+          ...prev,
+          chain: defaultChain,
+        }));
+        writeBridgeParams({
+          to: defaultChain,
+          token: inputs.token,
+          recipient: inputs.recipient,
+          amount: inputs.amount,
+        });
+      }
+    }
+  }, [supportedChainsAndTokens]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on supportedChainsAndTokens
 
   // Write URL params when inputs change (debounced)
   useEffect(() => {
@@ -605,7 +655,7 @@ const useBridge = ({
         setLoading(false);
       }
     }
-  }, [loading, intent?.intent]);  
+  }, [loading, intent?.intent]);
 
   // Get bridge limit based on token type (only enforced in testnet)
   const getBridgeLimit = useCallback(
@@ -718,7 +768,7 @@ const useBridge = ({
     if (txError) {
       setTxError(null);
     }
-  }, [inputs, txError]);  
+  }, [inputs, txError]);
 
   // Also clear error when amount becomes invalid (0, 0., etc.) - runs after inputs change
   useEffect(() => {
