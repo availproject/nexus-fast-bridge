@@ -2,6 +2,7 @@ import { type SUPPORTED_CHAINS_IDS, type SUPPORTED_TOKENS } from "@avail-project
 import { isAddress } from "viem";
 
 const ALLOWED_TOKENS = new Set(["USDC", "USDT"]) as Set<SUPPORTED_TOKENS>;
+const FILTERED_CHAIN_ID = 728126428;
 
 interface BridgeParams {
   to?: SUPPORTED_CHAINS_IDS;
@@ -19,7 +20,9 @@ function isValidToken(token: string | null): token is SUPPORTED_TOKENS {
 function isValidChain(chainStr: string | null): boolean {
   if (!chainStr) return false;
   const chainId = Number.parseInt(chainStr, 10);
-  return Number.isInteger(chainId) && chainId > 0 && chainId <= Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(chainId) || chainId <= 0 || chainId > Number.MAX_SAFE_INTEGER) return false;
+  if (chainId === FILTERED_CHAIN_ID) return false;
+  return true;
 }
 
 function sanitizeAmount(amount: string | null): string | undefined {

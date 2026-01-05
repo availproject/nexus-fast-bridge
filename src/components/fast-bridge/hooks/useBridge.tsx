@@ -426,13 +426,24 @@ const useBridge = ({
   // Read URL params on mount to populate inputs
   useEffect(() => {
     const urlParams = readBridgeParams();
+
+    // Validate chain against supported chains if available
+    let validChain = urlParams.to ?? (config.chainId as SUPPORTED_CHAINS_IDS);
+    if (supportedChainsAndTokens && urlParams.to) {
+      const isSupported = supportedChainsAndTokens.some((c) => c.id === urlParams.to);
+      if (!isSupported) {
+        console.warn(`Invalid chain ID: ${urlParams.to}. Using default.`);
+        validChain = config.chainId as SUPPORTED_CHAINS_IDS;
+      }
+    }
+
     setInputs((prev) => ({
-      chain: urlParams.to ?? prev.chain,
+      chain: validChain,
       token: urlParams.token ?? prev.token,
       recipient: urlParams.recipient ?? prev.recipient,
       amount: urlParams.amount ?? prev.amount,
     }));
-  }, []); // Run once on mount
+  }, [supportedChainsAndTokens]); // Run when supported chains load
 
   // Validate chain ID against supported chains after they're loaded
   useEffect(() => {
@@ -450,15 +461,9 @@ const useBridge = ({
           ...prev,
           chain: defaultChain,
         }));
-        writeBridgeParams({
-          to: defaultChain,
-          token: inputs.token,
-          recipient: inputs.recipient,
-          amount: inputs.amount,
-        });
       }
     }
-  }, [supportedChainsAndTokens]); // eslint-disable-line react-hooks/exhaustive-deps -- Only depend on supportedChainsAndTokens
+  }, [inputs?.chain, supportedChainsAndTokens]); // Run when chain or supported chains change
 
   // Write URL params when inputs change (debounced)
   useEffect(() => {
