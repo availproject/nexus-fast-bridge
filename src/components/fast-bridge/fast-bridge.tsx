@@ -147,13 +147,13 @@ const FastBridge: React.FC<FastBridgeProps> = ({
         const sources = data?.sources || [];
         const sourcesText =
           sources.length > 0
-            ? sources.map((s: any) => s.chainName).join(", ")
+            ? sources.map((s) => s.chainName).join(", ")
             : "N/A";
         const destinationText = data?.destination?.chainName || "Unknown";
         const amountSpent =
           sources.length > 0
             ? sources.reduce(
-                (sum: number, s: any) =>
+                (sum: number, s) =>
                   sum + Number.parseFloat(s.amount || "0"),
                 0
               )
@@ -255,6 +255,7 @@ const FastBridge: React.FC<FastBridgeProps> = ({
 
       return () => clearTimeout(timeoutId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Refs are stable and intentionally excluded
   }, [hasCompletionStep, allCompleted, steps, lastExplorerUrl]);
 
   const getBridgeLimit = (tokenSymbol?: string): number => {

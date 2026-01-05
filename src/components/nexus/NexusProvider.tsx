@@ -16,7 +16,6 @@ import {
 import {
   createContext,
   useCallback,
-  useContext,
   useMemo,
   useState,
 } from "react";
@@ -94,7 +93,7 @@ const NexusProvider = ({
     setSwapSupportedChainsAndTokens(swapList ?? null);
   }, [sdk, config?.network]);
 
-  const initializeNexus = async (provider: EthereumProvider) => {
+  const initializeNexus = useCallback(async (provider: EthereumProvider) => {
     setLoading(true);
     try {
       if (sdk.isInitialized()) throw new Error("Nexus is already initialized");
@@ -110,12 +109,11 @@ const NexusProvider = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [sdk, initChainsAndTokens]);
 
-  const deinitializeNexus = async () => {
+  const deinitializeNexus = useCallback(async () => {
     try {
       if (!sdk.isInitialized()) {
-        // If not initialized, just clear state
         setNexusSDK(null);
         setUnifiedBalance(null);
         setIntent(null);
@@ -129,15 +127,14 @@ const NexusProvider = ({
       setAllowance(null);
     } catch (error) {
       console.error("Error deinitializing Nexus:", error);
-      // Clear state even if deinit fails
       setNexusSDK(null);
       setUnifiedBalance(null);
       setIntent(null);
       setAllowance(null);
     }
-  };
+  }, [sdk]);
 
-  const attachEventHooks = () => {
+  const attachEventHooks = useCallback(() => {
     console.log("attachEventHooks");
     sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
       data.allow(data.sources.map(() => "min"));
@@ -151,7 +148,7 @@ const NexusProvider = ({
       console.log("swapIntent", data);
       setSwapIntent(data);
     });
-  };
+  }, [sdk]);
 
   const handleInit = useCallback(
     async (provider: EthereumProvider) => {
@@ -163,19 +160,19 @@ const NexusProvider = ({
       console.log("handleInit attachEventHooks");
       attachEventHooks();
     },
-    [sdk]
+    [sdk, initializeNexus, attachEventHooks]
   );
 
-  const fetchUnifiedBalance = async () => {
+  const fetchUnifiedBalance = useCallback(async () => {
     try {
       const unifiedBalance = await sdk?.getUnifiedBalances(true);
       setUnifiedBalance(unifiedBalance);
     } catch (error) {
       console.error("Error fetching unified balance:", error);
     }
-  };
+  }, [sdk]);
 
-  const handleNexusError: NexusContextType["handleNexusError"] = (err) => {
+  const handleNexusError: NexusContextType["handleNexusError"] = useCallback((err) => {
     if (err instanceof NexusError) {
       const { code, message, data } = err;
       return {
@@ -186,7 +183,7 @@ const NexusProvider = ({
       };
     }
     return { message: (err as Error)?.message || "Unexpected error" };
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -235,12 +232,6 @@ const NexusProvider = ({
   );
 };
 
-export function useNexus() {
-  const context = useContext(NexusContext);
-  if (!context) {
-    throw new Error("useNexus must be used within a NexusProvider");
-  }
-  return context;
-}
-
 export default NexusProvider;
+export { NexusContext, type NexusContextType };  
+export { useNexus } from "./useNexus"; // eslint-disable-line react-refresh/only-export-components -- Hook exports are safe

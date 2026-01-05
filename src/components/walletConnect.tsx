@@ -48,7 +48,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     } finally {
       setLoading(false);
     }
-  }, [connector, handleInit]);
+  }, [connector, handleInit, loading, nexusSDK]);
 
   // Track initial connection check
   React.useEffect(() => {
@@ -70,7 +70,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       setAllowance(null);
       prevAddressRef.current = undefined;
     }
-  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
+  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);  
 
   // Handle account change - reinitialize Nexus when account address changes
   React.useEffect(() => {
@@ -111,7 +111,8 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     initError,
     initializeNexus,
     deinitializeNexus,
-  ]);
+    loading,
+  ]);  
 
   // Auto-initialize Nexus when wallet is connected (first time)
   React.useEffect(() => {
@@ -124,7 +125,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     ) {
       initializeNexus();
     }
-  }, [status, nexusSDK, initError, address, initializeNexus]);
+  }, [status, nexusSDK, initError, address, initializeNexus, loading]);  
 
   // Show loading during initial connection check or Nexus initialization
   const showLoading =
