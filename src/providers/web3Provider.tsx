@@ -32,7 +32,7 @@ const monad: Chain = {
     default: { http: [config.chainRpcUrl] },
   },
   blockExplorers: {
-    default: { name: "MonVision", url: config.chainBlockExplorerUrl },
+    default: { name: "Explorer", url: config.chainBlockExplorerUrl },
   },
   testnet: config.chainTestnet,
 };
