@@ -28,7 +28,7 @@ export default function Navbar() {
                   letterSpacing: "0.1em",
                 }}
               >
-                {config.chainNativeCurrency.name}
+                {config.chainName}
               </div>
             )}
             <div
