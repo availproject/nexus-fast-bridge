@@ -20,6 +20,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import envConfig from "../../../config";
 
 interface NexusContextType {
   nexusSDK: NexusSDK | null;
@@ -66,7 +67,7 @@ const NexusProvider = ({
   };
 }) => {
   const sdk = useMemo(
-    () => new NexusSDK({ ...config, siweChain: 143 }),
+    () => new NexusSDK({ ...config, siweChain: envConfig.chainId }),
     [config]
   );
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
