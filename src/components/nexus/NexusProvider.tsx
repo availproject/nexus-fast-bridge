@@ -13,7 +13,14 @@ import {
   ERROR_CODES,
   type SupportedChainsAndTokensResult,
 } from "@avail-project/nexus-core";
-import { createContext, useCallback, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
+import envConfig from "../../../config";
 
 interface NexusContextType {
   nexusSDK: NexusSDK | null;
@@ -60,8 +67,8 @@ const NexusProvider = ({
   };
 }) => {
   const sdk = useMemo(
-    () => new NexusSDK({ ...config, siweChain: 143 }),
-    [config],
+    () => new NexusSDK({ ...config, siweChain: envConfig.chainId }),
+    [config]
   );
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =

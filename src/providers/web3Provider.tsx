@@ -20,7 +20,7 @@ import config from "../../config";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
-const monad: Chain = {
+const chain: Chain = {
   id: config.chainId,
   name: config.chainName,
   nativeCurrency: {
@@ -32,7 +32,7 @@ const monad: Chain = {
     default: { http: [config.chainRpcUrl] },
   },
   blockExplorers: {
-    default: { name: "MonVision", url: config.chainBlockExplorerUrl },
+    default: { name: "Explorer", url: config.chainBlockExplorerUrl },
   },
   testnet: config.chainTestnet,
 };
@@ -48,14 +48,14 @@ const transports = {
   [avalanche.id]: http(import.meta.env.VITE_AVALANCHE_RPC),
   [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
   [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
-  [monad.id]: http(config.chainRpcUrl),
+  [chain.id]: http(config.chainRpcUrl),
 };
 
 const defaultConfigParams = getDefaultConfig({
   appName: config.appTitle ?? "Nexus Elements",
   walletConnectProjectId,
   chains: [
-    monad,
+    chain,
     mainnet,
     base,
     sophon,
