@@ -76,7 +76,7 @@ const NexusProvider = ({
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(null);
   const [unifiedBalance, setUnifiedBalance] = useState<UserAsset[] | null>(
-    null,
+    null
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [intent, setIntent] = useState<OnIntentHookData | null>(null);
@@ -112,7 +112,7 @@ const NexusProvider = ({
         setLoading(false);
       }
     },
-    [sdk, initChainsAndTokens],
+    [sdk, initChainsAndTokens]
   );
 
   const deinitializeNexus = useCallback(async () => {
@@ -154,18 +154,23 @@ const NexusProvider = ({
 
   const handleInit = useCallback(
     async (provider: EthereumProvider) => {
+      console.log("Init Called");
       if (sdk.isInitialized()) {
+        console.log("Nexus is already initialized");
         return;
       }
+      console.log("Initializing Nexus");
       await initializeNexus(provider);
+      console.log("Nexus initialized");
       attachEventHooks();
+      console.log("Event hooks attached");
     },
-    [sdk, initializeNexus, attachEventHooks],
+    [sdk, initializeNexus, attachEventHooks]
   );
 
   const fetchUnifiedBalance = useCallback(async () => {
     try {
-      const unifiedBalance = await sdk?.getUnifiedBalances(true);
+      const unifiedBalance = await sdk?.getBalancesForBridge();
       setUnifiedBalance(unifiedBalance);
     } catch (error) {
       console.error("Error fetching unified balance:", error);
@@ -185,7 +190,7 @@ const NexusProvider = ({
       }
       return { message: (err as Error)?.message || "Unexpected error" };
     },
-    [],
+    []
   );
 
   const value = useMemo(
@@ -228,7 +233,7 @@ const NexusProvider = ({
       swapIntent,
       setSwapIntent,
       handleNexusError,
-    ],
+    ]
   );
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>
