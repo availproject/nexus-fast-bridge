@@ -55,7 +55,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@avail-project/nexus-core"
+      "@avail-project/nexus-core",
+      "@avail-project/ca-common@1.0.0-beta11"
     ]
   }
 }
