@@ -8,6 +8,7 @@ import config from "../config";
 import { type NexusNetwork } from "@avail-project/nexus-core";
 import Home from "@/pages/Home";
 import Opportunities from "@/pages/Opportunities";
+import Positions from "@/pages/Positions";
 
 import { NexusInitializer } from "@/components/NexusInitializer";
 
@@ -15,8 +16,19 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const currentTab =
-    location.pathname === "/opportunities" ? "opportunities" : "fastbridge";
+  const getCurrentTab = () => {
+    if (location.pathname === "/opportunities") return "opportunities";
+    if (location.pathname === "/positions") return "positions";
+    return "fastbridge";
+  };
+
+  const currentTab = getCurrentTab();
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === "opportunities") navigate("/opportunities");
+    else if (tabId === "positions") navigate("/positions");
+    else navigate("/");
+  };
 
   return (
     <div className="font-sans min-h-screen overflow-x-hidden w-full">
@@ -34,14 +46,13 @@ function AppContent() {
               tabs={[
                 { id: "fastbridge", label: "FastBridge" },
                 { id: "opportunities", label: "Opportunities" },
+                { id: "positions", label: "Positions" },
               ]}
               activeTab={currentTab}
-              onTabChange={(tabId) =>
-                navigate(tabId === "opportunities" ? "/opportunities" : "/")
-              }
+              onTabChange={handleTabChange}
             />
           </div>
-          {/* Keep both components mounted, hide inactive one */}
+          {/* Keep all components mounted, hide inactive ones */}
           <div
             style={{ display: currentTab === "fastbridge" ? "block" : "none" }}
           >
@@ -53,6 +64,11 @@ function AppContent() {
             }}
           >
             <Opportunities />
+          </div>
+          <div
+            style={{ display: currentTab === "positions" ? "block" : "none" }}
+          >
+            <Positions />
           </div>
         </main>
       </div>

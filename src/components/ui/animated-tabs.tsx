@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { cn } from "@/lib/utils";
+import config from "../../../config";
 
 interface Tab {
   id: string;
@@ -52,12 +53,13 @@ export function AnimatedTabs({
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className="relative z-10 px-6 py-2 text-sm font-medium rounded-full bg-transparent"
-              style={{ color: isActive ? "white" : "#6b7280" }}
+              style={{ color: isActive ? config.secondaryColor : "#6b7280" }}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTabBackground"
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                  className="absolute inset-0 rounded-full"
+                  style={{ backgroundColor: config.primaryColor }}
                   transition={{
                     type: "tween",
                     duration: 0.2,
