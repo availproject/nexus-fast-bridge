@@ -99,8 +99,8 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
-      ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ALLOWED_TOKENS.has((config.nexusPrimaryToken || prefill.token.toUpperCase()) as SUPPORTED_TOKENS)
+      ? ((config.nexusPrimaryToken || prefill.token.toUpperCase()) as SUPPORTED_TOKENS)
       : "USDC";
 
   const validAmount = prefill?.amount
