@@ -8,58 +8,72 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../ui/accordion";
-
-// Helper function to format numbers and remove trailing zeros after decimal point
-const formatAmount = (amount: string | number | undefined): string => {
-  if (!amount) return "0";
-  const num = typeof amount === "string" ? Number.parseFloat(amount) : amount;
-  if (Number.isNaN(num)) return String(amount);
-  // Convert to string and remove trailing zeros only after decimal point
-  const str = num.toString();
-  // Only remove trailing zeros if there's a decimal point
-  if (str.includes(".")) {
-    return str.replace(/\.?0+$/, "");
-  }
-  return str;
-};
+import { Skeleton } from "../../ui/skeleton";
+import { useNexus } from "../../nexus/NexusProvider";
 
 interface SourceBreakdownProps {
-  intent: ReadableIntent;
+  intent?: ReadableIntent;
   tokenSymbol: SUPPORTED_TOKENS;
+  isLoading?: boolean;
 }
 
-const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
+const SourceBreakdown = ({
+  intent,
+  tokenSymbol,
+  isLoading = false,
+}: SourceBreakdownProps) => {
+  const { nexusSDK } = useNexus();
+  const spendSymbol =
+    intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
-    <Accordion type="single" collapsible>
+    <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="sources">
         <div className="flex items-start justify-between gap-x-4 w-full">
-          {intent?.sources && (
+          {isLoading ? (
             <>
               <div className="flex flex-col items-start gap-y-1 min-w-fit">
-                <p className="text-base font-medium">You spend</p>
-                <p className="text-sm font-light">
-                  {intent?.sources?.length > 1
-                    ? `${intent?.sources?.length} assests on ${intent?.sources?.length} chains`
-                    : `${intent?.sources?.length} asset on ${intent?.sources?.length} chain`}
-                </p>
+                <p className="text-base font-light">You Spend</p>
+                <Skeleton className="h-4 w-44" />
               </div>
-
               <div className="flex flex-col items-end gap-y-1 min-w-fit">
-                <p className="text-base font-medium">
-                  {formatAmount(intent?.sourcesTotal)} {tokenSymbol}
-                </p>
-                <AccordionTrigger
-                  containerClassName="w-fit"
-                  className="py-0 items-center gap-x-1"
-                  hideChevron={false}
-                >
-                  <p className="text-sm font-light">View Sources</p>
-                </AccordionTrigger>
+                <Skeleton className="h-5 w-24" />
+                <div className="w-fit">
+                  <Skeleton className="h-4 w-24" />
+                </div>
               </div>
             </>
+          ) : (
+            intent?.sources && (
+              <>
+                <div className="flex flex-col items-start gap-y-1 min-w-fit">
+                  <p className="text-base font-light">You Spend</p>
+                  <p className="text-sm font-light">
+                    {`${spendSymbol.toUpperCase()} on ${
+                      intent?.sources?.length
+                    } ${intent?.sources?.length > 1 ? "chains" : "chain"}`}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-end gap-y-1 min-w-fit">
+                  <p className="text-base font-light">
+                    {nexusSDK?.utils?.formatTokenBalance(intent?.sourcesTotal, {
+                      symbol: spendSymbol,
+                      decimals: intent?.token?.decimals,
+                    })}
+                  </p>
+                  <AccordionTrigger
+                    containerClassName="w-fit"
+                    className="py-0 items-center gap-x-1"
+                    hideChevron={false}
+                  >
+                    <p className="text-sm font-light">View Sources</p>
+                  </AccordionTrigger>
+                </div>
+              </>
+            )
           )}
         </div>
-        {intent?.sources && (
+        {!isLoading && intent?.sources && (
           <AccordionContent className="my-4 bg-muted pb-0 px-4 py-2 rounded-lg w-full">
             <div className="flex flex-col items-center gap-y-3">
               {intent?.sources?.map((source) => (
@@ -75,11 +89,14 @@ const SourceBreakdown = ({ intent, tokenSymbol }: SourceBreakdownProps) => {
                       height={20}
                       className="rounded-full"
                     />
-                    <p className="text-sm font-light">{source.chainName}</p>
+                    <p className="text-base font-light">{source.chainName}</p>
                   </div>
 
-                  <p className="text-sm font-light">
-                    {formatAmount(source.amount)} {tokenSymbol}
+                  <p className="text-base font-light">
+                    {nexusSDK?.utils?.formatTokenBalance(source.amount, {
+                      symbol: spendSymbol,
+                      decimals: intent?.token?.decimals,
+                    })}
                   </p>
                 </div>
               ))}
