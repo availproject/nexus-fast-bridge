@@ -47,6 +47,8 @@ declare global {
         readonly VITE_AVALANCHE_RPC: string;
         readonly VITE_SOPHON_RPC: string;
         readonly VITE_KAIA_RPC: string;
+        readonly VITE_MONAD_RPC: string;
+        readonly VITE_MEGAETH_RPC: string;
         readonly VITE_BASE: string;
     }
 

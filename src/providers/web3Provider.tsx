@@ -13,6 +13,7 @@ import {
   avalanche,
   sophon,
   kaia,
+  monad,
   type Chain,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
@@ -49,6 +50,7 @@ const transports = {
   [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
   [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
   [chain.id]: http(config.chainRpcUrl),
+  [monad.id]: http(import.meta.env.VITE_MONAD_RPC),
 };
 
 const defaultConfigParams = getDefaultConfig({
@@ -65,6 +67,7 @@ const defaultConfigParams = getDefaultConfig({
     optimism,
     polygon,
     scroll,
+    monad,
   ],
   transports,
   enableFamily: false,
