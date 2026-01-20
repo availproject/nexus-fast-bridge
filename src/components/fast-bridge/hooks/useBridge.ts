@@ -1,31 +1,22 @@
 import {
-  type BridgeStepType,
   NEXUS_EVENTS,
-  type NexusNetwork,
   NexusSDK,
+  type BridgeStepType,
+  type NexusNetwork,
   type OnAllowanceHookData,
   type OnIntentHookData,
-  SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
+  type SupportedChainsAndTokensResult,
   type UserAsset,
 } from "@avail-project/nexus-core";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useReducer,
-  type RefObject,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Address, isAddress } from "viem";
-import {
-  useStopwatch,
-  usePolling,
-  useNexusError,
-  useTransactionSteps,
-  type TransactionStatus,
-} from "../../common";
+import { useNexus } from "../../nexus/NexusProvider";
+import config from "../../../../config";
+import { readBridgeParams, writeBridgeParams } from "@/lib/url-params";
+
+const ALLOWED_TOKENS = new Set(["USDC", "USDT"]) as Set<SUPPORTED_TOKENS>;
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -34,13 +25,25 @@ export interface FastBridgeState {
   recipient?: `0x${string}`;
 }
 
+interface SuccessData {
+  sources: Array<{ chainName: string; amount: string }>;
+  destination: { chainName: string; amount: string } | null;
+  token: { symbol: string } | null;
+  fees: { total: string } | null;
+  explorerUrl?: string;
+}
+
 interface UseBridgeProps {
   network: NexusNetwork;
   connectedAddress: Address;
   nexusSDK: NexusSDK | null;
-  intent: RefObject<OnIntentHookData | null>;
-  allowance: RefObject<OnAllowanceHookData | null>;
-  bridgableBalance: UserAsset[] | null;
+  intent: OnIntentHookData | null;
+  setIntent: React.Dispatch<React.SetStateAction<OnIntentHookData | null>>;
+  setAllowance: React.Dispatch<
+    React.SetStateAction<OnAllowanceHookData | null>
+  >;
+  unifiedBalance: UserAsset[] | null;
+  supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
   prefill?: {
     token: string;
     chainId: number;
@@ -48,23 +51,9 @@ interface UseBridgeProps {
     recipient?: Address;
   };
   onComplete?: () => void;
-  onStart?: () => void;
-  onError?: (message: string) => void;
-  fetchBalance: () => Promise<void>;
 }
 
-type BridgeState = {
-  inputs: FastBridgeState;
-  status: TransactionStatus;
-};
-
-type Action =
-  | { type: "setInputs"; payload: Partial<FastBridgeState> }
-  | { type: "resetInputs" }
-  | { type: "setStatus"; payload: TransactionStatus };
-
 const buildInitialInputs = (
-  network: NexusNetwork,
   connectedAddress: Address,
   prefill?: {
     token: string;
@@ -73,117 +62,300 @@ const buildInitialInputs = (
     recipient?: Address;
   },
 ): FastBridgeState => {
+  const validToken =
+    prefill?.token &&
+      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      : "USDC";
+
+  const validAmount = prefill?.amount
+    ? (() => {
+      const sanitized = prefill.amount.trim();
+      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+        return undefined;
+      const num = Number.parseFloat(sanitized);
+      return Number.isNaN(num) || num <= 0 || num > 1e9
+        ? undefined
+        : sanitized;
+    })()
+    : undefined;
+
+  const validRecipient =
+    prefill?.recipient && isAddress(prefill.recipient)
+      ? (prefill.recipient as `0x${string}`)
+      : connectedAddress;
+
   return {
-    chain:
-      (prefill?.chainId as SUPPORTED_CHAINS_IDS) ??
-      (network === "testnet"
-        ? SUPPORTED_CHAINS.SEPOLIA
-        : SUPPORTED_CHAINS.ETHEREUM),
-    token: (prefill?.token as SUPPORTED_TOKENS) ?? "USDC",
-    amount: prefill?.amount ?? undefined,
-    recipient: (prefill?.recipient as `0x${string}`) ?? connectedAddress,
+    chain: config.chainId as SUPPORTED_CHAINS_IDS,
+    token: validToken,
+    amount: validAmount,
+    recipient: validRecipient,
   };
 };
 
 const useBridge = ({
-  network,
   connectedAddress,
   nexusSDK,
   intent,
-  bridgableBalance,
+  setIntent,
+  setAllowance,
+  unifiedBalance,
+  network,
+  supportedChainsAndTokens,
   prefill,
   onComplete,
-  onStart,
-  onError,
-  fetchBalance,
-  allowance,
 }: UseBridgeProps) => {
-  const handleNexusError = useNexusError();
-  const initialState: BridgeState = {
-    inputs: buildInitialInputs(network, connectedAddress, prefill),
-    status: "idle",
-  };
-  function reducer(state: BridgeState, action: Action): BridgeState {
-    switch (action.type) {
-      case "setInputs":
-        return { ...state, inputs: { ...state.inputs, ...action.payload } };
-      case "resetInputs":
-        return {
-          ...state,
-          inputs: buildInitialInputs(network, connectedAddress, prefill),
-        };
-      case "setStatus":
-        return { ...state, status: action.payload };
-      default:
-        return state;
-    }
-  }
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const inputs = state.inputs;
-  const setInputs = (next: FastBridgeState | Partial<FastBridgeState>) => {
-    dispatch({ type: "setInputs", payload: next as Partial<FastBridgeState> });
-  };
+  const { fetchUnifiedBalance, handleNexusError } = useNexus();
+  const [inputs, setInputs] = useState<FastBridgeState>(() =>
+    buildInitialInputs(connectedAddress, prefill),
+  );
 
-  const loading = state.status === "executing";
+  const [timer, setTimer] = useState(0);
+  const [startTxn, setStartTxn] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
+  const explorerUrlRef = useRef<string>("");
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const commitLockRef = useRef<boolean>(false);
-  const {
-    steps,
-    onStepsList,
-    onStepComplete,
-    reset: resetSteps,
-  } = useTransactionSteps<BridgeStepType>();
+  const inputsRef = useRef<FastBridgeState>(inputs);
+  const denyingDueToInvalidInputRef = useRef<boolean>(false);
+  const intentRef = useRef(intent);
+  const successDataRef = useRef<SuccessData | null>(null);
+  const [steps, setSteps] = useState<
+    Array<{ id: number; completed: boolean; step: BridgeStepType }>
+  >([]);
+  const timerStartedRef = useRef<boolean>(false);
+
+  // Keep intentRef in sync with intent
+  useEffect(() => {
+    intentRef.current = intent;
+  }, [intent]);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
     const hasChain = inputs?.chain !== undefined && inputs?.chain !== null;
-    const hasAmount = Boolean(inputs?.amount) && Number(inputs?.amount) > 0;
+    // More robust amount validation - check that it's a valid number > 0
+    const amountValue = inputs?.amount?.trim();
+    const parsedAmount = amountValue ? Number.parseFloat(amountValue) : 0;
+    const hasAmount =
+      Boolean(amountValue) && !Number.isNaN(parsedAmount) && parsedAmount > 0;
     const hasValidrecipient =
       Boolean(inputs?.recipient) && isAddress(inputs?.recipient as string);
     return hasToken && hasChain && hasAmount && hasValidrecipient;
   }, [inputs]);
 
-  const handleTransaction = async () => {
+  const onSuccess = useCallback(async () => {
+    // Intent data should already be captured in startTransaction before this is called
+    // But DON'T clear intent yet - wait until completion step is detected
+    // This ensures the intent data is still available when STEP_COMPLETE fires
+
+    // Close dialog and stop timer on success
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setStartTxn(false);
+    timerStartedRef.current = false; // Reset timer started flag
+    // DON'T clear intent here - wait for completion step
+    // setIntent(null);
+    setAllowance(null);
+    setRefreshing(false);
+
+    await fetchUnifiedBalance();
+    onComplete?.();
+
+    // Reset inputs after balance fetch, but preserve recipient address
+    setInputs((prev) => {
+      const initialInputs = buildInitialInputs(connectedAddress, prefill);
+      return {
+        ...initialInputs,
+        recipient: prev?.recipient ?? initialInputs.recipient, // Keep current recipient if it exists
+      };
+    });
+
+    // Clear URL params after successful transaction
+    writeBridgeParams({});
+  }, [
+    connectedAddress,
+    setAllowance,
+    fetchUnifiedBalance,
+    prefill,
+    onComplete,
+  ]);
+
+  const handleTransaction = useCallback(async () => {
+    // Starting a new intent fetch/transaction - reset any previous progress steps
+    setSteps([]);
+    timerStartedRef.current = false; // Reset timer started flag
+
+    // Intent data should already be captured in startTransaction
+    // This is just a fallback in case it wasn't captured earlier
+    if (!successDataRef.current) {
+      const currentIntent = intentRef.current;
+      if (currentIntent?.intent) {
+        successDataRef.current = {
+          sources: currentIntent.intent.sources || [],
+          destination: currentIntent.intent.destination || null,
+          token: currentIntent.intent.token || null,
+          fees: currentIntent.intent.fees || null,
+        };
+      }
+    }
+    // Use ref to get the latest inputs value to avoid stale closures
+    const currentInputs = inputsRef.current;
     if (
-      !inputs?.amount ||
-      !inputs?.recipient ||
-      !inputs?.chain ||
-      !inputs?.token
+      !currentInputs?.amount ||
+      !currentInputs?.recipient ||
+      !currentInputs?.chain ||
+      !currentInputs?.token ||
+      commitLockRef.current
     ) {
-      console.error("Missing required inputs");
       return;
     }
-    dispatch({ type: "setStatus", payload: "executing" });
+    commitLockRef.current = true;
+    setLoading(true);
     setTxError(null);
-    onStart?.();
-
     try {
-      if (!nexusSDK) {
-        throw new Error("Nexus SDK not initialized");
+      // Ensure we capture intent data before starting bridge
+      if (intent?.intent && !successDataRef.current) {
+        successDataRef.current = {
+          sources: intent.intent.sources || [],
+          destination: intent.intent.destination,
+          token: intent.intent.token,
+          fees: intent.intent.fees,
+        };
       }
-      const formattedAmount = nexusSDK.convertTokenReadableAmountToBigInt(
-        inputs?.amount,
-        inputs?.token,
-        inputs?.chain,
-      );
-      const bridgeTxn = await nexusSDK.bridge(
+
+      // Bridge
+      const bridgeTxn = await nexusSDK?.bridge(
         {
-          token: inputs?.token,
-          amount: formattedAmount,
-          toChainId: inputs?.chain,
-          recipient: inputs?.recipient ?? connectedAddress,
+          token: currentInputs?.token,
+          amount: nexusSDK.convertTokenReadableAmountToBigInt(
+            currentInputs?.amount ?? "0",
+            currentInputs?.token,
+            currentInputs?.chain,
+          ),
+          toChainId: currentInputs?.chain,
+          recipient: currentInputs?.recipient,
         },
         {
           onEvent: (event) => {
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
-              onStepsList(list);
+              setSteps((prev) => {
+                const completedTypes = new Set(
+                  prev
+                    .filter((s) => s.completed)
+                    .map((s) => s.step?.typeID ?? ""),
+                );
+                const newSteps = list.map((step, index) => ({
+                  id: index,
+                  completed: completedTypes.has(step?.typeID ?? ""),
+                  step,
+                }));
+
+                // Start timer when INTENT_SUBMITTED step appears (after intent is submitted)
+                const hasIntentSubmitted = newSteps.some(
+                  (s) =>
+                    s.step?.type === "INTENT_SUBMITTED" ||
+                    s.step?.type === "INTENT_HASH_SIGNED",
+                );
+                if (hasIntentSubmitted && !timerStartedRef.current) {
+                  setTimer(0); // Reset timer to 0
+                  setStartTxn(true); // Start the timer
+                  timerStartedRef.current = true; // Mark timer as started
+                }
+
+                return newSteps;
+              });
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-              onStepComplete(event.args);
+              const step = event.args;
+              const stepType = step?.type as unknown as string;
+
+              // Start timer when INTENT_SUBMITTED step completes
+              if (
+                (stepType === "INTENT_SUBMITTED" ||
+                  stepType === "INTENT_HASH_SIGNED") &&
+                !timerStartedRef.current
+              ) {
+                setTimer(0); // Reset timer to 0
+                setStartTxn(true); // Start the timer
+                timerStartedRef.current = true; // Mark timer as started
+              }
+
+              // Check if this is a completion step and ensure we have intent data
+              if (
+                stepType === "INTENT_FULFILLED" ||
+                stepType === "TRANSACTION_CONFIRMED"
+              ) {
+                // Try to capture intent data - check multiple sources
+                if (!successDataRef.current) {
+                  // First try: from current intent (if still available)
+                  if (intent?.intent) {
+                    successDataRef.current = {
+                      sources: intent.intent.sources || [],
+                      destination: intent.intent.destination,
+                      token: intent.intent.token,
+                      fees: intent.intent.fees,
+                    };
+                  }
+                  // Fallback: use inputs to reconstruct basic info (won't have full details)
+                  else if (currentInputs) {
+                    successDataRef.current = {
+                      sources: [],
+                      destination: { chainName: "Unknown", amount: "0" },
+                      token: { symbol: currentInputs.token || "Unknown" },
+                      fees: { total: "0" },
+                    };
+                  }
+                }
+
+                // Ensure explorerUrl is preserved/updated if available
+                // Check all possible sources and use the first available one
+                if (successDataRef.current) {
+                  let url = successDataRef.current.explorerUrl;
+                  if (!url || url.trim() === "") {
+                    url = explorerUrlRef.current;
+                  }
+                  if (!url || url.trim() === "") {
+                    url = lastExplorerUrl;
+                  }
+                  if (url && url.trim() !== "") {
+                    successDataRef.current.explorerUrl = url;
+                    // Also update the refs for consistency
+                    explorerUrlRef.current = url;
+                    setLastExplorerUrl(url);
+                  }
+                }
+
+                // Force a re-render by updating steps (this will trigger the toast check)
+                setSteps((prev) => {
+                  const updated = prev.map((s) =>
+                    s.step && s.step.typeID === step?.typeID
+                      ? { ...s, completed: true }
+                      : s,
+                  );
+
+                  // Clear intent now that we've captured the data
+                  if (intent) {
+                    setIntent(null);
+                  }
+
+                  return updated;
+                });
+              } else {
+                setSteps((prev) =>
+                  prev.map((s) =>
+                    s.step && s.step.typeID === step?.typeID
+                      ? { ...s, completed: true }
+                      : s,
+                  ),
+                );
+              }
             }
           },
         },
@@ -192,122 +364,549 @@ const useBridge = ({
         throw new Error("Transaction rejected by user");
       }
       if (bridgeTxn) {
-        setLastExplorerUrl(bridgeTxn.explorerUrl);
+        // Debug: Log what bridgeTxn contains;
+
+        const explorerUrl = bridgeTxn.explorerUrl || "";
+        // Always set the URL if available, even if empty string
+        setLastExplorerUrl(explorerUrl);
+        explorerUrlRef.current = explorerUrl;
+
+        // Also store in successDataRef for toast (ensure it exists first)
+        if (!successDataRef.current) {
+          // Create a minimal ref if it doesn't exist yet
+          successDataRef.current = {
+            sources: [],
+            destination: null,
+            token: null,
+            fees: null,
+          };
+        }
+        // Store explorerUrl in successDataRef - always update it here since this is after bridgeTxn resolves
+        successDataRef.current.explorerUrl = explorerUrl || undefined;
         await onSuccess();
       }
+      // Don't set loading to false here - wait for intent to be populated
+      // Loading will be cleared when intent?.intent becomes available
     } catch (error) {
+      // Don't set error if we're denying due to invalid input (user is just editing)
+      if (denyingDueToInvalidInputRef.current) {
+        setTxError(null);
+        setIsDialogOpen(false);
+        setLoading(false);
+        return;
+      }
       const { message } = handleNexusError(error);
-      intent.current?.deny();
-      intent.current = null;
-      allowance.current = null;
-      setTxError(message);
-      onError?.(message);
+      // Don't show "User rejected" errors when denying due to invalid input
+      if (
+        message &&
+        message.includes("User rejected") &&
+        denyingDueToInvalidInputRef.current
+      ) {
+        setTxError(null);
+      } else {
+        setTxError(message);
+      }
       setIsDialogOpen(false);
-      dispatch({ type: "setStatus", payload: "error" });
+      setLoading(false);
+    } finally {
+      setStartTxn(false);
+      commitLockRef.current = false;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
-  };
-  console.log("INTENT", intent?.current);
-  console.log("BALANCE", bridgableBalance);
+  }, [connectedAddress, nexusSDK, onSuccess, handleNexusError]); // eslint-disable-line react-hooks/exhaustive-deps -- Intentionally excluding unstable refs
 
-  const onSuccess = async () => {
-    // Close dialog and stop timer on success
-    stopwatch.stop();
-    dispatch({ type: "setStatus", payload: "success" });
-    onComplete?.();
-    intent.current = null;
-    allowance.current = null;
-    dispatch({ type: "resetInputs" });
-    setRefreshing(false);
-    await fetchBalance();
-  };
+  // Keep inputsRef in sync with inputs state
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
 
-  const filteredBridgableBalance = useMemo(() => {
-    return bridgableBalance?.find((bal) => bal?.symbol === inputs?.token);
-  }, [bridgableBalance, inputs?.token]);
+  // Read URL params on mount to populate inputs
+  useEffect(() => {
+    const urlParams = readBridgeParams();
 
-  const refreshIntent = async () => {
+    // Validate chain against supported chains if available
+    let validChain = urlParams.to ?? (config.chainId as SUPPORTED_CHAINS_IDS);
+    if (supportedChainsAndTokens && urlParams.to) {
+      const isSupported = supportedChainsAndTokens.some((c) => c.id === urlParams.to);
+      if (!isSupported) {
+        console.warn(`Invalid chain ID: ${urlParams.to}. Using default.`);
+        validChain = config.chainId as SUPPORTED_CHAINS_IDS;
+      }
+    }
+
+    setInputs((prev) => ({
+      chain: validChain,
+      token: urlParams.token ?? prev.token,
+      recipient: urlParams.recipient ?? prev.recipient,
+      amount: urlParams.amount ?? prev.amount,
+    }));
+  }, [supportedChainsAndTokens]); // Run when supported chains load
+
+  // Validate chain ID against supported chains after they're loaded
+  useEffect(() => {
+    if (supportedChainsAndTokens && inputs?.chain) {
+      const supportedChainIds = new Set(
+        supportedChainsAndTokens.map((chain) => chain.id),
+      );
+
+      if (!supportedChainIds.has(inputs.chain)) {
+        console.warn(
+          `Invalid chain ID: ${inputs.chain}. Resetting to default.`,
+        );
+        const defaultChain = config.chainId as SUPPORTED_CHAINS_IDS;
+        setInputs((prev) => ({
+          ...prev,
+          chain: defaultChain,
+        }));
+      }
+    }
+  }, [inputs?.chain, supportedChainsAndTokens]); // Run when chain or supported chains change
+
+  // Write URL params when inputs change (debounced)
+  useEffect(() => {
+    const updateUrl = () => {
+      if (!inputs || intent || loading) return;
+      writeBridgeParams({
+        to: inputs.chain,
+        token: inputs.token,
+        recipient: inputs.recipient,
+        amount: inputs.amount,
+      });
+    };
+
+    const timeout = setTimeout(updateUrl, 800);
+    return () => clearTimeout(timeout);
+  }, [inputs, intent, loading]);
+
+  const filteredUnifiedBalance = useMemo(() => {
+    return unifiedBalance?.find((bal) => bal?.symbol === inputs?.token);
+  }, [unifiedBalance, inputs?.token]);
+
+  // Calculate adjusted balance (unified balance minus balance on destination chain)
+  const adjustedBalance = useMemo(() => {
+    if (!filteredUnifiedBalance?.balance || !inputs?.chain) {
+      return "0";
+    }
+
+    // Find the balance already on the destination chain
+    let balanceOnDestinationChain = "0";
+    if (filteredUnifiedBalance?.breakdown) {
+      const destinationBalance = filteredUnifiedBalance.breakdown.find(
+        (balance) => balance.chain.id === inputs.chain,
+      );
+      if (destinationBalance) {
+        balanceOnDestinationChain = destinationBalance.balance || "0";
+      }
+    }
+
+    // Calculate unified balance minus balance on destination chain
+    const unifiedBal = Number.parseFloat(filteredUnifiedBalance.balance || "0");
+    const destBal = Number.parseFloat(balanceOnDestinationChain);
+    const adjusted = Math.max(0, unifiedBal - destBal);
+
+    return adjusted.toString();
+  }, [filteredUnifiedBalance, inputs?.chain]);
+
+  const refreshIntent = useCallback(async () => {
     setRefreshing(true);
     try {
-      await intent.current?.refresh([]);
-    } catch (error) {
-      console.error("Transaction failed:", error);
+      await intent?.refresh([]);
+    } catch {
+      // User cancelled, ignore
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [intent]);
 
-  const reset = () => {
-    intent.current?.deny();
-    intent.current = null;
-    allowance.current = null;
-    dispatch({ type: "resetInputs" });
-    dispatch({ type: "setStatus", payload: "idle" });
+  const reset = useCallback(() => {
+    intent?.deny();
+    setIntent(null);
+    setAllowance(null);
+    // Preserve current recipient when resetting (don't reset to connectedAddress)
+    setInputs((prev) => {
+      const initialInputs = buildInitialInputs(connectedAddress, prefill);
+      return {
+        ...initialInputs,
+        recipient: prev?.recipient ?? initialInputs.recipient, // Keep current recipient if it exists
+      };
+    });
+    setStartTxn(false);
     setRefreshing(false);
-    stopwatch.stop();
-    stopwatch.reset();
-    resetSteps();
-  };
+    // Reset steps when form is reset
+    setSteps([]);
+    timerStartedRef.current = false; // Reset timer started flag
+    // Update URL with defaults
+    writeBridgeParams({
+      to: config.chainId as SUPPORTED_CHAINS_IDS,
+      token: "USDC" as SUPPORTED_TOKENS,
+      recipient: inputsRef.current.recipient ?? connectedAddress,
+    });
+  }, [connectedAddress, prefill, intent]); // eslint-disable-line react-hooks/exhaustive-deps -- Excluding unstable setState deps to prevent re-run on every state change
 
   const startTransaction = () => {
-    // Reset timer for a fresh run
-    intent.current?.allow();
+    // Capture intent data IMMEDIATELY when user clicks Accept (before anything else)
+    // This is the earliest and most reliable point to capture the data
+    if (intent?.intent) {
+      successDataRef.current = {
+        sources: intent.intent.sources || [],
+        destination: intent.intent.destination || null,
+        token: intent.intent.token || null,
+        fees: intent.intent.fees || null,
+      };
+    }
+
+    // Reset timer started flag and ensure timer is stopped
+    timerStartedRef.current = false;
+    setStartTxn(false); // Explicitly stop timer
+    setTimer(0); // Reset timer to 0
+    // Timer will start when INTENT_SUBMITTED step appears
+    intent?.allow();
     setIsDialogOpen(true);
     setTxError(null);
   };
 
-  const commitAmount = async () => {
-    if (commitLockRef.current) return;
-    if (!intent.current || loading || txError || !areInputsValid) return;
-    commitLockRef.current = true;
-    try {
-      await handleTransaction();
-    } finally {
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (intent) {
+      interval = setInterval(refreshIntent, 5000);
+    }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [intent, refreshIntent]);
+
+  useEffect(() => {
+    // Only start timer if startTxn is true AND INTENT_SUBMITTED step exists
+    const hasIntentSubmitted = steps.some(
+      (s) =>
+        s.step?.type === "INTENT_SUBMITTED" ||
+        s.step?.type === "INTENT_HASH_SIGNED",
+    );
+
+    if (startTxn && hasIntentSubmitted) {
+      timerRef.current = setInterval(() => {
+        setTimer((prev) => prev + 0.1);
+      }, 100);
+    } else {
+      // Stop timer if conditions aren't met
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [startTxn, steps]);
+
+  useEffect(() => {
+    // Deny intent only when user edits inputs; avoid denying on intent updates
+    if (!intent) return;
+    // Reset commit lock when inputs change to allow new intent to be fetched
+    if (commitLockRef.current) {
       commitLockRef.current = false;
     }
-  };
+    // Allow intent to be denied even if loading, so user can edit inputs at any time
+    // Only prevent denial if we're actually submitting a transaction (startTxn is true)
+    if (loading && startTxn) return;
+    // Reset loading if we're just fetching an intent (not submitting)
+    if (loading && !startTxn) {
+      setLoading(false);
+    }
 
-  usePolling(Boolean(intent.current) && !isDialogOpen, refreshIntent, 15000);
+    // Set flag to ignore errors when denying due to input changes
+    // We always deny silently when inputs change (user is editing, not rejecting)
+    denyingDueToInvalidInputRef.current = true;
 
-  const stopwatch = useStopwatch({ running: isDialogOpen, intervalMs: 100 });
+    // Clear any existing errors when inputs change (user is editing, not rejecting)
+    setTxError(null);
+
+    try {
+      intent.deny();
+    } catch (error) {
+      // Silently ignore errors when denying due to input changes
+      // This is normal behavior when user edits the form
+      console.error("Error denying intent:", error);
+    }
+    setIntent(null);
+
+    // Reset flag after a short delay to allow any async error callbacks to be ignored
+    setTimeout(() => {
+      denyingDueToInvalidInputRef.current = false;
+    }, 100);
+  }, [inputs, startTxn]); // eslint-disable-line react-hooks/exhaustive-deps -- Excluding unstable setState deps to prevent re-run on every state change
+
+  // Clear loading state when intent details become fully available
+  // Check for all required properties to ensure intent is complete
+  useEffect(() => {
+    if (loading && intent?.intent) {
+      // Verify that intent has all the necessary data before clearing loading
+      const hasDestination =
+        intent.intent.destination?.amount &&
+        intent.intent.destination?.chainName;
+      const hasSources =
+        intent.intent.sources && intent.intent.sources.length > 0;
+      const hasFees = intent.intent.fees?.total;
+
+      // Only clear loading if all required data is present
+      if (hasDestination && hasSources && hasFees) {
+        setLoading(false);
+      }
+    }
+  }, [loading, intent?.intent]);
+
+  // Get bridge limit based on token type (only enforced in testnet)
+  const getBridgeLimit = useCallback(
+    (tokenSymbol?: string): number => {
+      // Only enforce limits in testnet
+      if (network !== "testnet") return Infinity;
+
+      if (!tokenSymbol) return Infinity;
+      const upperSymbol = tokenSymbol.toUpperCase();
+      if (upperSymbol === "ETH") return 0.1;
+      if (upperSymbol === "USDC" || upperSymbol === "USDT") return 200;
+      return Infinity; // No limit for other tokens
+    },
+    [network],
+  );
 
   useEffect(() => {
-    if (intent.current) {
-      intent.current.deny();
-      intent.current = null;
-    }
-  }, [inputs]);
+    // First check amount validity - this must happen before areInputsValid check
+    // to prevent fetching intent for "0.", "0", etc.
+    if (inputs?.amount) {
+      const amountStr = inputs.amount.trim();
+      // Don't proceed if amount is empty or just whitespace
+      if (!amountStr) {
+        setTxError(null); // Clear error when amount is cleared
+        return;
+      }
 
+      const amount = Number.parseFloat(amountStr);
+      // Don't proceed if amount is zero, negative, or invalid (catches "0.", "0", "0.0", etc.)
+      if (Number.isNaN(amount) || amount <= 0) {
+        setTxError(null); // Clear error for invalid amounts
+        return;
+      }
+
+      // Check if amount exceeds maximum limit of 550
+      if (amount > 550) {
+        setTxError("Amount entered exceeds maximum limit");
+        return;
+      }
+
+      // Check if amount exceeds bridge limit
+      if (filteredUnifiedBalance) {
+        const limit = getBridgeLimit(filteredUnifiedBalance.symbol);
+        if (amount > limit) {
+          // Don't fetch intent if amount exceeds bridge limit
+          return;
+        }
+      }
+
+      // Check if amount exceeds adjusted balance before fetching intent
+      if (filteredUnifiedBalance) {
+        const adjusted = Number.parseFloat(adjustedBalance || "0");
+        if (amount > adjusted) {
+          // Don't fetch intent if amount exceeds available balance
+          return;
+        }
+      }
+
+      // Clear error if amount is valid and within limits
+      if (txError === "Amount entered exceeds maximum limit") {
+        setTxError(null);
+      }
+    } else {
+      // Clear error when amount is cleared
+      if (txError === "Amount entered exceeds maximum limit") {
+        setTxError(null);
+      }
+    }
+
+    // Now check other conditions
+    if (
+      intent ||
+      loading ||
+      !areInputsValid ||
+      txError ||
+      commitLockRef.current
+    )
+      return;
+
+    const timeout = setTimeout(() => {
+      void handleTransaction();
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [
+    inputs,
+    areInputsValid,
+    intent,
+    loading,
+    txError,
+    handleTransaction,
+    adjustedBalance,
+    filteredUnifiedBalance,
+    getBridgeLimit,
+  ]);
+
+  // Stop timer when dialog closes
   useEffect(() => {
     if (!isDialogOpen) {
-      stopwatch.stop();
-      stopwatch.reset();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setStartTxn(false);
+      timerStartedRef.current = false; // Reset timer started flag
     }
-  }, [isDialogOpen, stopwatch]);
+  }, [isDialogOpen]);
 
+  // Dismiss error upon any input edit to allow re-attempt
   useEffect(() => {
     if (txError) {
       setTxError(null);
     }
-  }, [inputs]);
+  }, [inputs, txError]);
+
+  // Also clear error when amount becomes invalid (0, 0., etc.) - runs after inputs change
+  useEffect(() => {
+    // Check if amount is invalid
+    const isAmountInvalid = inputs?.amount
+      ? (() => {
+        const amountStr = inputs.amount?.trim();
+        if (!amountStr) return true;
+        const amount = Number.parseFloat(amountStr);
+        return Number.isNaN(amount) || amount <= 0;
+      })()
+      : false;
+
+    // Clear error if amount is invalid (user is just editing, not rejecting)
+    if (isAmountInvalid && txError) {
+      setTxError(null);
+    }
+  }, [inputs?.amount, txError]);
+
+  // Clear amount field when steps start (transaction has been accepted)
+  const hasClearedAmountRef = useRef<boolean>(false);
+  useEffect(() => {
+    // When steps appear and dialog is open, clear the amount field
+    if (steps.length > 0 && isDialogOpen && !hasClearedAmountRef.current) {
+      setInputs((prev) => ({ ...prev, amount: undefined }));
+      hasClearedAmountRef.current = true;
+    }
+    // Reset the flag when dialog closes or steps are cleared
+    if ((!isDialogOpen || steps.length === 0) && hasClearedAmountRef.current) {
+      hasClearedAmountRef.current = false;
+    }
+  }, [steps.length, isDialogOpen]);
+
+  // Reset form when amount becomes empty
+  const prevAmountRef = useRef<string | undefined>(inputs?.amount);
+  useEffect(() => {
+    const prevAmount = prevAmountRef.current;
+    const currentAmount = inputs?.amount;
+
+    // If amount was previously set (not undefined/empty) and is now empty, reset the form
+    const wasNonEmpty = prevAmount && prevAmount.trim() !== "";
+    const isEmpty = !currentAmount || currentAmount.trim() === "";
+
+    if (wasNonEmpty && isEmpty) {
+      // If steps are active (transaction in progress), just clear intent details without denying
+      if (steps.length > 0) {
+        setIntent(null);
+        setAllowance(null);
+        // Don't deny intent or reset inputs fully - let transaction continue
+        prevAmountRef.current = undefined;
+      } else {
+        // Normal reset when no transaction is in progress
+        reset();
+        // Update ref to the reset value to prevent infinite loop
+        const resetInputs = buildInitialInputs(connectedAddress, prefill);
+        prevAmountRef.current = resetInputs.amount;
+      }
+    } else {
+      prevAmountRef.current = currentAmount;
+    }
+  }, [inputs?.amount, reset, connectedAddress, prefill, steps.length]); // eslint-disable-line react-hooks/exhaustive-deps -- Excluding unstable setState deps
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setStartTxn(false);
+  }, []);
+  const commitAmount = useCallback(async () => {
+    if (intent || loading || txError || !areInputsValid) return;
+
+    // Validate amount before proceeding (same checks as in useEffect)
+    if (inputs?.amount) {
+      const amountStr = inputs.amount.trim();
+      if (!amountStr) return;
+
+      const amount = Number.parseFloat(amountStr);
+      if (Number.isNaN(amount) || amount <= 0) return;
+
+      // Check if amount exceeds maximum limit of 550
+      if (amount > 550) {
+        setTxError("Amount entered exceeds maximum limit");
+        return;
+      }
+
+      // Check if amount exceeds bridge limit
+      if (filteredUnifiedBalance) {
+        const limit = getBridgeLimit(filteredUnifiedBalance.symbol);
+        if (amount > limit) return;
+      }
+
+      // Check if amount exceeds adjusted balance
+      if (filteredUnifiedBalance) {
+        const adjusted = Number.parseFloat(adjustedBalance || "0");
+        if (amount > adjusted) return;
+      }
+    }
+
+    await handleTransaction();
+  }, [
+    intent,
+    loading,
+    txError,
+    areInputsValid,
+    handleTransaction,
+    inputs?.amount,
+    filteredUnifiedBalance,
+    adjustedBalance,
+    getBridgeLimit,
+    setTxError,
+  ]);
 
   return {
     inputs,
     setInputs,
-    timer: stopwatch.seconds,
+    timer,
     setIsDialogOpen,
     setTxError,
-    loading,
     refreshing,
     isDialogOpen,
     txError,
     handleTransaction,
     reset,
-    filteredBridgableBalance,
+    filteredUnifiedBalance,
     startTransaction,
+    stopTimer,
     commitAmount,
     lastExplorerUrl,
     steps,
-    status: state.status,
+    loading,
+    successDataRef,
+    explorerUrlRef,
   };
 };
 
