@@ -13,7 +13,7 @@
     "preview:built": "node scripts/serve-subpath.js"
   },
   "dependencies": {
-    "@avail-project/nexus-core": "github:availproject/nexus-sdk#5652a36d396f1264a22941d074370d8ed39b2efc",
+    "@avail-project/nexus-core": "github:availproject/nexus-sdk#30f79af16aa6dfc0e8684187b7524077d0c15b4a",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
