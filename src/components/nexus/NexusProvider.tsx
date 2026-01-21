@@ -41,6 +41,8 @@ interface NexusContextType {
   initializeNexus: (provider: EthereumProvider) => Promise<void>;
   deinitializeNexus: () => Promise<void>;
   attachEventHooks: () => void;
+  setIntent: (data: OnIntentHookData | null) => void;
+  setAllowance: (data: OnAllowanceHookData | null) => void;
 }
 
 const NexusContext = createContext<NexusContextType | undefined>(undefined);
@@ -64,7 +66,7 @@ const NexusProvider = ({
 }: NexusProviderProps) => {
   const stableConfig = useMemo(
     () => ({ ...defaultConfig, ...config }),
-    [config]
+    [config],
   );
 
   const sdkRef = useRef<NexusSDK | null>(null);
@@ -78,10 +80,10 @@ const NexusProvider = ({
   const supportedChainsAndTokens =
     useRef<SupportedChainsAndTokensResult | null>(null);
   const swapSupportedChainsAndTokens = useRef<SupportedChainsResult | null>(
-    null
+    null,
   );
   const [bridgableBalance, setBridgableBalance] = useState<UserAsset[] | null>(
-    null
+    null,
   );
   const [swapBalance, setSwapBalance] = useState<UserAsset[] | null>(null);
   const exchangeRate = useRef<Record<string, number> | null>(null);
@@ -92,7 +94,7 @@ const NexusProvider = ({
 
   const setupNexus = useCallback(async () => {
     const list = sdk.utils.getSupportedChains(
-      config?.network === "testnet" ? 0 : undefined
+      config?.network === "testnet" ? 0 : undefined,
     );
     supportedChainsAndTokens.current = list ?? null;
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
@@ -229,6 +231,14 @@ const NexusProvider = ({
     },
   });
 
+  const setIntent = (data: OnIntentHookData | null) => {
+    intent.current = data;
+  };
+
+  const setAllowance = (data: OnAllowanceHookData | null) => {
+    allowance.current = data;
+  };
+
   const value = useMemo(
     () => ({
       nexusSDK,
@@ -249,6 +259,8 @@ const NexusProvider = ({
       swapIntent,
       exchangeRate: exchangeRate.current,
       getFiatValue,
+      setIntent,
+      setAllowance,
     }),
     [
       nexusSDK,
@@ -261,7 +273,9 @@ const NexusProvider = ({
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,
-    ]
+      setIntent,
+      setAllowance,
+    ],
   );
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>
