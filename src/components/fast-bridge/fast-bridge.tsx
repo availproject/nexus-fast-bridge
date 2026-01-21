@@ -4,7 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
 import { Button } from "../ui/button";
-import { LoaderPinwheel, X } from "lucide-react";
+import { LoaderPinwheel, X, CheckCircle2 } from "lucide-react";
 import { useNexus } from "../nexus/NexusProvider";
 import AmountInput from "./components/amount-input";
 import FeeBreakdown from "./components/fee-breakdown";
@@ -27,6 +27,7 @@ import { type Address } from "viem";
 import { Skeleton } from "../ui/skeleton";
 import RecipientAddress from "./components/recipient-address";
 import ViewHistory from "../view-history/view-history";
+import { toast } from "sonner";
 
 interface FastBridgeProps {
   connectedAddress: Address;
@@ -83,13 +84,82 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete,
+    onComplete: () => {
+      console.log("Bridge completed");
+      if (onComplete) {
+        onComplete();
+      }
+      const sourcesText =
+        intent.current?.intent?.sources?.length &&
+        intent.current?.intent.sources.length > 0
+          ? intent.current.intent.sources.map((s) => s.chainName).join(", ")
+          : "N/A";
+      toast.success(
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-green-500" />
+            <span className="font-semibold">Bridge Successful!</span>
+          </div>
+          <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+            <div>
+              <span className="font-medium">Source(s):</span> {sourcesText}
+            </div>
+            <div>
+              <span className="font-medium">Destination:</span>{" "}
+              {intent.current?.intent?.destination?.chainName || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Asset:</span>{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Amount Spent:</span>{" "}
+              {intent.current?.intent?.sourcesTotal?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Amount Received:</span>{" "}
+              {intent.current?.intent?.destination?.amount?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Total Fees:</span>{" "}
+              {intent.current?.intent?.fees.total?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            {lastExplorerUrl ? (
+              <div className="mt-2 pt-2 border-t">
+                <a
+                  href={lastExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline font-medium"
+                >
+                  View on Explorer
+                </a>
+              </div>
+            ) : null}
+          </div>
+        </div>,
+        {
+          duration: Infinity, // Stay until dismissed
+          closeButton: true,
+          icon: null, // Remove default icon since we're adding our own
+        },
+      );
+    },
     onStart,
-    onError,
+    onError: (message) => {
+      toast.error(message);
+      if (onError) {
+        onError(message);
+      }
+    },
     fetchBalance: fetchBridgableBalance,
   });
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ??
+    // @ts-expect-error - not possible
     intent?.current?.intent?.token.displaySymbol ??
     filteredBridgableBalance?.symbol;
   return (
