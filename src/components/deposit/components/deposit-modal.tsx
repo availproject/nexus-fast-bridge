@@ -13,6 +13,7 @@ import SimpleDeposit from "./simple-deposit";
 interface DepositModalProps extends BaseDepositProps {
   heading?: string;
   destinationLabel?: string;
+  children?: React.ReactNode;
 }
 
 const DepositModal = ({
@@ -23,11 +24,12 @@ const DepositModal = ({
   heading,
   destinationLabel,
   depositExecute,
+  children,
 }: DepositModalProps) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button>Deposit</Button>
+        {children ?? <Button>Deposit</Button>}
       </DialogTrigger>
       <DialogContent className="py-4 px-1 sm:p-6">
         <DialogHeader>

@@ -3,6 +3,15 @@
 import type { Opportunity } from "@/lib/types/opportunity";
 import { ArrowRight, Zap } from "lucide-react";
 import config from "../../../config";
+// import { PreviewPanel } from "../walletConnect";
+import NexusDeposit from "../deposit/deposit";
+import {
+  SUPPORTED_CHAINS,
+  type SUPPORTED_TOKENS,
+} from "@avail-project/nexus-core";
+import { encodeFunctionData } from "viem";
+import Decimal from "decimal.js";
+import { useAccount } from "wagmi";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -13,13 +22,14 @@ export function OpportunityCard({
   opportunity,
   onClick,
 }: OpportunityCardProps) {
-  const { title, description, tags, apy, proceedText, logic } = opportunity;
-  const token = logic.tokens.destination;
+  const { title, description, tags, apy, proceedText, token } = opportunity;
   const protocol = tags?.[0] || "DeFi";
-  const chain = token.chain.network;
+  const chain = config.chainName;
+  const { address: selectedAddress } = useAccount();
 
   // Generate gradient based on primary color
   const primaryColor = config.primaryColor;
+  const t = opportunity.logic.logics[0].postBridge!.transaction!;
 
   return (
     <div
@@ -44,11 +54,11 @@ export function OpportunityCard({
             {token.icon ? (
               <img
                 src={token.icon}
-                alt={token.symbol}
-                className="w-7 h-7 rounded-full"
+                alt={token.name}
+                className="w-10 h-10 rounded-full"
               />
             ) : (
-              <Zap className="w-5 h-5 text-white" />
+              <Zap className="w-8 h-8 text-white" />
             )}
           </div>
         </div>
@@ -104,17 +114,55 @@ export function OpportunityCard({
           </div>
 
           {/* CTA Button */}
-          <button
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
-            style={{
-              backgroundColor: primaryColor,
-              color: config.secondaryColor,
+          {/* <PreviewPanel> */}
+          <NexusDeposit
+            address={selectedAddress!}
+            token={token.name as SUPPORTED_TOKENS}
+            chain={SUPPORTED_CHAINS.MONAD}
+            heading={title}
+            embed={false}
+            depositExecute={(tokenN, amount, chainId, userAddress) => {
+              console.log(tokenN, amount, chainId, userAddress);
+              const args = t.params!.map((p) => {
+                switch (p) {
+                  case "$user":
+                    return userAddress;
+                  case "$amount": {
+                    const a = new Decimal(amount).mul(
+                      Decimal.pow(10, token.decimals),
+                    );
+                    return BigInt(a.toFixed());
+                  }
+                  default:
+                    return p;
+                }
+              });
+              console.log("argfs", args);
+              const data = encodeFunctionData({
+                abi: t.abi!,
+                functionName: t.functionName!,
+                args,
+              });
+              console.log("Data", data);
+              return {
+                to: t.to as `0x${string}`,
+                data,
+              };
             }}
           >
-            <span className="hidden sm:inline">{proceedText}</span>
-            <span className="sm:hidden">Invest</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <button
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
+              style={{
+                backgroundColor: primaryColor,
+                color: config.secondaryColor,
+              }}
+            >
+              <span className="hidden sm:inline">{proceedText}</span>
+              <span className="sm:hidden">Invest</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </NexusDeposit>
+          {/* </PreviewPanel> */}
         </div>
       </div>
     </div>

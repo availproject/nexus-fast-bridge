@@ -57,16 +57,8 @@ type OpportunityNumberInput = {
 
 type OpportunityInput = OpportunityTextInput | OpportunityNumberInput;
 
-type OppPreview =
-    | {
-        show: false;
-    }
-    | {
-        show: true;
-    };
-
 type CommonOps = {
-    universe: "evm" | "tron";
+    universe: "evm";
     approval?: {
         tokenAddress?: string;
         spender: string;
@@ -119,32 +111,17 @@ type OppLogic = {
 };
 
 interface OpportunityLogic {
-    inputs: OpportunityInput[];
-    preview?: OppPreview;
-    tokens: {
-        source: {
-            symbol: string;
-            icon: string;
-            decimals: number;
-            address: string;
-            chain: {
-                universe: "tron";
-                id: number | string;
-                network: string;
-            };
-        };
-        destination: {
-            symbol: string;
-            icon: string;
-            decimals: number;
-            address: string;
-            chain: {
-                universe: "tron" | "evm";
-                id: number | string;
-                network: string;
-            };
-        };
-    };
+    // token: {
+    //     symbol: string;
+    //     icon: string;
+    //     decimals: number;
+    //     address: string;
+    //     chain: {
+    //         universe: "evm";
+    //         id: number | string;
+    //         network: string;
+    //     };
+    // };
     logics: OppLogic[];
 }
 
@@ -161,6 +138,11 @@ interface Opportunity {
     display: OppDisplay[];
     requiresCA: boolean;
     proceedText: string;
+    token: {
+        icon: string;
+        name: string;
+        decimals: number;
+    };
     logic: OpportunityLogic;
     withdraw?: {
         withdrawalAmount: {

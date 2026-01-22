@@ -4,205 +4,215 @@ import type { Opportunity } from "./types/opportunity";
 // Note: APY values are indicative and may change. These are third-party platforms.
 export const sampleOpportunities: Opportunity[] = [
     {
-        id: "aave-eth-usdt-supply",
-        tags: ["Aave", "Ethereum", "USDT"],
-        title: "Ethereum's Deepest Lending Pool",
+        id: "neverland-usdc-supply",
+        tags: ["Neverland", "USDC"],
+        title: "Earn yield on USDC on Neverland",
         description:
-            "Earn 4.64% APY by supplying USDT on Aave. Access Aave directly, deposit once, earn continuously.",
+            "Earn 13.28% APY on USDC on Neverland. Access Neverland directly, deposit once, earn continuously.",
         proceedText: "Participate Now",
-        apy: "4.64%",
+        apy: "13.28%",
         requiresCA: true,
         features: [],
         display: [],
+        token: {
+            icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdc.png/public",
+            name: "USDC",
+            decimals: 6,
+        },
         logic: {
-            inputs: [
+            logics: [
                 {
-                    type: "number",
-                    label: "Amount",
-                    range: true,
-                    max: "unifiedBalance",
-                    suffix: {
-                        icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                        text: "USDT",
+                    postBridge: {
+                        universe: "evm",
+                        approval: {
+                            tokenAddress: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+                            spender: "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585",
+                            amount: "input",
+                        },
+                        transaction: {
+                            to: "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: "address", name: "asset", type: "address" },
+                                        { internalType: "uint256", name: "amount", type: "uint256" },
+                                        { internalType: "address", name: "onBehalfOf", type: "address" },
+                                        { internalType: "uint16", name: "referralCode", type: "uint16" },
+                                    ],
+                                    name: "supply",
+                                    outputs: [],
+                                    stateMutability: "nonpayable",
+                                    type: "function",
+                                },
+                            ],
+                            functionName: "supply",
+                            params: [
+                                "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+                                "$amount",
+                                "$user",
+                                "0",
+                            ],
+                            paramsTypes: ["string", "bigint", "string", "number"],
+                        },
+                    },
+                }
+            ],
+        },
+        withdraw: {
+            withdrawalAmount: {
+                abi: [
+                    {
+                        inputs: [
+                            { internalType: "address", name: "user", type: "address" },
+                        ],
+                        name: "balanceOf",
+                        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                        stateMutability: "view",
+                        type: "function",
+                    },
+                ],
+                to: "0x38648958836eA88b368b4ac23b86Ad44B0fe7508",
+                functionName: "balanceOf",
+                params: ["$user"],
+                paramsTypes: ["string"],
+                returnTypes: ["bigint"],
+            },
+            logics: [
+                {
+                    preBridge: {
+                        universe: "evm",
+                        transaction: {
+                            to: "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: "address", name: "asset", type: "address" },
+                                        { internalType: "uint256", name: "amount", type: "uint256" },
+                                        { internalType: "address", name: "to", type: "address" },
+                                    ],
+                                    name: "withdraw",
+                                    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                                    stateMutability: "nonpayable",
+                                    type: "function",
+                                },
+                            ],
+                            functionName: "withdraw",
+                            params: [
+                                "0x38648958836eA88b368b4ac23b86Ad44B0fe7508",
+                                "$amount",
+                                "$user",
+                            ],
+                            paramsTypes: ["string", "bigint", "string"],
+                        },
                     },
                 },
             ],
-            tokens: {
-                source: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                    address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                    chain: {
-                        universe: "tron",
-                        id: 728126428,
-                        network: "mainnet",
-                    },
-                },
-                destination: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-                    chain: {
-                        universe: "evm",
-                        id: 1,
-                        network: "ethereum",
-                    },
-                },
-            },
-            logics: [],
-        },
+        }
     },
     {
-        id: "aave-op-usdt-supply",
-        tags: ["Aave", "Optimism", "USDT"],
-        title: "Frictionless Lending on Optimism",
+        id: "neverland-usdt-supply",
+        tags: ["Neverland", "USDT0"],
+        title: "Earn yield on USDT0 on Neverland",
         description:
-            "Supply USDT on Aave (Optimism) and earn yield. Tap in, deposit, and let your assets work.",
+            "Earn 12.69% APY on USDT0 on Neverland. Access Neverland directly, deposit once, earn continuously.",
         proceedText: "Participate Now",
-        apy: "5.21%",
+        apy: "12.69%",
         requiresCA: true,
         features: [],
         display: [],
+        token: {
+            icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdt.png/public",
+            name: "USDT",
+            decimals: 6,
+        },
         logic: {
-            inputs: [
+            logics: [
                 {
-                    type: "number",
-                    label: "Amount",
-                    range: true,
-                    max: "unifiedBalance",
-                    suffix: {
-                        icon: "https://optimistic.etherscan.io/token/images/bridgedusdt2_ofc_64.png",
-                        text: "USDT",
+                    postBridge: {
+                        universe: "evm",
+                        approval: {
+                            tokenAddress: "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+                            spender: "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585",
+                            amount: "input",
+                        },
+                        transaction: {
+                            to: "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: "address", name: "asset", type: "address" },
+                                        { internalType: "uint256", name: "amount", type: "uint256" },
+                                        { internalType: "address", name: "onBehalfOf", type: "address" },
+                                        { internalType: "uint16", name: "referralCode", type: "uint16" },
+                                    ],
+                                    name: "supply",
+                                    outputs: [],
+                                    stateMutability: "nonpayable",
+                                    type: "function",
+                                },
+                            ],
+                            functionName: "supply",
+                            params: [
+                                "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+                                "$amount",
+                                "$user",
+                                "0",
+                            ],
+                            paramsTypes: ["string", "bigint", "string", "number"],
+                        },
+                    },
+                }
+            ],
+        },
+        withdraw: {
+            withdrawalAmount: {
+                abi: [
+                    {
+                        inputs: [
+                            { internalType: "address", name: "user", type: "address" },
+                        ],
+                        name: "balanceOf",
+                        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                        stateMutability: "view",
+                        type: "function",
+                    },
+                ],
+                to: "0x38648958836eA88b368b4ac23b86Ad44B0fe7508",
+                functionName: "balanceOf",
+                params: ["$user"],
+                paramsTypes: ["string"],
+                returnTypes: ["bigint"],
+            },
+            logics: [
+                {
+                    preBridge: {
+                        universe: "evm",
+                        transaction: {
+                            to: "0x39F901c32b2E0d25AE8DEaa1ee115C748f8f6bDf",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: "address", name: "asset", type: "address" },
+                                        { internalType: "uint256", name: "amount", type: "uint256" },
+                                        { internalType: "address", name: "to", type: "address" },
+                                    ],
+                                    name: "withdraw",
+                                    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                                    stateMutability: "nonpayable",
+                                    type: "function",
+                                },
+                            ],
+                            functionName: "withdraw",
+                            params: [
+                                "0x39F901c32b2E0d25AE8DEaa1ee115C748f8f6bDf",
+                                "$amount",
+                                "$user",
+                            ],
+                            paramsTypes: ["string", "bigint", "string"],
+                        },
                     },
                 },
             ],
-            tokens: {
-                source: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://optimistic.etherscan.io/token/images/bridgedusdt2_ofc_64.png",
-                    address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                    chain: {
-                        universe: "tron",
-                        id: 728126428,
-                        network: "mainnet",
-                    },
-                },
-                destination: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://optimistic.etherscan.io/token/images/bridgedusdt2_ofc_64.png",
-                    address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-                    chain: {
-                        universe: "evm",
-                        id: 10,
-                        network: "optimism",
-                    },
-                },
-            },
-            logics: [],
-        },
-    },
-    {
-        id: "fluid-eth-usdt-deposit",
-        tags: ["Fluid", "Ethereum", "USDT"],
-        title: "Earn Yield Plus FLUID, Automatically",
-        description: "Earn 6.64% APR on USDT through Fluid on Ethereum.",
-        proceedText: "Participate Now",
-        apy: "6.64%",
-        requiresCA: true,
-        features: [],
-        display: [],
-        logic: {
-            inputs: [
-                {
-                    type: "number",
-                    label: "Amount",
-                    range: true,
-                    max: "unifiedBalance",
-                    suffix: {
-                        icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                        text: "USDT",
-                    },
-                },
-            ],
-            tokens: {
-                source: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                    address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                    chain: {
-                        universe: "tron",
-                        id: 728126428,
-                        network: "mainnet",
-                    },
-                },
-                destination: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://etherscan.io/token/images/tethernew_32.svg",
-                    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-                    chain: {
-                        universe: "evm",
-                        id: 1,
-                        network: "ethereum",
-                    },
-                },
-            },
-            logics: [],
-        },
-    },
-    {
-        id: "fluid-arb-usdt-deposit",
-        tags: ["Fluid", "Arbitrum", "USDT"],
-        title: "Multiple Rewards, One Tap",
-        description: "Earn 7.33% APR on USDT with Fluid on Arbitrum. Yield + FLUID + ARB incentives.",
-        proceedText: "Participate Now",
-        apy: "7.33%",
-        requiresCA: true,
-        features: [],
-        display: [],
-        logic: {
-            inputs: [
-                {
-                    type: "number",
-                    label: "Amount",
-                    range: true,
-                    max: "unifiedBalance",
-                    suffix: {
-                        icon: "https://arbiscan.io/token/images/usdt0_64.png",
-                        text: "USDT",
-                    },
-                },
-            ],
-            tokens: {
-                source: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://arbiscan.io/token/images/usdt0_64.png",
-                    address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                    chain: {
-                        universe: "tron",
-                        id: 728126428,
-                        network: "mainnet",
-                    },
-                },
-                destination: {
-                    symbol: "USDT",
-                    decimals: 6,
-                    icon: "https://arbiscan.io/token/images/usdt0_64.png",
-                    address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-                    chain: {
-                        universe: "evm",
-                        id: 42161,
-                        network: "arbitrum",
-                    },
-                },
-            },
-            logics: [],
-        },
+        }
     },
 ];

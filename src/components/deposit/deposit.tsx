@@ -22,7 +22,7 @@ export interface BaseDepositProps {
     token: SUPPORTED_TOKENS,
     amount: string,
     chainId: SUPPORTED_CHAINS_IDS,
-    userAddress: `0x${string}`
+    userAddress: `0x${string}`,
   ) => Omit<ExecuteParams, "toChainId">;
 }
 
@@ -30,6 +30,7 @@ interface NexusDepositProps extends BaseDepositProps {
   heading?: string;
   embed?: boolean;
   destinationLabel?: string;
+  children?: React.ReactNode;
 }
 
 const NexusDeposit = ({
@@ -41,6 +42,7 @@ const NexusDeposit = ({
   embed = false,
   destinationLabel,
   depositExecute,
+  children,
 }: NexusDepositProps) => {
   const { supportedChainsAndTokens } = useNexus();
   const formatedChainOptions =
@@ -80,7 +82,9 @@ const NexusDeposit = ({
       heading={heading}
       destinationLabel={destinationLabel}
       depositExecute={depositExecute}
-    />
+    >
+      {children}
+    </DepositModal>
   );
 };
 
