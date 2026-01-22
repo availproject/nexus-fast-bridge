@@ -43,12 +43,21 @@ export function OpportunityCard({
           background: `linear-gradient(135deg, ${primaryColor}40 0%, ${primaryColor}20 15%, #ffffff 50%, ${primaryColor}20 85%, ${primaryColor}40 100%)`,
         }}
       >
+        {opportunity.banner && (
+          <div className="absolute top-4 bottom-4 left-12 right-12 object-contain">
+            <img
+              src={opportunity.banner}
+              alt={opportunity.title}
+              className="w-full"
+            />
+          </div>
+        )}
         {/* Protocol Icon */}
         <div className="absolute top-3 right-4">
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
             style={{
-              background: `linear-gradient(135deg, ${primaryColor}80 0%, ${primaryColor} 100%)`,
+              background: `linear-gradient(135deg, ${primaryColor}80 20%, ${primaryColor} 100%)`,
             }}
           >
             {token.icon ? (
@@ -65,7 +74,7 @@ export function OpportunityCard({
 
         {/* APY Badge */}
         {apy && (
-          <div className="absolute top-3 left-4">
+          <div className="absolute top-1 left-2">
             <span
               className="px-3 py-1 rounded-full text-xs font-bold text-white"
               style={{ backgroundColor: primaryColor }}
@@ -121,6 +130,7 @@ export function OpportunityCard({
             chain={SUPPORTED_CHAINS.MONAD}
             heading={title}
             embed={false}
+            destinationLabel={opportunity.label}
             depositExecute={(tokenN, amount, chainId, userAddress) => {
               console.log(tokenN, amount, chainId, userAddress);
               const args = t.params!.map((p) => {

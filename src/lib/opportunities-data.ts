@@ -14,6 +14,8 @@ export const sampleOpportunities: Opportunity[] = [
         requiresCA: true,
         features: [],
         display: [],
+        label: "on Neverland (Monad)",
+        banner: "https://files.availproject.org/fastbridge/monad/neverland2.png",
         token: {
             icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdc.png/public",
             name: "USDC",
@@ -120,6 +122,8 @@ export const sampleOpportunities: Opportunity[] = [
         requiresCA: true,
         features: [],
         display: [],
+        label: "on Neverland (Monad)",
+        banner: "https://files.availproject.org/fastbridge/monad/neverland2.png",
         token: {
             icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdt.png/public",
             name: "USDT",

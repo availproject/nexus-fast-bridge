@@ -130,6 +130,7 @@ interface Opportunity {
     tags?: string[];
     title: string;
     description: string;
+    banner?: string;
     apy?: string; // e.g., "7.82%"
     features: {
         key: string;
@@ -144,6 +145,7 @@ interface Opportunity {
         decimals: number;
     };
     logic: OpportunityLogic;
+    label: string;
     withdraw?: {
         withdrawalAmount: {
             abi?: any[];

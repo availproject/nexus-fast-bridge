@@ -11,6 +11,17 @@ import Opportunities from "@/pages/Opportunities";
 import Positions from "@/pages/Positions";
 
 import { NexusInitializer } from "@/components/NexusInitializer";
+import { fromBytes, fromHex, toBytes, toHex } from "viem";
+import Decimal from "decimal.js";
+
+// @ts-expect-error not intended
+window.nexus = {
+  fromHex,
+  Decimal,
+  fromBytes,
+  toBytes,
+  toHex,
+};
 
 function AppContent() {
   const location = useLocation();
