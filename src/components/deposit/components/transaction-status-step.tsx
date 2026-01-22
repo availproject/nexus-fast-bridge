@@ -12,6 +12,7 @@ import {
 import { ChevronRight, ExternalLink, Loader2 } from "lucide-react";
 import { type DepositStatus } from "../hooks/useDeposit";
 import { type BridgeStepType } from "@avail-project/nexus-core";
+import { useNavigate } from "react-router-dom";
 
 interface DepositTransactionStatusProps {
   status: DepositStatus;
@@ -44,6 +45,8 @@ const DepositTransactionStatusStep = ({
   onClose,
 }: DepositTransactionStatusProps) => {
   const [open, setOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   const isSuccess = status === "success";
   const isError = status === "error";
@@ -208,17 +211,26 @@ const DepositTransactionStatusStep = ({
         >
           Close
         </Button>
-        <Button
-          onClick={onClose}
-          className="flex-1 rounded-xl text-base"
-          disabled={!isSuccess && !isError}
-        >
-          {isSuccess || isError ? (
-            "New Deposit"
-          ) : (
-            <Loader2 className="size-5 animate-spin" />
-          )}
-        </Button>
+        {isSuccess ? (
+          <Button
+            onClick={() => navigate("/positions")}
+            className="flex-1 rounded-xl text-base"
+          >
+            View Positions
+          </Button>
+        ) : (
+          <Button
+            onClick={onClose}
+            className="flex-1 rounded-xl text-base"
+            disabled={!isSuccess && !isError}
+          >
+            {isError ? (
+              "New Deposit"
+            ) : (
+              <Loader2 className="size-5 animate-spin" />
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );
