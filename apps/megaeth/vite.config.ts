@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_") as unknown as AppEnv;
 
-  const rawBase = env.VITE_APP_BASE_PATH || "/monad/";
+  const rawBase = env.VITE_APP_BASE_PATH || "/megaeth/";
   const base = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
   const config = getConfig(env);
 

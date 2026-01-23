@@ -20,13 +20,23 @@ const appDir = customAppDir
   ? path.resolve(customAppDir)
   : path.join(rootDir, "apps", slug.toLowerCase());
 const outputPath = path.join(appDir, ".env.production");
+const localEnvPath = path.join(appDir, `.env.${slug}`);
+
+// If a local .env.<slug> exists, copy it directly for local dev/builds
+if (fs.existsSync(localEnvPath)) {
+  const contents = fs.readFileSync(localEnvPath, "utf8");
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, contents, { encoding: "utf8" });
+  console.log(`Copied ${path.basename(localEnvPath)} to ${outputPath}`);
+  process.exit(0);
+}
 
 const entries = Object.entries(process.env).filter(([key]) =>
   key.startsWith(prefix)
 );
 
 if (!entries.length) {
-  console.warn(`No environment variables found with prefix ${prefix}`);
+  console.warn(`No environment variables found with prefix ${prefix} and no ${path.basename(localEnvPath)} present.`);
 }
 
 const lines = entries.map(([key, value]) => {

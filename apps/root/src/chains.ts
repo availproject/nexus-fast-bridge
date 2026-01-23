@@ -7,6 +7,6 @@ export interface ChainConfig {
   appDir: string;
 }
 
-import chainList from "../../chains.config.json" assert { type: "json" };
+import chainList from "../../../chains.config.json" assert { type: "json" };
 
 export const chains = chainList as ChainConfig[];

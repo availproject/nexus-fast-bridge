@@ -1,0 +1,24 @@
+{
+  "name": "MegaETH Fast Bridge - Powered By Avail",
+  "short_name": "MegaETH Fast Bridge",
+  "description": "Bridge from any chain to MegaETH, in real time.",
+  "start_url": "/megaeth/",
+  "display": "standalone",
+  "background_color": "#ECE8E8",
+  "theme_color": "#19191A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://megaeth-fast-bridge.vercel.app/faviconV2.png",
+      "sizes": "31x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "sizes": "2444x1256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

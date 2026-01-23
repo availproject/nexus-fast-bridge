@@ -1,0 +1,24 @@
+{
+  "name": "Monad Fast Bridge - Powered By Avail",
+  "short_name": "Monad Fast Bridge",
+  "description": "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
+  "start_url": "/monad/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://monadfastbridge.com/faviconV2.png",
+      "sizes": "31x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://monadfastbridge.com/MonadFBMeta.png",
+      "sizes": "2444x1256",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

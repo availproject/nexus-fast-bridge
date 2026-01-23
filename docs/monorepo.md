@@ -18,6 +18,9 @@
 - Dev root landing: `pnpm --filter root dev` (or `pnpm dev:root` at root package).
 - Dev monad app: `pnpm --filter @fastbridge/monad dev`.
 - Full build: `pnpm build:all` (runs Turborepo, builds chain apps, copies dists, builds root). Root `build` script calls `collect-chains` before `vite build`.
+- Local env options:
+  - Drop per-chain files: `apps/monad/.env.monad`, `apps/megaeth/.env.megaeth`, etc. The build prep script will copy them to `.env.production` automatically.
+  - Or export prefixed vars and rely on the prep script to strip prefixes: `source scripts/set-sample-env.sh` as a starting point, then override with real RPC/IDs.
 
 ## Adding a new chain app
 1) Copy `apps/monad` to `apps/<slug>` and update its `package.json` name, default base path, config defaults, and branding.

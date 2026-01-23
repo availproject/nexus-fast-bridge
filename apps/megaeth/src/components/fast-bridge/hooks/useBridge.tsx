@@ -84,7 +84,7 @@ const buildInitialInputs = (
     prefill?.recipient && isAddress(prefill.recipient)
       ? (prefill.recipient as `0x${string}`)
       : connectedAddress;
-
+  console.log("MEGAETH CONFIG", config);
   return {
     chain: config.chainId as SUPPORTED_CHAINS_IDS,
     token: validToken,
@@ -430,7 +430,9 @@ const useBridge = ({
     // Validate chain against supported chains if available
     let validChain = urlParams.to ?? (config.chainId as SUPPORTED_CHAINS_IDS);
     if (supportedChainsAndTokens && urlParams.to) {
-      const isSupported = supportedChainsAndTokens.some((c) => c.id === urlParams.to);
+      const isSupported = supportedChainsAndTokens.some(
+        (c) => c.id === urlParams.to,
+      );
       if (!isSupported) {
         console.warn(`Invalid chain ID: ${urlParams.to}. Using default.`);
         validChain = config.chainId as SUPPORTED_CHAINS_IDS;
