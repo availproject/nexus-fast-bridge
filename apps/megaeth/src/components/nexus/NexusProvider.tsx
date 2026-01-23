@@ -138,8 +138,8 @@ const NexusProvider = ({
 
   const deinitializeNexus = async () => {
     try {
-      if (!nexusSDK) throw new Error("Nexus is not initialized");
-      await nexusSDK?.deinit();
+      if (!nexusSDK) return;
+      await nexusSDK.deinit();
       setNexusSDK(null);
       supportedChainsAndTokens.current = null;
       swapSupportedChainsAndTokens.current = null;
@@ -227,6 +227,7 @@ const NexusProvider = ({
 
   useAccountEffect({
     onDisconnect() {
+      console.log("SDK DEINIT MEGAETH");
       deinitializeNexus();
     },
   });

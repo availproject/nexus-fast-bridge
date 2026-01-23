@@ -68,7 +68,6 @@ export default defineConfig(({ mode }) => {
       // Update title and meta of index.html at build
       {
         name: 'html-transform',
-        apply: 'build', // Only run this during the build command
         transformIndexHtml(html) {
           // Replace placeholders with actual values
           return html

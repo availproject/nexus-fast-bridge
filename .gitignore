@@ -20,6 +20,9 @@ apps/*/.turbo
 apps/*/.vite
 apps/*/node_modules
 
+# Generated chain bundles copied into root/public by collect-chains.mjs
+apps/root/public/*/
+
 # Editor / OS
 .DS_Store
 .vscode

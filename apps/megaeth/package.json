@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../../scripts/prepare-env.mjs megaeth && vite --host --port 5174",
     "build": "node ../../scripts/prepare-env.mjs megaeth && vite build",
     "start": "vite preview",
     "lint": "eslint",

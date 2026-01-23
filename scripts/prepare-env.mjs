@@ -19,15 +19,18 @@ const prefix = `${slug.toUpperCase()}_`;
 const appDir = customAppDir
   ? path.resolve(customAppDir)
   : path.join(rootDir, "apps", slug.toLowerCase());
-const outputPath = path.join(appDir, ".env.production");
+const outputPathProd = path.join(appDir, ".env.production");
+const outputPathLocal = path.join(appDir, ".env.local");
 const localEnvPath = path.join(appDir, `.env.${slug}`);
 
 // If a local .env.<slug> exists, copy it directly for local dev/builds
 if (fs.existsSync(localEnvPath)) {
   const contents = fs.readFileSync(localEnvPath, "utf8");
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, contents, { encoding: "utf8" });
-  console.log(`Copied ${path.basename(localEnvPath)} to ${outputPath}`);
+  const envDir = path.dirname(outputPathProd);
+  fs.mkdirSync(envDir, { recursive: true });
+  fs.writeFileSync(outputPathProd, contents, { encoding: "utf8" });
+  fs.writeFileSync(outputPathLocal, contents, { encoding: "utf8" });
+  console.log(`Copied ${path.basename(localEnvPath)} to ${outputPathProd} and .env.local`);
   process.exit(0);
 }
 
@@ -44,6 +47,8 @@ const lines = entries.map(([key, value]) => {
   return `${stripped}=${value ?? ""}`;
 });
 
-fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, lines.join("\n"), { encoding: "utf8" });
-console.log(`Wrote ${lines.length} variables to ${outputPath}`);
+const envDir = path.dirname(outputPathProd);
+fs.mkdirSync(envDir, { recursive: true });
+fs.writeFileSync(outputPathProd, lines.join("\n"), { encoding: "utf8" });
+fs.writeFileSync(outputPathLocal, lines.join("\n"), { encoding: "utf8" });
+console.log(`Wrote ${lines.length} variables to ${outputPathProd} and .env.local`);
