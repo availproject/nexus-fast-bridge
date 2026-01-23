@@ -10,7 +10,7 @@ export default function Navbar() {
           <div className="flex items-center min-w-0 shrink overflow-hidden">
             {config.useChainLogo && (
               <img
-                src="/avail_logo.svg"
+                src={config.chainLogoUrl}
                 alt={config.chainName}
                 width={150}
                 height={40}
