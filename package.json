@@ -6,7 +6,8 @@
     "dev:root": "turbo run dev --filter=root",
     "dev:all": "turbo run dev --parallel --filter=@fastbridge/monad --filter=@fastbridge/megaeth --filter=root",
     "build:all": "turbo run build",
-    "clean": "turbo run clean --force"
+    "clean": "turbo run clean --force",
+    "vercel:env": "node scripts/build-vercel-env.mjs"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
