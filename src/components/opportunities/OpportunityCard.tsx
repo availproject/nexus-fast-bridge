@@ -12,6 +12,7 @@ import {
 import { encodeFunctionData } from "viem";
 import Decimal from "decimal.js";
 import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -26,10 +27,40 @@ export function OpportunityCard({
   const protocol = tags?.[0] || "DeFi";
   const chain = config.chainName;
   const { address: selectedAddress } = useAccount();
+  const [gasPrice, setGasPrice] = useState<bigint>(0n);
 
   // Generate gradient based on primary color
   const primaryColor = config.primaryColor;
   const t = opportunity.logic.logics[0].postBridge!.transaction!;
+
+  useEffect(() => {
+    let gasPriceIndex = 1000;
+    const fetchGasPrice = async () => {
+      const gasPrice = BigInt(
+        (
+          await (
+            await fetch(config.chainRpcUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                method: "eth_gasPrice",
+                params: [],
+                id: ++gasPriceIndex,
+              }),
+            })
+          ).json()
+        ).result,
+      );
+      setGasPrice(gasPrice);
+    };
+    fetchGasPrice();
+    setInterval(() => {
+      fetchGasPrice();
+    }, 3000);
+  }, []);
 
   return (
     <div
@@ -147,16 +178,18 @@ export function OpportunityCard({
                     return p;
                 }
               });
-              console.log("argfs", args);
+
               const data = encodeFunctionData({
                 abi: t.abi!,
                 functionName: t.functionName!,
                 args,
               });
-              console.log("Data", data);
               return {
                 to: t.to as `0x${string}`,
                 data,
+                gas: 2_500_000n, // 2.5 million units
+                // set static gas limit to avoid issues and high gas fees
+                gasPrice: BigInt(Math.floor(Number(gasPrice) * 1.25)),
               };
             }}
           >
