@@ -44,11 +44,11 @@ export function OpportunityCard({
         }}
       >
         {opportunity.banner && (
-          <div className="absolute top-4 bottom-4 left-12 right-12 object-contain">
+          <div className="absolute top-4 bottom-4 left-10 right-10 object-contain flex items-center justify-center">
             <img
               src={opportunity.banner}
               alt={opportunity.title}
-              className="w-full"
+              className="w-auto h-full"
             />
           </div>
         )}

@@ -4,6 +4,110 @@ import type { Opportunity } from "./types/opportunity";
 // Note: APY values are indicative and may change. These are third-party platforms.
 export const sampleOpportunities: Opportunity[] = [
     {
+        id: "curvance-usdc-wmon-market",
+        tags: ["Curvance", "USDC", "WMON"],
+        title: "Trade USDC to WMON on Curvance",
+        description:
+            "Earn 7.82% APY on USDC on Curvance. Access Curvance directly, deposit once, earn continuously.",
+        proceedText: "Participate Now",
+        apy: "7.82%",
+        requiresCA: true,
+        features: [],
+        display: [],
+        label: "on Curvance (Monad)",
+        banner: "https://files.availproject.org/fastbridge/monad/curvance.svg",
+        token: {
+            icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdc.png/public",
+            name: "USDC",
+            decimals: 6,
+        },
+        logic: {
+            logics: [
+                {
+                    postBridge: {
+                        universe: "evm",
+                        approval: {
+                            tokenAddress: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+                            spender: "0x8EE9FC28B8Da872c38A496e9dDB9700bb7261774",
+                            amount: "input",
+                        },
+                        transaction: {
+                            to: "0x8EE9FC28B8Da872c38A496e9dDB9700bb7261774",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: 'uint256', name: 'assets', type: 'uint256' },
+                                        { internalType: 'address', name: 'receiver', type: 'address' }
+                                    ],
+                                    name: 'depositAsCollateral',
+                                    outputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+                                    stateMutability: 'nonpayable',
+                                    type: 'function'
+                                },
+                            ],
+                            functionName: "depositAsCollateral",
+                            params: [
+                                "$amount",
+                                "$user",
+                            ],
+                            paramsTypes: ["bigint", "string"],
+                        },
+                    },
+                }
+            ],
+        },
+        withdraw: {
+            withdrawalAmount: {
+                abi: [
+                    {
+                        inputs: [
+                            { internalType: "address", name: "user", type: "address" },
+                        ],
+                        name: "balanceOf",
+                        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                        stateMutability: "view",
+                        type: "function",
+                    },
+                ],
+                to: "0x8EE9FC28B8Da872c38A496e9dDB9700bb7261774",
+                functionName: "balanceOf",
+                params: ["$user"],
+                paramsTypes: ["string"],
+                returnTypes: ["bigint"],
+            },
+            logics: [
+                {
+                    preBridge: {
+                        universe: "evm",
+                        transaction: {
+                            to: "0x8EE9FC28B8Da872c38A496e9dDB9700bb7261774",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: 'uint256', name: 'shares', type: 'uint256' },
+                                        { internalType: 'address', name: 'receiver', type: 'address' },
+                                        { internalType: 'address', name: 'owner', type: 'address' }
+                                    ],
+                                    name: 'redeem',
+                                    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+                                    stateMutability: 'nonpayable',
+                                    type: 'function'
+                                },
+                            ],
+                            functionName: "redeem",
+                            params: [
+                                "$amount",
+                                "$user",
+                                "$user"
+                            ],
+                            paramsTypes: ["bigint", "string", "string"],
+                        },
+                    },
+                },
+            ],
+        }
+    },
+    {
         id: "neverland-usdc-supply",
         tags: ["Neverland", "USDC"],
         title: "Earn yield on USDC on Neverland",
