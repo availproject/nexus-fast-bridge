@@ -1,0 +1,24 @@
+{
+  "name": "root",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node ../../scripts/collect-chains.mjs && vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "react": "19.2.2",
+    "react-dom": "19.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@fastbridge/monad": "workspace:*",
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.7"
+  }
+}

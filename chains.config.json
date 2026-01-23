@@ -1,0 +1,10 @@
+[
+  {
+    "slug": "monad",
+    "name": "Monad",
+    "description": "Fast bridge powered by Avail Nexus.",
+    "primaryColor": "#836ef9",
+    "basePath": "/monad/",
+    "appDir": "apps/monad"
+  }
+]

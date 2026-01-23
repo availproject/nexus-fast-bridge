@@ -1,4 +1,5 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { defineConfig, loadEnv } from "vite";
@@ -7,18 +8,20 @@ import { writeFileSync } from "node:fs";
 import type { AppEnv } from "./src/vite-env.d";
 import { getConfig } from "./getConfig";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_") as unknown as AppEnv;
 
-  console.log(env)
-
-  const config = getConfig(env)
+  const rawBase = env.VITE_APP_BASE_PATH || "/monad/";
+  const base = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
+  const config = getConfig(env);
 
   const manifestContent = {
     "name": config.meta.title,
     "short_name": config.appTitle,
     "description": config.meta.description,
-    "start_url": "/",
+    "start_url": base,
     "display": "standalone",
     "background_color": config.meta.backgroundColor,
     "theme_color": config.meta.themeColor,
@@ -42,6 +45,7 @@ export default defineConfig(({ mode }) => {
   const outputPath = path.resolve(__dirname, 'dist', 'manifest.json');
 
   return {
+    base,
     plugins: [
       react(),
       tailwindcss(),

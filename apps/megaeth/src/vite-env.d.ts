@@ -38,6 +38,7 @@ declare global {
 
     interface ImportMetaEnv extends AppEnv {
         readonly readonly VITE_WALLET_CONNECT_ID: string;
+        readonly VITE_APP_BASE_PATH?: string;
         readonly VITE_MAINNET_RPC: string;
         readonly VITE_BASE_RPC: string;
         readonly VITE_ARBITRUM_RPC: string;
