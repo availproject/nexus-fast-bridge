@@ -13,6 +13,7 @@ import {
   avalanche,
   sophon,
   kaia,
+  monad,
   type Chain,
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
@@ -37,6 +38,23 @@ const chain: Chain = {
   testnet: config.chainTestnet,
 };
 
+const megaeth: Chain = {
+  id: 4326,
+  name: "MegaETH Mainnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [import.meta.env.VITE_MEGAETH_RPC] },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://megaeth.blockscout.com" },
+  },
+  testnet: false,
+};
+
 //ideally we should add private rpcs for each, for now it fallbacks to default rpcs
 const transports = {
   [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC),
@@ -49,6 +67,8 @@ const transports = {
   [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
   [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
   [chain.id]: http(config.chainRpcUrl),
+  [monad.id]: http(import.meta.env.VITE_MONAD_RPC),
+  [megaeth.id]: http(import.meta.env.VITE_MEGAETH_RPC),
 };
 
 const defaultConfigParams = getDefaultConfig({
@@ -65,6 +85,8 @@ const defaultConfigParams = getDefaultConfig({
     optimism,
     polygon,
     scroll,
+    monad,
+    megaeth,
   ],
   transports,
   enableFamily: false,

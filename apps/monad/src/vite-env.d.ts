@@ -37,8 +37,7 @@ export interface AppEnv {
 declare global {
 
     interface ImportMetaEnv extends AppEnv {
-        readonly readonly VITE_WALLET_CONNECT_ID: string;
-        readonly VITE_APP_BASE_PATH?: string;
+        readonly VITE_WALLET_CONNECT_ID: string;
         readonly VITE_MAINNET_RPC: string;
         readonly VITE_BASE_RPC: string;
         readonly VITE_ARBITRUM_RPC: string;
@@ -48,6 +47,8 @@ declare global {
         readonly VITE_AVALANCHE_RPC: string;
         readonly VITE_SOPHON_RPC: string;
         readonly VITE_KAIA_RPC: string;
+        readonly VITE_MONAD_RPC: string;
+        readonly VITE_MEGAETH_RPC: string;
         readonly VITE_BASE: string;
     }
 
