@@ -50,8 +50,8 @@ export function NexusInitializer({ children }: { children: React.ReactNode }) {
     if (status === "disconnected" && nexusSDK) {
       deinitializeNexus();
       prevAddressRef.current = undefined;
-    }
-    location.reload(); // reload page to free the resources
+      location.reload();
+    } // reload page to free the resources
   }, [status, nexusSDK, deinitializeNexus]);
 
   // Handle account change - reinitialize Nexus when account address changes

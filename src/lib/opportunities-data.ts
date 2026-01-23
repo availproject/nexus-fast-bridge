@@ -8,8 +8,8 @@ export const sampleOpportunities: Opportunity[] = [
         tags: ["Curvance", "USDC", "WMON"],
         title: "Trade USDC to WMON on Curvance",
         description:
-            "Earn 7.82% APY on USDC on Curvance. Access Curvance directly, deposit once, earn continuously.",
-        proceedText: "Participate Now",
+            "Trade USDC to WMON on Curvance and earn upto 7.82% APY on the deposited USDC. Access Curvance directly, deposit once, earn continuously.",
+        proceedText: "Trade",
         apy: "7.82%",
         requiresCA: true,
         features: [],
@@ -112,8 +112,8 @@ export const sampleOpportunities: Opportunity[] = [
         tags: ["Neverland", "USDC"],
         title: "Earn yield on USDC on Neverland",
         description:
-            "Earn 13.28% APY on USDC on Neverland. Access Neverland directly, deposit once, earn continuously.",
-        proceedText: "Participate Now",
+            "Lend USDC on Neverland and earn upto 13.28% APY on the deposited USDC. Access Neverland directly, deposit once, earn continuously.",
+        proceedText: "Stake",
         apy: "13.28%",
         requiresCA: true,
         features: [],
@@ -220,8 +220,8 @@ export const sampleOpportunities: Opportunity[] = [
         tags: ["Neverland", "USDT0"],
         title: "Earn yield on USDT0 on Neverland",
         description:
-            "Earn 12.69% APY on USDT0 on Neverland. Access Neverland directly, deposit once, earn continuously.",
-        proceedText: "Participate Now",
+            "Lend USDT0 on Neverland and earn upto 12.69% APY on the deposited USDT0. Access Neverland directly, deposit once, earn continuously.",
+        proceedText: "Lend",
         apy: "12.69%",
         requiresCA: true,
         features: [],
@@ -317,6 +317,112 @@ export const sampleOpportunities: Opportunity[] = [
                                 "$user",
                             ],
                             paramsTypes: ["string", "bigint", "string"],
+                        },
+                    },
+                },
+            ],
+        }
+    },
+    {
+        id: "gearbox-usdc-edge-ultrayeild",
+        tags: ["Gearbox", "USDC", "Ultrayeild"],
+        title: "Earn ultrayeild on USDC on Gearbox",
+        description:
+            "Deposit USDC on Gearbox and earn upto 6.48% APUY on the deposited USDC. Access Gearbox directly, deposit once, earn continuously.",
+        proceedText: "Earn",
+        apy: "6.48%",
+        requiresCA: true,
+        features: [],
+        display: [],
+        label: "on Gearbox (Monad)",
+        banner: "https://files.availproject.org/fastbridge/monad/gearbox.svg",
+        token: {
+            icon: "https://imagedelivery.net/cBNDGgkrsEA-b_ixIp9SkQ/usdc.png/public",
+            name: "USDC",
+            decimals: 6,
+        },
+        logic: {
+            logics: [
+                {
+                    postBridge: {
+                        universe: "evm",
+                        approval: {
+                            tokenAddress: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+                            spender: "0x6B343F7B797f1488AA48C49d540690F2b2c89751",
+                            amount: "input",
+                        },
+                        transaction: {
+                            to: "0x6B343F7B797f1488AA48C49d540690F2b2c89751",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: 'uint256', name: 'assets', type: 'uint256' },
+                                        { internalType: 'address', name: 'receiver', type: 'address' },
+                                        { internalType: 'uint256', name: 'referralCode', type: 'uint256' }
+                                    ],
+                                    name: 'depositWithReferral',
+                                    outputs: [{ internalType: 'uint256', name: 'shares', type: 'uint256' }],
+                                    stateMutability: 'nonpayable',
+                                    type: 'function'
+                                },
+                            ],
+                            functionName: "depositWithReferral",
+                            params: [
+                                "$amount",
+                                "$user",
+                                "0",
+                            ],
+                            paramsTypes: ["bigint", "string", "number"],
+                        },
+                    },
+                }
+            ],
+        },
+        withdraw: {
+            withdrawalAmount: {
+                abi: [
+                    {
+                        inputs: [
+                            { internalType: "address", name: "user", type: "address" },
+                        ],
+                        name: "balanceOf",
+                        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+                        stateMutability: "view",
+                        type: "function",
+                    },
+                ],
+                to: "0x6B343F7B797f1488AA48C49d540690F2b2c89751",
+                functionName: "balanceOf",
+                params: ["$user"],
+                paramsTypes: ["string"],
+                returnTypes: ["bigint"],
+            },
+            logics: [
+                {
+                    preBridge: {
+                        universe: "evm",
+                        transaction: {
+                            to: "0x6B343F7B797f1488AA48C49d540690F2b2c89751",
+                            abi: [
+                                {
+                                    inputs: [
+                                        { internalType: 'uint256', name: 'shares', type: 'uint256' },
+                                        { internalType: 'address', name: 'receiver', type: 'address' },
+                                        { internalType: 'address', name: 'owner', type: 'address' }
+                                    ],
+                                    name: 'redeem',
+                                    outputs: [{ internalType: 'uint256', name: 'assets', type: 'uint256' }],
+                                    stateMutability: 'nonpayable',
+                                    type: 'function'
+                                },
+                            ],
+                            functionName: "redeem",
+                            params: [
+                                "$amount",
+                                "$user",
+                                "$user"
+                            ],
+                            paramsTypes: ["bigint", "string", "string"],
                         },
                     },
                 },
