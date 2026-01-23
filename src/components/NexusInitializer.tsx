@@ -15,8 +15,7 @@ export function NexusInitializer({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
   const { status, connector, address } = useAccount();
-  const { nexusSDK, handleInit, deinitializeNexus, setIntent, setAllowance } =
-    useNexus();
+  const { nexusSDK, handleInit, deinitializeNexus } = useNexus();
   const prevAddressRef = React.useRef<string | undefined>(undefined);
   const initializingRef = React.useRef(false);
 
@@ -50,11 +49,9 @@ export function NexusInitializer({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (status === "disconnected" && nexusSDK) {
       deinitializeNexus();
-      setIntent(null);
-      setAllowance(null);
       prevAddressRef.current = undefined;
     }
-  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
+  }, [status, nexusSDK, deinitializeNexus]);
 
   // Handle account change - reinitialize Nexus when account address changes
   React.useEffect(() => {
