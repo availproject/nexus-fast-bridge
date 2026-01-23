@@ -5,7 +5,7 @@ import { sampleOpportunities } from "@/lib/opportunities-data";
 
 export default function Opportunities() {
   return (
-    <div className="flex-1 w-full relative z-10">
+    <div className="flex-1 w-full max-w-7xl mx-auto relative z-10">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
@@ -22,7 +22,7 @@ export default function Opportunities() {
       </div>
 
       {/* Opportunities List */}
-      <OpportunityList opportunities={sampleOpportunities} layout="list" />
+      <OpportunityList opportunities={sampleOpportunities} />
 
       {/* Powered by footer */}
       <div className="flex w-full items-center gap-x-1 justify-center mt-12">

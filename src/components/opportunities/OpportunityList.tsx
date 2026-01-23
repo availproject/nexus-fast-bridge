@@ -6,13 +6,11 @@ import { OpportunityCard } from "./OpportunityCard";
 interface OpportunityListProps {
   opportunities: Opportunity[];
   onOpportunityClick?: (opportunity: Opportunity) => void;
-  layout?: "list" | "grid";
 }
 
 export function OpportunityList({
   opportunities,
   onOpportunityClick,
-  layout = "list",
 }: OpportunityListProps) {
   if (opportunities.length === 0) {
     return (
@@ -43,13 +41,7 @@ export function OpportunityList({
   }
 
   return (
-    <div
-      className={
-        layout === "grid"
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          : "flex flex-col gap-4 max-w-xl mx-auto"
-      }
-    >
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
       {opportunities.map((opportunity) => (
         <OpportunityCard
           key={opportunity.id}

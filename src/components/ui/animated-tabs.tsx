@@ -43,7 +43,7 @@ export function AnimatedTabs({
       <div
         className={cn(
           "relative inline-flex items-center justify-center rounded-full p-1 border border-gray-200/50",
-          className
+          className,
         )}
       >
         {tabs.map((tab) => {
@@ -52,7 +52,7 @@ export function AnimatedTabs({
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className="relative z-10 px-6 py-2 text-sm font-medium rounded-full bg-transparent"
+              className="relative z-10 px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium rounded-full bg-transparent"
               style={{ color: isActive ? config.secondaryColor : "#6b7280" }}
             >
               {isActive && (
