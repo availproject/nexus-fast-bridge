@@ -25,8 +25,8 @@ export function getConfig(env: AppEnv) {
         appTitle: env.VITE_CONFIG_APP_TITLE || "Citrea Fast Bridge",
         appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Bridge from any chain to Citrea, in real time.",
 
-        primaryColor: env.VITE_CONFIG_PRIMARY_COLOR || "#19191A",
-        secondaryColor: env.VITE_CONFIG_SECONDARY_COLOR || "#ECE8E8",
+        primaryColor: env.VITE_CONFIG_PRIMARY_COLOR || "#EF8F36",
+        secondaryColor: env.VITE_CONFIG_SECONDARY_COLOR || "#CDD2D8",
         nexusNetwork: env.VITE_CONFIG_NEXUS_NETWORK || "mainnet",
         nexusSupportedChain:
             Number(env.VITE_CONFIG_NEXUS_SUPPORTED_CHAIN) || 4114,
@@ -41,8 +41,8 @@ export function getConfig(env: AppEnv) {
                 env.VITE_CONFIG_APP_META_CANONICAL_URL || "https://megaeth-fast-bridge.vercel.app",
             imageUrl: env.VITE_CONFIG_APP_META_IMAGE_URL || "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
             faviconUrl: env.VITE_CONFIG_APP_META_FAVICON_URL || "https://megaeth-fast-bridge.vercel.app/faviconV2.png",
-            themeColor: env.VITE_CONFIG_APP_META_THEME_COLOR || "#19191A",
-            backgroundColor: env.VITE_CONFIG_APP_META_BACKGROUND_COLOR || "#ECE8E8",
+            themeColor: env.VITE_CONFIG_APP_META_THEME_COLOR || "#EF8F36",
+            backgroundColor: env.VITE_CONFIG_APP_META_BACKGROUND_COLOR || "#CDD2D8",
         },
     };
 

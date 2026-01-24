@@ -77,6 +77,7 @@ export default defineConfig(({ mode }) => {
             .replaceAll(/%= APP_FAVICON_URL =%/g, config.meta.faviconUrl)
             .replaceAll(/%= APP_THEME_COLOR =%/g, config.meta.themeColor)
             .replaceAll(/%= APP_META_IMAGE_URL =%/g, config.meta.imageUrl)
+            .replaceAll(/%= MANIFEST_URL =%/g, `${base}manifest.json`)
         }
       }
     ],

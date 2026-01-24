@@ -47,7 +47,7 @@ export function getConfig(env: AppEnv) {
             faviconUrl:
                 env.VITE_CONFIG_APP_META_FAVICON_URL ||
                 "https://monadfastbridge.com/faviconV2.png",
-            themeColor: env.VITE_CONFIG_APP_META_THEME_COLOR || "#000000",
+            themeColor: env.VITE_CONFIG_APP_META_THEME_COLOR || "#836ef9",
             backgroundColor: env.VITE_CONFIG_APP_META_BACKGROUND_COLOR || "#ffffff",
         },
     };
