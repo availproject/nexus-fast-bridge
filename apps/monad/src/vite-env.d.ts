@@ -3,6 +3,7 @@
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
 
 export interface AppEnv {
+    readonly VITE_APP_BASE_PATH?: string;
     readonly VITE_CONFIG_CHAIN_ID: number;
     readonly VITE_CONFIG_CHAIN_NAME: string;
     readonly VITE_CONFIG_CHAIN_NATIVE_CURRENCY_NAME: string;

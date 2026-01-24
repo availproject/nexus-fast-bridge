@@ -12,6 +12,118 @@ importers:
         specifier: ^2.7.5
         version: 2.7.5
 
+  apps/citrea:
+    dependencies:
+      '@avail-project/nexus-core':
+        specifier: github:availproject/nexus-sdk#feat/add-citrea-main
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/2d5b3c1a246c59ffe336c38fa0237baaddf12106(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+      '@radix-ui/react-accordion':
+        specifier: ^1.2.12
+        version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.15
+        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      '@radix-ui/react-label':
+        specifier: ^2.1.7
+        version: 2.1.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      '@radix-ui/react-select':
+        specifier: ^2.2.6
+        version: 2.2.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      '@radix-ui/react-slot':
+        specifier: ^1.2.3
+        version: 1.2.4(@types/react@19.2.7)(react@19.2.2)
+      '@radix-ui/react-tooltip':
+        specifier: ^1.2.8
+        version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      '@rainbow-me/rainbowkit':
+        specifier: ^2.2.8
+        version: 2.2.9(@tanstack/react-query@5.90.11(react@19.2.2))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)(typescript@5.8.3)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))(wagmi@2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.2))(@types/react@19.2.7)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))(ws@8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@4.1.13))
+      '@tailwindcss/vite':
+        specifier: ^4.1.16
+        version: 4.1.17(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2))
+      '@tanstack/react-query':
+        specifier: ^5.90.2
+        version: 5.90.11(react@19.2.2)
+      '@vitejs/plugin-react':
+        specifier: ^5.1.0
+        version: 5.1.1(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2))
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      connectkit:
+        specifier: ^1.9.1
+        version: 1.9.1(@babel/core@7.28.5)(@tanstack/react-query@5.90.11(react@19.2.2))(react-dom@19.2.2(react@19.2.2))(react-is@16.13.1)(react@19.2.2)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))(wagmi@2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.2))(@types/react@19.2.7)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))(ws@8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@4.1.13))
+      lucide-react:
+        specifier: ^0.544.0
+        version: 0.544.0(react@19.2.2)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      react:
+        specifier: 19.2.2
+        version: 19.2.2
+      react-dom:
+        specifier: 19.2.2
+        version: 19.2.2(react@19.2.2)
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.4.0
+      tailwindcss:
+        specifier: ^4.1.13
+        version: 4.1.17
+      viem:
+        specifier: ^2.37.9
+        version: 2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+      vite-plugin-node-polyfills:
+        specifier: ^0.24.0
+        version: 0.24.0(rollup@4.53.3)(vite@7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2))
+      wagmi:
+        specifier: ^2.17.5
+        version: 2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.2))(@types/react@19.2.7)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))(ws@8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@4.1.13)
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.36.0
+        version: 9.39.1
+      '@types/node':
+        specifier: ^24.6.0
+        version: 24.10.1
+      '@types/react':
+        specifier: ^19.1.13
+        version: 19.2.7
+      '@types/react-dom':
+        specifier: ^19.1.9
+        version: 19.2.3(@types/react@19.2.7)
+      eslint:
+        specifier: ^9.36.0
+        version: 9.39.1(jiti@2.6.1)
+      eslint-plugin-react-hooks:
+        specifier: ^5.2.0
+        version: 5.2.0(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-react-refresh:
+        specifier: ^0.4.20
+        version: 0.4.24(eslint@9.39.1(jiti@2.6.1))
+      globals:
+        specifier: ^16.4.0
+        version: 16.5.0
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+      typescript-eslint:
+        specifier: ^8.44.0
+        version: 8.48.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.8.3)
+      vite:
+        specifier: ^7.1.7
+        version: 7.2.4(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)
+
   apps/megaeth:
     dependencies:
       '@avail-project/nexus-core':
@@ -245,6 +357,9 @@ importers:
         specifier: 19.2.2
         version: 19.2.2(react@19.2.2)
     devDependencies:
+      '@fastbridge/citrea':
+        specifier: workspace:*
+        version: link:../citrea
       '@fastbridge/megaeth':
         specifier: workspace:*
         version: link:../megaeth
@@ -288,6 +403,22 @@ packages:
       long: ^5.3.2
       msgpackr: ^1.11.4
       viem: ^2.31.7
+
+  '@avail-project/ca-common@1.0.0-beta14':
+    resolution: {integrity: sha512-2vQei2euPuesAuhwSkaT5BNzpYpR3T0jSYO2XufmZ4AkN/qgogRFWOfhnMdVdZ4Z+z8BZ/rOHXMV6GaT1tsrrA==}
+    peerDependencies:
+      '@cosmjs/proto-signing': ^0.34.0
+      '@cosmjs/stargate': ^0.34.0
+      axios: ^1.10.0
+      decimal.js: ^10.6.0
+      long: ^5.3.2
+      msgpackr: ^1.11.4
+      viem: ^2.31.7
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/2d5b3c1a246c59ffe336c38fa0237baaddf12106':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/2d5b3c1a246c59ffe336c38fa0237baaddf12106}
+    version: 1.0.0-beta.64
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a':
     resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a}
@@ -4724,6 +4855,57 @@ snapshots:
       viem: 2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
     transitivePeerDependencies:
       - google-protobuf
+
+  '@avail-project/ca-common@1.0.0-beta14(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(axios@1.13.2)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.5)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))':
+    dependencies:
+      '@bufbuild/protobuf': 2.10.1
+      '@cosmjs/proto-signing': 0.34.0
+      '@cosmjs/stargate': 0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@improbable-eng/grpc-web': 0.15.0(google-protobuf@3.21.4)
+      '@improbable-eng/grpc-web-node-http-transport': 0.15.0(@improbable-eng/grpc-web@0.15.0(google-protobuf@3.21.4))
+      axios: 1.13.2
+      browser-headers: 0.4.1
+      decimal.js: 10.6.0
+      es-toolkit: 1.42.0
+      long: 5.3.2
+      msgpackr: 1.11.5
+      tslib: 2.8.1
+      viem: 2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+    transitivePeerDependencies:
+      - google-protobuf
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/2d5b3c1a246c59ffe336c38fa0237baaddf12106(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
+    dependencies:
+      '@avail-project/ca-common': 1.0.0-beta14(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(axios@1.13.2)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.5)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))
+      '@cosmjs/proto-signing': 0.34.0
+      '@cosmjs/stargate': 0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@metamask/safe-event-emitter': 3.1.2
+      '@opentelemetry/api-logs': 0.208.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.0)
+      '@starkware-industries/starkware-crypto-utils': 0.2.1
+      '@tronweb3/tronwallet-abstract-adapter': 1.1.10(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      axios: 1.13.2
+      buffer: 6.0.3
+      decimal.js: 10.6.0
+      es-toolkit: 1.42.0
+      it-ws: 6.1.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      long: 5.3.2
+      msgpackr: 1.11.5
+      posthog-js: 1.335.0
+      tronweb: 6.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      tslib: 2.8.1
+      viem: 2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - bufferutil
+      - debug
+      - encoding
+      - google-protobuf
+      - typescript
+      - utf-8-validate
+      - zod
 
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
     dependencies:

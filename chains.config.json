@@ -14,5 +14,13 @@
     "primaryColor": "#0f172a",
     "basePath": "/megaeth/",
     "appDir": "apps/megaeth"
+  },
+  {
+    "slug": "citrea",
+    "name": "Citrea",
+    "description": "Fast bridge experience for Citrea.",
+    "primaryColor": "#0f172a",
+    "basePath": "/citrea/",
+    "appDir": "apps/citrea"
   }
 ]

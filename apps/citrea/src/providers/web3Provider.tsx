@@ -1,0 +1,135 @@
+"use client";
+
+import React, { useEffect } from "react";
+import { ConnectKitProvider, getDefaultConfig } from "connectkit";
+import { WagmiProvider, createConfig, http, useDisconnect } from "wagmi";
+import {
+  mainnet,
+  scroll,
+  polygon,
+  optimism,
+  arbitrum,
+  base,
+  avalanche,
+  sophon,
+  kaia,
+  monad,
+  type Chain,
+} from "wagmi/chains";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import config from "../../config";
+
+const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
+
+const chain: Chain = {
+  id: config.chainId,
+  name: config.chainName,
+  nativeCurrency: {
+    name: config.chainNativeCurrency.name,
+    symbol: config.chainNativeCurrency.symbol,
+    decimals: config.chainNativeCurrency.decimals,
+  },
+  rpcUrls: {
+    default: { http: [config.chainRpcUrl] },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: config.chainBlockExplorerUrl },
+  },
+  testnet: config.chainTestnet,
+};
+
+const megaeth: Chain = {
+  id: 4326,
+  name: "MegaETH Mainnet",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [import.meta.env.VITE_MEGAETH_RPC] },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://megaeth.blockscout.com" },
+  },
+  testnet: false,
+};
+
+//ideally we should add private rpcs for each, for now it fallbacks to default rpcs
+const transports = {
+  [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC),
+  [base.id]: http(import.meta.env.VITE_BASE_RPC),
+  [arbitrum.id]: http(import.meta.env.VITE_ARBITRUM_RPC),
+  [optimism.id]: http(import.meta.env.VITE_OPTIMISM_RPC),
+  [polygon.id]: http(import.meta.env.VITE_POLYGON_RPC),
+  [scroll.id]: http(import.meta.env.VITE_SCROLL_RPC),
+  [avalanche.id]: http(import.meta.env.VITE_AVALANCHE_RPC),
+  [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
+  [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
+  [chain.id]: http(config.chainRpcUrl),
+  [monad.id]: http(import.meta.env.VITE_MONAD_RPC),
+  [megaeth.id]: http(import.meta.env.VITE_MEGAETH_RPC),
+};
+
+const defaultConfigParams = getDefaultConfig({
+  appName: config.appTitle ?? "Nexus Elements",
+  walletConnectProjectId,
+  chains: [
+    chain,
+    mainnet,
+    base,
+    sophon,
+    kaia,
+    arbitrum,
+    avalanche,
+    optimism,
+    polygon,
+    scroll,
+    monad,
+    megaeth,
+  ],
+  transports,
+  enableFamily: false,
+});
+
+const wagmiConfig = createConfig(defaultConfigParams);
+const queryClient = new QueryClient();
+
+const DisconnectOnUnmount = ({ children }: { children: React.ReactNode }) => {
+  const { disconnect, disconnectAsync } = useDisconnect();
+
+  const safeDisconnect = () => {
+    try {
+      disconnect?.();
+    } catch {
+      void disconnectAsync().catch(() => undefined);
+    }
+  };
+
+  useEffect(() => {
+    const handlePageHide = () => safeDisconnect();
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handlePageHide);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handlePageHide);
+      safeDisconnect();
+    };
+  }, [disconnect, disconnectAsync]);
+
+  return <>{children}</>;
+};
+
+const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <DisconnectOnUnmount>
+          <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        </DisconnectOnUnmount>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+};
+
+export default Web3Provider;
