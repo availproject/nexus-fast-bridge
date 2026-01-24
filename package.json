@@ -5,9 +5,10 @@
   "scripts": {
     "dev:root": "turbo run dev --filter=root",
     "dev:all": "turbo run dev --parallel --filter=@fastbridge/monad --filter=@fastbridge/megaeth --filter=root",
-    "build:all": "turbo run build",
+    "build:all": "TURBO_CONCURRENCY=1 turbo run build",
     "clean": "turbo run clean --force",
-    "vercel:env": "node scripts/build-vercel-env.mjs"
+    "vercel:env": "node scripts/build-vercel-env.mjs",
+    "chains:sync": "node scripts/sync-chains.mjs"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
