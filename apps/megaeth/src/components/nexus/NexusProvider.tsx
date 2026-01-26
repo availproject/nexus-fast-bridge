@@ -227,7 +227,6 @@ const NexusProvider = ({
 
   useAccountEffect({
     onDisconnect() {
-      console.log("SDK DEINIT MEGAETH");
       deinitializeNexus();
     },
   });

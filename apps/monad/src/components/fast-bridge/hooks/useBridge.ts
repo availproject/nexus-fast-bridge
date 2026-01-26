@@ -35,7 +35,11 @@ export interface FastBridgeState {
   recipient?: `0x${string}`;
 }
 
-const ALLOWED_TOKENS = new Set(["USDC", "USDT", "USDM"]) as Set<SUPPORTED_TOKENS>;
+const ALLOWED_TOKENS = new Set([
+  "USDC",
+  "USDT",
+  "USDM",
+]) as Set<SUPPORTED_TOKENS>;
 
 interface UseBridgeProps {
   network: NexusNetwork;
@@ -99,21 +103,20 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       : config.nexusPrimaryToken || "USDC";
 
-
   const validAmount = prefill?.amount
     ? (() => {
-      const sanitized = prefill.amount.trim();
-      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-        return undefined;
-      const num = Number.parseFloat(sanitized);
-      return Number.isNaN(num) || num <= 0 || num > 1e9
-        ? undefined
-        : sanitized;
-    })()
+        const sanitized = prefill.amount.trim();
+        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+          return undefined;
+        const num = Number.parseFloat(sanitized);
+        return Number.isNaN(num) || num <= 0 || num > 1e9
+          ? undefined
+          : sanitized;
+      })()
     : undefined;
 
   const validRecipient =
@@ -142,7 +145,6 @@ const useBridge = ({
   fetchBalance,
   allowance,
 }: UseBridgeProps) => {
-  console.log(network)
   const handleNexusError = useNexusError();
   const initialState: BridgeState = {
     inputs: buildInitialInputs(connectedAddress, prefill),
@@ -204,7 +206,7 @@ const useBridge = ({
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
-
+    setLastExplorerUrl("");
     try {
       if (!nexusSDK) {
         throw new Error("Nexus SDK not initialized");
@@ -228,6 +230,9 @@ const useBridge = ({
               onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+              if (event.args.type === "INTENT_HASH_SIGNED") {
+                stopwatch.start();
+              }
               onStepComplete(event.args);
             }
           },
@@ -251,8 +256,6 @@ const useBridge = ({
       dispatch({ type: "setStatus", payload: "error" });
     }
   };
-  console.log("INTENT", intent?.current);
-  console.log("BALANCE", bridgableBalance);
 
   const onSuccess = async () => {
     // Close dialog and stop timer on success
@@ -313,7 +316,7 @@ const useBridge = ({
 
   usePolling(Boolean(intent.current) && !isDialogOpen, refreshIntent, 15000);
 
-  const stopwatch = useStopwatch({ running: isDialogOpen, intervalMs: 100 });
+  const stopwatch = useStopwatch({ intervalMs: 100 });
 
   useEffect(() => {
     if (intent.current) {

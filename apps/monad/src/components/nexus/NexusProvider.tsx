@@ -227,7 +227,6 @@ const NexusProvider = ({
 
   useAccountEffect({
     onDisconnect() {
-      console.log("DEINIT SDK MONAD");
       deinitializeNexus();
     },
   });

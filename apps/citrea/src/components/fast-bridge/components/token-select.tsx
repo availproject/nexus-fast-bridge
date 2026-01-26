@@ -1,4 +1,5 @@
 import {
+  SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
@@ -33,9 +34,13 @@ const TokenSelect = ({
 }: TokenSelectProps) => {
   const { supportedChainsAndTokens } = useNexus();
   const tokenData = useMemo(() => {
-    return supportedChainsAndTokens
+    const data = supportedChainsAndTokens
       ?.filter((chain) => chain.id === selectedChain)
       .flatMap((chain) => chain.tokens);
+    if (selectedChain === SUPPORTED_CHAINS.CITREA) {
+      return data?.filter((token) => token.symbol !== "cBTC");
+    }
+    return data;
   }, [selectedChain, supportedChainsAndTokens]);
 
   const selectedTokenData = tokenData?.find((token) => {

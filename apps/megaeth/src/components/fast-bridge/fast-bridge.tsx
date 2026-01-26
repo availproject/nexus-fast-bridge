@@ -85,7 +85,6 @@ const FastBridge: FC<FastBridgeProps> = ({
     bridgableBalance,
     allowance,
     onComplete: () => {
-      console.log("Bridge completed");
       if (onComplete) {
         onComplete();
       }
