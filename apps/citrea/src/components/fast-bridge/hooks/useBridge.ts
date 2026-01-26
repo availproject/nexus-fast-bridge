@@ -209,7 +209,7 @@ const useBridge = ({
               onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-              if (event.args.type === "INTENT_HASH_SIGNED") {
+              if (event.args.type === "INTENT_ACCEPTED") {
                 stopwatch.start();
               }
               onStepComplete(event.args);
