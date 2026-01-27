@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
-import { WagmiProvider, createConfig, http, useDisconnect } from "wagmi";
+import { WagmiProvider, createConfig, http } from "wagmi";
 import {
   mainnet,
   scroll,
@@ -95,38 +95,11 @@ const defaultConfigParams = getDefaultConfig({
 const wagmiConfig = createConfig(defaultConfigParams);
 const queryClient = new QueryClient();
 
-const DisconnectOnUnmount = ({ children }: { children: React.ReactNode }) => {
-  const { disconnect, disconnectAsync } = useDisconnect();
-
-  const safeDisconnect = () => {
-    try {
-      disconnect?.();
-    } catch {
-      void disconnectAsync().catch(() => undefined);
-    }
-  };
-
-  useEffect(() => {
-    const handlePageHide = () => safeDisconnect();
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("beforeunload", handlePageHide);
-    return () => {
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("beforeunload", handlePageHide);
-      safeDisconnect();
-    };
-  }, [disconnect, disconnectAsync]);
-
-  return <>{children}</>;
-};
-
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <DisconnectOnUnmount>
-          <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
-        </DisconnectOnUnmount>
+        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
