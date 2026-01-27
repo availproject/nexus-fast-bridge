@@ -190,15 +190,32 @@ const NexusProvider = ({
   };
 
   const handleInit = async (provider: EthereumProvider) => {
+    console.log("[NexusProvider] handleInit called");
+    console.log("[NexusProvider] SDK isInitialized:", sdk.isInitialized());
+    console.log("[NexusProvider] Loading:", loading);
+
     if (sdk.isInitialized() || loading) {
+      console.log(
+        "[NexusProvider] Skipping init - already initialized or loading",
+      );
       return;
     }
+
     if (!provider || typeof provider.request !== "function") {
+      console.error("[NexusProvider] Invalid provider:", provider);
       throw new Error("Invalid EIP-1193 provider");
     }
+
+    console.log("[NexusProvider] Calling initializeNexus...");
     await initializeNexus(provider);
+
+    console.log("[NexusProvider] Calling setupNexus...");
     await setupNexus();
+
+    console.log("[NexusProvider] Calling attachEventHooks...");
     attachEventHooks();
+
+    console.log("[NexusProvider] handleInit complete!");
   };
 
   const fetchBridgableBalance = async () => {
