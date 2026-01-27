@@ -117,38 +117,6 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ANIMATED BACKGROUND
-   ═══════════════════════════════════════════════════════════ */
-
-.background-dots {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.dot {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: var(--blue-400);
-  border-radius: 50%;
-}
-
-.cursor-spotlight {
-  position: fixed;
-  width: 300px;
-  height: 300px;
-  pointer-events: none;
-  z-index: 0;
-  background: var(--blue-100);
-  border-radius: 50%;
-  opacity: 0.5;
-  filter: blur(60px);
-}
-
-/* ═══════════════════════════════════════════════════════════
    PAGE LAYOUT
    ═══════════════════════════════════════════════════════════ */
 
@@ -234,62 +202,111 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .hero {
-  padding: 64px 32px 48px;
+  padding: 80px 32px 56px;
   text-align: center;
   background: var(--background-primary);
   border-bottom: 1px solid var(--border-default);
   position: relative;
   overflow: hidden;
+  min-height: 360px;
 }
 
 .hero-content {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
   position: relative;
+  z-index: 2;
 }
 
+/* Floating logos background */
+.floating-logos-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-logo {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  transition: transform 0.1s linear;
+  will-change: transform, left, top;
+}
+
+.floating-logo.chain {
+  filter: grayscale(30%);
+}
+
+.floating-logo.token {
+  filter: grayscale(50%);
+}
+
+.floating-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hero title */
 .hero-title {
-  font-size: clamp(32px, 5vw, 48px);
+  font-size: clamp(32px, 5vw, 52px);
   font-weight: 700;
   color: var(--foreground-primary);
   line-height: 1.15;
   letter-spacing: -0.02em;
   margin-bottom: 16px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
 }
 
+/* Hero subtitle */
 .hero-subtitle {
   font-size: 17px;
   font-weight: 400;
   color: var(--foreground-secondary);
   line-height: 1.6;
   max-width: 480px;
-  margin: 0 auto;
+  margin: 0 auto 24px;
 }
 
-/* Hero decoration - rotating rings */
-.hero-decoration {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  pointer-events: none;
-  z-index: -1;
+/* Hero stats */
+.hero-stats {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 100px;
+  margin-top: 8px;
 }
 
-.decoration-ring {
-  position: absolute;
-  inset: 0;
-  border: 1px dashed var(--blue-200);
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground-secondary);
+}
+
+.stat-icon {
+  color: var(--foreground-brand);
+}
+
+.stat-divider {
+  width: 4px;
+  height: 4px;
+  background: var(--border-strong);
   border-radius: 50%;
-  opacity: 0.5;
-}
-
-.decoration-ring-2 {
-  inset: 40px;
-  border-style: dotted;
-  opacity: 0.3;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -549,7 +566,8 @@ body {
   }
 
   .hero {
-    padding: 48px 20px 40px;
+    padding: 56px 20px 40px;
+    min-height: 280px;
   }
 
   .hero-title {
@@ -560,9 +578,19 @@ body {
     font-size: 15px;
   }
 
-  .hero-decoration {
-    width: 300px;
-    height: 300px;
+  .hero-stats {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
+  /* Hide floating logos on mobile */
+  .floating-logos-container {
+    display: none;
   }
 
   .chain-section {
@@ -601,10 +629,6 @@ body {
     flex-direction: column;
     gap: 8px;
   }
-
-  .cursor-spotlight {
-    display: none;
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -620,9 +644,7 @@ body {
     transition-duration: 0.01ms !important;
   }
 
-  .dot,
-  .decoration-ring,
-  .decoration-ring-2 {
+  .floating-logo {
     display: none;
   }
 }
