@@ -8,9 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
-import { type SUPPORTED_CHAINS_IDS } from "@avail-project/nexus-core";
+import {
+  SUPPORTED_CHAINS,
+  type SUPPORTED_CHAINS_IDS,
+} from "@avail-project/nexus-core";
 import { cn } from "@/lib/utils";
 import { useNexus } from "../../nexus/NexusProvider";
+import CitreaLogo from "/citrea-chain-logo.webp";
 
 interface ChainSelectProps {
   selectedChain: number;
@@ -33,8 +37,19 @@ const ChainSelect: FC<ChainSelectProps> = ({
 
   const selectedChainData = useMemo(() => {
     if (!supportedChainsAndTokens) return null;
-    return supportedChainsAndTokens.find((c) => c.id === selectedChain);
+    const data = supportedChainsAndTokens.find((c) => c.id === selectedChain);
+    if (data?.id === SUPPORTED_CHAINS.CITREA) {
+      return {
+        logo: CitreaLogo,
+        id: data.id,
+        name: data.name,
+        tokens: data.tokens,
+      };
+    }
+    return data;
   }, [selectedChain, supportedChainsAndTokens]);
+
+  console.log("SELECTED CHAIN DATA:", selectedChainData);
 
   if (hidden) return null;
   return (
@@ -80,7 +95,11 @@ const ChainSelect: FC<ChainSelectProps> = ({
               <SelectItem key={chain.id} value={String(chain.id)}>
                 <div className="flex items-center gap-x-2 my-1">
                   <img
-                    src={chain.logo}
+                    src={
+                      chain.id === SUPPORTED_CHAINS.CITREA
+                        ? CitreaLogo
+                        : chain.logo
+                    }
                     alt={chain?.name}
                     width={24}
                     height={24}
