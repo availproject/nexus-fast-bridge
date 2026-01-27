@@ -84,6 +84,7 @@
   /* Transitions */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --duration-fast: 200ms;
   --duration-base: 300ms;
 }
@@ -108,10 +109,43 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATED BACKGROUND
+   ═══════════════════════════════════════════════════════════ */
+
+.background-dots {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--blue-400);
+  border-radius: 50%;
+}
+
+.cursor-spotlight {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--blue-100);
+  border-radius: 50%;
+  opacity: 0.5;
+  filter: blur(60px);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -123,6 +157,8 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -146,6 +182,7 @@ body {
   align-items: center;
   gap: 12px;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .navbar-logo {
@@ -177,6 +214,21 @@ body {
   color: var(--foreground-brand);
 }
 
+/* Floating badge */
+.floating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--background-brand);
+  border: 1px solid var(--blue-200);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground-brand);
+  cursor: default;
+}
+
 /* ═══════════════════════════════════════════════════════════
    HERO SECTION
    ═══════════════════════════════════════════════════════════ */
@@ -186,11 +238,14 @@ body {
   text-align: center;
   background: var(--background-primary);
   border-bottom: 1px solid var(--border-default);
+  position: relative;
+  overflow: hidden;
 }
 
 .hero-content {
   max-width: 640px;
   margin: 0 auto;
+  position: relative;
 }
 
 .hero-title {
@@ -209,6 +264,32 @@ body {
   line-height: 1.6;
   max-width: 480px;
   margin: 0 auto;
+}
+
+/* Hero decoration - rotating rings */
+.hero-decoration {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.decoration-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px dashed var(--blue-200);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.decoration-ring-2 {
+  inset: 40px;
+  border-style: dotted;
+  opacity: 0.3;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -254,14 +335,24 @@ body {
     box-shadow var(--duration-base) var(--ease-out-expo),
     border-color var(--duration-base) var(--ease-out-expo);
   overflow: hidden;
+  transform-style: preserve-3d;
 }
 
 .chain-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--border-strong);
+  border-color: var(--blue-300);
   box-shadow:
-    0 12px 40px -12px hsla(214, 92%, 48%, 0.15),
-    0 4px 16px -4px hsla(0, 0%, 0%, 0.08);
+    0 20px 50px -12px hsla(214, 92%, 48%, 0.2),
+    0 8px 24px -8px hsla(0, 0%, 0%, 0.1);
+}
+
+/* Card glow effect */
+.card-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--radius-round-max) + 2px);
+  border: 2px solid var(--blue-400);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-content {
@@ -286,12 +377,12 @@ body {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-round-med);
   padding: 12px;
-  transition: all var(--duration-base) var(--ease-out-expo);
+  transition: all var(--duration-base) var(--ease-out-back);
 }
 
 .chain-card:hover .chain-logo-wrapper {
   background: var(--background-tertiary);
-  border-color: var(--border-strong);
+  border-color: var(--blue-200);
 }
 
 .chain-logo {
@@ -329,6 +420,7 @@ body {
   color: var(--foreground-primary);
   margin: 0;
   letter-spacing: -0.01em;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
 }
 
 .chain-description {
@@ -337,6 +429,7 @@ body {
   color: var(--foreground-secondary);
   line-height: 1.5;
   margin: 0;
+  transition: opacity var(--duration-fast);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -362,6 +455,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: var(--foreground-muted);
+  transition: background-color var(--duration-fast);
 }
 
 .enter-button {
@@ -374,7 +468,7 @@ body {
   border-radius: var(--radius-round-med);
   font-size: 14px;
   font-weight: 600;
-  transition: all var(--duration-fast) var(--ease-out-expo);
+  transition: all var(--duration-fast) var(--ease-out-back);
 }
 
 .chain-card:hover .enter-button {
@@ -385,10 +479,6 @@ body {
   transition: transform var(--duration-fast) var(--ease-out-expo);
 }
 
-.chain-card:hover .enter-icon {
-  transform: translateX(2px);
-}
-
 /* ═══════════════════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════════════════ */
@@ -397,6 +487,8 @@ body {
   padding: 24px 32px;
   background: var(--background-primary);
   border-top: 1px solid var(--border-default);
+  position: relative;
+  z-index: 1;
 }
 
 .footer-content {
@@ -425,12 +517,13 @@ body {
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
-  transition: all var(--duration-fast) var(--ease-out-expo);
+  transition: all var(--duration-fast) var(--ease-out-back);
 }
 
 .footer-link:hover {
   background: var(--background-tertiary);
-  border-color: var(--border-strong);
+  border-color: var(--blue-300);
+  box-shadow: 0 4px 12px hsla(214, 92%, 48%, 0.15);
 }
 
 .footer-logo {
@@ -451,6 +544,10 @@ body {
     display: none;
   }
 
+  .floating-badge {
+    display: none;
+  }
+
   .hero {
     padding: 48px 20px 40px;
   }
@@ -461,6 +558,11 @@ body {
 
   .hero-subtitle {
     font-size: 15px;
+  }
+
+  .hero-decoration {
+    width: 300px;
+    height: 300px;
   }
 
   .chain-section {
@@ -499,6 +601,10 @@ body {
     flex-direction: column;
     gap: 8px;
   }
+
+  .cursor-spotlight {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -512,6 +618,12 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .dot,
+  .decoration-ring,
+  .decoration-ring-2 {
+    display: none;
   }
 }
 
