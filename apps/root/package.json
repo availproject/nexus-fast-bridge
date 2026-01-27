@@ -9,16 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "^0.400.0",
+    "motion": "^12.29.2",
     "react": "19.2.2",
     "react-dom": "19.2.2"
   },
   "devDependencies": {
     "@fastbridge/citrea": "workspace:*",
+    "@fastbridge/megaeth": "workspace:*",
+    "@fastbridge/monad": "workspace:*",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "@fastbridge/monad": "workspace:*",
-    "@fastbridge/megaeth": "workspace:*",
     "@vitejs/plugin-react": "^5.1.0",
     "typescript": "~5.8.3",
     "vite": "^7.1.7"

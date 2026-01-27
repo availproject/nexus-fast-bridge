@@ -3,8 +3,11 @@ export interface ChainConfig {
   name: string;
   description?: string;
   primaryColor?: string;
+  secondaryColor?: string;
   basePath: string;
   appDir: string;
+  logoUrl?: string;
+  iconUrl?: string;
 }
 
 import chainList from "../../../chains.config.json" assert { type: "json" };

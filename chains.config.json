@@ -2,25 +2,34 @@
   {
     "slug": "monad",
     "name": "Monad",
-    "description": "Fast bridge powered by Avail Nexus.",
+    "description": "Move your assets to Monad faster than ever!",
     "primaryColor": "#836ef9",
+    "secondaryColor": "#ffffff",
     "basePath": "/monad/",
-    "appDir": "apps/monad"
+    "appDir": "apps/monad",
+    "logoUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg",
+    "iconUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg"
   },
   {
     "slug": "megaeth",
     "name": "MegaETH",
-    "description": "Fast bridge experience for MegaETH.",
-    "primaryColor": "#0f172a",
+    "description": "Bridge from any chain to MegaETH, in real time.",
+    "primaryColor": "#19191A",
+    "secondaryColor": "#ECE8E8",
     "basePath": "/megaeth/",
-    "appDir": "apps/megaeth"
+    "appDir": "apps/megaeth",
+    "logoUrl": "https://files.availproject.org/fastbridge/megaeth/megaeth-logo.svg",
+    "iconUrl": "https://files.availproject.org/fastbridge/megaeth/megaeth-favicon.svg"
   },
   {
     "slug": "citrea",
     "name": "Citrea",
-    "description": "Fast bridge experience for Citrea.",
-    "primaryColor": "#0f172a",
+    "description": "Bridge from any chain to Citrea, in real time.",
+    "primaryColor": "#E85A32",
+    "secondaryColor": "#ffffff",
     "basePath": "/citrea/",
-    "appDir": "apps/citrea"
+    "appDir": "apps/citrea",
+    "logoUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg",
+    "iconUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg"
   }
 ]
