@@ -30,6 +30,11 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const initializeNexus = React.useCallback(async () => {
     if (loading || nexusSDK) return; // Prevent multiple calls
 
+    console.log("[Nexus Init] Starting initialization...");
+    console.log("[Nexus Init] Connector:", connector);
+    console.log("[Nexus Init] Connector name:", connector?.name);
+    console.log("[Nexus Init] Connector type:", connector?.type);
+
     setLoading(true);
     setInitError(null);
 
@@ -41,15 +46,38 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     });
 
     try {
-      const provider = (await connector?.getProvider()) as EthereumProvider;
-      if (!provider) {
-        throw new Error("No provider available");
+      if (!connector) {
+        throw new Error("No connector available");
       }
+
+      console.log("[Nexus Init] Getting provider from connector...");
+      const provider = (await connector.getProvider()) as EthereumProvider;
+
+      console.log("[Nexus Init] Provider:", provider);
+      console.log("[Nexus Init] Provider type:", typeof provider);
+      console.log(
+        "[Nexus Init] Provider has request:",
+        typeof provider?.request === "function",
+      );
+
+      if (!provider) {
+        throw new Error("No provider available from connector");
+      }
+
+      if (typeof provider.request !== "function") {
+        throw new Error(
+          "Provider does not have a request method (not EIP-1193 compliant)",
+        );
+      }
+
+      console.log("[Nexus Init] Provider validated, calling handleInit...");
 
       // Race between initialization and timeout
       await Promise.race([handleInit(provider), timeoutPromise]);
+
+      console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
-      console.error("Nexus initialization failed:", error);
+      console.error("[Nexus Init] Initialization failed:", error);
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
       toast.error(`Failed to initialize Nexus: ${errorMessage}`);
