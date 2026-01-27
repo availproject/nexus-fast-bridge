@@ -20,10 +20,10 @@ export function getConfig(env: AppEnv) {
         chainGifAlt: env.VITE_CONFIG_CHAIN_GIF_ALT || "Bridge to Citrea",
         heroText:
             env.VITE_CONFIG_CHAIN_HERO_TEXT ||
-            "Bridge from any chain to Citrea, in real time.",
+            "Move assets from any chain to Citrea, instantly.",
 
         appTitle: env.VITE_CONFIG_APP_TITLE || "Citrea Fast Bridge",
-        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Bridge from any chain to Citrea, in real time.",
+        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Move assets from any chain to Citrea, instantly.",
 
         primaryColor: env.VITE_CONFIG_PRIMARY_COLOR || "#EF8F36",
         secondaryColor: env.VITE_CONFIG_SECONDARY_COLOR || "#CDD2D8",
@@ -36,7 +36,7 @@ export function getConfig(env: AppEnv) {
             title:
                 env.VITE_CONFIG_APP_META_TITLE || "Citrea Fast Bridge - Powered by Avail",
             description:
-                env.VITE_CONFIG_APP_META_DESCRIPTION || "Bridge from any chain to Citrea, in real time.",
+                env.VITE_CONFIG_APP_META_DESCRIPTION || "Move assets from any chain to Citrea, instantly.",
             canonicalUrl:
                 env.VITE_CONFIG_APP_META_CANONICAL_URL || "https://megaeth-fast-bridge.vercel.app",
             imageUrl: env.VITE_CONFIG_APP_META_IMAGE_URL || "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
