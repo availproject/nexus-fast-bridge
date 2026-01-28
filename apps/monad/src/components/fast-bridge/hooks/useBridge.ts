@@ -103,20 +103,20 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       : config.nexusPrimaryToken || "USDC";
 
   const validAmount = prefill?.amount
     ? (() => {
-        const sanitized = prefill.amount.trim();
-        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-          return undefined;
-        const num = Number.parseFloat(sanitized);
-        return Number.isNaN(num) || num <= 0 || num > 1e9
-          ? undefined
-          : sanitized;
-      })()
+      const sanitized = prefill.amount.trim();
+      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+        return undefined;
+      const num = Number.parseFloat(sanitized);
+      return Number.isNaN(num) || num <= 0 || num > 1e9
+        ? undefined
+        : sanitized;
+    })()
     : undefined;
 
   const validRecipient =
@@ -306,6 +306,22 @@ const useBridge = ({
   const commitAmount = async () => {
     if (commitLockRef.current) return;
     if (!intent.current || loading || txError || !areInputsValid) return;
+
+    // Validate amount before proceeding
+    if (inputs?.amount) {
+      const amountStr = inputs.amount.trim();
+      if (!amountStr) return;
+
+      const amount = Number.parseFloat(amountStr);
+      if (Number.isNaN(amount) || amount <= 0) return;
+
+      // Check if amount exceeds maximum limit of 550
+      if (amount > 550) {
+        setTxError("Amount entered exceeds maximum limit");
+        return;
+      }
+    }
+
     commitLockRef.current = true;
     try {
       await handleTransaction();
