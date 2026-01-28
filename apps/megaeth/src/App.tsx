@@ -5,6 +5,7 @@ import HeroSection from "@/components/hero-section";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import NexusProvider from "@/components/nexus/NexusProvider";
 import config from "../config";
+import { useEffect } from "react";
 
 // @ts-expect-error - Environment is not exported from @avail-project/nexus-core
 enum Environment {
@@ -15,6 +16,54 @@ enum Environment {
 }
 
 export default function App() {
+  // Clean up WalletConnect subscription on app load
+  useEffect(() => {
+    const cleanupWalletConnectSubscription = async () => {
+      try {
+        const dbName = "WALLET_CONNECT_V2_INDEXED_DB";
+        const storeName = "keyvaluestorage";
+        const keyToDelete = "wc@2:core:0.3:subscription";
+
+        const request = indexedDB.open(dbName);
+
+        request.onsuccess = () => {
+          const db = request.result;
+
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.close();
+            return;
+          }
+
+          const transaction = db.transaction(storeName, "readwrite");
+          const store = transaction.objectStore(storeName);
+
+          // Check if the key exists before deleting
+          const getRequest = store.get(keyToDelete);
+
+          getRequest.onsuccess = () => {
+            if (getRequest.result !== undefined) {
+              store.delete(keyToDelete);
+              console.log("[WalletConnect] Cleaned up stale subscription");
+            }
+          };
+
+          transaction.oncomplete = () => {
+            db.close();
+          };
+        };
+
+        request.onerror = () => {
+          // DB doesn't exist or error accessing it, ignore
+        };
+      } catch (error) {
+        // Ignore errors - this is a cleanup operation
+        console.debug("[WalletConnect] Cleanup skipped:", error);
+      }
+    };
+
+    cleanupWalletConnectSubscription();
+  }, []);
+
   return (
     <Web3Provider>
       <NexusProvider
