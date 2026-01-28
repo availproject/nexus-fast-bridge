@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev:root": "turbo run dev --filter=root",
-    "dev:all": "turbo run dev --parallel --filter=@fastbridge/monad --filter=@fastbridge/megaeth --filter=root",
+    "dev:all": "turbo run dev --parallel --filter=@fastbridge/monad --filter=@fastbridge/megaeth --filter=@fastbridge/citrea --filter=root",
     "build:all": "TURBO_CONCURRENCY=1 turbo run build",
     "clean": "turbo run clean --force",
     "vercel:env": "node scripts/build-vercel-env.mjs",

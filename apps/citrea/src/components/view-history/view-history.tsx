@@ -8,13 +8,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
-import { TOKEN_METADATA, type RFF } from "@avail-project/nexus-core";
+import {
+  SUPPORTED_CHAINS,
+  TOKEN_METADATA,
+  type RFF,
+} from "@avail-project/nexus-core";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import useViewHistory from "./hooks/useViewHistory";
+import CitreaLogo from "/citrea-chain-logo.webp";
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   return (
@@ -24,12 +29,16 @@ const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
           key={source?.chain?.id}
           className={cn(
             "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
+            index > 0 && "-ml-2",
           )}
           style={{ zIndex: sources.length - index }}
         >
           <img
-            src={source?.chain?.logo}
+            src={
+              source?.chain?.id === SUPPORTED_CHAINS.CITREA
+                ? CitreaLogo
+                : source?.chain?.logo
+            }
             alt={source?.chain?.name}
             width={24}
             height={24}
@@ -75,7 +84,7 @@ const DestinationToken = ({
           key={dest.token.symbol}
           className={cn(
             "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
+            index > 0 && "-ml-2",
           )}
           style={{ zIndex: destination.length - index }}
         >
