@@ -33,13 +33,21 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     setLoading(true);
     setInitError(null);
 
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("Nexus initialization timed out after 30 seconds"));
+      }, 30000); // 30 second timeout
+    });
+
     try {
       const provider = (await connector?.getProvider()) as EthereumProvider;
       if (!provider) {
         throw new Error("No provider available");
       }
 
-      await handleInit(provider);
+      // Race between initialization and timeout
+      await Promise.race([handleInit(provider), timeoutPromise]);
     } catch (error) {
       console.error("Nexus initialization failed:", error);
       const errorMessage = (error as Error)?.message || "Unknown error";
@@ -70,7 +78,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       setAllowance(null);
       prevAddressRef.current = undefined;
     }
-  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);  
+  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
 
   // Handle account change - reinitialize Nexus when account address changes
   React.useEffect(() => {
@@ -112,7 +120,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     initializeNexus,
     deinitializeNexus,
     loading,
-  ]);  
+  ]);
 
   // Auto-initialize Nexus when wallet is connected (first time)
   React.useEffect(() => {
@@ -125,7 +133,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     ) {
       initializeNexus();
     }
-  }, [status, nexusSDK, initError, address, initializeNexus, loading]);  
+  }, [status, nexusSDK, initError, address, initializeNexus, loading]);
 
   // Show loading during initial connection check or Nexus initialization
   const showLoading =
@@ -140,7 +148,9 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           <LoaderPinwheel className="size-6 animate-spin" />
           <span>Initializing Avail Nexus...</span>
           <div>
-            <span>You may need to sign a message in your wallet to continue.</span>
+            <span>
+              You may need to sign a message in your wallet to continue.
+            </span>
           </div>
         </div>
       ) : status === "connected" && nexusSDK ? (
