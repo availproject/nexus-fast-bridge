@@ -324,8 +324,14 @@ const useBridge = ({
     if (!isDialogOpen) {
       stopwatch.stop();
       stopwatch.reset();
+      // Reset all transaction state when dialog closes
+      if (state.status === "success" || state.status === "error") {
+        resetSteps();
+        setLastExplorerUrl("");
+        dispatch({ type: "setStatus", payload: "idle" });
+      }
     }
-  }, [isDialogOpen, stopwatch]);
+  }, [isDialogOpen, stopwatch, state.status]);
 
   useEffect(() => {
     if (txError) {
