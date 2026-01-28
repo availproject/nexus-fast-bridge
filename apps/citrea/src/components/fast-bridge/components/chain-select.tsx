@@ -37,16 +37,7 @@ const ChainSelect: FC<ChainSelectProps> = ({
 
   const selectedChainData = useMemo(() => {
     if (!supportedChainsAndTokens) return null;
-    const data = supportedChainsAndTokens.find((c) => c.id === selectedChain);
-    if (data?.id === SUPPORTED_CHAINS.CITREA) {
-      return {
-        logo: CitreaLogo,
-        id: data.id,
-        name: data.name,
-        tokens: data.tokens,
-      };
-    }
-    return data;
+    return supportedChainsAndTokens.find((c) => c.id === selectedChain);
   }, [selectedChain, supportedChainsAndTokens]);
 
   console.log("SELECTED CHAIN DATA:", selectedChainData);
@@ -95,11 +86,7 @@ const ChainSelect: FC<ChainSelectProps> = ({
               <SelectItem key={chain.id} value={String(chain.id)}>
                 <div className="flex items-center gap-x-2 my-1">
                   <img
-                    src={
-                      chain.id === SUPPORTED_CHAINS.CITREA
-                        ? CitreaLogo
-                        : chain.logo
-                    }
+                    src={chain.logo}
                     alt={chain?.name}
                     width={24}
                     height={24}

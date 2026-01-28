@@ -15,8 +15,8 @@ importers:
   apps/citrea:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#dfa26659c230a76ad31c96669a73e2eca0f8718d
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/dfa26659c230a76ad31c96669a73e2eca0f8718d(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+        specifier: github:availproject/nexus-sdk#a16f71d3ee143148e32f83443ed962c47dec26bf
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/a16f71d3ee143148e32f83443ed962c47dec26bf(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -426,8 +426,8 @@ packages:
     version: 1.0.0-beta.64
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/dfa26659c230a76ad31c96669a73e2eca0f8718d':
-    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/dfa26659c230a76ad31c96669a73e2eca0f8718d}
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/a16f71d3ee143148e32f83443ed962c47dec26bf':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/a16f71d3ee143148e32f83443ed962c47dec26bf}
     version: 1.0.0-beta.64
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
@@ -4952,7 +4952,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/dfa26659c230a76ad31c96669a73e2eca0f8718d(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/a16f71d3ee143148e32f83443ed962c47dec26bf(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
     dependencies:
       '@avail-project/ca-common': 1.0.0-beta16(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(axios@1.13.2)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.5)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))
       '@cosmjs/proto-signing': 0.34.0

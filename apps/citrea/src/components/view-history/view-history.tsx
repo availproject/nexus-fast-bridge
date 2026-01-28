@@ -34,11 +34,7 @@ const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
           style={{ zIndex: sources.length - index }}
         >
           <img
-            src={
-              source?.chain?.id === SUPPORTED_CHAINS.CITREA
-                ? CitreaLogo
-                : source?.chain?.logo
-            }
+            src={source?.chain?.logo}
             alt={source?.chain?.name}
             width={24}
             height={24}

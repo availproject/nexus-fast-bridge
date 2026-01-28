@@ -11,7 +11,7 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
-    "@avail-project/nexus-core": "github:availproject/nexus-sdk#dfa26659c230a76ad31c96669a73e2eca0f8718d",
+    "@avail-project/nexus-core": "github:availproject/nexus-sdk#a16f71d3ee143148e32f83443ed962c47dec26bf",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
