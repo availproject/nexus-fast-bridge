@@ -122,18 +122,27 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     loading,
   ]);
 
-  // Auto-initialize Nexus when wallet is connected (first time)
+  // Auto-initialize Nexus when wallet is connected and address is available
   React.useEffect(() => {
     if (
       status === "connected" &&
       !nexusSDK &&
       !loading &&
       !initError &&
-      address
+      address &&
+      connector
     ) {
       initializeNexus();
     }
-  }, [status, nexusSDK, initError, address, initializeNexus, loading]);
+  }, [
+    status,
+    nexusSDK,
+    initError,
+    address,
+    connector,
+    initializeNexus,
+    loading,
+  ]);
 
   // Show loading during initial connection check or Nexus initialization
   const showLoading =
