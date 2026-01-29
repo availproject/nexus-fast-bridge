@@ -3,62 +3,28 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 
-// Clean up WalletConnect subscription before app loads
+// Clean up WalletConnect IndexedDB before app loads to prevent structure errors
 const cleanupWalletConnectSubscription = () => {
   try {
     const dbName = "WALLET_CONNECT_V2_INDEXED_DB";
-    const storeName = "keyvaluestorage";
-    const keyToDelete = "wc@2:core:0.3:subscription";
 
-    const request = indexedDB.open(dbName);
+    // Delete the entire database to prevent structure errors
+    const deleteRequest = indexedDB.deleteDatabase(dbName);
 
-    request.onsuccess = () => {
-      const db = request.result;
-
-      // Check if the object store exists before attempting any operations
-      if (!db.objectStoreNames.contains(storeName)) {
-        console.debug(
-          "[WalletConnect] Object store not found, skipping cleanup",
-        );
-        db.close();
-        return;
-      }
-
-      try {
-        const transaction = db.transaction(storeName, "readwrite");
-        const store = transaction.objectStore(storeName);
-
-        // Check if the key exists before deleting
-        const getRequest = store.get(keyToDelete);
-
-        getRequest.onsuccess = () => {
-          if (getRequest.result !== undefined) {
-            store.delete(keyToDelete);
-            console.log("[WalletConnect] Cleaned up stale subscription");
-          }
-        };
-
-        getRequest.onerror = () => {
-          console.debug("[WalletConnect] Error reading key, skipping cleanup");
-        };
-
-        transaction.oncomplete = () => {
-          db.close();
-        };
-
-        transaction.onerror = () => {
-          console.debug("[WalletConnect] Transaction error, skipping cleanup");
-          db.close();
-        };
-      } catch (txError) {
-        console.debug("[WalletConnect] Transaction creation failed:", txError);
-        db.close();
-      }
+    deleteRequest.onsuccess = () => {
+      console.log(
+        "[WalletConnect] Database deleted successfully, will be recreated fresh",
+      );
     };
 
-    request.onerror = () => {
-      // DB doesn't exist or error accessing it, ignore
-      console.debug("[WalletConnect] Database not found or error accessing it");
+    deleteRequest.onerror = () => {
+      console.debug(
+        "[WalletConnect] Database deletion failed or DB doesn't exist",
+      );
+    };
+
+    deleteRequest.onblocked = () => {
+      console.debug("[WalletConnect] Database deletion blocked, may be in use");
     };
   } catch (error) {
     // Ignore errors - this is a cleanup operation
