@@ -127,8 +127,8 @@ importers:
   apps/megaeth:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#30f79af16aa6dfc0e8684187b7524077d0c15b4a
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+        specifier: github:availproject/nexus-sdk#5addd0343ca1561a8270c3073c59ec3c0dc618e1
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/5addd0343ca1561a8270c3073c59ec3c0dc618e1(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -423,6 +423,11 @@ packages:
 
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a':
     resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a}
+    version: 1.0.0-beta.64
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/5addd0343ca1561a8270c3073c59ec3c0dc618e1':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/5addd0343ca1561a8270c3073c59ec3c0dc618e1}
     version: 1.0.0-beta.64
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
@@ -4922,6 +4927,39 @@ snapshots:
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/30f79af16aa6dfc0e8684187b7524077d0c15b4a(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
     dependencies:
       '@avail-project/ca-common': 1.0.0-beta12(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(axios@1.13.2)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.5)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))
+      '@cosmjs/proto-signing': 0.34.0
+      '@cosmjs/stargate': 0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      '@metamask/safe-event-emitter': 3.1.2
+      '@opentelemetry/api-logs': 0.208.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.0)
+      '@starkware-industries/starkware-crypto-utils': 0.2.1
+      '@tronweb3/tronwallet-abstract-adapter': 1.1.10(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      axios: 1.13.2
+      buffer: 6.0.3
+      decimal.js: 10.6.0
+      es-toolkit: 1.42.0
+      it-ws: 6.1.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      long: 5.3.2
+      msgpackr: 1.11.5
+      posthog-js: 1.335.0
+      tronweb: 6.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      tslib: 2.8.1
+      viem: 2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - bufferutil
+      - debug
+      - encoding
+      - google-protobuf
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/5addd0343ca1561a8270c3073c59ec3c0dc618e1(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13)':
+    dependencies:
+      '@avail-project/ca-common': 1.0.0-beta16(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(axios@1.13.2)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.5)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.1.13))
       '@cosmjs/proto-signing': 0.34.0
       '@cosmjs/stargate': 0.34.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@metamask/safe-event-emitter': 3.1.2
