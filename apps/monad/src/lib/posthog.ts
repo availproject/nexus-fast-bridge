@@ -17,17 +17,20 @@ export function initPostHog(options?: {
 
     const apiKey = options?.apiKey || DEFAULT_POSTHOG_KEY;
     const apiHost = options?.apiHost || DEFAULT_POSTHOG_HOST;
-    const debug = options?.debug || false;
+    const debug = options?.debug ?? true; // Always enable debug for troubleshooting
+
+    console.log('[PostHog] Initializing with host:', apiHost);
 
     posthog.init(apiKey, {
         api_host: apiHost,
-        person_profiles: 'identified_only', // Only create profiles for identified users
-        autocapture: false, // Manual tracking only for SDK operations
-        capture_pageview: false, // Manual pageview tracking
-        capture_pageleave: true, // Track when users leave
+        person_profiles: 'identified_only',
+        autocapture: false,
+        capture_pageview: false,
+        capture_pageleave: true,
+        persistence: 'localStorage', // Use localStorage for persistence
         loaded: (ph) => {
+            console.log('[PostHog] Loaded successfully');
             if (debug) {
-                console.log('[PostHog] Initialized successfully');
                 ph.debug();
             }
         },
@@ -48,9 +51,11 @@ export interface BridgeSubmitEventProperties {
 
 export function trackBridgeSubmit(properties: BridgeSubmitEventProperties): void {
     if (!isInitialized) {
+        console.warn('[PostHog] Not initialized, initializing now...');
         initPostHog();
     }
 
+    console.log('[PostHog] Capturing event: nexus_fast_bridge_demo_submit', properties);
     posthog.capture('nexus_fast_bridge_demo_submit', properties);
 }
 
@@ -59,9 +64,11 @@ export function trackBridgeSubmit(properties: BridgeSubmitEventProperties): void
  */
 export function capture(event: string, properties?: Record<string, unknown>): void {
     if (!isInitialized) {
+        console.warn('[PostHog] Not initialized, initializing now...');
         initPostHog();
     }
 
+    console.log('[PostHog] Capturing event:', event, properties);
     posthog.capture(event, properties);
 }
 

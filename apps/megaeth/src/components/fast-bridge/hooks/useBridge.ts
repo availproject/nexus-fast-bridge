@@ -303,8 +303,8 @@ const useBridge = ({
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
 
-      // Check if amount exceeds maximum limit of 550
-      if (amount > 550) {
+      // Check if amount exceeds maximum limit of 5000
+      if (amount > 5000) {
         setTxError("Amount entered exceeds maximum limit");
         return;
       }
