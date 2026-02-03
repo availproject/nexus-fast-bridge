@@ -34,6 +34,7 @@ const AmountInput: FC<AmountInputProps> = ({
 }) => {
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -94,7 +95,11 @@ const AmountInput: FC<AmountInputProps> = ({
           aria-invalid={Boolean(amount) && Number.isNaN(Number(amount))}
           disabled={disabled}
         />
-        <div className="flex items-center justify-end-safe gap-x-2 sm:gap-x-4 w-fit px-2 border-l border-border">
+        <div
+          className={`flex items-center justify-end-safe gap-x-2 sm:gap-x-4 w-fit px-2 ${
+            showBalanceDivider ? "border-l border-border" : ""
+          }`}
+        >
           {showBalanceDetails && bridgableBalance && (
             <p className="text-base font-medium min-w-max">
               {nexusSDK?.utils?.formatTokenBalance(bridgableBalance?.balance, {

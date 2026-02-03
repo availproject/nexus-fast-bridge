@@ -502,7 +502,7 @@ export default function App() {
         <FloatingLogos mousePosition={mousePosition} />
 
         <div className="hero-content">
-          <AnimatedTitle text="Select your destination" />
+          <AnimatedTitle text="Avail Fast Bridge" />
 
           <motion.p
             className="hero-subtitle"
