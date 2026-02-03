@@ -28,6 +28,7 @@ import {
 } from "../../common";
 import config from "../../../../config";
 import { trackBridgeSubmit } from "../../../lib/posthog";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -189,6 +190,7 @@ const useBridge = ({
     // Track bridge submit event with PostHog
     trackBridgeSubmit({
       chain: inputs.chain,
+      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
       token: inputs.token,
       amount: inputs.amount,
       fast_bridge: 'monad',

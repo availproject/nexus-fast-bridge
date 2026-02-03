@@ -44,6 +44,7 @@ export function initPostHog(options?: {
  */
 export interface BridgeSubmitEventProperties {
     chain: string | number;
+    chainName: string;
     token: string;
     amount: string;
     fast_bridge: 'megaeth' | 'citrea' | 'monad';
