@@ -214,7 +214,10 @@ const FastBridge: FC<FastBridgeProps> = ({
     const totalAmount = amountValue + totalGas;
     return {
       totalAmount: formatWithToken(formatMockNumber(totalAmount), tokenSuffix),
-      receiveAmount: formatWithToken(formatMockNumber(amountValue), tokenSuffix),
+      receiveAmount: formatWithToken(
+        formatMockNumber(amountValue),
+        tokenSuffix,
+      ),
       totalGas: formatWithToken(formatMockNumber(totalGas), tokenSuffix),
     };
   }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
@@ -245,9 +248,7 @@ const FastBridge: FC<FastBridgeProps> = ({
   return (
     <Card className="w-full max-w-xl">
       <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
-        {showSdkDetails && (
-          <ViewHistory className="absolute -top-2 right-3" />
-        )}
+        {showSdkDetails && <ViewHistory className="absolute -top-2 right-3" />}
         <ChainSelect
           selectedChain={inputs?.chain}
           handleSelect={(chain) =>
@@ -352,7 +353,7 @@ const FastBridge: FC<FastBridgeProps> = ({
               : !isSdkReady
                 ? "Initializing..."
                 : !areInputsValid
-                  ? "Complete form"
+                  ? "Bridge"
                   : "Fetching intent..."}
           </Button>
         )}
