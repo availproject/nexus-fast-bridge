@@ -191,7 +191,7 @@ const useBridge = ({
     trackBridgeSubmit({
       chain: inputs.chain,
       chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
-      token: inputs.token,
+      tokenSymbol: inputs.token,
       amount: inputs.amount,
       fast_bridge: 'monad',
     });
