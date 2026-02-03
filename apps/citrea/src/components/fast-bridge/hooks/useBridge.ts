@@ -43,7 +43,7 @@ const ALLOWED_TOKENS = new Set([
 
 interface UseBridgeProps {
   network: NexusNetwork;
-  connectedAddress: Address;
+  connectedAddress?: Address;
   nexusSDK: NexusSDK | null;
   intent: RefObject<OnIntentHookData | null>;
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -71,7 +71,7 @@ type Action =
   | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
-  connectedAddress: Address,
+  connectedAddress?: Address,
   prefill?: {
     token: string;
     chainId: number;
@@ -199,7 +199,7 @@ const useBridge = ({
           token: inputs?.token,
           amount: formattedAmount,
           toChainId: inputs?.chain,
-          recipient: inputs?.recipient ?? connectedAddress,
+          recipient: inputs?.recipient,
         },
         {
           onEvent: (event) => {
@@ -339,6 +339,12 @@ const useBridge = ({
     }
   }, [inputs]);
 
+  useEffect(() => {
+    if (connectedAddress && !inputs?.recipient) {
+      setInputs({ recipient: connectedAddress as `0x${string}` });
+    }
+  }, [connectedAddress, inputs?.recipient]);
+
   return {
     inputs,
     setInputs,
@@ -357,6 +363,7 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     status: state.status,
+    areInputsValid,
   };
 };
 
