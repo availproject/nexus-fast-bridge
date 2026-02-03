@@ -27,6 +27,7 @@ import {
   type TransactionStatus,
 } from "../../common";
 import config from "../../../../config";
+import { trackBridgeSubmit } from "../../../lib/posthog";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -184,6 +185,14 @@ const useBridge = ({
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
+
+    // Track bridge submit event with PostHog
+    trackBridgeSubmit({
+      chain: inputs.chain,
+      token: inputs.token,
+      amount: inputs.amount,
+      fast_bridge: 'megaeth',
+    });
 
     try {
       if (!nexusSDK) {
