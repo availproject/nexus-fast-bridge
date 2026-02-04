@@ -128,7 +128,11 @@ const FastBridge: FC<FastBridgeProps> = ({
               {intent.current?.intent?.sourcesTotal
                 ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
                 : "NaN"}{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
+              {intent.current?.intent?.token.symbol
+                ? intent.current?.intent?.token.symbol.toUpperCase() === "USDM"
+                  ? "USDC"
+                  : intent.current?.intent?.token.symbol
+                : "Unknown"}
             </div>
             <div>
               <span className="font-medium">Amount Received:</span>{" "}
@@ -144,7 +148,11 @@ const FastBridge: FC<FastBridgeProps> = ({
               {intent.current?.intent?.fees.total
                 ? new Decimal(intent.current?.intent?.fees.total).toFixed()
                 : "NaN"}{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
+              {intent.current?.intent?.token.symbol
+                ? intent.current?.intent?.token.symbol.toUpperCase() === "USDM"
+                  ? "USDC"
+                  : intent.current?.intent?.token.symbol
+                : "Unknown"}
             </div>
             {lastExplorerUrl ? (
               <div className="mt-2 pt-2 border-t">
