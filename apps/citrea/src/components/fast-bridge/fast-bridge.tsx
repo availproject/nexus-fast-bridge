@@ -360,12 +360,14 @@ const FastBridge: FC<FastBridgeProps> = ({
               }
             }}
             disabled={
-              !inputs?.amount ||
-              !inputs?.recipient ||
-              !inputs?.chain ||
-              !inputs?.token ||
-              loading ||
-              Number(inputs?.amount) > 550
+              !isConnected
+                ? false
+                : !inputs?.amount ||
+                  !inputs?.recipient ||
+                  !inputs?.chain ||
+                  !inputs?.token ||
+                  loading ||
+                  Number(inputs?.amount) > 550
             }
           >
             {!isConnected
