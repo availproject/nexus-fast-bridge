@@ -359,6 +359,14 @@ const FastBridge: FC<FastBridgeProps> = ({
                 void handleTransaction();
               }
             }}
+            disabled={
+              !inputs?.amount ||
+              !inputs?.recipient ||
+              !inputs?.chain ||
+              !inputs?.token ||
+              loading ||
+              Number(inputs?.amount) > 550
+            }
           >
             {!isConnected
               ? "Connect Wallet"

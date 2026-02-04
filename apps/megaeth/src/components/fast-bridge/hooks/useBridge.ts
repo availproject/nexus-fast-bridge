@@ -27,6 +27,8 @@ import {
   type TransactionStatus,
 } from "../../common";
 import config from "../../../../config";
+import { trackBridgeSubmit } from "../../../lib/posthog";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -184,6 +186,15 @@ const useBridge = ({
     setTxError(null);
     onStart?.();
 
+    // Track bridge submit event with PostHog
+    trackBridgeSubmit({
+      chain: inputs.chain,
+      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
+      tokenSymbol: inputs.token,
+      amount: inputs.amount,
+      fast_bridge: 'megaeth',
+    });
+
     try {
       if (!nexusSDK) {
         throw new Error("Nexus SDK not initialized");
@@ -294,8 +305,8 @@ const useBridge = ({
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
 
-      // Check if amount exceeds maximum limit of 550
-      if (amount > 550) {
+      // Check if amount exceeds maximum limit of 5000
+      if (amount > 5000) {
         setTxError("Amount entered exceeds maximum limit");
         return;
       }

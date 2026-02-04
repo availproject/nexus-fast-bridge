@@ -172,7 +172,6 @@ const FastBridge: FC<FastBridgeProps> = ({
   const showSdkDetails = isSdkReady;
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ??
-    // @ts-expect-error - not possible
     intent?.current?.intent?.token.displaySymbol ??
     filteredBridgableBalance?.symbol;
 
@@ -359,6 +358,14 @@ const FastBridge: FC<FastBridgeProps> = ({
                 void handleTransaction();
               }
             }}
+            disabled={
+              !inputs?.amount ||
+              !inputs?.recipient ||
+              !inputs?.chain ||
+              !inputs?.token ||
+              loading ||
+              Number(inputs?.amount) > 5000
+            }
           >
             {!isConnected
               ? "Connect Wallet"
