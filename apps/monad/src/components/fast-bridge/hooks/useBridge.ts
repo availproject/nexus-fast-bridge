@@ -295,7 +295,7 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (!intent.current || loading || txError || !areInputsValid) return;
+    if (loading || txError || !areInputsValid) return;
 
     // Validate amount before proceeding
     if (inputs?.amount) {

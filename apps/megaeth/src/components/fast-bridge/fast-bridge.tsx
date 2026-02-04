@@ -232,7 +232,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     if (!isConnected || !isSdkReady) return;
     if (!areInputsValid) return;
     if (intent.current) return;
-    if (loading) return;
+    // if (loading) return; // Removed to allow "10" fetch even if "1" is loading
     if (autoIntentTriggered.current) return;
     autoIntentTriggered.current = true;
     void handleTransaction();
