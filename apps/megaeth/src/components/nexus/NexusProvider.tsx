@@ -78,13 +78,12 @@ const NexusProvider = ({
 
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [supportedChainsAndTokens, setSupportedChainsAndTokens] = useState<
-    SupportedChainsAndTokensResult | null
-  >(
-    sdk.utils.getSupportedChains(
-      stableConfig.network === "testnet" ? 0 : undefined,
-    ) ?? null,
-  );
+  const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
+    useState<SupportedChainsAndTokensResult | null>(
+      sdk.utils.getSupportedChains(
+        stableConfig.network === "testnet" ? 0 : undefined,
+      ) ?? null,
+    );
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(
       sdk.utils.getSwapSupportedChainsAndTokens() ?? null,
@@ -119,6 +118,7 @@ const NexusProvider = ({
       sdk.getBalancesForBridge(),
       sdk.utils.getCoinbaseRates(),
     ]);
+    console.log("bridgeAbleBalanceResult", bridgeAbleBalanceResult);
 
     if (bridgeAbleBalanceResult.status === "fulfilled") {
       setBridgableBalance(bridgeAbleBalanceResult.value);
@@ -235,6 +235,7 @@ const NexusProvider = ({
   const fetchBridgableBalance = async () => {
     try {
       const updatedBalance = await sdk.getBalancesForBridge();
+      console.log("bridgeAbleBalanceResult", updatedBalance);
       setBridgableBalance(updatedBalance);
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
@@ -244,6 +245,7 @@ const NexusProvider = ({
   const fetchSwapBalance = async () => {
     try {
       const updatedBalance = await sdk.getBalancesForSwap();
+      console.log("swapBalance", updatedBalance);
       setSwapBalance(updatedBalance);
     } catch (error) {
       console.error("Error fetching swap balance:", error);
