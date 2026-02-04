@@ -156,6 +156,7 @@ const useBridge = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
+  const txnIdRef = useRef(0);
   const {
     steps,
     onStepsList,
@@ -182,6 +183,7 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+    const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
@@ -214,6 +216,7 @@ const useBridge = ({
         },
         {
           onEvent: (event) => {
+            if (currentTxnId !== txnIdRef.current) return;
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
               onStepsList(list);
@@ -228,6 +231,8 @@ const useBridge = ({
           },
         },
       );
+      if (currentTxnId !== txnIdRef.current) return;
+
       if (!bridgeTxn) {
         throw new Error("Transaction rejected by user");
       }
@@ -236,6 +241,7 @@ const useBridge = ({
         await onSuccess();
       }
     } catch (error) {
+      if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
       intent.current?.deny();
       intent.current = null;
