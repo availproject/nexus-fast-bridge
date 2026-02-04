@@ -28,6 +28,7 @@ import { Skeleton } from "../ui/skeleton";
 import RecipientAddress from "./components/recipient-address";
 import ViewHistory from "../view-history/view-history";
 import { toast } from "sonner";
+import Decimal from "decimal.js";
 
 interface FastBridgeProps {
   connectedAddress?: Address;
@@ -124,17 +125,25 @@ const FastBridge: FC<FastBridgeProps> = ({
             </div>
             <div>
               <span className="font-medium">Amount Spent:</span>{" "}
-              {intent.current?.intent?.sourcesTotal?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.sourcesTotal
+                ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             <div>
               <span className="font-medium">Amount Received:</span>{" "}
-              {intent.current?.intent?.destination?.amount?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.destination?.amount
+                ? new Decimal(
+                    intent.current?.intent?.destination?.amount,
+                  ).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             <div>
               <span className="font-medium">Total Fees:</span>{" "}
-              {intent.current?.intent?.fees.total?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.fees.total
+                ? new Decimal(intent.current?.intent?.fees.total).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             {lastExplorerUrl ? (
