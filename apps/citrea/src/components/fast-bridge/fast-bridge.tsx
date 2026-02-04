@@ -343,10 +343,22 @@ const FastBridge: FC<FastBridgeProps> = ({
           <Button
             onClick={() => {
               if (!isConnected) {
-                onConnectWallet?.();
+                if (onConnectWallet) {
+                  onConnectWallet();
+                } else {
+                  toast.error("Wallet connection not available");
+                }
+              } else if (!isSdkReady) {
+                toast.info("Please wait, SDK is still initializing...");
+              } else if (!areInputsValid) {
+                toast.error(
+                  "Please enter a valid amount and recipient address",
+                );
+              } else {
+                // Connected, SDK ready, inputs valid - trigger transaction
+                void handleTransaction();
               }
             }}
-            disabled={isConnected || !onConnectWallet}
           >
             {!isConnected
               ? "Connect Wallet"
@@ -354,7 +366,9 @@ const FastBridge: FC<FastBridgeProps> = ({
                 ? "Initializing..."
                 : !areInputsValid
                   ? "Bridge"
-                  : "Fetching intent..."}
+                  : status === "error" || txError
+                    ? "Retry"
+                    : "Fetching intent..."}
           </Button>
         )}
 
