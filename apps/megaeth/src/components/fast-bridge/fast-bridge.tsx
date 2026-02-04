@@ -243,7 +243,8 @@ const FastBridge: FC<FastBridgeProps> = ({
               !inputs?.recipient ||
               !inputs?.chain ||
               !inputs?.token ||
-              loading
+              loading ||
+              Number(inputs?.amount) > 5000
             }
           >
             {loading ? (
