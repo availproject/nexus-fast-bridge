@@ -183,6 +183,11 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+
+    if (Number(inputs.amount) > 550) {
+      setTxError("Amount exceeds maximum limit of 550");
+      return;
+    }
     const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
@@ -310,12 +315,6 @@ const useBridge = ({
 
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
-
-      // Check if amount exceeds maximum limit of 550
-      if (amount > 550) {
-        setTxError("Amount entered exceeds maximum limit");
-        return;
-      }
     }
 
     commitLockRef.current = true;
@@ -332,7 +331,7 @@ const useBridge = ({
 
   useEffect(() => {
     if (intent.current) {
-      intent.current.deny();
+      // intent.current.deny();
       intent.current = null;
     }
   }, [inputs]);
