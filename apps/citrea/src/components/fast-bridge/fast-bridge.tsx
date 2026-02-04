@@ -419,8 +419,8 @@ const FastBridge: FC<FastBridgeProps> = ({
         </Dialog>
 
         {txError && (
-          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full max-w-md">
-            <span className="flex-1 w-full truncate">{txError}</span>
+          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full">
+            <span className="flex-1 w-full">{txError}</span>
             <Button
               type="button"
               size={"icon"}

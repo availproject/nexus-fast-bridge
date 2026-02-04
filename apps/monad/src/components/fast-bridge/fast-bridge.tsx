@@ -343,10 +343,22 @@ const FastBridge: FC<FastBridgeProps> = ({
           <Button
             onClick={() => {
               if (!isConnected) {
-                onConnectWallet?.();
+                if (onConnectWallet) {
+                  onConnectWallet();
+                } else {
+                  toast.error("Wallet connection not available");
+                }
+              } else if (!isSdkReady) {
+                toast.info("Please wait, SDK is still initializing...");
+              } else if (!areInputsValid) {
+                toast.error(
+                  "Please enter a valid amount and recipient address",
+                );
+              } else {
+                // Connected, SDK ready, inputs valid - trigger transaction
+                void handleTransaction();
               }
             }}
-            disabled={isConnected || !onConnectWallet}
           >
             {!isConnected
               ? "Connect Wallet"
@@ -354,7 +366,9 @@ const FastBridge: FC<FastBridgeProps> = ({
                 ? "Initializing..."
                 : !areInputsValid
                   ? "Bridge"
-                  : "Fetching intent..."}
+                  : status === "error" || txError
+                    ? "Retry"
+                    : "Fetching intent..."}
           </Button>
         )}
 
@@ -405,8 +419,8 @@ const FastBridge: FC<FastBridgeProps> = ({
         </Dialog>
 
         {txError && (
-          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full max-w-md">
-            <span className="flex-1 w-full truncate">{txError}</span>
+          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full">
+            <span className="flex-1 w-full">{txError}</span>
             <Button
               type="button"
               size={"icon"}
