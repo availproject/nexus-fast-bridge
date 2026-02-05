@@ -14,8 +14,10 @@ import {
   type AllowanceHookSource,
   CHAIN_METADATA,
   type OnAllowanceHookData,
+  SUPPORTED_CHAINS,
 } from "@avail-project/nexus-core";
 import { useNexus } from "../../nexus/NexusProvider";
+import CitreaLogo from "/citrea-chain-logo.webp";
 
 interface AllowanceModalProps {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -120,13 +122,13 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
 
   const defaultChoices = useMemo<AllowanceChoice[]>(
     () => Array.from({ length: sources.length }, () => "min"),
-    [sources.length]
+    [sources.length],
   );
 
   const isCustomValueValid = (
     value: string,
     minimumRaw: bigint,
-    decimals: number
+    decimals: number,
   ): boolean => {
     if (!value || value.trim() === "") return false;
     try {
@@ -146,7 +148,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
       return !isCustomValueValid(
         value,
         source.allowance.minimumRaw,
-        source.token.decimals
+        source.token.decimals,
       );
     });
   }, [sources, selectedOption, customValues]);
@@ -222,7 +224,11 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-inner">
                   <img
-                    src={CHAIN_METADATA[source.chain.id]?.logo}
+                    src={
+                      source.chain.id === SUPPORTED_CHAINS.CITREA
+                        ? CitreaLogo
+                        : CHAIN_METADATA[source.chain.id]?.logo
+                    }
                     alt={source.chain.name}
                     width={24}
                     height={24}
@@ -260,7 +266,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
                     !isCustomValueValid(
                       customValue,
                       source.allowance.minimumRaw,
-                      source.token.decimals
+                      source.token.decimals,
                     );
                   return (
                     <AllowanceOption

@@ -17,7 +17,6 @@ import {
   SUPPORTED_CHAINS,
 } from "@avail-project/nexus-core";
 import { useNexus } from "../../nexus/NexusProvider";
-import CitreaLogo from "/citrea-chain-logo.webp";
 
 interface AllowanceModalProps {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -224,11 +223,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-inner">
                   <img
-                    src={
-                      source.chain.id === SUPPORTED_CHAINS.CITREA
-                        ? CitreaLogo
-                        : CHAIN_METADATA[source.chain.id]?.logo
-                    }
+                    src={CHAIN_METADATA[source.chain.id]?.logo}
                     alt={source.chain.name}
                     width={24}
                     height={24}
