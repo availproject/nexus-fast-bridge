@@ -263,9 +263,18 @@ const FastBridge: FC<FastBridgeProps> = ({
   ]);
   return (
     <div className="flex flex-col gap-y-4 w-full max-w-xl">
-      <div className="w-full bg-gradient-to-r from-primary to-zinc-800 text-primary-foreground py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm">
+      <div
+        className="w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
+        style={{
+          background:
+            "linear-gradient(90deg, #F5AF94 0%, #FF8AA8 33%, #90D79F 66%, #7EAAD4 100%)",
+        }}
+      >
         <div className="flex items-center gap-x-3">
-          <div className="size-8 bg-white/20 rounded-full flex items-center justify-center shrink-0" />
+          <img
+            src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot.png"
+            className="size-8 bg-white/20 rounded-full flex items-center justify-center shrink-0"
+          />
           <p className="font-medium text-sm">
             Bridging is free of fees for 2 days
           </p>
