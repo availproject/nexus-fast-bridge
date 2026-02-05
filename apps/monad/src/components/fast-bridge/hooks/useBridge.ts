@@ -27,6 +27,8 @@ import {
   type TransactionStatus,
 } from "../../common";
 import config from "../../../../config";
+import { trackBridgeSubmit } from "../../../lib/posthog";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -184,6 +186,15 @@ const useBridge = ({
     setTxError(null);
     onStart?.();
     setLastExplorerUrl("");
+
+    // Track bridge submit event with PostHog
+    trackBridgeSubmit({
+      chain: inputs.chain,
+      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
+      tokenSymbol: inputs.token,
+      amount: inputs.amount,
+      fast_bridge: 'monad',
+    });
     try {
       if (!nexusSDK) {
         throw new Error("Nexus SDK not initialized");

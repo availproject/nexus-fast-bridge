@@ -14,7 +14,7 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   [SUPPORTED_CHAINS.BNB]: "BNB",
   [SUPPORTED_CHAINS.MONAD]: "Monad",
   [SUPPORTED_CHAINS.HYPEREVM]: "HyperEVM",
-  [SUPPORTED_CHAINS.MEGAETH]: "MegaETH",
+  4326: "MegaETH",
   [SUPPORTED_CHAINS.CITREA]: "Citrea",
 
   [SUPPORTED_CHAINS.SEPOLIA]: "Sepolia",
