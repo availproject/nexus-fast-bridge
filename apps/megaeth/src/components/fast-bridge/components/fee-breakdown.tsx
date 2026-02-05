@@ -18,7 +18,8 @@ interface FeeBreakdownProps {
 
 const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
   const { nexusSDK } = useNexus();
-  const feeSymbol = intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
+  const feeSymbol =
+    intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
     {
@@ -61,12 +62,15 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
             {isLoading ? (
               <Skeleton className="h-5 w-24" />
             ) : (
-              <p className="font-light text-base min-w-max">
-                {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
-                  symbol: feeSymbol,
-                  decimals: intent?.token?.decimals,
-                })}
-              </p>
+              <div className="flex flex-col items-end">
+                <p className="font-light text-sm line-through text-muted-foreground/70 min-w-max">
+                  {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
+                    symbol: feeSymbol,
+                    decimals: intent?.token?.decimals,
+                  })}
+                </p>
+                <p className="font-bold text-base text-green-500">FREE</p>
+              </div>
             )}
             <AccordionTrigger
               containerClassName="w-fit"
@@ -93,12 +97,17 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     {isLoading ? (
                       <Skeleton className="h-4 w-20" />
                     ) : (
-                      <p className="text-sm font-light">
-                        {nexusSDK?.utils?.formatTokenBalance(value, {
-                          symbol: feeSymbol,
-                          decimals: intent?.token?.decimals,
-                        })}
-                      </p>
+                      <div className="flex flex-col items-end">
+                        <p className="text-xs font-light line-through text-muted-foreground/70">
+                          {nexusSDK?.utils?.formatTokenBalance(value, {
+                            symbol: feeSymbol,
+                            decimals: intent?.token?.decimals,
+                          })}
+                        </p>
+                        <p className="text-sm font-medium text-green-500">
+                          FREE
+                        </p>
+                      </div>
                     )}
                   </div>
                   <TooltipContent className="max-w-sm text-balance">

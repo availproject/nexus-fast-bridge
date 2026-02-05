@@ -262,8 +262,16 @@ const FastBridge: FC<FastBridgeProps> = ({
     loading,
   ]);
   return (
-    <Card className="w-full max-w-xl">
-      <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
+    <Card className="w-full max-w-xl overflow-hidden">
+      <div className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-x-2">
+          <div className="size-8 bg-white/20 rounded-full flex items-center justify-center shrink-0" />
+          <p className="font-medium text-sm">
+            Bridging is free of fees for 2 days
+          </p>
+        </div>
+      </div>
+      <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative pt-4">
         {showSdkDetails && <ViewHistory className="absolute -top-2 right-3" />}
         <ChainSelect
           selectedChain={inputs?.chain}
