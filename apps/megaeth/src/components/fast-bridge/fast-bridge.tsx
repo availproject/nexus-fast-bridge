@@ -267,7 +267,7 @@ const FastBridge: FC<FastBridgeProps> = ({
         className="w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
         style={{
           background:
-            "linear-gradient(90deg, #F5AF94 0%, #FF8AA8 33%, #90D79F 66%, #7EAAD4 100%)",
+            "linear-gradient(180deg, #F5AF94 0%, #FF8AA8 75%, #90D79F 80%, #7EAAD4 100%)",
         }}
       >
         <div className="flex items-center gap-x-3">
