@@ -272,11 +272,11 @@ const FastBridge: FC<FastBridgeProps> = ({
       >
         <div className="flex items-center gap-x-3">
           <img
-            src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot.png"
-            className="size-8 bg-white/20 rounded-full flex items-center justify-center shrink-0"
+            src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot-1.png"
+            className="width-8 flex items-center justify-center shrink-0"
           />
           <p className="font-medium text-sm">
-            Bridging is free of fees for 2 days
+            Zero fees when bridging to MegaETH. 48h window. Don’t fade anon.
           </p>
         </div>
       </div>
