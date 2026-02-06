@@ -273,10 +273,10 @@ const FastBridge: FC<FastBridgeProps> = ({
         <div className="flex items-center gap-x-3">
           <img
             src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot-1.png"
-            className="width-8 flex items-center justify-center shrink-0"
+            className="w-10 -my-5 flex items-center justify-center shrink-0"
           />
           <p className="font-medium text-sm">
-            Zero fees when bridging to MegaETH. 48h window. Don’t fade anon.
+            Zero fees when bridging to MegaETH. 48h window. Don't fade anon.
           </p>
         </div>
       </div>
