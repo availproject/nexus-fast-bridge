@@ -275,6 +275,9 @@ const FastBridge: FC<FastBridgeProps> = ({
           <img
             src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot-1.png"
             className="w-10 -my-5 flex items-center justify-center shrink-0"
+            height={112}
+            width={40}
+            style={{ aspectRatio: "5/14" }}
           />
           <p className="font-medium text-sm">
             <EncryptedText
