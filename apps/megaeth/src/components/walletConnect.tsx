@@ -133,6 +133,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
   // Auto-initialize Nexus when wallet is connected and address is available
   React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     if (
       status === "connected" &&
       !nexusSDK &&
@@ -141,8 +142,16 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       address &&
       connector
     ) {
-      initializeNexus();
+      timeoutId = setTimeout(() => {
+        initializeNexus();
+      }, 500);
     }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [
     status,
     nexusSDK,
