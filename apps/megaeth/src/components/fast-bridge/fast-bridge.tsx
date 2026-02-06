@@ -30,6 +30,7 @@ import ViewHistory from "../view-history/view-history";
 import { toast } from "sonner";
 import Decimal from "decimal.js";
 import { EncryptedText } from "../ui/encrypted-text";
+import FluffeyMascot from "./components/fluffey-mascot";
 
 interface FastBridgeProps {
   connectedAddress?: Address;
@@ -264,6 +265,7 @@ const FastBridge: FC<FastBridgeProps> = ({
   ]);
   return (
     <div className="flex flex-col gap-y-4 w-full max-w-xl">
+      <FluffeyMascot />
       <div
         className="w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
         style={{

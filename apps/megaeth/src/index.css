@@ -142,6 +142,29 @@ body,
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+.fluffey-wrapper {
+  scale: 0.5;
+}
+
+@media (min-width: 1500px) {
+  .fluffey-wrapper {
+    scale: 1;
+  }
+}
+@keyframes fluffyPopUp {
+  0% {
+    transform: translateY(35%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(25%);
+    opacity: 1;
+  }
+}
+
+
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
