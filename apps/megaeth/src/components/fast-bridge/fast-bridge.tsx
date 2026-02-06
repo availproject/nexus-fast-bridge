@@ -29,6 +29,7 @@ import RecipientAddress from "./components/recipient-address";
 import ViewHistory from "../view-history/view-history";
 import { toast } from "sonner";
 import Decimal from "decimal.js";
+import { EncryptedText } from "../ui/encrypted-text";
 
 interface FastBridgeProps {
   connectedAddress?: Address;
@@ -276,7 +277,14 @@ const FastBridge: FC<FastBridgeProps> = ({
             className="w-10 -my-5 flex items-center justify-center shrink-0"
           />
           <p className="font-medium text-sm">
-            Zero fees when bridging to MegaETH. 48h window. Don't fade anon.
+            <EncryptedText
+              text="Zero fees when bridging to MegaETH. 48h window. Don't fade anon."
+              revealDelayMs={50}
+              flipDelayMs={50}
+              encryptedClassName="text-primary"
+              revealedClassName="text-primary"
+              charset="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            />
           </p>
         </div>
       </div>
