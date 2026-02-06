@@ -281,7 +281,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           />
           <p className="font-medium text-sm">
             <EncryptedText
-              text="Zero fees when bridging to MegaETH. 48h window.Don't fade anon."
+              text="Zero fees when bridging to MegaETH. 48h window. Don't fade anon."
               revealDelayMs={50}
               flipDelayMs={25}
               encryptedClassName="text-primary"
