@@ -139,7 +139,7 @@ const AmountInput: FC<AmountInputProps> = ({
                 {bridgableBalance?.breakdown.map((chain) => {
                   if (Number.parseFloat(chain.balance) === 0) return null;
                   if (
-                    bridgableBalance.symbol === "USDM" &&
+                    bridgableBalance.symbol === "USDC" &&
                     chain.chain.id === SUPPORTED_CHAINS.MEGAETH
                   )
                     return null;
@@ -166,8 +166,9 @@ const AmountInput: FC<AmountInputProps> = ({
                         <p className="text-sm font-light text-right">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
                             symbol:
-                              bridgableBalance?.displaySymbol ??
-                              bridgableBalance?.symbol,
+                              chain.chain.id === SUPPORTED_CHAINS.MEGAETH
+                                ? "USDM"
+                                : "USDC",
                             decimals: bridgableBalance?.decimals,
                           })}
                         </p>
