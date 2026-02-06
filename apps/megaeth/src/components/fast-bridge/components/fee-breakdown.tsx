@@ -22,20 +22,20 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
     intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
-    {
-      key: "caGas",
-      label: "Fast Bridge Gas Fees",
-      value: intent?.fees?.caGas,
-      description:
-        "The gas fee required for executing the fast bridge transaction on the destination chain.",
-    },
-    {
-      key: "gasSupplied",
-      label: "Gas Supplied",
-      value: intent?.fees?.gasSupplied,
-      description:
-        "The amount of gas tokens supplied to cover transaction costs on the destination chain.",
-    },
+    // {
+    //   key: "caGas",
+    //   label: "Fast Bridge Gas Fees",
+    //   value: intent?.fees?.caGas,
+    //   description:
+    //     "The gas fee required for executing the fast bridge transaction on the destination chain.",
+    // },
+    // {
+    //   key: "gasSupplied",
+    //   label: "Gas Supplied",
+    //   value: intent?.fees?.gasSupplied,
+    //   description:
+    //     "The amount of gas tokens supplied to cover transaction costs on the destination chain.",
+    // },
     {
       key: "solver",
       label: "Solver Fees",
@@ -63,12 +63,12 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
               <Skeleton className="h-5 w-24" />
             ) : (
               <div className="flex flex-col items-end">
-                <p className="font-light text-sm line-through text-muted-foreground/70 min-w-max">
+                {/* <p className="font-light text-sm line-through text-muted-foreground/70 min-w-max">
                   {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
                     symbol: feeSymbol,
                     decimals: intent?.token?.decimals,
                   })}
-                </p>
+                </p> */}
                 <p className="font-bold text-base text-primary">FREE</p>
               </div>
             )}
@@ -84,7 +84,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
         <AccordionContent>
           <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
             {feeRows.map(({ key, label, value, description }) => {
-              if (Number.parseFloat(value ?? "0") <= 0) return null;
+              // if (Number.parseFloat(value ?? "0") <= 0) return null;
               return (
                 <Tooltip key={key}>
                   <div className="flex items-center w-full justify-between">
@@ -98,12 +98,12 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                       <Skeleton className="h-4 w-20" />
                     ) : (
                       <div className="flex flex-col items-end">
-                        <p className="text-xs font-light line-through text-muted-foreground/70">
+                        {/* <p className="text-xs font-light line-through text-muted-foreground/70">
                           {nexusSDK?.utils?.formatTokenBalance(value, {
                             symbol: feeSymbol,
                             decimals: intent?.token?.decimals,
                           })}
-                        </p>
+                        </p> */}
                         <p className="text-sm font-medium text-primary">FREE</p>
                       </div>
                     )}
