@@ -137,12 +137,12 @@ const AmountInput: FC<AmountInputProps> = ({
             <AccordionContent className="pb-0 bg-muted rounded-lg mt-4">
               <div className="space-y-1 py-2">
                 {bridgableBalance?.breakdown.map((chain) => {
-                  if (Number.parseFloat(chain.balance) === 0) return null;
-                  if (
-                    bridgableBalance.symbol === "USDC" &&
-                    chain.chain.id === SUPPORTED_CHAINS.MEGAETH
-                  )
-                    return null;
+                  // if (Number.parseFloat(chain.balance) === 0) return null;
+                  // if (
+                  //   bridgableBalance.symbol === "USDC" &&
+                  //   chain.chain.id === SUPPORTED_CHAINS.MEGAETH
+                  // )
+                  //   return null;
                   return (
                     <Fragment key={chain.chain.id}>
                       <div className="flex items-center justify-between px-2 py-1 rounded-md">
@@ -165,10 +165,7 @@ const AmountInput: FC<AmountInputProps> = ({
                         </div>
                         <p className="text-sm font-light text-right">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
-                            symbol:
-                              chain.chain.id === SUPPORTED_CHAINS.MEGAETH
-                                ? "USDM"
-                                : "USDC",
+                            symbol: chain.displaySymbol,
                             decimals: bridgableBalance?.decimals,
                           })}
                         </p>
