@@ -69,7 +69,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     decimals: intent?.token?.decimals,
                   })}
                 </p> */}
-                <p className="font-bold text-base text-primary">FREE</p>
+                <p className="font-bold text-base text-primary">0 Fees</p>
               </div>
             )}
             <AccordionTrigger
@@ -104,7 +104,9 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                             decimals: intent?.token?.decimals,
                           })}
                         </p> */}
-                        <p className="text-sm font-medium text-primary">FREE</p>
+                        <p className="text-sm font-medium text-primary">
+                          0 Fees
+                        </p>
                       </div>
                     )}
                   </div>
