@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
+import { SUPPORTED_CHAINS } from "@fastbridge/nexus-adapter-citrea";
 
 export interface AppEnv {
     readonly VITE_APP_BASE_PATH?: string;

@@ -14,9 +14,15 @@ importers:
 
   apps/citrea:
     dependencies:
-      '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@fastbridge/chain-runtime-config':
+        specifier: workspace:*
+        version: link:../../packages/chain-runtime-config
+      '@fastbridge/fast-bridge-core':
+        specifier: workspace:*
+        version: link:../../packages/fast-bridge-core
+      '@fastbridge/nexus-adapter-citrea':
+        specifier: workspace:*
+        version: link:../../packages/nexus-adapter-citrea
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -129,9 +135,15 @@ importers:
 
   apps/megaeth:
     dependencies:
-      '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#3449f23749abadc30be9cf72ec7288c387110c8a
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@fastbridge/chain-runtime-config':
+        specifier: workspace:*
+        version: link:../../packages/chain-runtime-config
+      '@fastbridge/fast-bridge-core':
+        specifier: workspace:*
+        version: link:../../packages/fast-bridge-core
+      '@fastbridge/nexus-adapter-megaeth':
+        specifier: workspace:*
+        version: link:../../packages/nexus-adapter-megaeth
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -244,9 +256,15 @@ importers:
 
   apps/monad:
     dependencies:
-      '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@fastbridge/chain-runtime-config':
+        specifier: workspace:*
+        version: link:../../packages/chain-runtime-config
+      '@fastbridge/fast-bridge-core':
+        specifier: workspace:*
+        version: link:../../packages/fast-bridge-core
+      '@fastbridge/nexus-adapter-monad':
+        specifier: workspace:*
+        version: link:../../packages/nexus-adapter-monad
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -399,6 +417,49 @@ importers:
       vite:
         specifier: ^7.1.7
         version: 7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  packages/chain-runtime-config: {}
+
+  packages/fast-bridge-core:
+    dependencies:
+      '@fastbridge/chain-runtime-config':
+        specifier: workspace:*
+        version: link:../chain-runtime-config
+      '@fastbridge/nexus-adapter-contract':
+        specifier: workspace:*
+        version: link:../nexus-adapter-contract
+      lucide-react:
+        specifier: ^0.544.0
+        version: 0.544.0(react@19.2.2)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.2
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
+      viem:
+        specifier: ^2.0.0
+        version: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+
+  packages/nexus-adapter-citrea:
+    dependencies:
+      '@avail-project/nexus-core':
+        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+
+  packages/nexus-adapter-contract: {}
+
+  packages/nexus-adapter-megaeth:
+    dependencies:
+      '@avail-project/nexus-core':
+        specifier: github:availproject/nexus-sdk#3449f23749abadc30be9cf72ec7288c387110c8a
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+
+  packages/nexus-adapter-monad:
+    dependencies:
+      '@avail-project/nexus-core':
+        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
 packages:
 
@@ -6789,7 +6850,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
@@ -7267,7 +7328,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.6
       '@noble/curves': 1.9.7
-      '@noble/hashes': 1.4.0
+      '@noble/hashes': 1.8.0
       '@solana/buffer-layout': 4.0.1
       '@solana/codecs-numbers': 2.3.0(typescript@5.8.3)
       agentkeepalive: 4.6.0
@@ -9783,11 +9844,11 @@ snapshots:
   ox@0.6.7(typescript@5.8.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
-      '@scure/bip32': 1.6.2
-      '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@5.8.3)(zod@4.3.6)
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.8.3
@@ -10200,7 +10261,7 @@ snapshots:
       '@types/uuid': 8.3.4
       '@types/ws': 8.18.1
       buffer: 6.0.3
-      eventemitter3: 5.0.1
+      eventemitter3: 5.0.4
       uuid: 8.3.2
       ws: 8.19.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
     optionalDependencies:

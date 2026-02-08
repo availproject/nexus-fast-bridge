@@ -1,0 +1,12 @@
+{
+  "name": "@fastbridge/nexus-adapter-citrea",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@avail-project/nexus-core": "github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae"
+  }
+}

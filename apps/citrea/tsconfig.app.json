@@ -24,7 +24,22 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fastbridge/chain-runtime-config": [
+        "../../packages/chain-runtime-config/src/index.ts"
+      ],
+      "@fastbridge/fast-bridge-core": [
+        "../../packages/fast-bridge-core/src/index.ts"
+      ],
+      "@fastbridge/nexus-adapter-citrea": [
+        "../../packages/nexus-adapter-citrea/src/index.ts"
+      ],
+      "@fastbridge/nexus-adapter": [
+        "../../packages/nexus-adapter-citrea/src/index.ts"
+      ],
+      "@fastbridge/nexus-adapter-contract": [
+        "../../packages/nexus-adapter-contract/src/index.ts"
+      ]
     }
   },
   "include": ["src"]

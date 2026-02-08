@@ -84,6 +84,26 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "@fastbridge/chain-runtime-config": path.resolve(
+          __dirname,
+          "../../packages/chain-runtime-config/src/index.ts",
+        ),
+        "@fastbridge/fast-bridge-core": path.resolve(
+          __dirname,
+          "../../packages/fast-bridge-core/src/index.ts",
+        ),
+        "@fastbridge/nexus-adapter-citrea": path.resolve(
+          __dirname,
+          "../../packages/nexus-adapter-citrea/src/index.ts",
+        ),
+        "@fastbridge/nexus-adapter": path.resolve(
+          __dirname,
+          "../../packages/nexus-adapter-citrea/src/index.ts",
+        ),
+        "@fastbridge/nexus-adapter-contract": path.resolve(
+          __dirname,
+          "../../packages/nexus-adapter-contract/src/index.ts",
+        ),
         buffer: "vite-plugin-node-polyfills/shims/buffer",
         global: "vite-plugin-node-polyfills/shims/global",
         process: "vite-plugin-node-polyfills/shims/process",

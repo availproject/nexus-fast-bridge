@@ -1,0 +1,12 @@
+{
+  "name": "@fastbridge/nexus-adapter-megaeth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@avail-project/nexus-core": "github:availproject/nexus-sdk#3449f23749abadc30be9cf72ec7288c387110c8a"
+  }
+}

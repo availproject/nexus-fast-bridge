@@ -1,4 +1,4 @@
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
+import { SUPPORTED_CHAINS } from "@fastbridge/nexus-adapter-citrea";
 import { formatUnits, parseUnits } from "viem";
 
 export const SHORT_CHAIN_NAME: Record<number, string> = {
