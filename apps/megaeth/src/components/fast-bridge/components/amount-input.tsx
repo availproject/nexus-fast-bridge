@@ -137,7 +137,7 @@ const AmountInput: FC<AmountInputProps> = ({
             <AccordionContent className="pb-0 bg-muted rounded-lg mt-4">
               <div className="space-y-1 py-2">
                 {bridgableBalance?.breakdown.map((chain) => {
-                  // if (Number.parseFloat(chain.balance) === 0) return null;
+                  if (Number.parseFloat(chain.balance) === 0) return null;
                   // if (
                   //   bridgableBalance.symbol === "USDC" &&
                   //   chain.chain.id === SUPPORTED_CHAINS.MEGAETH
