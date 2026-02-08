@@ -1,5 +1,4 @@
-"use client";
-import { type FC, useEffect, useMemo, useRef } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
@@ -69,6 +68,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     network,
     fetchBridgableBalance,
   } = useNexus();
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const {
     inputs,
@@ -97,10 +97,11 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: () => {
+    onComplete: async () => {
       if (onComplete) {
         onComplete();
       }
+
       const sourcesText =
         intent.current?.intent?.sources?.length &&
         intent.current?.intent.sources.length > 0
@@ -175,6 +176,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           icon: null, // Remove default icon since we're adding our own
         },
       );
+      setHistoryRefreshNonce((prev) => prev + 1);
     },
     onStart,
     onError: (message) => {
@@ -294,7 +296,10 @@ const FastBridge: FC<FastBridgeProps> = ({
       <Card className="w-full">
         <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
           {showSdkDetails && (
-            <ViewHistory className="absolute -top-2 right-3" />
+            <ViewHistory
+              className="absolute -top-2 right-3"
+              refreshNonce={historyRefreshNonce}
+            />
           )}
           <ChainSelect
             selectedChain={inputs?.chain}

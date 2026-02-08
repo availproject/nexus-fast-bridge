@@ -27,25 +27,28 @@ const useViewHistory = () => {
     setSentinelNode(node);
   }, []);
 
-  const fetchIntentHistory = async () => {
+  const fetchIntentHistory = useCallback(async () => {
+    if (!nexusSDK) return;
+
     try {
-      const history = await nexusSDK?.getMyIntents();
-      if (history) {
-        setHistory(history);
-        const firstPage = history.slice(0, ITEMS_PER_PAGE);
-        setDisplayedHistory(firstPage);
-        setHasMore(history.length > ITEMS_PER_PAGE);
-      }
+      const fetchedHistory = await nexusSDK.getMyIntents();
+      const normalizedHistory = fetchedHistory ?? [];
+
+      setHistory(normalizedHistory);
+      setDisplayedHistory(normalizedHistory.slice(0, ITEMS_PER_PAGE));
+      setPage(0);
+      setHasMore(normalizedHistory.length > ITEMS_PER_PAGE);
+      setIsLoadingMore(false);
     } catch (error) {
       console.error("Error fetching intent history:", error);
     }
-  };
+  }, [nexusSDK]);
 
   useEffect(() => {
     if (!history) {
-      fetchIntentHistory();
+      void fetchIntentHistory();
     }
-  }, [history]);
+  }, [history, fetchIntentHistory]);
 
   const loadMore = useCallback(() => {
     if (!history || isLoadingMore || !hasMore) return;
@@ -82,7 +85,7 @@ const useViewHistory = () => {
           loadMore();
         }
       },
-      { threshold: 0.1, root: rootElement ?? null }
+      { threshold: 0.1, root: rootElement ?? null },
     );
 
     observer.observe(sentinelNode);
@@ -114,6 +117,7 @@ const useViewHistory = () => {
     observerTarget,
     ITEMS_PER_PAGE,
     formatExpiryDate,
+    fetchIntentHistory,
   };
 };
 
