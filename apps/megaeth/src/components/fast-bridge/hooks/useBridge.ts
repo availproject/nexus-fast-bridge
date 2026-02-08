@@ -271,11 +271,7 @@ const useBridge = ({
   };
 
   const filteredBridgableBalance = useMemo(() => {
-    return bridgableBalance?.find((bal) =>
-      inputs.token === "USDC"
-        ? bal?.symbol === "USDM"
-        : bal?.symbol === inputs?.token,
-    );
+    return bridgableBalance?.find((bal) => inputs.token === 'USDM' ? bal?.symbol === 'USDC' : bal?.symbol === inputs?.token);
   }, [bridgableBalance, inputs?.token]);
 
   const refreshIntent = async () => {

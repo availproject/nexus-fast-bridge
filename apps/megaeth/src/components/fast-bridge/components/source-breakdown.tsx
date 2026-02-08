@@ -1,4 +1,5 @@
 import {
+  SUPPORTED_CHAINS,
   type ReadableIntent,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
@@ -94,7 +95,11 @@ const SourceBreakdown = ({
 
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(source.amount, {
-                      symbol: spendSymbol,
+                      symbol:
+                        source.chainID === SUPPORTED_CHAINS.MEGAETH &&
+                        spendSymbol === "USDC"
+                          ? "USDM"
+                          : spendSymbol,
                       decimals: intent?.token?.decimals,
                     })}
                   </p>
