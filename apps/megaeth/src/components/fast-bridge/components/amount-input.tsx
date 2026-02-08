@@ -165,7 +165,8 @@ const AmountInput: FC<AmountInputProps> = ({
                         </div>
                         <p className="text-sm font-light text-right">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
-                            symbol: chain.displaySymbol,
+                            // @ts-expect-error symbol
+                            symbol: chain.symbol,
                             decimals: bridgableBalance?.decimals,
                           })}
                         </p>
