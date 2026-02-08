@@ -83,20 +83,20 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       : config.nexusPrimaryToken || "USDC";
 
   const validAmount = prefill?.amount
     ? (() => {
-      const sanitized = prefill.amount.trim();
-      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-        return undefined;
-      const num = Number.parseFloat(sanitized);
-      return Number.isNaN(num) || num <= 0 || num > 1e9
-        ? undefined
-        : sanitized;
-    })()
+        const sanitized = prefill.amount.trim();
+        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+          return undefined;
+        const num = Number.parseFloat(sanitized);
+        return Number.isNaN(num) || num <= 0 || num > 1e9
+          ? undefined
+          : sanitized;
+      })()
     : undefined;
 
   const validRecipient =
@@ -199,7 +199,7 @@ const useBridge = ({
       chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
       tokenSymbol: inputs.token,
       amount: inputs.amount,
-      fast_bridge: 'megaeth',
+      fast_bridge: "megaeth",
     });
 
     try {
