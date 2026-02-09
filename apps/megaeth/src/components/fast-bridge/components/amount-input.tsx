@@ -188,6 +188,14 @@ const AmountInput: FC<AmountInputProps> = ({
                           <span className="text-sm font-light sm:block hidden">
                             {SHORT_CHAIN_NAME[chain.chain.id]}
                           </span>
+                          {chain.chain.id === inputs.chain && (
+                            <div
+                              className="uppercase font-semibold text-[10px] rounded-[10px] px-2 py-1"
+                              style={{ background: "rgba(0, 0, 0, 0.2)" }}
+                            >
+                              Destination
+                            </div>
+                          )}
                         </div>
                         <p className="text-sm font-light text-right">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
