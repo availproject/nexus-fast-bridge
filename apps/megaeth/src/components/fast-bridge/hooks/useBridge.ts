@@ -256,12 +256,14 @@ const useBridge = ({
     } catch (error) {
       if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      // intent.current?.deny();
+      intent.current?.deny();
       intent.current = null;
       allowance.current = null;
       console.log("NEXUS-ERROR-MESSAGE", message)
-      setTxError(message);
-      onError?.(message);
+      if (!(message.toLowerCase().includes("rejected") && message.toLowerCase().includes("user"))) {
+        setTxError(message);
+        onError?.(message);
+      }
       setIsDialogOpen(false);
       dispatch({ type: "setStatus", payload: "error" });
     }
@@ -295,7 +297,7 @@ const useBridge = ({
   };
 
   const reset = () => {
-    // intent.current?.deny();
+    intent.current?.deny();
     intent.current = null;
     allowance.current = null;
     dispatch({ type: "resetInputs" });
