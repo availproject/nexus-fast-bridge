@@ -173,6 +173,11 @@ const useBridge = ({
     return hasToken && hasChain && hasAmount && hasValidrecipient;
   }, [inputs]);
 
+  const resetIntent = () => {
+    intent.current = null;
+    allowance.current = null;
+  };
+
   const handleTransaction = async () => {
     const currentTxnId = ++txnIdRef.current;
     if (!inputs.amount) {
@@ -256,14 +261,12 @@ const useBridge = ({
     } catch (error) {
       if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+      // intent.current?.deny();
       intent.current = null;
       allowance.current = null;
       console.log("NEXUS-ERROR-MESSAGE", message)
-      if (!(message.toLowerCase().includes("rejected") && message.toLowerCase().includes("user"))) {
-        setTxError(message);
-        onError?.(message);
-      }
+      setTxError(message);
+      onError?.(message);
       setIsDialogOpen(false);
       dispatch({ type: "setStatus", payload: "error" });
     }
@@ -297,7 +300,7 @@ const useBridge = ({
   };
 
   const reset = () => {
-    intent.current?.deny();
+    // intent.current?.deny();
     intent.current = null;
     allowance.current = null;
     dispatch({ type: "resetInputs" });
@@ -317,15 +320,15 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (loading || txError || !areInputsValid) return;
+    if (loading || txError || !areInputsValid) return resetIntent();
 
     // Validate amount before proceeding
     if (inputs?.amount) {
       const amountStr = inputs.amount.trim();
-      if (!amountStr) return;
+      if (!amountStr) return resetIntent();
 
       const amount = Number.parseFloat(amountStr);
-      if (Number.isNaN(amount) || amount <= 0) return;
+      if (Number.isNaN(amount) || amount <= 0) return resetIntent();
     }
 
     commitLockRef.current = true;
@@ -391,6 +394,7 @@ const useBridge = ({
     steps,
     status: state.status,
     areInputsValid,
+    resetIntent
   };
 };
 

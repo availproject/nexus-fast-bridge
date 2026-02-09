@@ -28,7 +28,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
     {
       key: "caGas",
       label: "Fast Bridge Gas Fees",
-      value: intent?.fees?.caGas,
+      value: intent?.fees?.collectionFees,
       description:
         "The gas fee required for executing the fast bridge transaction on the destination chain.",
     },
@@ -66,16 +66,17 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
               <Skeleton className="h-5 w-24" />
             ) : (
               <div className="flex flex-col items-end">
-                {intent.destination.chainID === SUPPORTED_CHAINS.MEGAETH ? (
-                  <p className="font-bold text-base text-primary">0 Fees</p>
-                ) : (
+                {
+                  // intent.destination.chainID === SUPPORTED_CHAINS.MEGAETH ? (
+                  //   <p className="font-bold text-base text-primary">0 Fees</p>
+                  // ) :
                   <p className="font-light text-sm text-primary min-w-max">
                     {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
                       symbol: feeSymbol,
                       decimals: intent?.token?.decimals,
                     })}
                   </p>
-                )}
+                }
               </div>
             )}
             <AccordionTrigger
@@ -105,8 +106,8 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     ) : (
                       <div className="flex flex-col items-end">
                         {intent.destination.chainID ===
-                        SUPPORTED_CHAINS.MEGAETH ? (
-                          <p className="text-sm font-medium text-primary">
+                          SUPPORTED_CHAINS.MEGAETH && key !== "caGas" ? (
+                          <p className="text-sm font-semibold text-primary">
                             0 Fees
                           </p>
                         ) : (
