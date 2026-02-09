@@ -24,6 +24,7 @@ const SourceBreakdown = ({
   isLoading = false,
 }: SourceBreakdownProps) => {
   const { nexusSDK } = useNexus();
+  console.log("Intent", intent);
   // const spendSymbol =
   //   intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
