@@ -1,4 +1,5 @@
 import {
+  SUPPORTED_CHAINS,
   type ReadableIntent,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
@@ -23,8 +24,8 @@ const SourceBreakdown = ({
   isLoading = false,
 }: SourceBreakdownProps) => {
   const { nexusSDK } = useNexus();
-  const spendSymbol =
-    intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
+  // const spendSymbol =
+  //   intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="sources">
@@ -48,7 +49,7 @@ const SourceBreakdown = ({
                 <div className="flex flex-col items-start gap-y-1 min-w-fit">
                   <p className="text-base font-light">You Spend</p>
                   <p className="text-sm font-light">
-                    {`${spendSymbol.toUpperCase()} on ${
+                    {`${intent.token.symbol.toUpperCase()} on ${
                       intent?.sources?.length
                     } ${intent?.sources?.length > 1 ? "chains" : "chain"}`}
                   </p>
@@ -57,8 +58,11 @@ const SourceBreakdown = ({
                 <div className="flex flex-col items-end gap-y-1 min-w-fit">
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(intent?.sourcesTotal, {
-                      symbol: spendSymbol,
-                      decimals: intent?.token?.decimals,
+                      symbol:
+                        intent.token.symbol === "USDM"
+                          ? "USDC"
+                          : intent.token.symbol,
+                      decimals: intent.token.decimals,
                     })}
                   </p>
                   <AccordionTrigger
@@ -78,24 +82,24 @@ const SourceBreakdown = ({
             <div className="flex flex-col items-center gap-y-3">
               {intent?.sources?.map((source) => (
                 <div
-                  key={source.chainID}
+                  key={source.chain.id}
                   className="flex items-center justify-between w-full gap-x-2"
                 >
                   <div className="flex items-center gap-x-2">
                     <img
-                      src={source?.chainLogo}
-                      alt={source?.chainName}
+                      src={source?.chain.logo}
+                      alt={source?.chain.name}
                       width={20}
                       height={20}
                       className="rounded-full"
                     />
-                    <p className="text-base font-light">{source.chainName}</p>
+                    <p className="text-base font-light">{source.chain.name}</p>
                   </div>
 
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(source.amount, {
-                      symbol: spendSymbol,
-                      decimals: intent?.token?.decimals,
+                      symbol: source.token.symbol,
+                      decimals: source.token.decimals,
                     })}
                   </p>
                 </div>

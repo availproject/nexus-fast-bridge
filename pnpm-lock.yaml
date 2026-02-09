@@ -15,8 +15,8 @@ importers:
   apps/citrea:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: github:availproject/nexus-sdk#47298a54374948f8fc3c396856c73f3baa11e344
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/47298a54374948f8fc3c396856c73f3baa11e344(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -56,6 +56,9 @@ importers:
       connectkit:
         specifier: ^1.9.1
         version: 1.9.1(@babel/core@7.29.0)(@tanstack/react-query@5.90.20(react@19.2.2))(react-dom@19.2.2(react@19.2.2))(react-is@16.13.1)(react@19.2.2)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.2)
@@ -130,8 +133,8 @@ importers:
   apps/megaeth:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#3449f23749abadc30be9cf72ec7288c387110c8a
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: github:availproject/nexus-sdk#cca99c1a570a8598334e3e89453d39a27d70ede7
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -171,9 +174,15 @@ importers:
       connectkit:
         specifier: ^1.9.1
         version: 1.9.1(@babel/core@7.29.0)(@tanstack/react-query@5.90.20(react@19.2.2))(react-dom@19.2.2(react@19.2.2))(react-is@16.13.1)(react@19.2.2)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.2)
+      motion:
+        specifier: ^12.29.2
+        version: 12.30.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -245,8 +254,8 @@ importers:
   apps/monad:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#85bad3ae6289079287eb84e6a41d0bd2e1843dae
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: github:availproject/nexus-sdk#47298a54374948f8fc3c396856c73f3baa11e344
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/47298a54374948f8fc3c396856c73f3baa11e344(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -286,6 +295,9 @@ importers:
       connectkit:
         specifier: ^1.9.1
         version: 1.9.1(@babel/core@7.29.0)(@tanstack/react-query@5.90.20(react@19.2.2))(react-dom@19.2.2(react@19.2.2))(react-is@16.13.1)(react@19.2.2)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.2.2)
@@ -408,8 +420,9 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/ca-common@1.0.0-beta16':
-    resolution: {integrity: sha512-D080P0w4syLr3ZJ33qAzYCUWiDbxeAZfeEWHqR2lAEX/7vApeHQXyPVZjaNwj6jUOh6diyL+twIbhSYsTMny+Q==}
+  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/143e4e202de927b071d046d2af4369fa7046e8a4':
+    resolution: {tarball: https://codeload.github.com/availproject/ca-common/tar.gz/143e4e202de927b071d046d2af4369fa7046e8a4}
+    version: 1.0.0-beta.17
     peerDependencies:
       '@cosmjs/proto-signing': ^0.34.0
       '@cosmjs/stargate': ^0.34.0
@@ -419,14 +432,26 @@ packages:
       msgpackr: ^1.11.4
       viem: ^2.31.7
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a':
-    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a}
+  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5':
+    resolution: {tarball: https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5}
+    version: 1.0.0-beta.17
+    peerDependencies:
+      '@cosmjs/proto-signing': ^0.34.0
+      '@cosmjs/stargate': ^0.34.0
+      axios: ^1.10.0
+      decimal.js: ^10.6.0
+      long: ^5.3.2
+      msgpackr: ^1.11.4
+      viem: ^2.31.7
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/47298a54374948f8fc3c396856c73f3baa11e344':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/47298a54374948f8fc3c396856c73f3baa11e344}
     version: 1.0.0-beta.64
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae':
-    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae}
-    version: 1.0.0-beta.64
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7}
+    version: 1.0.0
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@babel/code-frame@7.29.0':
@@ -563,11 +588,17 @@ packages:
   '@cosmjs/proto-signing@0.34.0':
     resolution: {integrity: sha512-1/f4JNSAhsP5lr7fdCJxT+qkWqeDq8vViwCilqMIkqvxLAcf6FxEkvmTOpYBAdOT5fVe3+5nZ5GX5FYMq1tdfA==}
 
+  '@cosmjs/proto-signing@0.34.1':
+    resolution: {integrity: sha512-7oeU2QyVwAWoeGXtsrQ8e6eCjWR4essYDegFA4a/1eXFnIvAb8oPMxoVshZfUmDhhhtmyHQvuqxFm3zMO0R6aA==}
+
   '@cosmjs/socket@0.34.1':
     resolution: {integrity: sha512-+MiuC+WDzaA8cU635JEK8tY/ImrRRcPzE+0ExoL4ZzqgzIcXf1hbgmqgKF85yyhGnk/nMTLsEteyoJIaWxsTtA==}
 
   '@cosmjs/stargate@0.34.0':
     resolution: {integrity: sha512-FU/A0OdkNKfqQ4d7CC8KceTVGoCy3BemFgVjbXL/K5FnAafEjqqWInQ531oNvBejpMdm1NSkfbp97CfILeTW7A==}
+
+  '@cosmjs/stargate@0.34.1':
+    resolution: {integrity: sha512-BOaSEmHnThtpKft7jFwFKOKptRoVNq01vmaDKoTISgmS5qi9JgVwiogjL679Aclmmy/xO+GoRfQvWsFrR7f1KA==}
 
   '@cosmjs/stream@0.34.1':
     resolution: {integrity: sha512-EVbSFUnBMHkRX7Oy+JrGe3i8TjxnRs5BKJa8CZnn4ZHSWf6Krw+nWlaJ7FixFttd+PX8c+Agzw+Qhv3pm9HPVg==}
@@ -5045,7 +5076,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/ca-common@1.0.0-beta16(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/143e4e202de927b071d046d2af4369fa7046e8a4(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@bufbuild/protobuf': 2.11.0
       '@cosmjs/proto-signing': 0.34.0
@@ -5063,9 +5094,27 @@ snapshots:
     transitivePeerDependencies:
       - google-protobuf
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/3449f23749abadc30be9cf72ec7288c387110c8a(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5(@cosmjs/proto-signing@0.34.1)(@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
-      '@avail-project/ca-common': 1.0.0-beta16(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@bufbuild/protobuf': 2.11.0
+      '@cosmjs/proto-signing': 0.34.1
+      '@cosmjs/stargate': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@improbable-eng/grpc-web': 0.15.0(google-protobuf@3.21.4)
+      '@improbable-eng/grpc-web-node-http-transport': 0.15.0(@improbable-eng/grpc-web@0.15.0(google-protobuf@3.21.4))
+      axios: 1.13.4
+      browser-headers: 0.4.1
+      decimal.js: 10.6.0
+      es-toolkit: 1.44.0
+      long: 5.3.2
+      msgpackr: 1.11.8
+      tslib: 2.8.1
+      viem: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+    transitivePeerDependencies:
+      - google-protobuf
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/47298a54374948f8fc3c396856c73f3baa11e344(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+    dependencies:
+      '@avail-project/ca-common': https://codeload.github.com/availproject/ca-common/tar.gz/143e4e202de927b071d046d2af4369fa7046e8a4(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@cosmjs/proto-signing': 0.34.0
       '@cosmjs/stargate': 0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       '@metamask/safe-event-emitter': 3.1.2
@@ -5096,11 +5145,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/85bad3ae6289079287eb84e6a41d0bd2e1843dae(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@avail-project/ca-common': 1.0.0-beta16(@cosmjs/proto-signing@0.34.0)(@cosmjs/stargate@0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
-      '@cosmjs/proto-signing': 0.34.0
-      '@cosmjs/stargate': 0.34.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@avail-project/ca-common': https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5(@cosmjs/proto-signing@0.34.1)(@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@cosmjs/proto-signing': 0.34.1
+      '@cosmjs/stargate': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       '@metamask/safe-event-emitter': 3.1.2
       '@opentelemetry/api-logs': 0.208.0
       '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
@@ -5379,6 +5428,15 @@ snapshots:
       '@cosmjs/utils': 0.34.1
       cosmjs-types: 0.9.0
 
+  '@cosmjs/proto-signing@0.34.1':
+    dependencies:
+      '@cosmjs/amino': 0.34.1
+      '@cosmjs/crypto': 0.34.1
+      '@cosmjs/encoding': 0.34.1
+      '@cosmjs/math': 0.34.1
+      '@cosmjs/utils': 0.34.1
+      cosmjs-types: 0.9.0
+
   '@cosmjs/socket@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
     dependencies:
       '@cosmjs/stream': 0.34.1
@@ -5395,6 +5453,21 @@ snapshots:
       '@cosmjs/encoding': 0.34.1
       '@cosmjs/math': 0.34.1
       '@cosmjs/proto-signing': 0.34.0
+      '@cosmjs/stream': 0.34.1
+      '@cosmjs/tendermint-rpc': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@cosmjs/utils': 0.34.1
+      cosmjs-types: 0.9.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
+
+  '@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@cosmjs/amino': 0.34.1
+      '@cosmjs/encoding': 0.34.1
+      '@cosmjs/math': 0.34.1
+      '@cosmjs/proto-signing': 0.34.1
       '@cosmjs/stream': 0.34.1
       '@cosmjs/tendermint-rpc': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       '@cosmjs/utils': 0.34.1

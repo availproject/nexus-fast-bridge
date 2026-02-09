@@ -12,7 +12,6 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import {
   type AllowanceHookSource,
-  CHAIN_METADATA,
   type OnAllowanceHookData,
   SUPPORTED_CHAINS,
 } from "@avail-project/nexus-core";
@@ -223,7 +222,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-inner">
                   <img
-                    src={CHAIN_METADATA[source.chain.id]?.logo}
+                    src={source.chain.logo}
                     alt={source.chain.name}
                     width={24}
                     height={24}

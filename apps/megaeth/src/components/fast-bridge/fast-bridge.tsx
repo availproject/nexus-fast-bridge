@@ -1,10 +1,9 @@
-"use client";
-import { type FC } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
 import { Button } from "../ui/button";
-import { LoaderPinwheel, X, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { useNexus } from "../nexus/NexusProvider";
 import AmountInput from "./components/amount-input";
 import FeeBreakdown from "./components/fee-breakdown";
@@ -28,9 +27,19 @@ import { Skeleton } from "../ui/skeleton";
 import RecipientAddress from "./components/recipient-address";
 import ViewHistory from "../view-history/view-history";
 import { toast } from "sonner";
+import Decimal from "decimal.js";
+import { EncryptedText } from "../ui/encrypted-text";
+import FluffeyMascot from "./components/fluffey-mascot";
 
 interface FastBridgeProps {
-  connectedAddress: Address;
+  connectedAddress?: Address;
+  isWalletConnected?: boolean;
+  onConnectWallet?: () => void;
+  mockIntent?: {
+    totalAmount?: string;
+    receiveAmount?: string;
+    totalGas?: string;
+  };
   prefill?: {
     token: SUPPORTED_TOKENS;
     chainId: SUPPORTED_CHAINS_IDS;
@@ -44,6 +53,9 @@ interface FastBridgeProps {
 
 const FastBridge: FC<FastBridgeProps> = ({
   connectedAddress,
+  isWalletConnected,
+  onConnectWallet,
+  mockIntent,
   onComplete,
   onStart,
   onError,
@@ -57,6 +69,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     network,
     fetchBridgableBalance,
   } = useNexus();
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const {
     inputs,
@@ -76,6 +89,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     lastExplorerUrl,
     steps,
     status,
+    areInputsValid,
   } = useBridge({
     prefill,
     network: network ?? "mainnet",
@@ -84,10 +98,11 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: () => {
+    onComplete: async () => {
       if (onComplete) {
         onComplete();
       }
+
       const sourcesText =
         intent.current?.intent?.sources?.length &&
         intent.current?.intent.sources.length > 0
@@ -113,18 +128,34 @@ const FastBridge: FC<FastBridgeProps> = ({
             </div>
             <div>
               <span className="font-medium">Amount Spent:</span>{" "}
-              {intent.current?.intent?.sourcesTotal?.toString() || "NaN"}{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
+              {intent.current?.intent?.sourcesTotal
+                ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
+                : "NaN"}{" "}
+              {intent.current?.intent?.token.symbol
+                ? intent.current?.intent?.token.symbol.toUpperCase() === "USDM"
+                  ? "USDC"
+                  : intent.current?.intent?.token.symbol
+                : "Unknown"}
             </div>
             <div>
               <span className="font-medium">Amount Received:</span>{" "}
-              {intent.current?.intent?.destination?.amount?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.destination?.amount
+                ? new Decimal(
+                    intent.current?.intent?.destination?.amount,
+                  ).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             <div>
               <span className="font-medium">Total Fees:</span>{" "}
-              {intent.current?.intent?.fees.total?.toString() || "NaN"}{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
+              {intent.current?.intent?.fees.total
+                ? new Decimal(intent.current?.intent?.fees.total).toFixed()
+                : "NaN"}{" "}
+              {intent.current?.intent?.token.symbol
+                ? intent.current?.intent?.token.symbol.toUpperCase() === "USDM"
+                  ? "USDC"
+                  : intent.current?.intent?.token.symbol
+                : "Unknown"}
             </div>
             {lastExplorerUrl ? (
               <div className="mt-2 pt-2 border-t">
@@ -146,6 +177,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           icon: null, // Remove default icon since we're adding our own
         },
       );
+      setHistoryRefreshNonce((prev) => prev + 1);
     },
     onStart,
     onError: (message) => {
@@ -156,171 +188,329 @@ const FastBridge: FC<FastBridgeProps> = ({
     },
     fetchBalance: fetchBridgableBalance,
   });
+  const isConnected = isWalletConnected ?? Boolean(connectedAddress);
+  const isSdkReady = Boolean(nexusSDK);
+  const showSdkDetails = isSdkReady;
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ??
-    // @ts-expect-error - not possible
     intent?.current?.intent?.token.displaySymbol ??
     filteredBridgableBalance?.symbol;
+
+  const amountValue = useMemo(() => {
+    if (!inputs?.amount) return null;
+    const parsed = Number.parseFloat(inputs.amount);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [inputs?.amount]);
+
+  const hasValidAmount = useMemo(() => {
+    if (amountValue === null) return false;
+    return amountValue > 0;
+  }, [amountValue]);
+
+  const formatMockNumber = (value: number) => {
+    if (!Number.isFinite(value)) return "--";
+    const fixed = value.toFixed(6);
+    return fixed.replace(/\.?0+$/, "");
+  };
+
+  const formatWithToken = (value: string, token?: string) => {
+    if (!token) return value;
+    return `${value} ${token}`.trim();
+  };
+
+  const tokenSuffix =
+    inputs?.token ?? filteredBridgableBalance?.symbol ?? "USDC";
+
+  const mockPreview = useMemo(() => {
+    if (!hasValidAmount || amountValue === null) return null;
+    if (mockIntent) {
+      return {
+        totalAmount: mockIntent.totalAmount ?? "--",
+        receiveAmount: mockIntent.receiveAmount ?? "--",
+        totalGas: mockIntent.totalGas ?? "--",
+      };
+    }
+    const totalGas = amountValue * 0.001;
+    const totalAmount = amountValue + totalGas;
+    return {
+      totalAmount: formatWithToken(formatMockNumber(totalAmount), tokenSuffix),
+      receiveAmount: formatWithToken(
+        formatMockNumber(amountValue),
+        tokenSuffix,
+      ),
+      totalGas: formatWithToken(formatMockNumber(totalGas), tokenSuffix),
+    };
+  }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
+
+  const showMockPreview = !isConnected && hasValidAmount && mockPreview;
+  const autoIntentTriggered = useRef(false);
+
+  useEffect(() => {
+    autoIntentTriggered.current = false;
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
+  useEffect(() => {
+    if (!isConnected || !isSdkReady) return;
+    if (!areInputsValid) return;
+    if (intent.current) return;
+    // if (loading) return; // Removed to allow "10" fetch even if "1" is loading
+    if (autoIntentTriggered.current) return;
+    autoIntentTriggered.current = true;
+    void handleTransaction();
+  }, [
+    areInputsValid,
+    handleTransaction,
+    intent,
+    isConnected,
+    isSdkReady,
+    loading,
+  ]);
   return (
-    <Card className="w-full max-w-xl">
-      <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
-        <ViewHistory className="absolute -top-2 right-3" />
-        <ChainSelect
-          selectedChain={inputs?.chain}
-          handleSelect={(chain) =>
-            setInputs({
-              ...inputs,
-              chain,
-            })
-          }
-          label="To"
-          disabled={!!prefill?.chainId}
-        />
-        <TokenSelect
-          selectedChain={inputs?.chain}
-          selectedToken={inputs?.token}
-          handleTokenSelect={(token) => setInputs({ ...inputs, token })}
-          disabled={!!prefill?.token}
-        />
-        <AmountInput
-          amount={inputs?.amount}
-          onChange={(amount) => setInputs({ ...inputs, amount })}
-          bridgableBalance={filteredBridgableBalance}
-          onCommit={() => void commitAmount()}
-          disabled={refreshing || !!prefill?.amount}
-          inputs={inputs}
-        />
-        <RecipientAddress
-          address={inputs?.recipient}
-          onChange={(address) =>
-            setInputs({ ...inputs, recipient: address as `0x${string}` })
-          }
-          disabled={!!prefill?.recipient}
-        />
-        {intent?.current?.intent && (
-          <>
-            <SourceBreakdown
-              intent={intent?.current?.intent}
-              tokenSymbol={filteredBridgableBalance?.symbol as SUPPORTED_TOKENS}
-              isLoading={refreshing}
+    <div className="flex flex-col gap-y-4 w-full max-w-xl">
+      <FluffeyMascot />
+      <div
+        className="relative z-10 w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
+        style={{
+          background:
+            "linear-gradient(180deg, #F5AF94 0%, #FF8AA8 70%, #90D79F 75%, #7EAAD4 100%)",
+        }}
+      >
+        <div className="flex items-center gap-x-3">
+          <img
+            src="https://files.availproject.org/fastbridge/megaeth/megaeth-mascot-1.png"
+            className="w-10 -my-5 flex items-center justify-center shrink-0"
+            height={112}
+            width={40}
+            style={{ aspectRatio: "5/14" }}
+          />
+          <p className="font-medium text-sm">
+            <EncryptedText
+              text="Zero fees when bridging to MegaETH. 48h window. Don't fade anon."
+              revealDelayMs={50}
+              flipDelayMs={25}
+              encryptedClassName="text-primary"
+              revealedClassName="text-primary"
+              charset="AEFHIJKLNPRSTUXYabcdefghijklmnopqrstuvwxyz"
             />
-
-            <div className="w-full flex items-start justify-between gap-x-4">
-              <p className="text-base font-light">You receive</p>
-              <div className="flex flex-col gap-y-1 min-w-fit">
-                {refreshing ? (
-                  <Skeleton className="h-5 w-28" />
-                ) : (
-                  <p className="text-base font-light text-right">
-                    {`${
-                      connectedAddress === inputs?.recipient
-                        ? intent?.current?.intent?.destination?.amount
-                        : inputs.amount
-                    } ${receiveSymbol}`}
-                  </p>
-                )}
-                {refreshing ? (
-                  <Skeleton className="h-4 w-36" />
-                ) : (
-                  <p className="text-sm font-light text-right">
-                    on {intent?.current?.intent?.destination?.chainName}
-                  </p>
-                )}
-              </div>
-            </div>
-            <FeeBreakdown
-              intent={intent?.current?.intent}
-              isLoading={refreshing}
+          </p>
+        </div>
+      </div>
+      <Card className="w-full relative z-10">
+        <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
+          {showSdkDetails && (
+            <ViewHistory
+              className="absolute -top-2 right-3"
+              refreshNonce={historyRefreshNonce}
             />
-          </>
-        )}
-
-        {!intent.current && (
-          <Button
-            onClick={handleTransaction}
-            disabled={
-              !inputs?.amount ||
-              !inputs?.recipient ||
-              !inputs?.chain ||
-              !inputs?.token ||
-              loading ||
-              Number(inputs?.amount) > 5000
+          )}
+          <ChainSelect
+            selectedChain={inputs?.chain}
+            handleSelect={(chain) =>
+              setInputs({
+                ...inputs,
+                chain,
+              })
             }
-          >
-            {loading ? (
-              <LoaderPinwheel className="animate-spin size-5" />
-            ) : (
-              "Bridge"
-            )}
-          </Button>
-        )}
-
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            if (loading) return;
-            setIsDialogOpen(open);
-          }}
-        >
-          {intent.current && !isDialogOpen && (
-            <div className="w-full flex items-center gap-x-2 justify-between">
-              <Button variant={"destructive"} onClick={reset} className="w-1/2">
-                Deny
-              </Button>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={startTransaction}
-                  className="w-1/2"
-                  disabled={refreshing}
-                >
-                  {refreshing ? "Refreshing..." : "Accept"}
-                </Button>
-              </DialogTrigger>
+            label="To"
+            disabled={!!prefill?.chainId}
+          />
+          <TokenSelect
+            selectedChain={inputs?.chain}
+            selectedToken={inputs?.token}
+            handleTokenSelect={(token) => setInputs({ ...inputs, token })}
+            disabled={!!prefill?.token}
+          />
+          <AmountInput
+            amount={inputs?.amount}
+            onChange={(amount) => setInputs({ ...inputs, amount })}
+            bridgableBalance={filteredBridgableBalance}
+            onCommit={() => void commitAmount()}
+            disabled={refreshing || !!prefill?.amount}
+            inputs={inputs}
+            showBalanceDetails={showSdkDetails}
+          />
+          <RecipientAddress
+            address={inputs?.recipient}
+            onChange={(address) =>
+              setInputs({ ...inputs, recipient: address as `0x${string}` })
+            }
+            disabled={!!prefill?.recipient}
+          />
+          {showMockPreview && (
+            <div className="w-full rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-base font-light">You spend</p>
+                <p className="text-base font-light">
+                  {mockPreview?.totalAmount}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-base font-light">You receive</p>
+                <p className="text-base font-light">
+                  {mockPreview?.receiveAmount}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-base font-light">Total gas</p>
+                <p className="text-base font-light">{mockPreview?.totalGas}</p>
+              </div>
             </div>
           )}
 
-          <DialogContent>
-            <DialogHeader className="sr-only">
-              <DialogTitle>Transaction Progress</DialogTitle>
-            </DialogHeader>
-            {allowance.current ? (
-              <AllowanceModal
-                allowance={allowance}
-                callback={startTransaction}
-                onCloseCallback={reset}
+          {showSdkDetails && intent?.current?.intent && (
+            <>
+              <SourceBreakdown
+                intent={intent?.current?.intent}
+                tokenSymbol={
+                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
+                }
+                isLoading={refreshing}
               />
-            ) : (
-              <TransactionProgress
-                timer={timer}
-                steps={steps}
-                viewIntentUrl={lastExplorerUrl}
-                operationType={"bridge"}
-                completed={status === "success"}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
 
-        {txError && (
-          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full max-w-md">
-            <span className="flex-1 w-full truncate">{txError}</span>
+              <div className="w-full flex items-start justify-between gap-x-4">
+                <p className="text-base font-light">You receive</p>
+                <div className="flex flex-col gap-y-1 min-w-fit">
+                  {refreshing ? (
+                    <Skeleton className="h-5 w-28" />
+                  ) : (
+                    <p className="text-base font-light text-right">
+                      {`${
+                        connectedAddress === inputs?.recipient
+                          ? intent?.current?.intent?.destination?.amount
+                          : inputs.amount
+                      } ${receiveSymbol}`}
+                    </p>
+                  )}
+                  {refreshing ? (
+                    <Skeleton className="h-4 w-36" />
+                  ) : (
+                    <p className="text-sm font-light text-right">
+                      on {intent?.current?.intent?.destination?.chainName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <FeeBreakdown
+                intent={intent?.current?.intent}
+                isLoading={refreshing}
+              />
+            </>
+          )}
+
+          {!intent.current && (
             <Button
-              type="button"
-              size={"icon"}
-              variant={"ghost"}
               onClick={() => {
-                reset();
-                setTxError(null);
+                if (!isConnected) {
+                  if (onConnectWallet) {
+                    onConnectWallet();
+                  } else {
+                    toast.error("Wallet connection not available");
+                  }
+                } else if (!isSdkReady) {
+                  toast.info("Please wait, SDK is still initializing...");
+                } else if (!areInputsValid) {
+                  toast.error(
+                    "Please enter a valid amount and recipient address",
+                  );
+                } else {
+                  // Connected, SDK ready, inputs valid - trigger transaction
+                  void handleTransaction();
+                }
               }}
-              className="text-destructive-foreground/80 hover:text-destructive-foreground focus:outline-none"
-              aria-label="Dismiss error"
+              disabled={
+                !isConnected
+                  ? false
+                  : !inputs?.amount ||
+                    !inputs?.recipient ||
+                    !inputs?.chain ||
+                    !inputs?.token ||
+                    loading ||
+                    Number(inputs?.amount) > 5000
+              }
             >
-              <X className="size-4" />
+              {!isConnected
+                ? "Connect Wallet"
+                : !isSdkReady
+                  ? "Initializing..."
+                  : !areInputsValid
+                    ? "Bridge"
+                    : status === "error" || txError
+                      ? "Retry"
+                      : "Fetching intent..."}
             </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              if (loading) return;
+              setIsDialogOpen(open);
+            }}
+          >
+            {intent.current && !isDialogOpen && (
+              <div className="w-full flex items-center gap-x-2 justify-between">
+                <Button
+                  variant={"destructive"}
+                  onClick={reset}
+                  className="w-1/2"
+                >
+                  Deny
+                </Button>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={startTransaction}
+                    className="w-1/2"
+                    disabled={refreshing}
+                  >
+                    {refreshing ? "Refreshing..." : "Accept"}
+                  </Button>
+                </DialogTrigger>
+              </div>
+            )}
+
+            <DialogContent showCloseButton={false}>
+              <DialogHeader className="sr-only">
+                <DialogTitle>Transaction Progress</DialogTitle>
+              </DialogHeader>
+              {allowance.current ? (
+                <AllowanceModal
+                  allowance={allowance}
+                  callback={startTransaction}
+                  onCloseCallback={reset}
+                />
+              ) : (
+                <TransactionProgress
+                  timer={timer}
+                  steps={steps}
+                  viewIntentUrl={lastExplorerUrl}
+                  operationType={"bridge"}
+                  completed={status === "success"}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {txError && (
+            <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full">
+              <span className="flex-1 w-full">{txError}</span>
+              <Button
+                type="button"
+                size={"icon"}
+                variant={"ghost"}
+                onClick={() => {
+                  reset();
+                  setTxError(null);
+                }}
+                className="text-destructive-foreground/80 hover:text-destructive-foreground focus:outline-none"
+                aria-label="Dismiss error"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

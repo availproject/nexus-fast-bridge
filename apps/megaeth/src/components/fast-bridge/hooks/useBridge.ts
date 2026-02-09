@@ -45,7 +45,7 @@ const ALLOWED_TOKENS = new Set([
 
 interface UseBridgeProps {
   network: NexusNetwork;
-  connectedAddress: Address;
+  connectedAddress?: Address;
   nexusSDK: NexusSDK | null;
   intent: RefObject<OnIntentHookData | null>;
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -73,7 +73,7 @@ type Action =
   | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
-  connectedAddress: Address,
+  connectedAddress?: Address,
   prefill?: {
     token: string;
     chainId: number;
@@ -113,7 +113,6 @@ const buildInitialInputs = (
 };
 
 const useBridge = ({
-  network,
   connectedAddress,
   nexusSDK,
   intent,
@@ -157,6 +156,7 @@ const useBridge = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
+  const txnIdRef = useRef(0);
   const {
     steps,
     onStepsList,
@@ -183,6 +183,12 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+
+    if (Number(inputs.amount) > 5000) {
+      setTxError("Amount exceeds maximum limit of 5000");
+      return;
+    }
+    const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
@@ -193,7 +199,7 @@ const useBridge = ({
       chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
       tokenSymbol: inputs.token,
       amount: inputs.amount,
-      fast_bridge: 'megaeth',
+      fast_bridge: "megaeth",
     });
 
     try {
@@ -211,15 +217,17 @@ const useBridge = ({
           token: inputs?.token,
           amount: formattedAmount,
           toChainId: inputs?.chain,
-          recipient: inputs?.recipient ?? connectedAddress,
+          recipient: inputs?.recipient,
         },
         {
           onEvent: (event) => {
+            if (currentTxnId !== txnIdRef.current) return;
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
               onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+              console.log("STEP_EVENT", event);
               if (event.args.type === "INTENT_HASH_SIGNED") {
                 stopwatch.start();
               }
@@ -228,18 +236,22 @@ const useBridge = ({
           },
         },
       );
+      if (currentTxnId !== txnIdRef.current) return;
+
       if (!bridgeTxn) {
-        throw new Error("Transaction rejected by user");
+        throw new Error("Something went wrong, please try again");
       }
       if (bridgeTxn) {
         setLastExplorerUrl(bridgeTxn.explorerUrl);
         await onSuccess();
       }
     } catch (error) {
+      if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+      // intent.current?.deny();
       intent.current = null;
       allowance.current = null;
+      console.log("NEXUS-ERROR-MESSAGE", message)
       setTxError(message);
       onError?.(message);
       setIsDialogOpen(false);
@@ -260,7 +272,7 @@ const useBridge = ({
   };
 
   const filteredBridgableBalance = useMemo(() => {
-    return bridgableBalance?.find((bal) => bal?.symbol === inputs?.token);
+    return bridgableBalance?.find((bal) => inputs.token === 'USDM' ? bal?.symbol === 'USDC' : bal?.symbol === inputs?.token);
   }, [bridgableBalance, inputs?.token]);
 
   const refreshIntent = async () => {
@@ -295,7 +307,7 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (!intent.current || loading || txError || !areInputsValid) return;
+    if (loading || txError || !areInputsValid) return;
 
     // Validate amount before proceeding
     if (inputs?.amount) {
@@ -304,12 +316,6 @@ const useBridge = ({
 
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
-
-      // Check if amount exceeds maximum limit of 5000
-      if (amount > 5000) {
-        setTxError("Amount entered exceeds maximum limit");
-        return;
-      }
     }
 
     commitLockRef.current = true;
@@ -326,7 +332,7 @@ const useBridge = ({
 
   useEffect(() => {
     if (intent.current) {
-      intent.current.deny();
+      // intent.current.deny();
       intent.current = null;
     }
   }, [inputs]);
@@ -350,6 +356,12 @@ const useBridge = ({
     }
   }, [inputs]);
 
+  useEffect(() => {
+    if (connectedAddress && !inputs?.recipient) {
+      setInputs({ recipient: connectedAddress as `0x${string}` });
+    }
+  }, [connectedAddress, inputs?.recipient]);
+
   return {
     inputs,
     setInputs,
@@ -368,6 +380,7 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     status: state.status,
+    areInputsValid,
   };
 };
 

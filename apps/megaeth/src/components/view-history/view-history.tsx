@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,13 +9,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
-import { TOKEN_METADATA, type RFF } from "@avail-project/nexus-core";
+import { type RFF } from "@avail-project/nexus-core";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import useViewHistory from "./hooks/useViewHistory";
+import { TOKEN_IMAGES } from "../common";
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   return (
@@ -24,7 +26,7 @@ const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
           key={source?.chain?.id}
           className={cn(
             "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
+            index > 0 && "-ml-2",
           )}
           style={{ zIndex: sources.length - index }}
         >
@@ -75,13 +77,13 @@ const DestinationToken = ({
           key={dest.token.symbol}
           className={cn(
             "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
+            index > 0 && "-ml-2",
           )}
           style={{ zIndex: destination.length - index }}
         >
           <img
-            src={TOKEN_METADATA[dest.token.symbol]?.icon ?? ""}
-            alt={TOKEN_METADATA[dest.token.symbol]?.name}
+            src={TOKEN_IMAGES[dest.token.symbol]}
+            alt={dest.token.symbol}
             width={24}
             height={24}
             className="rounded-full"
@@ -95,9 +97,11 @@ const DestinationToken = ({
 const ViewHistory = ({
   viewAsModal = true,
   className,
+  refreshNonce,
 }: {
   viewAsModal?: boolean;
   className?: string;
+  refreshNonce?: number;
 }) => {
   const {
     history,
@@ -108,7 +112,13 @@ const ViewHistory = ({
     observerTarget,
     ITEMS_PER_PAGE,
     formatExpiryDate,
+    fetchIntentHistory,
   } = useViewHistory();
+
+  useEffect(() => {
+    if (!refreshNonce) return;
+    void fetchIntentHistory();
+  }, [refreshNonce, fetchIntentHistory]);
 
   const renderHistoryContent = () => {
     if (displayedHistory.length > 0) {

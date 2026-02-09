@@ -1,6 +1,7 @@
 import { NexusError } from "@avail-project/nexus-core";
 
 function handler(err: unknown) {
+  console.log("NEXUS-ERROR-OBJECT", err)
   if (err instanceof NexusError) {
     return {
       code: err?.code,
