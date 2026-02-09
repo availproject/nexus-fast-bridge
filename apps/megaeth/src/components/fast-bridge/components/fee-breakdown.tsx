@@ -5,7 +5,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../ui/accordion";
-import { type ReadableIntent } from "@avail-project/nexus-core";
+import {
+  SUPPORTED_CHAINS,
+  type ReadableIntent,
+} from "@avail-project/nexus-core";
 import { Skeleton } from "../../ui/skeleton";
 import { useNexus } from "../../nexus/NexusProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
@@ -63,13 +66,16 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
               <Skeleton className="h-5 w-24" />
             ) : (
               <div className="flex flex-col items-end">
-                {/* <p className="font-light text-sm line-through text-muted-foreground/70 min-w-max">
-                  {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
-                    symbol: feeSymbol,
-                    decimals: intent?.token?.decimals,
-                  })}
-                </p> */}
-                <p className="font-bold text-base text-primary">0 Fees</p>
+                {intent.destination.chainID === SUPPORTED_CHAINS.MEGAETH ? (
+                  <p className="font-bold text-base text-primary">0 Fees</p>
+                ) : (
+                  <p className="font-light text-sm line-through text-muted-foreground/70 min-w-max">
+                    {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
+                      symbol: feeSymbol,
+                      decimals: intent?.token?.decimals,
+                    })}
+                  </p>
+                )}
               </div>
             )}
             <AccordionTrigger
@@ -98,15 +104,19 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                       <Skeleton className="h-4 w-20" />
                     ) : (
                       <div className="flex flex-col items-end">
-                        {/* <p className="text-xs font-light line-through text-muted-foreground/70">
-                          {nexusSDK?.utils?.formatTokenBalance(value, {
-                            symbol: feeSymbol,
-                            decimals: intent?.token?.decimals,
-                          })}
-                        </p> */}
-                        <p className="text-sm font-medium text-primary">
-                          0 Fees
-                        </p>
+                        {intent.destination.chainID ===
+                        SUPPORTED_CHAINS.MEGAETH ? (
+                          <p className="text-sm font-medium text-primary">
+                            0 Fees
+                          </p>
+                        ) : (
+                          <p className="text-xs font-light line-through text-muted-foreground/70">
+                            {nexusSDK?.utils?.formatTokenBalance(value, {
+                              symbol: feeSymbol,
+                              decimals: intent?.token?.decimals,
+                            })}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
