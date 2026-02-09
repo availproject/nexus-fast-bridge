@@ -468,7 +468,7 @@ const FastBridge: FC<FastBridgeProps> = ({
               </div>
             )}
 
-            <DialogContent>
+            <DialogContent showCloseButton={false}>
               <DialogHeader className="sr-only">
                 <DialogTitle>Transaction Progress</DialogTitle>
               </DialogHeader>
