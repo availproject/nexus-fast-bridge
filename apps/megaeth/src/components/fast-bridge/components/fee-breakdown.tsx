@@ -28,7 +28,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
     {
       key: "caGas",
       label: "Fast Bridge Gas Fees",
-      value: intent?.fees?.collectionFees,
+      value: intent?.fees.collection || intent?.fees.caGas,
       description:
         "The gas fee required for executing the fast bridge transaction on the destination chain.",
     },
@@ -113,7 +113,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                         ) : (
                           <p className="text-xs font-light text-primary">
                             {nexusSDK?.utils?.formatTokenBalance(value, {
-                              symbol: feeSymbol,
+                              symbol: intent.token?.symbol,
                               decimals: intent?.token?.decimals,
                             })}
                           </p>
