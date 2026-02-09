@@ -142,27 +142,22 @@ body,
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-.fluffey-wrapper {
-  scale: 0.5;
-}
-
-@media (min-width: 1500px) {
+@media (max-height: 849px) {
   .fluffey-wrapper {
-    scale: 1;
+    display: none;
   }
 }
+
 @keyframes fluffyPopUp {
   0% {
-    transform: translateY(35%);
+    transform: translateY(100%);
     opacity: 0;
   }
   100% {
-    transform: translateY(25%);
+    transform: translateY(40%);
     opacity: 1;
   }
 }
-
-
 
 
 @layer base {
