@@ -79,18 +79,11 @@ export default function FluffeyMascot() {
   return (
     <div
       className="
-      fluffey-wrapper
-      fixed bottom-0 left-1/2
-      -translate-x-1/2
-      pointer-events-none
-      block
-      transform
-      scale-50
-      origin-bottom
-      z-10
-      2xl:scale-70
-      
-    "
+    fluffey-wrapper
+    fixed bottom-0
+    pointer-events-none
+    z-10
+  "
       style={{ width: DISPLAY_WIDTH }}
     >
       <div
