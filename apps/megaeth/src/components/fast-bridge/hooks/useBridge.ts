@@ -174,6 +174,15 @@ const useBridge = ({
   }, [inputs]);
 
   const handleTransaction = async () => {
+    const currentTxnId = ++txnIdRef.current;
+    if (!inputs.amount) {
+      setTxError("Amount is required");
+      return;
+    }
+    if (Number(inputs.amount) === 0) {
+      setTxError("Amount should be greater than 0");
+      return;
+    }
     if (
       !inputs?.amount ||
       !inputs?.recipient ||
@@ -188,7 +197,6 @@ const useBridge = ({
       setTxError("Amount exceeds maximum limit of 5000");
       return;
     }
-    const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
@@ -287,7 +295,7 @@ const useBridge = ({
   };
 
   const reset = () => {
-    intent.current?.deny();
+    // intent.current?.deny();
     intent.current = null;
     allowance.current = null;
     dispatch({ type: "resetInputs" });
