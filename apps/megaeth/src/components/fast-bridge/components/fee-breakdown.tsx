@@ -25,13 +25,13 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
     intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
-    // {
-    //   key: "caGas",
-    //   label: "Fast Bridge Gas Fees",
-    //   value: intent?.fees?.caGas,
-    //   description:
-    //     "The gas fee required for executing the fast bridge transaction on the destination chain.",
-    // },
+    {
+      key: "caGas",
+      label: "Fast Bridge Gas Fees",
+      value: intent?.fees?.caGas,
+      description:
+        "The gas fee required for executing the fast bridge transaction on the destination chain.",
+    },
     // {
     //   key: "gasSupplied",
     //   label: "Gas Supplied",
@@ -69,7 +69,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                 {intent.destination.chainID === SUPPORTED_CHAINS.MEGAETH ? (
                   <p className="font-bold text-base text-primary">0 Fees</p>
                 ) : (
-                  <p className="font-light text-sm text-muted-foreground/70 min-w-max">
+                  <p className="font-light text-sm text-primary min-w-max">
                     {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
                       symbol: feeSymbol,
                       decimals: intent?.token?.decimals,
@@ -110,7 +110,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                             0 Fees
                           </p>
                         ) : (
-                          <p className="text-xs font-light text-muted-foreground/70">
+                          <p className="text-xs font-light text-primary">
                             {nexusSDK?.utils?.formatTokenBalance(value, {
                               symbol: feeSymbol,
                               decimals: intent?.token?.decimals,
