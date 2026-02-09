@@ -11,7 +11,6 @@ import {
 } from "../../ui/accordion";
 import { Skeleton } from "../../ui/skeleton";
 import { useNexus } from "../../nexus/NexusProvider";
-import { useEffect } from "react";
 
 interface SourceBreakdownProps {
   intent?: ReadableIntent;
@@ -25,10 +24,6 @@ const SourceBreakdown = ({
   isLoading = false,
 }: SourceBreakdownProps) => {
   const { nexusSDK } = useNexus();
-
-  useEffect(() => {
-    console.log("Intent", intent);
-  }, [intent]);
   // const spendSymbol =
   //   intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
@@ -63,7 +58,10 @@ const SourceBreakdown = ({
                 <div className="flex flex-col items-end gap-y-1 min-w-fit">
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(intent?.sourcesTotal, {
-                      symbol: intent.token.symbol,
+                      symbol:
+                        intent.token.symbol === "USDM"
+                          ? "USDC"
+                          : intent.token.symbol,
                       decimals: intent.token.decimals,
                     })}
                   </p>
