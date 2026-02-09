@@ -1,4 +1,4 @@
-import { type FC, Fragment, useEffect, useRef } from "react";
+import { type FC, Fragment, useEffect, useRef, useState } from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { SUPPORTED_CHAINS, type UserAsset } from "@avail-project/nexus-core";
@@ -35,6 +35,7 @@ const AmountInput: FC<AmountInputProps> = ({
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
+  const [max, setMax] = useState("0");
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -42,6 +43,16 @@ const AmountInput: FC<AmountInputProps> = ({
     commitTimerRef.current = setTimeout(() => {
       onCommit(val);
     }, 800);
+  };
+
+  const getMax = async () => {
+    if (!showBalanceDetails || !nexusSDK || !inputs) return;
+    const maxBalAvailable = await nexusSDK?.calculateMaxForBridge({
+      token: inputs?.token,
+      toChainId: inputs?.chain,
+    });
+    if (!maxBalAvailable) return;
+    return maxBalAvailable.amount;
   };
 
   const onMaxClick = async () => {
@@ -57,6 +68,9 @@ const AmountInput: FC<AmountInputProps> = ({
   };
 
   useEffect(() => {
+    getMax().then((val) => {
+      if (val) setMax(val);
+    });
     return () => {
       if (commitTimerRef.current) {
         clearTimeout(commitTimerRef.current);
@@ -102,7 +116,7 @@ const AmountInput: FC<AmountInputProps> = ({
         >
           {showBalanceDetails && bridgableBalance && (
             <p className="text-base font-medium min-w-max">
-              {nexusSDK?.utils?.formatTokenBalance(bridgableBalance?.balance, {
+              {nexusSDK?.utils?.formatTokenBalance(max, {
                 symbol:
                   bridgableBalance?.displaySymbol ?? bridgableBalance?.symbol,
                 decimals: bridgableBalance?.decimals,
@@ -145,7 +159,12 @@ const AmountInput: FC<AmountInputProps> = ({
                   //   return null;
                   return (
                     <Fragment key={chain.chain.id}>
-                      <div className="flex items-center justify-between px-2 py-1 rounded-md">
+                      <div
+                        className="flex items-center justify-between px-2 py-1 rounded-md"
+                        style={{
+                          opacity: chain.chain.id === inputs.chain ? 0.6 : 1,
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           <div className="relative h-6 w-6">
                             <img
