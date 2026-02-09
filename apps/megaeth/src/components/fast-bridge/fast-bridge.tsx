@@ -269,7 +269,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     <div className="flex flex-col gap-y-4 w-full max-w-xl">
       <FluffeyMascot />
       <div
-        className="w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
+        className="relative z-[1000] w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
         style={{
           background:
             "linear-gradient(180deg, #F5AF94 0%, #FF8AA8 70%, #90D79F 75%, #7EAAD4 100%)",
@@ -295,7 +295,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           </p>
         </div>
       </div>
-      <Card className="w-full">
+      <Card className="w-full relative z-[1000]">
         <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
           {showSdkDetails && (
             <ViewHistory
