@@ -35,7 +35,7 @@ const AmountInput: FC<AmountInputProps> = ({
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
-  const [max, setMax] = useState("0");
+  const [maxVal, setMaxVal] = useState("0");
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -45,7 +45,7 @@ const AmountInput: FC<AmountInputProps> = ({
     }, 800);
   };
 
-  const getMax = async () => {
+  const getMaxVal = async () => {
     if (!showBalanceDetails || !nexusSDK || !inputs) return;
     const maxBalAvailable = await nexusSDK?.calculateMaxForBridge({
       token: inputs?.token,
@@ -68,10 +68,14 @@ const AmountInput: FC<AmountInputProps> = ({
   };
 
   useEffect(() => {
-    getMax().then((val) => {
-      console.log("getMax", val);
-      if (val) setMax(val);
-    });
+    const initMaxVal = async function () {
+      const v = await getMaxVal();
+      console.log("got max val in useeffect", v);
+      if (v) setMaxVal(v);
+    };
+
+    initMaxVal();
+
     return () => {
       if (commitTimerRef.current) {
         clearTimeout(commitTimerRef.current);
