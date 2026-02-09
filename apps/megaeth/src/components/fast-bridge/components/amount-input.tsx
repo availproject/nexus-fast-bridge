@@ -75,7 +75,9 @@ const AmountInput: FC<AmountInputProps> = ({
     };
 
     initMaxVal();
+  }, [nexusSDK, loading, inputs]);
 
+  useEffect(() => {
     return () => {
       if (commitTimerRef.current) {
         clearTimeout(commitTimerRef.current);
