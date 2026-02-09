@@ -69,6 +69,7 @@ const AmountInput: FC<AmountInputProps> = ({
 
   useEffect(() => {
     getMax().then((val) => {
+      console.log("getMax", val);
       if (val) setMax(val);
     });
     return () => {
@@ -162,7 +163,7 @@ const AmountInput: FC<AmountInputProps> = ({
                       <div
                         className="flex items-center justify-between px-2 py-1 rounded-md"
                         style={{
-                          opacity: chain.chain.id === inputs.chain ? 0.6 : 1,
+                          opacity: chain.chain.id === inputs.chain ? 0.4 : 1,
                         }}
                       >
                         <div className="flex items-center gap-2">
