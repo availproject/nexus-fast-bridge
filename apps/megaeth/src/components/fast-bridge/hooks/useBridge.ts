@@ -83,20 +83,20 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       : config.nexusPrimaryToken || "USDC";
 
   const validAmount = prefill?.amount
     ? (() => {
-        const sanitized = prefill.amount.trim();
-        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-          return undefined;
-        const num = Number.parseFloat(sanitized);
-        return Number.isNaN(num) || num <= 0 || num > 1e9
-          ? undefined
-          : sanitized;
-      })()
+      const sanitized = prefill.amount.trim();
+      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+        return undefined;
+      const num = Number.parseFloat(sanitized);
+      return Number.isNaN(num) || num <= 0 || num > 1e9
+        ? undefined
+        : sanitized;
+    })()
     : undefined;
 
   const validRecipient =
@@ -239,7 +239,7 @@ const useBridge = ({
       if (currentTxnId !== txnIdRef.current) return;
 
       if (!bridgeTxn) {
-        throw new Error("Transaction rejected by user");
+        throw new Error("Something went wrong, please try again");
       }
       if (bridgeTxn) {
         setLastExplorerUrl(bridgeTxn.explorerUrl);
@@ -248,9 +248,10 @@ const useBridge = ({
     } catch (error) {
       if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+      // intent.current?.deny();
       intent.current = null;
       allowance.current = null;
+      console.log("NEXUS-ERROR-MESSAGE", message)
       setTxError(message);
       onError?.(message);
       setIsDialogOpen(false);
