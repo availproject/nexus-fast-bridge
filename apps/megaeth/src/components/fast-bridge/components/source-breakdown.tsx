@@ -11,6 +11,7 @@ import {
 } from "../../ui/accordion";
 import { Skeleton } from "../../ui/skeleton";
 import { useNexus } from "../../nexus/NexusProvider";
+import { useEffect } from "react";
 
 interface SourceBreakdownProps {
   intent?: ReadableIntent;
@@ -24,7 +25,10 @@ const SourceBreakdown = ({
   isLoading = false,
 }: SourceBreakdownProps) => {
   const { nexusSDK } = useNexus();
-  console.log("Intent", intent);
+
+  useEffect(() => {
+    console.log("Intent", intent);
+  }, [intent]);
   // const spendSymbol =
   //   intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
