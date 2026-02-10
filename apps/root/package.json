@@ -18,10 +18,12 @@
     "@fastbridge/citrea": "workspace:*",
     "@fastbridge/megaeth": "workspace:*",
     "@fastbridge/monad": "workspace:*",
+    "@tailwindcss/vite": "^4.1.16",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.1.0",
+    "tailwindcss": "^4.1.13",
     "typescript": "~5.8.3",
     "vite": "^7.1.7"
   }
