@@ -1,16 +1,5 @@
 [
   {
-    "slug": "monad",
-    "name": "Monad",
-    "description": "Move your assets to Monad faster than ever!",
-    "primaryColor": "#836ef9",
-    "secondaryColor": "#ffffff",
-    "basePath": "/monad/",
-    "appDir": "apps/monad",
-    "logoUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg",
-    "iconUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg"
-  },
-  {
     "slug": "megaeth",
     "name": "MegaETH",
     "description": "Bridge from any chain to MegaETH, in real time.",
@@ -31,5 +20,16 @@
     "appDir": "apps/citrea",
     "logoUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg",
     "iconUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg"
+  },
+  {
+    "slug": "monad",
+    "name": "Monad",
+    "description": "Move your assets to Monad faster than ever!",
+    "primaryColor": "#836ef9",
+    "secondaryColor": "#ffffff",
+    "basePath": "/monad/",
+    "appDir": "apps/monad",
+    "logoUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg",
+    "iconUrl": "https://files.availproject.org/fastbridge/monad/monad-favicon.svg"
   }
 ]

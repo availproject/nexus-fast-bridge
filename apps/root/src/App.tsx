@@ -538,9 +538,6 @@ export default function App() {
       <main className="chain-section">
         <div className="chain-grid">
           {chains.map((chain, index) => {
-            if (chain.name === "MegaETH") {
-              return null;
-            }
             return <ChainCard key={chain.slug} chain={chain} index={index} />;
           })}
         </div>
