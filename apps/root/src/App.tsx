@@ -10,7 +10,7 @@ import { SOCIAL_LINKS } from "./lib/constant";
 import SocialGlyph from "./components/social-glyph";
 
 const socialLinkClassName =
-  "inline-flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(32,34,36)] text-white transition-[transform,background-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_4px_12px_rgba(32,34,36,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)]";
+  "inline-flex h-11 w-11 items-center justify-center rounded-full bg-[rgb(32,34,36)] text-white transition-[transform,background-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_4px_12px_rgba(32,34,36,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)] md:h-8 md:w-8";
 
 export default function App() {
   const [mousePosition, setMousePosition] = useState({ x: -1000, y: -1000 });
@@ -90,36 +90,13 @@ export default function App() {
 
       {/* Footer */}
       <motion.footer
-        className="relative z-[1] border-t border-[var(--border-default)] bg-[var(--background-primary)] px-4 py-5 md:px-8 md:py-6"
+        className="relative z-[1] border-t border-[var(--border-default)] bg-[var(--background-primary)] px-4 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:px-8 md:py-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
       >
-        <div className="mx-auto grid w-full max-w-[1200px] gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
-          <motion.a
-            href="https://discord.com/invite/AvailProject"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mx-auto inline-flex items-center gap-2 rounded-[100px] border border-[var(--border-default)] bg-[var(--background-secondary)] px-[14px] py-2 text-sm font-medium text-[var(--foreground-primary)] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:border-[var(--blue-300)] hover:bg-[var(--background-tertiary)] hover:shadow-[0_4px_12px_hsla(214,92%,48%,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)] md:mx-0 md:justify-self-start"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.85 }}
-            whileHover={{
-              scale: 1.05,
-              y: -2,
-            }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <img
-              src="/Discord-Symbol-Black.png"
-              alt=""
-              aria-hidden="true"
-              className="h-4 w-4 object-contain"
-            />
-            <span>Discord</span>
-          </motion.a>
-
-          <div className="flex items-center justify-center gap-2 md:justify-self-center">
+        <div className="mx-auto grid w-full max-w-[460px] gap-4 rounded-2xl border border-[var(--border-default)] bg-[var(--background-secondary)] px-4 py-4 md:max-w-[1200px] md:grid-cols-[1fr_auto_1fr] md:items-center md:rounded-none md:border-0 md:bg-transparent md:px-0 md:py-0">
+          <div className="order-1 flex items-center justify-center gap-2 md:order-none md:justify-self-center">
             <motion.span
               className="text-sm text-[var(--foreground-muted)]"
               initial={{ opacity: 0 }}
@@ -132,7 +109,7 @@ export default function App() {
               href="https://availproject.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-[100px] border border-[var(--border-default)] bg-[var(--background-secondary)] px-[14px] py-2 text-sm font-medium text-[var(--foreground-primary)] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:border-[var(--blue-300)] hover:bg-[var(--background-tertiary)] hover:shadow-[0_4px_12px_hsla(214,92%,48%,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-[100px] border border-[var(--border-default)] bg-[var(--background-primary)] px-[14px] py-2 text-sm font-medium text-[var(--foreground-primary)] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:border-[var(--blue-300)] hover:bg-[var(--background-tertiary)] hover:shadow-[0_4px_12px_hsla(214,92%,48%,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)]"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.9 }}
@@ -147,30 +124,55 @@ export default function App() {
             </motion.a>
           </div>
 
-          <motion.div
-            className="mx-auto flex items-center gap-3 md:mx-0 md:justify-self-end"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1 }}
-          >
-            <span className="text-sm leading-5 font-medium text-[rgb(167,167,167)]">
-              Socials
-            </span>
-            <div className="flex items-center gap-2">
-              {SOCIAL_LINKS.map((social) => (
-                <a
-                  key={social.id}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className={socialLinkClassName}
-                >
-                  <SocialGlyph id={social.id} />
-                </a>
-              ))}
-            </div>
-          </motion.div>
+          <div className="order-2 flex flex-wrap items-center justify-center gap-3 md:order-none md:contents">
+            <motion.a
+              href="https://discord.com/invite/AvailProject"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-[100px] border border-[var(--border-default)] bg-[var(--background-primary)] px-[14px] py-2 text-sm font-medium text-[var(--foreground-primary)] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:border-[var(--blue-300)] hover:bg-[var(--background-tertiary)] hover:shadow-[0_4px_12px_hsla(214,92%,48%,0.15)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)] md:mx-0 md:justify-self-start"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.85 }}
+              whileHover={{
+                scale: 1.05,
+                y: -2,
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <img
+                src="/Discord-Symbol-Black.png"
+                alt=""
+                aria-hidden="true"
+                className="h-4 w-4 object-contain md:h-3.5 md:w-3.5"
+              />
+              <span>Discord</span>
+            </motion.a>
+
+            <motion.div
+              className="flex items-center gap-2 md:mx-0 md:justify-self-end md:gap-3"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1 }}
+            >
+              <span className="hidden text-sm leading-5 font-medium text-[rgb(167,167,167)] md:inline">
+                Socials
+              </span>
+              <div className="flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--background-primary)] px-2 py-1.5 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+                {SOCIAL_LINKS.map((social) => (
+                  <a
+                    key={social.id}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className={socialLinkClassName}
+                  >
+                    <SocialGlyph id={social.id} />
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </motion.footer>
     </div>
