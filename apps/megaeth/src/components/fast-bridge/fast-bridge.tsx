@@ -294,7 +294,7 @@ const FastBridge: FC<FastBridgeProps> = ({
             />
             <br />
             <EncryptedText
-              text="48h window. Don't fade anon."
+              text="Till Friday the 13th. Don't fade anon."
               revealDelayMs={50}
               flipDelayMs={25}
               encryptedClassName="text-primary"
