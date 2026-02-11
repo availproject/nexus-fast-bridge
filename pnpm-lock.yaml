@@ -133,8 +133,8 @@ importers:
   apps/megaeth:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#cca99c1a570a8598334e3e89453d39a27d70ede7
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: github:availproject/nexus-sdk#682390320b0a384b6348310de22fe7a2ad2999ef
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/682390320b0a384b6348310de22fe7a2ad2999ef(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -448,6 +448,17 @@ packages:
     resolution: {integrity: sha512-9q/yCljni37pkMr4sPrI3G4jqdIk074+iukc5aFJl7kmDCCsiJrbZ6zKxnES1Gwg+i9RcDZwvktl23puGslmvA==}
     hasBin: true
 
+  '@avail-project/ca-common@1.0.0':
+    resolution: {integrity: sha512-mKRWv/eT2jxZk7PGTeUOFy/QAqEzGHOyF7tVSJhB1wewlbKAZJ3+rXB7QaoyLAA3BY3P6aeMkOi48EfZxEExSA==}
+    peerDependencies:
+      '@cosmjs/proto-signing': ^0.34.0
+      '@cosmjs/stargate': ^0.34.0
+      axios: ^1.10.0
+      decimal.js: ^10.6.0
+      long: ^5.3.2
+      msgpackr: ^1.11.4
+      viem: ^2.31.7
+
   '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5':
     resolution: {tarball: https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5}
     version: 1.0.0-beta.17
@@ -459,6 +470,11 @@ packages:
       long: ^5.3.2
       msgpackr: ^1.11.4
       viem: ^2.31.7
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/682390320b0a384b6348310de22fe7a2ad2999ef':
+    resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/682390320b0a384b6348310de22fe7a2ad2999ef}
+    version: 1.0.0
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7':
     resolution: {tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7}
@@ -6385,6 +6401,24 @@ snapshots:
       package-manager-detector: 1.6.0
       tinyexec: 1.0.2
 
+  '@avail-project/ca-common@1.0.0(@cosmjs/proto-signing@0.34.1)(@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+    dependencies:
+      '@bufbuild/protobuf': 2.11.0
+      '@cosmjs/proto-signing': 0.34.1
+      '@cosmjs/stargate': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@improbable-eng/grpc-web': 0.15.0(google-protobuf@3.21.4)
+      '@improbable-eng/grpc-web-node-http-transport': 0.15.0(@improbable-eng/grpc-web@0.15.0(google-protobuf@3.21.4))
+      axios: 1.13.4
+      browser-headers: 0.4.1
+      decimal.js: 10.6.0
+      es-toolkit: 1.44.0
+      long: 5.3.2
+      msgpackr: 1.11.8
+      tslib: 2.8.1
+      viem: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+    transitivePeerDependencies:
+      - google-protobuf
+
   '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/91801f57abd83929bc4d9af0a39815b9038234b5(@cosmjs/proto-signing@0.34.1)(@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@bufbuild/protobuf': 2.11.0
@@ -6402,6 +6436,39 @@ snapshots:
       viem: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
     transitivePeerDependencies:
       - google-protobuf
+
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/682390320b0a384b6348310de22fe7a2ad2999ef(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+    dependencies:
+      '@avail-project/ca-common': 1.0.0(@cosmjs/proto-signing@0.34.1)(@cosmjs/stargate@0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10))(axios@1.13.4)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@1.11.8)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@cosmjs/proto-signing': 0.34.1
+      '@cosmjs/stargate': 0.34.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@metamask/safe-event-emitter': 3.1.2
+      '@opentelemetry/api-logs': 0.208.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 2.2.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.0)
+      '@starkware-industries/starkware-crypto-utils': 0.2.1
+      '@tronweb3/tronwallet-abstract-adapter': 1.1.10(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      axios: 1.13.4
+      buffer: 6.0.3
+      decimal.js: 10.6.0
+      es-toolkit: 1.44.0
+      it-ws: 6.1.5(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      long: 5.3.2
+      msgpackr: 1.11.8
+      posthog-js: 1.336.4
+      tronweb: 6.1.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      tslib: 2.8.1
+      viem: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - bufferutil
+      - debug
+      - encoding
+      - google-protobuf
+      - typescript
+      - utf-8-validate
+      - zod
 
   '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/cca99c1a570a8598334e3e89453d39a27d70ede7(@opentelemetry/api@1.9.0)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
