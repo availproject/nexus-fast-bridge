@@ -108,22 +108,22 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                       <Skeleton className="h-4 w-20" />
                     ) : (
                       <div className="flex flex-col items-end">
-                        {intent.destination.chainID ===
+                        {/* {intent.destination.chainID ===
                           SUPPORTED_CHAINS.MEGAETH && key !== "caGas" ? (
                           <p className="text-sm font-semibold text-primary">
                             0 Fees
                           </p>
-                        ) : (
-                          <p className="text-xs font-light text-primary">
-                            {nexusSDK?.utils?.formatTokenBalance(value, {
-                              symbol:
-                                intent.token?.symbol === "USDM"
-                                  ? "USDC"
-                                  : intent.token?.symbol,
-                              decimals: intent?.token?.decimals,
-                            })}
-                          </p>
-                        )}
+                        ) : ( */}
+                        <p className="text-xs font-light text-primary">
+                          {nexusSDK?.utils?.formatTokenBalance(value, {
+                            symbol:
+                              intent.token?.symbol === "USDM"
+                                ? "USDC"
+                                : intent.token?.symbol,
+                            decimals: intent?.token?.decimals,
+                          })}
+                        </p>
+                        {/* )} */}
                       </div>
                     )}
                   </div>

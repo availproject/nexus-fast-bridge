@@ -268,7 +268,7 @@ const FastBridge: FC<FastBridgeProps> = ({
   return (
     <div className="flex flex-col gap-y-4 w-full max-w-xl">
       <FluffeyMascot />
-      <div
+      {/* <div
         className="relative z-10 w-full text-primary py-2.5 px-4 flex items-center justify-between rounded-lg shadow-sm"
         style={{
           background:
@@ -303,7 +303,7 @@ const FastBridge: FC<FastBridgeProps> = ({
             />
           </p>
         </div>
-      </div>
+      </div> */}
       <Card className="w-full relative z-10">
         <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
           {showSdkDetails && (
