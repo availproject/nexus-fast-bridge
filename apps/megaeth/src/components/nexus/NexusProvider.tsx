@@ -22,6 +22,7 @@ import {
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
+import { TOKEN_IMAGES } from "../common";
 
 interface NexusContextType {
   nexusSDK: NexusSDK | null;
@@ -80,9 +81,18 @@ const NexusProvider = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsAndTokensResult | null>(
-      sdk.utils.getSupportedChains(
-        stableConfig.network === "testnet" ? 0 : undefined,
-      ) ?? null,
+      sdk.utils
+        .getSupportedChains(stableConfig.network === "testnet" ? 0 : undefined)
+        .map((chain) => ({
+          ...chain,
+          tokens: chain.tokens.map((token) => ({
+            ...token,
+            logo:
+              token.symbol.toUpperCase() === "USDM"
+                ? TOKEN_IMAGES.USDM
+                : token.logo,
+          })),
+        })) ?? null,
     );
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(
