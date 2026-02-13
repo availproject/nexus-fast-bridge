@@ -56,7 +56,7 @@ export default function App() {
             href="https://discord.com/invite/AvailProject"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 rounded-[100px] border border-white bg-transparent px-[14px] py-2 text-sm font-medium text-white no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 md:justify-self-start"
+            className="inline-flex min-h-11 items-center gap-2 border border-[#19191A] bg-transparent px-[14px] py-2 text-sm font-medium text-[#19191A] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 md:justify-self-start"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.85 }}
