@@ -5,7 +5,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../ui/accordion";
-import { type ReadableIntent } from "@avail-project/nexus-core";
+import {
+  SUPPORTED_TOKENS,
+  type ReadableIntent,
+} from "@avail-project/nexus-core";
 import { Skeleton } from "../../ui/skeleton";
 import { useNexus } from "../../nexus/NexusProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
@@ -13,13 +16,16 @@ import { MessageCircleQuestion } from "lucide-react";
 
 interface FeeBreakdownProps {
   intent: ReadableIntent;
+  tokenSymbol: SUPPORTED_TOKENS;
   isLoading?: boolean;
 }
 
-const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
+const FeeBreakdown: FC<FeeBreakdownProps> = ({
+  intent,
+  tokenSymbol,
+  isLoading = false,
+}) => {
   const { nexusSDK } = useNexus();
-  const feeSymbol =
-    intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
     {
@@ -64,7 +70,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
             ) : (
               <p className="font-light text-base min-w-max">
                 {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
-                  symbol: feeSymbol,
+                  symbol: tokenSymbol,
                   decimals: intent?.token?.decimals,
                 })}
               </p>
@@ -81,7 +87,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
         <AccordionContent>
           <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
             {feeRows.map(({ key, label, value, description }) => {
-              // if (Number.parseFloat(value ?? "0") <= 0) return null;
+              if (Number.parseFloat(value ?? "0") <= 0) return null;
               return (
                 <Tooltip key={key}>
                   <div className="flex items-center w-full justify-between">
@@ -96,7 +102,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     ) : (
                       <p className="text-sm font-light">
                         {nexusSDK?.utils?.formatTokenBalance(value, {
-                          symbol: feeSymbol,
+                          symbol: tokenSymbol,
                           decimals: intent?.token?.decimals,
                         })}
                       </p>

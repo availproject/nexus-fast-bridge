@@ -69,6 +69,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     fetchBridgableBalance,
   } = useNexus();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
+  const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
 
   const {
     inputs,
@@ -88,7 +89,20 @@ const FastBridge: FC<FastBridgeProps> = ({
     lastExplorerUrl,
     steps,
     status,
-    areInputsValid,
+    availableSources,
+    selectedSourceChains,
+    toggleSourceChain,
+    isSourceSelectionInsufficient,
+    isSourceSelectionReadyForAccept,
+    sourceCoverageState,
+    sourceCoveragePercent,
+    missingToProceed,
+    missingToSafety,
+    selectedTotal,
+    requiredTotal,
+    requiredSafetyTotal,
+    maxAvailableAmount,
+    isInputsValid,
   } = useBridge({
     prefill,
     network: network ?? "mainnet",
@@ -177,13 +191,14 @@ const FastBridge: FC<FastBridgeProps> = ({
       }
     },
     fetchBalance: fetchBridgableBalance,
+    maxAmount: 550,
+    isSourceMenuOpen,
   });
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ??
-    // @ts-expect-error - not possible
     intent?.current?.intent?.token.displaySymbol ??
     filteredBridgableBalance?.symbol;
 
@@ -241,15 +256,21 @@ const FastBridge: FC<FastBridgeProps> = ({
   }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
 
   useEffect(() => {
+    if (!intent.current?.intent) {
+      setIsSourceMenuOpen(false);
+    }
+  }, [intent.current?.intent]);
+
+  useEffect(() => {
     if (!isConnected || !isSdkReady) return;
-    if (!areInputsValid) return;
+    if (!isInputsValid) return;
     if (intent.current) return;
-    // if (loading) return; // Removed to allow "10" fetch even if "1" is loading
+    if (loading) return;
     if (autoIntentTriggered.current) return;
     autoIntentTriggered.current = true;
     void handleTransaction();
   }, [
-    areInputsValid,
+    isInputsValid,
     handleTransaction,
     intent,
     isConnected,
@@ -290,6 +311,8 @@ const FastBridge: FC<FastBridgeProps> = ({
           disabled={refreshing || !!prefill?.amount}
           inputs={inputs}
           showBalanceDetails={showSdkDetails}
+          maxAmount={550}
+          maxAvailableAmount={maxAvailableAmount}
         />
         <RecipientAddress
           address={inputs?.recipient}
@@ -323,6 +346,18 @@ const FastBridge: FC<FastBridgeProps> = ({
               intent={intent?.current?.intent}
               tokenSymbol={filteredBridgableBalance?.symbol as SUPPORTED_TOKENS}
               isLoading={refreshing}
+              availableSources={availableSources}
+              selectedSourceChains={selectedSourceChains}
+              onToggleSourceChain={toggleSourceChain}
+              onSourceMenuOpenChange={setIsSourceMenuOpen}
+              isSourceSelectionInsufficient={isSourceSelectionInsufficient}
+              sourceCoverageState={sourceCoverageState}
+              sourceCoveragePercent={sourceCoveragePercent}
+              missingToProceed={missingToProceed}
+              missingToSafety={missingToSafety}
+              selectedTotal={selectedTotal}
+              requiredTotal={requiredTotal}
+              requiredSafetyTotal={requiredSafetyTotal}
             />
 
             <div className="w-full flex items-start justify-between gap-x-4">
@@ -351,6 +386,7 @@ const FastBridge: FC<FastBridgeProps> = ({
             <FeeBreakdown
               intent={intent?.current?.intent}
               isLoading={refreshing}
+              tokenSymbol={filteredBridgableBalance?.symbol as SUPPORTED_TOKENS}
             />
           </>
         )}
@@ -366,7 +402,7 @@ const FastBridge: FC<FastBridgeProps> = ({
                 }
               } else if (!isSdkReady) {
                 toast.info("Please wait, SDK is still initializing...");
-              } else if (!areInputsValid) {
+              } else if (!isInputsValid) {
                 toast.error(
                   "Please enter a valid amount and recipient address",
                 );
@@ -390,7 +426,7 @@ const FastBridge: FC<FastBridgeProps> = ({
               ? "Connect Wallet"
               : !isSdkReady
                 ? "Initializing..."
-                : !areInputsValid
+                : !isInputsValid
                   ? "Bridge"
                   : status === "error" || txError
                     ? "Retry"
@@ -414,7 +450,7 @@ const FastBridge: FC<FastBridgeProps> = ({
                 <Button
                   onClick={startTransaction}
                   className="w-1/2"
-                  disabled={refreshing}
+                  disabled={refreshing || !isSourceSelectionReadyForAccept}
                 >
                   {refreshing ? "Refreshing..." : "Accept"}
                 </Button>

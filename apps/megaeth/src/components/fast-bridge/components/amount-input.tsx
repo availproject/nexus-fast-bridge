@@ -1,4 +1,12 @@
-import { type FC, Fragment, useEffect, useRef, useState } from "react";
+import {
+  type FC,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { SUPPORTED_CHAINS, type UserAsset } from "@avail-project/nexus-core";
@@ -12,6 +20,10 @@ import {
 } from "../../ui/accordion";
 import { SHORT_CHAIN_NAME } from "../../common";
 import { LoaderCircle } from "lucide-react";
+import {
+  clampAmountToMax,
+  normalizeMaxAmount,
+} from "../../common/utils/transaction-flow";
 
 interface AmountInputProps {
   amount?: string;
@@ -21,6 +33,8 @@ interface AmountInputProps {
   disabled?: boolean;
   inputs: FastBridgeState;
   showBalanceDetails?: boolean;
+  maxAmount?: string | number;
+  maxAvailableAmount?: string;
 }
 
 const AmountInput: FC<AmountInputProps> = ({
@@ -31,11 +45,36 @@ const AmountInput: FC<AmountInputProps> = ({
   disabled,
   inputs,
   showBalanceDetails = true,
+  maxAmount,
+  maxAvailableAmount,
 }) => {
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
   const [maxVal, setMaxVal] = useState("0");
+  const balanceSymbol =
+    (bridgableBalance as { displaySymbol?: string } | undefined)
+      ?.displaySymbol ?? bridgableBalance?.symbol;
+  const normalizedMaxAmount = useMemo(
+    () => normalizeMaxAmount(maxAmount),
+    [maxAmount],
+  );
+
+  const applyMaxCap = useCallback(
+    (value: string) => {
+      if (!nexusSDK || !inputs?.token || !inputs?.chain) {
+        return value;
+      }
+      return clampAmountToMax({
+        amount: value,
+        maxAmount: normalizedMaxAmount,
+        nexusSDK,
+        token: inputs.token,
+        chainId: inputs.chain,
+      });
+    },
+    [inputs?.chain, inputs?.token, nexusSDK, normalizedMaxAmount],
+  );
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -45,37 +84,48 @@ const AmountInput: FC<AmountInputProps> = ({
     }, 800);
   };
 
-  const getMaxVal = async () => {
+  const getMaxVal = useCallback(async () => {
+    if (maxAvailableAmount !== undefined) {
+      return applyMaxCap(maxAvailableAmount);
+    }
     if (!showBalanceDetails || !nexusSDK || !inputs) return;
-    const maxBalAvailable = await nexusSDK?.calculateMaxForBridge({
-      token: inputs?.token,
-      toChainId: inputs?.chain,
+    const maxBalAvailable = await nexusSDK.calculateMaxForBridge({
+      token: inputs.token,
+      toChainId: inputs.chain,
+      recipient: inputs.recipient,
     });
     if (!maxBalAvailable) return;
-    return maxBalAvailable.amount;
-  };
+    return applyMaxCap(maxBalAvailable.amount);
+  }, [applyMaxCap, inputs, maxAvailableAmount, nexusSDK, showBalanceDetails]);
 
   const onMaxClick = async () => {
-    if (!showBalanceDetails || !nexusSDK || !inputs) return;
-    const maxBalAvailable = await nexusSDK?.calculateMaxForBridge({
-      token: inputs?.token,
-      toChainId: inputs?.chain,
-      recipient: inputs?.recipient,
+    if (!showBalanceDetails) return;
+    if (maxAvailableAmount !== undefined) {
+      const capped = applyMaxCap(maxAvailableAmount);
+      onChange(capped);
+      onCommit?.(capped);
+      return;
+    }
+    if (!nexusSDK || !inputs) return;
+    const maxBalAvailable = await nexusSDK.calculateMaxForBridge({
+      token: inputs.token,
+      toChainId: inputs.chain,
+      recipient: inputs.recipient,
     });
     if (!maxBalAvailable) return;
-    onChange(maxBalAvailable.amount);
-    onCommit?.(maxBalAvailable.amount);
+    const capped = applyMaxCap(maxBalAvailable.amount);
+    onChange(capped);
+    onCommit?.(capped);
   };
 
   useEffect(() => {
-    const initMaxVal = async function () {
+    const initMaxVal = async () => {
       const v = await getMaxVal();
-      console.log("got max val in useeffect", v);
-      if (v) setMaxVal(v);
+      setMaxVal(v ?? "0");
     };
 
-    initMaxVal();
-  }, [nexusSDK, loading, inputs]);
+    void initMaxVal();
+  }, [getMaxVal, loading, maxAvailableAmount, nexusSDK, inputs]);
 
   useEffect(() => {
     return () => {
@@ -124,8 +174,7 @@ const AmountInput: FC<AmountInputProps> = ({
           {showBalanceDetails && bridgableBalance && (
             <p className="text-base font-medium min-w-max">
               {nexusSDK?.utils?.formatTokenBalance(maxVal, {
-                symbol:
-                  bridgableBalance?.displaySymbol ?? bridgableBalance?.symbol,
+                symbol: balanceSymbol,
                 decimals: bridgableBalance?.decimals,
               })}
             </p>

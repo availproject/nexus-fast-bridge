@@ -36,8 +36,6 @@ const ChainSelect: FC<ChainSelectProps> = ({
     return supportedChainsAndTokens.find((c) => c.id === selectedChain);
   }, [selectedChain, supportedChainsAndTokens]);
 
-  console.log("SELECTED CHAIN DATA:", selectedChainData);
-
   if (hidden) return null;
   return (
     <Select

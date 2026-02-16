@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,18 +16,20 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import useViewHistory from "./hooks/useViewHistory";
 import { TOKEN_IMAGES } from "../common";
+import { useEffect, useState } from "react";
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
+  const sourceList = sources ?? [];
   return (
     <div className="flex items-center">
-      {sources?.map((source, index) => (
+      {sourceList.map((source, index) => (
         <div
           key={source?.chain?.id}
           className={cn(
             "rounded-full transition-transform hover:scale-110",
             index > 0 && "-ml-2",
           )}
-          style={{ zIndex: sources.length - index }}
+          style={{ zIndex: sourceList.length - index }}
         >
           <img
             src={source?.chain?.logo}
@@ -103,22 +104,29 @@ const ViewHistory = ({
   className?: string;
   refreshNonce?: number;
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const {
     history,
+    loadError,
     displayedHistory,
     hasMore,
     isLoadingMore,
     getStatus,
     observerTarget,
+    refreshHistory,
     ITEMS_PER_PAGE,
     formatExpiryDate,
-    fetchIntentHistory,
   } = useViewHistory();
 
   useEffect(() => {
+    if (!viewAsModal || !isOpen) return;
+    void refreshHistory();
+  }, [isOpen, refreshHistory, viewAsModal]);
+
+  useEffect(() => {
     if (!refreshNonce) return;
-    void fetchIntentHistory();
-  }, [refreshNonce, fetchIntentHistory]);
+    void refreshHistory();
+  }, [refreshHistory, refreshNonce]);
 
   const renderHistoryContent = () => {
     if (displayedHistory.length > 0) {
@@ -227,6 +235,26 @@ const ViewHistory = ({
       );
     }
 
+    if (loadError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <Clock className="size-16 text-muted-foreground/30" />
+          <div className="text-center space-y-1">
+            <p className="text-base font-medium">Unable to load history</p>
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              void refreshHistory();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <Clock className="size-16 text-muted-foreground/30" />
@@ -249,7 +277,7 @@ const ViewHistory = ({
   }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"

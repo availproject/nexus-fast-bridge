@@ -1,6 +1,7 @@
 import { type RFF } from "@avail-project/nexus-core";
 import { useNexus } from "../../nexus/NexusProvider";
 import { useCallback, useEffect, useState } from "react";
+import { INTENT_HISTORY_REFRESH_EVENT } from "../history-events";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -17,6 +18,7 @@ function formatExpiryDate(timestamp: number) {
 const useViewHistory = () => {
   const { nexusSDK } = useNexus();
   const [history, setHistory] = useState<RFF[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [displayedHistory, setDisplayedHistory] = useState<RFF[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -29,26 +31,40 @@ const useViewHistory = () => {
 
   const fetchIntentHistory = useCallback(async () => {
     if (!nexusSDK) return;
-
     try {
-      const fetchedHistory = await nexusSDK.getMyIntents();
-      const normalizedHistory = fetchedHistory ?? [];
-
-      setHistory(normalizedHistory);
-      setDisplayedHistory(normalizedHistory.slice(0, ITEMS_PER_PAGE));
+      const nextHistory = (await nexusSDK.getMyIntents()) ?? [];
+      setLoadError(null);
+      setHistory(nextHistory);
+      const firstPage = nextHistory.slice(0, ITEMS_PER_PAGE);
+      setDisplayedHistory(firstPage);
       setPage(0);
-      setHasMore(normalizedHistory.length > ITEMS_PER_PAGE);
-      setIsLoadingMore(false);
+      setHasMore(nextHistory.length > ITEMS_PER_PAGE);
     } catch (error) {
       console.error("Error fetching intent history:", error);
+      setLoadError("Please check your wallet connection and try again.");
+      setHistory([]);
+      setDisplayedHistory([]);
+      setPage(0);
+      setHasMore(false);
     }
   }, [nexusSDK]);
 
   useEffect(() => {
-    if (!history) {
+    void fetchIntentHistory();
+  }, [fetchIntentHistory]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleRefresh = () => {
       void fetchIntentHistory();
-    }
-  }, [history, fetchIntentHistory]);
+    };
+
+    window.addEventListener(INTENT_HISTORY_REFRESH_EVENT, handleRefresh);
+    return () => {
+      window.removeEventListener(INTENT_HISTORY_REFRESH_EVENT, handleRefresh);
+    };
+  }, [fetchIntentHistory]);
 
   const loadMore = useCallback(() => {
     if (!history || isLoadingMore || !hasMore) return;
@@ -109,15 +125,16 @@ const useViewHistory = () => {
 
   return {
     history,
+    loadError,
     displayedHistory,
     page,
     hasMore,
     isLoadingMore,
     getStatus,
     observerTarget,
+    refreshHistory: fetchIntentHistory,
     ITEMS_PER_PAGE,
     formatExpiryDate,
-    fetchIntentHistory,
   };
 };
 
