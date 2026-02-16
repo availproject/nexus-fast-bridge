@@ -508,14 +508,20 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   useEffect(() => {
     if (type !== "bridge" || !connectedAddress) return;
+    const hasLockedPrefillRecipient = Boolean(
+      prefill?.recipient && prefill.recipient !== connectedAddress,
+    );
     const previousConnectedAddress = previousConnectedAddressRef.current;
     if (!previousConnectedAddress) {
       previousConnectedAddressRef.current = connectedAddress;
+      if (!hasLockedPrefillRecipient && !inputs?.recipient) {
+        dispatch({ type: "setInputs", payload: { recipient: connectedAddress } });
+      }
       return;
     }
     if (connectedAddress === previousConnectedAddress) return;
     previousConnectedAddressRef.current = connectedAddress;
-    if (prefill?.recipient) return;
+    if (hasLockedPrefillRecipient) return;
     if (!inputs?.recipient || inputs.recipient === previousConnectedAddress) {
       dispatch({ type: "setInputs", payload: { recipient: connectedAddress } });
     }
