@@ -47,6 +47,15 @@ export default function App() {
             <main className="flex flex-col flex-1 min-w-0 max-w-full px-4 py-12 gap-8">
               <HeroSection />
               <FastBridgeShowcase />
+              <div className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-[#19191A]/80">
+                <p>
+                  Avail Fast Bridge for MegaETH enables instant, secure bridging
+                  of USDC and ETH to the MegaETH network. Powered by Avail
+                  Nexus, it supports seamless transfers from Ethereum, Base,
+                  Optimism, Arbitrum, and more, ensuring liquidity is unified
+                  without complex wrapping.
+                </p>
+              </div>
             </main>
           </div>
         </div>

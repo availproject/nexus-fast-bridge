@@ -46,6 +46,14 @@ export default function App() {
             <main className="flex flex-col flex-1 min-w-0 max-w-full px-4 py-12 gap-8">
               <HeroSection />
               <FastBridgeShowcase />
+              <div className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-gray-600">
+                <p>
+                  Bridge USDC to Citrea instantly with Avail Fast Bridge.
+                  Leveraging Avail Nexus infrastructure, we provide a secure,
+                  decentralized path to move liquidity from 12+ chains including
+                  Ethereum and major L2s directly to Citrea.
+                </p>
+              </div>
             </main>
           </div>
         </div>
