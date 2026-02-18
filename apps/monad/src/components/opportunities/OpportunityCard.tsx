@@ -178,16 +178,12 @@ export function OpportunityCard({
             onOpenChange={setOpen}
             executeDeposit={(symbol, address, amount, chainId, userAddress) => {
               console.log(symbol, address, amount, chainId, userAddress);
-              const a = new Decimal(amount).mul(
-                Decimal.pow(10, token.decimals),
-              );
-              const amountInBigInt = BigInt(a.toFixed());
               const args = t.params!.map((p) => {
                 switch (p) {
                   case "$user":
                     return userAddress;
                   case "$amount": {
-                    return amountInBigInt;
+                    return amount;
                   }
                   default:
                     return p;
@@ -207,8 +203,7 @@ export function OpportunityCard({
                 gasPrice: "medium",
                 tokenApproval: {
                   token: token.address,
-                  amount:
-                    approval.amount === "input" ? amountInBigInt : maxUint256,
+                  amount: approval.amount === "input" ? amount : maxUint256,
                   spender: approval.spender as `0x${string}`,
                 },
               };
