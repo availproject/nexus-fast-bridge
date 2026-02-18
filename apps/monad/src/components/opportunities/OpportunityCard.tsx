@@ -203,7 +203,7 @@ export function OpportunityCard({
                 // set static gas limit to avoid issues and high gas fees
                 gasPrice: "medium",
                 tokenApproval: {
-                  token: token.symbol,
+                  token: token.address,
                   amount:
                     approval.amount === "input" ? amountInBigInt : maxUint256,
                   spender: approval.spender as `0x${string}`,
