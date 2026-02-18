@@ -127,6 +127,7 @@ interface OpportunityLogic {
 
 interface Opportunity {
     id: string;
+    logo?: string;
     tags?: string[];
     title: string;
     description: string;

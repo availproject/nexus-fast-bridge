@@ -14,12 +14,14 @@ import Positions from "@/pages/Positions";
 import NexusProvider from "@/components/nexus/NexusProvider";
 import { NexusInitializer } from "@/components/NexusInitializer";
 import config from "../config";
-import { NexusNetwork } from "@avail-project/nexus-core";
+import type { NexusNetwork } from "@avail-project/nexus-core";
 import { AnimatedTabs } from "@/components/ui/animated-tabs";
+import { useAccount } from "wagmi";
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { address } = useAccount();
 
   const tabs = [
     { id: "fastbridge", label: "Fast Bridge" },
@@ -59,7 +61,7 @@ function AppContent() {
           </div>
 
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Home connectedAddress={address!} />} />
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/positions" element={<Positions />} />
           </Routes>

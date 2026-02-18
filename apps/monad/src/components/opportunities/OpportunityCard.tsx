@@ -167,7 +167,7 @@ export function OpportunityCard({
               label: opportunity.label,
               gasTokenSymbol: "MON",
               explorerUrl: "https://monadvision.com",
-              depositTargetLogo: opportunity.banner,
+              depositTargetLogo: opportunity.logo || opportunity.banner,
             }}
             heading={title}
             embed={false}

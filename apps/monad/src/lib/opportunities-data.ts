@@ -5,6 +5,7 @@ import type { Opportunity } from "./types/opportunity";
 export const sampleOpportunities: Opportunity[] = [
     {
         id: "curvance-usdc-wmon-market",
+        logo: "https://files.availproject.org/fastbridge/monad/curvance-logomark.svg",
         tags: ["Curvance", "USDC", "WMON"],
         title: "Trade USDC to WMON on Curvance",
         description:
@@ -110,6 +111,7 @@ export const sampleOpportunities: Opportunity[] = [
     },
     {
         id: "neverland-usdc-supply",
+        logo: "https://files.availproject.org/fastbridge/monad/neverland-logomark.svg",
         tags: ["Neverland", "USDC"],
         title: "Earn yield on USDC on Neverland",
         description:
@@ -219,6 +221,7 @@ export const sampleOpportunities: Opportunity[] = [
     },
     {
         id: "neverland-usdt-supply",
+        logo: "https://files.availproject.org/fastbridge/monad/neverland-logomark.svg",
         tags: ["Neverland", "USDT0"],
         title: "Earn yield on USDT0 on Neverland",
         description:
@@ -328,6 +331,7 @@ export const sampleOpportunities: Opportunity[] = [
     },
     {
         id: "gearbox-usdc-edge-ultrayeild",
+        logo: "https://files.availproject.org/fastbridge/monad/gearbox-logomark.svg",
         tags: ["Gearbox", "USDC", "Ultrayeild"],
         title: "Earn ultrayeild on USDC on Gearbox",
         description:
