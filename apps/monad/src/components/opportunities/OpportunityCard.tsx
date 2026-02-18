@@ -10,7 +10,7 @@ import {
   // type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
 import { encodeFunctionData, maxUint256 } from "viem";
-import Decimal from "decimal.js";
+// import Decimal from "decimal.js";
 // import { useAccount } from "wagmi";
 import {
   // useEffect,
@@ -88,43 +88,21 @@ export function OpportunityCard({
             />
           </div>
         )}
-        {/* Protocol Icon */}
-        <div className="absolute top-3 right-4">
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}80 20%, ${primaryColor} 100%)`,
-            }}
-          >
-            {token.icon ? (
-              <img
-                src={token.icon}
-                alt={token.symbol}
-                className="w-10 h-10 rounded-full"
-              />
-            ) : (
-              <Zap className="w-8 h-8 text-white" />
-            )}
-          </div>
-        </div>
-
-        {/* APY Badge */}
-        {apy && (
-          <div className="absolute top-1 left-2">
-            <span
-              className="px-3 py-1 rounded-full text-xs font-bold text-white"
-              style={{ backgroundColor: primaryColor }}
-            >
-              {apy} APY
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Content */}
       <div className="p-5">
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mb-3">
+          {/* APY Badge */}
+          {apy && (
+            <span
+              className="px-3 py-1 rounded-full text-xs font-bold text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+              {apy} APY<sup>*</sup>
+            </span>
+          )}
           {tags?.slice(0, 3).map((tag) => (
             <span
               key={tag}
@@ -141,6 +119,13 @@ export function OpportunityCard({
 
         {/* Title */}
         <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+          {token.icon && (
+            <img
+              src={token.icon}
+              alt={token.symbol}
+              className="w-6 h-6 rounded-full"
+            />
+          )}
           {title}
         </h3>
 
