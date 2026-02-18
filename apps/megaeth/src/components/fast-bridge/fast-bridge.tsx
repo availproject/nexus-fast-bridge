@@ -112,7 +112,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: async () => {
+    onComplete: async (explorerUrl?: string) => {
       if (onComplete) {
         onComplete();
       }
@@ -171,10 +171,10 @@ const FastBridge: FC<FastBridgeProps> = ({
                   : intent.current?.intent?.token.symbol
                 : "Unknown"}
             </div>
-            {lastExplorerUrl ? (
+            {explorerUrl ? (
               <div className="mt-2 pt-2 border-t">
                 <a
-                  href={lastExplorerUrl}
+                  href={explorerUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="text-primary hover:underline font-medium"
