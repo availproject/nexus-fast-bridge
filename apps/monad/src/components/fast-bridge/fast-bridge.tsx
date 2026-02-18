@@ -111,7 +111,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: async (explorerUrl?: string) => {
+    onComplete: async () => {
       if (onComplete) {
         onComplete();
       }
@@ -161,18 +161,6 @@ const FastBridge: FC<FastBridgeProps> = ({
                 : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
-            {explorerUrl ? (
-              <div className="mt-2 pt-2 border-t">
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  View on Explorer
-                </a>
-              </div>
-            ) : null}
           </div>
         </div>,
         {
@@ -198,9 +186,7 @@ const FastBridge: FC<FastBridgeProps> = ({
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
   const receiveSymbol =
-    intent?.current?.intent?.token.symbol ??
-    intent?.current?.intent?.token.displaySymbol ??
-    filteredBridgableBalance?.symbol;
+    intent?.current?.intent?.token.symbol ?? filteredBridgableBalance?.symbol;
 
   const amountValue = useMemo(() => {
     if (!inputs?.amount) return null;
