@@ -89,7 +89,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     fetchBalance: fetchBridgableBalance,
   });
   return (
-    <Card className="w-full max-w-xl">
+    <Card className="w-full max-w-xl mx-auto">
       <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
         <ViewHistory className="absolute -top-2 right-3" />
         <ChainSelect

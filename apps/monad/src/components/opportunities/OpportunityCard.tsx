@@ -210,19 +210,20 @@ export function OpportunityCard({
                 },
               };
             }}
-          ></NexusDeposit>
-          <button
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
-            style={{
-              backgroundColor: primaryColor,
-              color: config.secondaryColor,
-            }}
-            onClick={() => setOpen(true)}
           >
-            <span className="hidden sm:inline">{proceedText}</span>
-            <span className="sm:hidden">Invest</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <button
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
+              style={{
+                backgroundColor: primaryColor,
+                color: config.secondaryColor,
+              }}
+              onClick={() => setOpen(true)}
+            >
+              <span className="hidden sm:inline">{proceedText}</span>
+              <span className="sm:hidden">Invest</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </NexusDeposit>
           {/* </PreviewPanel> */}
         </div>
       </div>

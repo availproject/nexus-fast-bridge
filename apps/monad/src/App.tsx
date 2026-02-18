@@ -40,9 +40,9 @@ function AppContent() {
   };
 
   return (
-    <div className="font-sans min-h-screen overflow-x-hidden w-full">
+    <div className="font-sans min-h-screen overflow-x-hidden w-full flex flex-col">
       <Navbar />
-      <div className="min-h-full w-full max-w-full flex gap-4 md:gap-16 overflow-x-hidden relative">
+      <div className="min-h-full flex-grow w-full max-w-full flex gap-4 md:gap-16 overflow-x-hidden relative">
         <div
           className="absolute inset-0 z-0"
           style={{
