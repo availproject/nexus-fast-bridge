@@ -18,5 +18,7 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@nexus-elements": "https://elements.nexus.availproject.org/r/{name}.json"
+  }
 }
