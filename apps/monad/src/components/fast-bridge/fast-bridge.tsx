@@ -101,13 +101,13 @@ const FastBridge: FC<FastBridgeProps> = ({
             })
           }
           label="To"
-          disabled={!!prefill?.chainId}
+          // disabled={!!prefill?.chainId}
         />
         <TokenSelect
           selectedChain={inputs?.chain}
           selectedToken={inputs?.token}
           handleTokenSelect={(token) => setInputs({ ...inputs, token })}
-          disabled={!!prefill?.token}
+          // disabled={!!prefill?.token}
         />
         <AmountInput
           amount={inputs?.amount}
