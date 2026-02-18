@@ -5,6 +5,8 @@ import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
 import { Button } from "../ui/button";
 import { LoaderPinwheel, X } from "lucide-react";
+import { useModal } from "connectkit";
+import { useAccount } from "wagmi";
 import { useNexus } from "../nexus/NexusProvider";
 import AmountInput from "./components/amount-input";
 import FeeBreakdown from "./components/fee-breakdown";
@@ -48,6 +50,9 @@ const FastBridge: FC<FastBridgeProps> = ({
   onError,
   prefill,
 }) => {
+  const { setOpen: setConnectModalOpen } = useModal();
+  const { isConnected } = useAccount();
+
   const {
     nexusSDK,
     intent,
@@ -164,17 +169,26 @@ const FastBridge: FC<FastBridgeProps> = ({
 
         {!intent.current && (
           <Button
-            onClick={handleTransaction}
+            onClick={() => {
+              if (!isConnected) {
+                setConnectModalOpen(true);
+              } else {
+                handleTransaction();
+              }
+            }}
             disabled={
-              !inputs?.amount ||
-              !inputs?.recipient ||
-              !inputs?.chain ||
-              !inputs?.token ||
-              loading
+              isConnected &&
+              (!inputs?.amount ||
+                !inputs?.recipient ||
+                !inputs?.chain ||
+                !inputs?.token ||
+                loading)
             }
           >
             {loading ? (
               <LoaderPinwheel className="animate-spin size-5" />
+            ) : !isConnected ? (
+              "Connect Wallet"
             ) : (
               "Bridge"
             )}
