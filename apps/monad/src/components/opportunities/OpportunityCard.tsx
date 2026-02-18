@@ -7,12 +7,15 @@ import config from "../../../config";
 import NexusDeposit from "../deposit/nexus-deposit";
 import {
   SUPPORTED_CHAINS,
-  type SUPPORTED_TOKENS,
+  // type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
 import { encodeFunctionData, maxUint256 } from "viem";
 import Decimal from "decimal.js";
-import { useAccount } from "wagmi";
-import { useEffect, useState } from "react";
+// import { useAccount } from "wagmi";
+import {
+  // useEffect,
+  useState,
+} from "react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -26,8 +29,8 @@ export function OpportunityCard({
   const { title, description, tags, apy, proceedText, token } = opportunity;
   const protocol = tags?.[0] || "DeFi";
   const chain = config.chainName;
-  const { address: selectedAddress } = useAccount();
-  const [gasPrice, setGasPrice] = useState<bigint>(0n);
+  // const { address: selectedAddress } = useAccount();
+  // const [gasPrice, setGasPrice] = useState<bigint>(0n);
   const [open, setOpen] = useState(false);
 
   // Generate gradient based on primary color
@@ -35,34 +38,34 @@ export function OpportunityCard({
   const t = opportunity.logic.logics[0].postBridge!.transaction!;
   const approval = opportunity.logic.logics[0].postBridge!.approval!;
 
-  useEffect(() => {
-    let gasPriceIndex = 1000;
-    const fetchGasPrice = async () => {
-      const gasPrice = BigInt(
-        (
-          await (
-            await fetch(config.chainRpcUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                jsonrpc: "2.0",
-                method: "eth_gasPrice",
-                params: [],
-                id: ++gasPriceIndex,
-              }),
-            })
-          ).json()
-        ).result,
-      );
-      setGasPrice(gasPrice);
-    };
-    fetchGasPrice();
-    setInterval(() => {
-      fetchGasPrice();
-    }, 3000);
-  }, []);
+  // useEffect(() => {
+  //   let gasPriceIndex = 1000;
+  //   const fetchGasPrice = async () => {
+  //     const gasPrice = BigInt(
+  //       (
+  //         await (
+  //           await fetch(config.chainRpcUrl, {
+  //             method: "POST",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //             },
+  //             body: JSON.stringify({
+  //               jsonrpc: "2.0",
+  //               method: "eth_gasPrice",
+  //               params: [],
+  //               id: ++gasPriceIndex,
+  //             }),
+  //           })
+  //         ).json()
+  //       ).result,
+  //     );
+  //     setGasPrice(gasPrice);
+  //   };
+  //   fetchGasPrice();
+  //   setInterval(() => {
+  //     fetchGasPrice();
+  //   }, 3000);
+  // }, []);
 
   return (
     <div
