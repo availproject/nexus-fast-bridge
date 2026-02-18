@@ -1,161 +1,59 @@
 "use client";
 import * as React from "react";
-import type { EthereumProvider } from "@avail-project/nexus-core";
+import { LoaderPinwheel } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useNexus } from "./nexus/NexusProvider";
-import { toast } from "sonner";
+import config from "../../config";
 
 interface PreviewPanelProps {
   children: React.ReactNode;
 }
 
+/**
+ * PreviewPanel - UI wrapper that displays loading state or children.
+ * Nexus initialization is handled by NexusInitializer at App level.
+ * This component only checks if Nexus is ready, no local state that resets on remount.
+ */
 export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
-  const [loading, setLoading] = React.useState(false);
-  const [initError, setInitError] = React.useState<string | null>(null);
-  const { status, connector, address } = useAccount();
-  const { nexusSDK, handleInit, deinitializeNexus, setIntent, setAllowance } =
-    useNexus();
-  const prevAddressRef = React.useRef<string | undefined>(address);
+  const { status } = useAccount();
+  const { nexusSDK, loading: nexusLoading } = useNexus();
 
-  const initializeNexus = React.useCallback(async () => {
-    if (loading || nexusSDK) return; // Prevent multiple calls
-
-    console.log("[Nexus Init] Starting initialization...");
-    console.log("[Nexus Init] Connector:", connector);
-    console.log("[Nexus Init] Connector name:", connector?.name);
-    console.log("[Nexus Init] Connector type:", connector?.type);
-
-    setLoading(true);
-    setInitError(null);
-
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("Nexus initialization timed out after 30 seconds"));
-      }, 30000); // 30 second timeout
-    });
-
-    try {
-      if (!connector) {
-        throw new Error("No connector available");
-      }
-
-      console.log("[Nexus Init] Getting provider from connector...");
-      const provider = (await connector.getProvider()) as EthereumProvider;
-
-      console.log("[Nexus Init] Provider:", provider);
-      console.log("[Nexus Init] Provider type:", typeof provider);
-      console.log(
-        "[Nexus Init] Provider has request:",
-        typeof provider?.request === "function",
-      );
-
-      if (!provider) {
-        throw new Error("No provider available from connector");
-      }
-
-      if (typeof provider.request !== "function") {
-        throw new Error(
-          "Provider does not have a request method (not EIP-1193 compliant)",
-        );
-      }
-
-      console.log("[Nexus Init] Provider validated, calling handleInit...");
-
-      // Race between initialization and timeout
-      await Promise.race([handleInit(provider), timeoutPromise]);
-
-      console.log("[Nexus Init] Initialization successful!");
-    } catch (error) {
-      console.error("[Nexus Init] Initialization failed:", error);
-      const errorMessage = (error as Error)?.message || "Unknown error";
-      setInitError(errorMessage);
-      toast.error(`Failed to initialize Nexus: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [connector, handleInit, loading, nexusSDK]);
-
-  // Handle wallet disconnection - clear Nexus state and balances
-  React.useEffect(() => {
-    if (status === "disconnected" && nexusSDK) {
-      deinitializeNexus();
-      setIntent(null);
-      setAllowance(null);
-      prevAddressRef.current = undefined;
-    }
-    if (status === "disconnected") {
-      setInitError(null);
-    }
-  }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
-
-  // Handle account change - reinitialize Nexus when account address changes
-  React.useEffect(() => {
-    if (
-      status === "connected" &&
-      address &&
-      address !== prevAddressRef.current
-    ) {
-      const previousAddress = prevAddressRef.current;
-      const currentAddress = address;
-      prevAddressRef.current = address;
-
-      // If account changed and Nexus is initialized, reinitialize with new account
-      if (nexusSDK && previousAddress !== undefined) {
-        // Account changed - deinitialize and reinitialize
-        deinitializeNexus().then(() => {
-          // Small delay to ensure deinit completes, then reinitialize
-          setTimeout(() => {
-            // Check if still connected and address hasn't changed again
-            if (
-              currentAddress === prevAddressRef.current &&
-              !loading &&
-              !initError
-            ) {
-              initializeNexus();
-            }
-          }, 100);
-        });
-      }
-    } else if (status === "connected" && address && !prevAddressRef.current) {
-      // First connection - set the address
-      prevAddressRef.current = address;
-    }
-  }, [
-    status,
-    nexusSDK,
-    address,
-    initError,
-    initializeNexus,
-    deinitializeNexus,
-    loading,
-  ]);
-
-  // Auto-initialize Nexus when wallet is connected and address is available
-  React.useEffect(() => {
-    if (
-      status === "connected" &&
-      !nexusSDK &&
-      !loading &&
-      !initError &&
-      address &&
-      connector
-    ) {
-      initializeNexus();
-    }
-  }, [
-    status,
-    nexusSDK,
-    initError,
-    address,
-    connector,
-    initializeNexus,
-    loading,
-  ]);
+  // Only show loading if wallet is connected but Nexus is still loading
+  // Don't show loading if nexusSDK already exists (already initialized)
+  const showLoading = status === "connected" && !nexusSDK && nexusLoading;
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] relative">
-      {children}
+    <div className="flex items-center justify-center relative">
+      {showLoading ? (
+        <div className="flex flex-col items-center gap-2">
+          <LoaderPinwheel className="size-6 animate-spin" />
+          <span>Initializing Avail Nexus...</span>
+          <div>
+            <span>
+              You may need to sign a message in your wallet to continue.
+            </span>
+          </div>
+        </div>
+      ) : status === "connected" && nexusSDK ? (
+        <>{children}</>
+      ) : status !== "connected" ? (
+        <div className="text-center px-4">
+          <img
+            src={config.chainGifUrl}
+            alt={config.chainGifAlt}
+            className="mb-4 mx-auto rounded-lg w-full max-w-[200px] sm:max-w-[300px] md:max-w-[400px] h-auto"
+          />
+          <div
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 px-2"
+            style={{ lineHeight: "1.2", marginTop: "4rem" }}
+          >
+            {config.heroText}
+          </div>
+          <p className="text-sm sm:text-base text-muted-foreground mb-4 px-2">
+            Please connect your wallet to use the fast bridge.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

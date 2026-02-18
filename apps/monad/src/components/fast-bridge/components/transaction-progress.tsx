@@ -99,11 +99,11 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
     const displaySteps: DisplayStep[] = milestones.map((label, idx) => ({
       id: `M${idx}`,
       label,
-      completed: idx === 0 ? timer > 0 : percent >= thresholds[idx],
+      completed: percent >= thresholds[idx],
     }));
     const current = displaySteps.findIndex((st) => !st.completed);
     return { effectiveSteps: displaySteps, currentIndex: current };
-  }, [percent, timer, completed]);
+  }, [percent, opText, completed]);
 
   return (
     <div className="w-full flex flex-col items-center">

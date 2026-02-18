@@ -23,8 +23,6 @@ const SourceBreakdown = ({
   isLoading = false,
 }: SourceBreakdownProps) => {
   const { nexusSDK } = useNexus();
-  const spendSymbol =
-    intent?.token.displaySymbol ?? intent?.token.symbol ?? tokenSymbol;
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="sources">
@@ -48,7 +46,7 @@ const SourceBreakdown = ({
                 <div className="flex flex-col items-start gap-y-1 min-w-fit">
                   <p className="text-base font-light">You Spend</p>
                   <p className="text-sm font-light">
-                    {`${spendSymbol.toUpperCase()} on ${
+                    {`${intent?.token.symbol.toUpperCase()} on ${
                       intent?.sources?.length
                     } ${intent?.sources?.length > 1 ? "chains" : "chain"}`}
                   </p>
@@ -57,7 +55,7 @@ const SourceBreakdown = ({
                 <div className="flex flex-col items-end gap-y-1 min-w-fit">
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(intent?.sourcesTotal, {
-                      symbol: spendSymbol,
+                      symbol: tokenSymbol,
                       decimals: intent?.token?.decimals,
                     })}
                   </p>
@@ -94,7 +92,7 @@ const SourceBreakdown = ({
 
                   <p className="text-base font-light">
                     {nexusSDK?.utils?.formatTokenBalance(source.amount, {
-                      symbol: spendSymbol,
+                      symbol: tokenSymbol,
                       decimals: intent?.token?.decimals,
                     })}
                   </p>

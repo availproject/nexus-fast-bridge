@@ -1,0 +1,28 @@
+{
+  "rewrites": [
+    {
+      "source": "/monad",
+      "destination": "/monad/index.html"
+    },
+    {
+      "source": "/monad/:path((?!.*\\.).*)",
+      "destination": "/monad/index.html"
+    },
+    {
+      "source": "/citrea",
+      "destination": "/citrea/index.html"
+    },
+    {
+      "source": "/citrea/:path((?!.*\\.).*)",
+      "destination": "/citrea/index.html"
+    },
+    {
+      "source": "/megaeth",
+      "destination": "/megaeth/index.html"
+    },
+    {
+      "source": "/megaeth/:path((?!.*\\.).*)",
+      "destination": "/megaeth/index.html"
+    }
+  ]
+}

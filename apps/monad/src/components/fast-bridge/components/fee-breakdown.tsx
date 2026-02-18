@@ -18,8 +18,6 @@ interface FeeBreakdownProps {
 
 const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
   const { nexusSDK } = useNexus();
-  const feeSymbol =
-    intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
     {
@@ -64,7 +62,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
             ) : (
               <p className="font-light text-base min-w-max">
                 {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
-                  symbol: feeSymbol,
+                  symbol: intent.token?.symbol,
                   decimals: intent?.token?.decimals,
                 })}
               </p>
@@ -81,7 +79,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
         <AccordionContent>
           <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
             {feeRows.map(({ key, label, value, description }) => {
-              // if (Number.parseFloat(value ?? "0") <= 0) return null;
+              if (Number.parseFloat(value ?? "0") <= 0) return null;
               return (
                 <Tooltip key={key}>
                   <div className="flex items-center w-full justify-between">
@@ -96,7 +94,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     ) : (
                       <p className="text-sm font-light">
                         {nexusSDK?.utils?.formatTokenBalance(value, {
-                          symbol: feeSymbol,
+                          symbol: intent.token?.symbol,
                           decimals: intent?.token?.decimals,
                         })}
                       </p>

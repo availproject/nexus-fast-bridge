@@ -5,7 +5,7 @@ import {
   NexusSDK,
   type OnAllowanceHookData,
   type OnIntentHookData,
-  // SUPPORTED_CHAINS,
+  SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
   type UserAsset,
@@ -26,9 +26,6 @@ import {
   useTransactionSteps,
   type TransactionStatus,
 } from "../../common";
-import config from "../../../../config";
-import { trackBridgeSubmit } from "../../../lib/posthog";
-import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -37,15 +34,9 @@ export interface FastBridgeState {
   recipient?: `0x${string}`;
 }
 
-const ALLOWED_TOKENS = new Set([
-  "USDC",
-  "USDT",
-  "USDM",
-]) as Set<SUPPORTED_TOKENS>;
-
 interface UseBridgeProps {
   network: NexusNetwork;
-  connectedAddress?: Address;
+  connectedAddress: Address;
   nexusSDK: NexusSDK | null;
   intent: RefObject<OnIntentHookData | null>;
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -73,46 +64,29 @@ type Action =
   | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
-  connectedAddress?: Address,
+  network: NexusNetwork,
+  connectedAddress: Address,
   prefill?: {
     token: string;
     chainId: number;
     amount?: string;
     recipient?: Address;
-  },
+  }
 ): FastBridgeState => {
-  const validToken =
-    prefill?.token &&
-      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
-      ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
-      : config.nexusPrimaryToken || "USDC";
-
-  const validAmount = prefill?.amount
-    ? (() => {
-      const sanitized = prefill.amount.trim();
-      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-        return undefined;
-      const num = Number.parseFloat(sanitized);
-      return Number.isNaN(num) || num <= 0 || num > 1e9
-        ? undefined
-        : sanitized;
-    })()
-    : undefined;
-
-  const validRecipient =
-    prefill?.recipient && isAddress(prefill.recipient)
-      ? (prefill.recipient as `0x${string}`)
-      : connectedAddress;
-
   return {
-    chain: config.chainId as SUPPORTED_CHAINS_IDS,
-    token: validToken as SUPPORTED_TOKENS,
-    amount: validAmount,
-    recipient: validRecipient,
+    chain:
+      (prefill?.chainId as SUPPORTED_CHAINS_IDS) ??
+      (network === "testnet"
+        ? SUPPORTED_CHAINS.SEPOLIA
+        : SUPPORTED_CHAINS.ETHEREUM),
+    token: (prefill?.token as SUPPORTED_TOKENS) ?? "USDC",
+    amount: prefill?.amount ?? undefined,
+    recipient: (prefill?.recipient as `0x${string}`) ?? connectedAddress,
   };
 };
 
 const useBridge = ({
+  network,
   connectedAddress,
   nexusSDK,
   intent,
@@ -126,7 +100,7 @@ const useBridge = ({
 }: UseBridgeProps) => {
   const handleNexusError = useNexusError();
   const initialState: BridgeState = {
-    inputs: buildInitialInputs(connectedAddress, prefill),
+    inputs: buildInitialInputs(network, connectedAddress, prefill),
     status: "idle",
   };
   function reducer(state: BridgeState, action: Action): BridgeState {
@@ -136,7 +110,7 @@ const useBridge = ({
       case "resetInputs":
         return {
           ...state,
-          inputs: buildInitialInputs(connectedAddress, prefill),
+          inputs: buildInitialInputs(network, connectedAddress, prefill),
         };
       case "setStatus":
         return { ...state, status: action.payload };
@@ -156,7 +130,6 @@ const useBridge = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
-  const txnIdRef = useRef(0);
   const {
     steps,
     onStepsList,
@@ -183,25 +156,9 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
-
-    if (Number(inputs.amount) > 550) {
-      setTxError("Amount exceeds maximum limit of 550");
-      return;
-    }
-    const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
-    setLastExplorerUrl("");
-
-    // Track bridge submit event with PostHog
-    trackBridgeSubmit({
-      chain: inputs.chain,
-      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
-      tokenSymbol: inputs.token,
-      amount: inputs.amount,
-      fast_bridge: 'monad',
-    });
 
     try {
       if (!nexusSDK) {
@@ -210,35 +167,27 @@ const useBridge = ({
       const formattedAmount = nexusSDK.convertTokenReadableAmountToBigInt(
         inputs?.amount,
         inputs?.token,
-        inputs?.chain,
+        inputs?.chain
       );
-      setLastExplorerUrl("");
       const bridgeTxn = await nexusSDK.bridge(
         {
           token: inputs?.token,
           amount: formattedAmount,
           toChainId: inputs?.chain,
-          recipient: inputs?.recipient,
+          recipient: inputs?.recipient ?? connectedAddress,
         },
         {
           onEvent: (event) => {
-            if (currentTxnId !== txnIdRef.current) return;
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
               onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-              console.log("STEP_EVENT", event);
-              if (event.args.type === "INTENT_HASH_SIGNED") {
-                stopwatch.start();
-              }
               onStepComplete(event.args);
             }
           },
-        },
+        }
       );
-      if (currentTxnId !== txnIdRef.current) return;
-
       if (!bridgeTxn) {
         throw new Error("Transaction rejected by user");
       }
@@ -247,7 +196,6 @@ const useBridge = ({
         await onSuccess();
       }
     } catch (error) {
-      if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
       intent.current?.deny();
       intent.current = null;
@@ -307,17 +255,7 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (loading || txError || !areInputsValid) return;
-
-    // Validate amount before proceeding
-    if (inputs?.amount) {
-      const amountStr = inputs.amount.trim();
-      if (!amountStr) return;
-
-      const amount = Number.parseFloat(amountStr);
-      if (Number.isNaN(amount) || amount <= 0) return;
-    }
-
+    if (!intent.current || loading || txError || !areInputsValid) return;
     commitLockRef.current = true;
     try {
       await handleTransaction();
@@ -328,11 +266,11 @@ const useBridge = ({
 
   usePolling(Boolean(intent.current) && !isDialogOpen, refreshIntent, 15000);
 
-  const stopwatch = useStopwatch({ intervalMs: 100 });
+  const stopwatch = useStopwatch({ running: isDialogOpen, intervalMs: 100 });
 
   useEffect(() => {
     if (intent.current) {
-      // intent.current.deny();
+      intent.current.deny();
       intent.current = null;
     }
   }, [inputs]);
@@ -341,26 +279,14 @@ const useBridge = ({
     if (!isDialogOpen) {
       stopwatch.stop();
       stopwatch.reset();
-      // Reset all transaction state when dialog closes
-      if (state.status === "success" || state.status === "error") {
-        resetSteps();
-        setLastExplorerUrl("");
-        dispatch({ type: "setStatus", payload: "idle" });
-      }
     }
-  }, [isDialogOpen, stopwatch, state.status]);
+  }, [isDialogOpen, stopwatch]);
 
   useEffect(() => {
     if (txError) {
       setTxError(null);
     }
   }, [inputs]);
-
-  useEffect(() => {
-    if (connectedAddress && !inputs?.recipient) {
-      setInputs({ recipient: connectedAddress as `0x${string}` });
-    }
-  }, [connectedAddress, inputs?.recipient]);
 
   return {
     inputs,
@@ -380,7 +306,6 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     status: state.status,
-    areInputsValid,
   };
 };
 
