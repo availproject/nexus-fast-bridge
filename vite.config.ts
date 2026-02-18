@@ -10,8 +10,6 @@ import { getConfig } from "./getConfig";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_") as unknown as AppEnv;
 
-  console.log(env)
-
   const config = getConfig(env)
 
   const manifestContent = {

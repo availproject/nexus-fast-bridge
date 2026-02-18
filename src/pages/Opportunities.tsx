@@ -2,16 +2,10 @@
 
 import { OpportunityList } from "@/components/opportunities/OpportunityList";
 import { sampleOpportunities } from "@/lib/opportunities-data";
-import type { Opportunity } from "@/lib/types/opportunity";
 
 export default function Opportunities() {
-  const handleOpportunityClick = (opportunity: Opportunity) => {
-    console.log("Clicked opportunity:", opportunity.id);
-    // TODO: Navigate to opportunity detail or open modal
-  };
-
   return (
-    <div className="flex-1 w-full relative z-10">
+    <div className="flex-1 w-full max-w-7xl mx-auto relative z-10">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
@@ -28,11 +22,7 @@ export default function Opportunities() {
       </div>
 
       {/* Opportunities List */}
-      <OpportunityList
-        opportunities={sampleOpportunities}
-        onOpportunityClick={handleOpportunityClick}
-        layout="list"
-      />
+      <OpportunityList opportunities={sampleOpportunities} />
 
       {/* Powered by footer */}
       <div className="flex w-full items-center gap-x-1 justify-center mt-12">

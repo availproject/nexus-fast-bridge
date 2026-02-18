@@ -1,4 +1,4 @@
-import * as React from "react";
+import { type FC, useMemo } from "react";
 import { Label } from "../../ui/label";
 import {
   Select,
@@ -17,11 +17,11 @@ interface ChainSelectProps {
   disabled?: boolean;
   hidden?: boolean;
   className?: string;
-  label?: string | React.ReactNode;
+  label?: string;
   handleSelect: (chainId: SUPPORTED_CHAINS_IDS) => void;
 }
 
-const ChainSelect: React.FC<ChainSelectProps> = ({
+const ChainSelect: FC<ChainSelectProps> = ({
   selectedChain,
   disabled,
   hidden = false,
@@ -31,7 +31,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
 }) => {
   const { supportedChainsAndTokens } = useNexus();
 
-  const selectedChainData = React.useMemo(() => {
+  const selectedChainData = useMemo(() => {
     if (!supportedChainsAndTokens) return null;
     return supportedChainsAndTokens.find((c) => c.id === selectedChain);
   }, [selectedChain, supportedChainsAndTokens]);
@@ -46,15 +46,11 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
         }
       }}
     >
-      <div className="flex flex-col items-start gap-y-1 w-full">
-        {label && (
-          <Label className="text-sm font-light">
-            {label}
-          </Label>
-        )}
+      <div className="flex flex-col items-start gap-y-3 w-full">
+        {label && <Label className="text-sm font-semibold">{label}</Label>}
         <SelectTrigger
           disabled={disabled}
-          className="text-base font-medium w-full"
+          className="h-12! w-full text-base font-light"
         >
           <SelectValue>
             {selectedChainData && (
@@ -68,7 +64,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
                   height={24}
                   className="rounded-full"
                 />
-                <p className="text-primary text-base font-medium">
+                <p className="text-primary test-sm">
                   {selectedChainData?.name}
                 </p>
               </div>
@@ -78,11 +74,11 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
       </div>
 
       <SelectContent>
-        <SelectGroup>
+        <SelectGroup className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-scroll no-scrollbar">
           {supportedChainsAndTokens?.map((chain) => {
             return (
               <SelectItem key={chain.id} value={String(chain.id)}>
-                <div className="flex items-center gap-x-2 my-2">
+                <div className="flex items-center gap-x-2 my-1">
                   <img
                     src={chain.logo}
                     alt={chain?.name}
@@ -90,9 +86,7 @@ const ChainSelect: React.FC<ChainSelectProps> = ({
                     height={24}
                     className="rounded-full"
                   />
-                  <p className="text-primary text-base font-medium">
-                    {chain.name}
-                  </p>
+                  <p className="text-primary test-sm">{chain.name}</p>
                 </div>
               </SelectItem>
             );

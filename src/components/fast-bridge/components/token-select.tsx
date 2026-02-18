@@ -1,5 +1,4 @@
 import {
-  TOKEN_METADATA,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
@@ -34,9 +33,9 @@ const TokenSelect = ({
 }: TokenSelectProps) => {
   const { supportedChainsAndTokens } = useNexus();
   const tokenData = useMemo(() => {
-    return supportedChainsAndTokens?.filter(
-      (chain) => chain.id === selectedChain,
-    )[0]?.tokens;
+    return supportedChainsAndTokens
+      ?.filter((chain) => chain.id === selectedChain)
+      .flatMap((chain) => chain.tokens);
   }, [selectedChain, supportedChainsAndTokens]);
 
   const selectedTokenData = tokenData?.find((token) => {
@@ -54,21 +53,19 @@ const TokenSelect = ({
         {label && <Label className="text-sm font-semibold">{label}</Label>}
         <SelectTrigger
           disabled={disabled}
-          className="text-base font-light w-full"
+          className="w-full h-12! text-base font-light"
         >
           <SelectValue placeholder="Select a token" className="w-full">
             {selectedChain && selectedTokenData && (
               <div className="flex items-center gap-x-2 w-full">
                 <img
-                  src={TOKEN_METADATA[selectedTokenData?.symbol]?.icon}
+                  src={selectedTokenData?.logo}
                   alt={selectedTokenData?.symbol}
                   width={24}
                   height={24}
                   className="rounded-full"
                 />
-                <p className="text-primary text-base font-medium">
-                  {selectedToken}
-                </p>
+                {selectedToken}
               </div>
             )}
           </SelectValue>
@@ -79,16 +76,16 @@ const TokenSelect = ({
         <SelectGroup>
           {tokenData?.map((token) => (
             <SelectItem key={token.symbol} value={token.symbol}>
-              <div className="flex items-center gap-x-2 my-2">
+              <div className="flex items-center gap-x-2 my-1">
                 <img
-                  src={TOKEN_METADATA[token.symbol]?.icon}
+                  src={token.logo}
                   alt={token.symbol}
                   width={24}
                   height={24}
                   className="rounded-full"
                 />
                 <div className="flex flex-col">
-                  <span className="text-primary text-base font-medium">
+                  <span>
                     {isTestnet ? `${token.symbol} (Testnet)` : token.symbol}
                   </span>
                 </div>

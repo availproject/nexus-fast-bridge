@@ -12,7 +12,7 @@ export default function Positions() {
   };
 
   return (
-    <div className="flex-1 w-full relative z-10">
+    <div className="flex-1 w-full max-w-7xl mx-auto relative z-10">
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-3 mb-3">

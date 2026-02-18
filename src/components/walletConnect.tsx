@@ -23,7 +23,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const showLoading = status === "connected" && !nexusSDK && nexusLoading;
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] relative">
+    <div className="flex items-center justify-center relative">
       {showLoading ? (
         <div className="flex flex-col items-center gap-2">
           <LoaderPinwheel className="size-6 animate-spin" />
