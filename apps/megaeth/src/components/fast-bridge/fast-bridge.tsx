@@ -103,21 +103,26 @@ const FastBridge: FC<FastBridgeProps> = ({
     onComplete: async () => {
       const destinationChainId = intent.current?.intent?.destination?.chainId;
       const tokenSymbol = intent.current?.intent?.token?.symbol;
+      console.log("onComplete hook triggered");
 
       const checkAndAddUSDM = async () => {
         // MegaETH Chain ID: 4326(0x10e6)
+        console.log("Adding USDM to wallet", destinationChainId, tokenSymbol);
         if (
           Number(destinationChainId) === 4326 &&
           tokenSymbol?.toUpperCase() === "USDM"
         ) {
+          console.log("USDM on MegaETH");
           try {
             const megaEthChainId = 4326;
             const currentChainId = await walletClient?.getChainId();
 
             if (currentChainId !== megaEthChainId) {
+              console.log("Switching to MegaETH chain");
               await walletClient?.switchChain({ id: megaEthChainId });
             }
 
+            console.log("Adding USDM to wallet");
             await walletClient?.watchAsset({
               type: "ERC20",
               options: {
