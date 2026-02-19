@@ -79,20 +79,30 @@ const NexusProvider = ({
 
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const applyTokenLogos = useCallback(
+    (chains: SupportedChainsAndTokensResult | null) => {
+      if (!chains) return null;
+      return chains.map((chain) => ({
+        ...chain,
+        tokens: chain.tokens.map((token) => ({
+          ...token,
+          logo:
+            token.symbol.toUpperCase() === "USDM"
+              ? TOKEN_IMAGES.USDM
+              : token.logo,
+        })),
+      }));
+    },
+    [],
+  );
+
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsAndTokensResult | null>(
-      sdk.utils
-        .getSupportedChains(stableConfig.network === "testnet" ? 0 : undefined)
-        .map((chain) => ({
-          ...chain,
-          tokens: chain.tokens.map((token) => ({
-            ...token,
-            logo:
-              token.symbol.toUpperCase() === "USDM"
-                ? TOKEN_IMAGES.USDM
-                : token.logo,
-          })),
-        })) ?? null,
+      applyTokenLogos(
+        sdk.utils.getSupportedChains(
+          stableConfig.network === "testnet" ? 0 : undefined,
+        ),
+      ),
     );
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(
@@ -112,7 +122,7 @@ const NexusProvider = ({
     const list = sdk.utils.getSupportedChains(
       stableConfig.network === "testnet" ? 0 : undefined,
     );
-    setSupportedChainsAndTokens(list ?? null);
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
     setSwapSupportedChainsAndTokens(swapList ?? null);
   }, [sdk, stableConfig.network]);
@@ -121,7 +131,7 @@ const NexusProvider = ({
     const list = sdk.utils.getSupportedChains(
       stableConfig.network === "testnet" ? 0 : undefined,
     );
-    setSupportedChainsAndTokens(list ?? null);
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
     setSwapSupportedChainsAndTokens(swapList ?? null);
     const [bridgeAbleBalanceResult, rates] = await Promise.allSettled([
