@@ -1,4 +1,5 @@
 import { type FC, useEffect, useMemo, useRef, useState } from "react";
+import { useWalletClient } from "wagmi";
 import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
@@ -69,6 +70,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     network,
     fetchBridgableBalance,
   } = useNexus();
+  const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const {
@@ -99,6 +101,40 @@ const FastBridge: FC<FastBridgeProps> = ({
     bridgableBalance,
     allowance,
     onComplete: async () => {
+      const destinationChainId = intent.current?.intent?.destination?.chainId;
+      const tokenSymbol = intent.current?.intent?.token?.symbol;
+
+      const checkAndAddUSDM = async () => {
+        // MegaETH Chain ID: 4326(0x10e6)
+        if (
+          Number(destinationChainId) === 4326 &&
+          tokenSymbol?.toUpperCase() === "USDM"
+        ) {
+          try {
+            const megaEthChainId = 4326;
+            const currentChainId = await walletClient?.getChainId();
+
+            if (currentChainId !== megaEthChainId) {
+              await walletClient?.switchChain({ id: megaEthChainId });
+            }
+
+            await walletClient?.watchAsset({
+              type: "ERC20",
+              options: {
+                address: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",
+                symbol: "USDm",
+                decimals: 18,
+                image: "https://mega.etherscan.io/token/images/usdm_32.png",
+              },
+            });
+          } catch (error) {
+            console.error("Failed to add USDM token to wallet:", error);
+          }
+        }
+      };
+
+      void checkAndAddUSDM();
+
       if (onComplete) {
         onComplete();
       }
