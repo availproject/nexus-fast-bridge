@@ -71,7 +71,7 @@ export default function App() {
             Chains
           </h1>
           <motion.p
-            className="mx-auto mb-6 max-w-120 text-[15px] font-normal leading-[1.6] text-(--foreground-secondary) md:text-[17px] [font-family:var(--font-body)]!"
+            className="mx-auto mb-6 max-w-140 text-[15px] font-normal leading-[1.6] text-(--foreground-secondary) md:text-[17px] [font-family:var(--font-body)]! bg-white p-4 text-balance"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
