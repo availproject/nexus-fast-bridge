@@ -101,7 +101,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     bridgableBalance,
     allowance,
     onComplete: async () => {
-      const destinationChainId = intent.current?.intent?.destination?.chainId;
+      const destinationChainId = intent.current?.intent?.destination?.chainID;
       const tokenSymbol = intent.current?.intent?.token?.symbol;
       console.log("onComplete hook triggered");
 
