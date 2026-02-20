@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import useViewHistory from "./hooks/useViewHistory";
-import { TOKEN_IMAGES } from "../common";
+import { TOKEN_IMAGES } from "../deposit/constants/assets";
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   return (
