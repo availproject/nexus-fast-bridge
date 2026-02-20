@@ -66,15 +66,19 @@ export default function App() {
         <FloatingLogos mousePosition={mousePosition} />
 
         <div className="relative z-2 mx-auto max-w-180 mt-12">
-          <h1 className="relative inline-flex flex-wrap items-center justify-center gap-0.5 text-[28px] leading-[1.15] font-bold tracking-[-0.02em] text-(--foreground-primary) [font-family:var(--font-display)] md:text-[clamp(52px,6vw,72px)] bg-white">
-            <AuroraText>Avail FastBridge</AuroraText> is fast
+          <h1 className="relative inline-flex flex-wrap items-center justify-center gap-0.5 text-[28px] leading-[1.15] font-bold tracking-[-0.02em] text-(--foreground-primary) [font-family:var(--font-display)] md:text-[clamp(52px,6vw,72px)]">
+            <AuroraText>Avail FastBridge</AuroraText>
           </h1>
+          <h2 className="text-base font-medium text-[var(--foreground-primary)] text-center">
+            Fast Crypto Bridge for Stables across chains
+          </h2>
           <motion.p
-            className="mx-auto mb-6 max-w-140 text-[15px] font-normal leading-[1.6] text-(--foreground-secondary) md:text-[17px] [font-family:var(--font-body)]! bg-white p-4 text-balance"
+            className="mx-auto mb-6 max-w-140 text-[15px] font-normal leading-[1.6] text-(--foreground-secondary) md:text-[17px] [font-family:var(--font-body)]! p-4 text-balance text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
+            Avail FastBridge is fast. <br />
             Bridge stablecoins like USDC, USDT and others across 15+ chains in
             seconds with no wrapping and no complexity. It's a secure,
             multi-chain bridge powered by Avail Nexus.
@@ -96,7 +100,7 @@ export default function App() {
         <section className="mx-auto max-w-4xl space-y-6 text-[var(--foreground-secondary)]">
           <div className="space-y-6">
             <h2 className="text-2xl md:text-3xl font-bold text-[var(--foreground-primary)] text-center">
-              Why Use Avail FastBridge as Your Multi-Chain Bridge Tool
+              Why Use Avail FastBridge as Your Multi-Chain Bridge
             </h2>
 
             <div className="space-y-6 text-base md:text-lg leading-relaxed text-[var(--foreground-secondary)]">
@@ -107,8 +111,9 @@ export default function App() {
               </p>
 
               <p>
-                As one of the few <strong>multi-chain bridges</strong>{" "}
-                available, Avail FastBridge enables you to move assets freely
+                It’s one of the few{" "}
+                <strong>multi-chain, and multi-transaction bridges</strong>{" "}
+                enabling you to move assets freely in a single transaction
                 between major ecosystems like Ethereum, Base, Arbitrum,
                 Optimism, and emerging L2s such as MegaETH, Citrea, and Monad.
               </p>
@@ -123,7 +128,7 @@ export default function App() {
               </p>
 
               <p>
-                Powered by Avail Nexus, we offer uncompromised security and
+                Powered by Avail Nexus, providing uncompromised security and
                 seamless interoperability for the decentralized age.
               </p>
             </div>
