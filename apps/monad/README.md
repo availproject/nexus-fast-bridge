@@ -1,13 +1,15 @@
-# Nexus fast bridge
+# Chain App Wrapper
 
-### Run locally
+This app is a thin wrapper around shared code in `packages/fast-bridge-app`.
 
-`npm run dev` to run locally.
+For architecture, onboarding, and customization:
+- `README.md` (repo root)
+- `docs/architecture.md`
+- `docs/adding-chains.md`
+- `docs/customization.md`
 
-### Build project
-
-`npm run build` to build the project.
-
-### Preview
-
-`npm run start` to preview and run
+Primary chain-specific files in this app:
+- `getConfig.ts`
+- `src/runtime.ts`
+- `.env.monad`
+- `public/*` assets

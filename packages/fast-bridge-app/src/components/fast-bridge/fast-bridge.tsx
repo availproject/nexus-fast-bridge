@@ -1,0 +1,593 @@
+"use client";
+import type {
+  SUPPORTED_CHAINS_IDS,
+  SUPPORTED_TOKENS,
+} from "@avail-project/nexus-core";
+import { chainFeatures } from "@fastbridge/runtime";
+import Decimal from "decimal.js";
+import { CheckCircle2, X } from "lucide-react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import type { Address } from "viem";
+import { useNexus } from "../nexus/NexusProvider";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { EncryptedText } from "../ui/encrypted-text";
+import { Skeleton } from "../ui/skeleton";
+import ViewHistory from "../view-history/view-history";
+import AllowanceModal from "./components/allowance-modal";
+import AmountInput from "./components/amount-input";
+import ChainSelect from "./components/chain-select";
+import FeeBreakdown from "./components/fee-breakdown";
+import FluffeyMascot from "./components/fluffey-mascot";
+import RecipientAddress from "./components/recipient-address";
+import SourceBreakdown from "./components/source-breakdown";
+import TokenSelect from "./components/token-select";
+import TransactionProgress from "./components/transaction-progress";
+import useBridge from "./hooks/useBridge";
+
+interface FastBridgeProps {
+  connectedAddress?: Address;
+  isWalletConnected?: boolean;
+  mockIntent?: {
+    totalAmount?: string;
+    receiveAmount?: string;
+    totalGas?: string;
+  };
+  onComplete?: () => void;
+  onConnectWallet?: () => void;
+  onError?: (message: string) => void;
+  onStart?: () => void;
+  prefill?: {
+    token: SUPPORTED_TOKENS;
+    chainId: SUPPORTED_CHAINS_IDS;
+    amount?: string;
+    recipient?: Address;
+  };
+}
+
+const FastBridge: FC<FastBridgeProps> = ({
+  connectedAddress,
+  isWalletConnected,
+  onConnectWallet,
+  mockIntent,
+  onComplete,
+  onStart,
+  onError,
+  prefill,
+}) => {
+  const maxBridgeAmount = chainFeatures.maxBridgeAmount;
+  const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
+  const displayTokenSymbol = (tokenSymbol?: string) => {
+    if (!tokenSymbol) {
+      return "Unknown";
+    }
+    if (mapUsdmToUsdc && tokenSymbol.toUpperCase() === "USDM") {
+      return "USDC";
+    }
+    return tokenSymbol;
+  };
+
+  const {
+    nexusSDK,
+    intent,
+    bridgableBalance,
+    allowance,
+    network,
+    fetchBridgableBalance,
+  } = useNexus();
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
+  const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+
+  const {
+    inputs,
+    setInputs,
+    timer,
+    loading,
+    refreshing,
+    isDialogOpen,
+    txError,
+    setTxError,
+    handleTransaction,
+    reset,
+    filteredBridgableBalance,
+    startTransaction,
+    setIsDialogOpen,
+    commitAmount,
+    lastExplorerUrl,
+    steps,
+    status,
+    availableSources,
+    selectedSourceChains,
+    toggleSourceChain,
+    isSourceSelectionInsufficient,
+    isSourceSelectionReadyForAccept,
+    sourceCoverageState,
+    sourceCoveragePercent,
+    missingToProceed,
+    missingToSafety,
+    selectedTotal,
+    requiredTotal,
+    requiredSafetyTotal,
+    maxAvailableAmount,
+    isInputsValid,
+  } = useBridge({
+    prefill,
+    network: network ?? "mainnet",
+    connectedAddress,
+    nexusSDK,
+    intent,
+    bridgableBalance,
+    allowance,
+    onComplete: async () => {
+      if (onComplete) {
+        onComplete();
+      }
+      const sourcesText =
+        intent.current?.intent?.sources?.length &&
+        intent.current?.intent.sources.length > 0
+          ? intent.current.intent.sources.map((s) => s.chainName).join(", ")
+          : "N/A";
+      toast.success(
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-green-500" />
+            <span className="font-semibold">Bridge Successful!</span>
+          </div>
+          <div className="flex flex-col gap-1.5 text-muted-foreground text-sm">
+            <div>
+              <span className="font-medium">Source(s):</span> {sourcesText}
+            </div>
+            <div>
+              <span className="font-medium">Destination:</span>{" "}
+              {intent.current?.intent?.destination?.chainName || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Asset:</span>{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Amount Spent:</span>{" "}
+              {intent.current?.intent?.sourcesTotal
+                ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
+                : "NaN"}{" "}
+              {displayTokenSymbol(intent.current?.intent?.token.symbol)}
+            </div>
+            <div>
+              <span className="font-medium">Amount Received:</span>{" "}
+              {intent.current?.intent?.destination?.amount
+                ? new Decimal(
+                    intent.current?.intent?.destination?.amount
+                  ).toFixed()
+                : "NaN"}{" "}
+              {intent.current?.intent?.token.symbol || "Unknown"}
+            </div>
+            <div>
+              <span className="font-medium">Total Fees:</span>{" "}
+              {intent.current?.intent?.fees.total
+                ? new Decimal(intent.current?.intent?.fees.total).toFixed()
+                : "NaN"}{" "}
+              {displayTokenSymbol(intent.current?.intent?.token.symbol)}
+            </div>
+          </div>
+        </div>,
+        {
+          duration: Number.POSITIVE_INFINITY, // Stay until dismissed
+          closeButton: true,
+          icon: null, // Remove default icon since we're adding our own
+        }
+      );
+      setHistoryRefreshNonce((prev) => prev + 1);
+    },
+    onStart,
+    onError: (message) => {
+      toast.error(message);
+      if (onError) {
+        onError(message);
+      }
+    },
+    fetchBalance: fetchBridgableBalance,
+    maxAmount: maxBridgeAmount,
+    isSourceMenuOpen,
+  });
+  const isConnected = isWalletConnected ?? Boolean(connectedAddress);
+  const isSdkReady = Boolean(nexusSDK);
+  const showSdkDetails = isSdkReady;
+  const receiveSymbol =
+    intent?.current?.intent?.token.symbol ?? filteredBridgableBalance?.symbol;
+
+  const amountValue = useMemo(() => {
+    if (!inputs?.amount) {
+      return null;
+    }
+    const parsed = Number.parseFloat(inputs.amount);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [inputs?.amount]);
+
+  const hasValidAmount = useMemo(() => {
+    if (amountValue === null) {
+      return false;
+    }
+    return amountValue > 0;
+  }, [amountValue]);
+
+  const formatMockNumber = (value: number) => {
+    if (!Number.isFinite(value)) {
+      return "--";
+    }
+    const fixed = value.toFixed(6);
+    return fixed.replace(/\.?0+$/, "");
+  };
+
+  const formatWithToken = (value: string, token?: string) => {
+    if (!token) {
+      return value;
+    }
+    return `${value} ${token}`.trim();
+  };
+
+  const tokenSuffix =
+    inputs?.token ?? filteredBridgableBalance?.symbol ?? "USDC";
+
+  const mockPreview = useMemo(() => {
+    if (!hasValidAmount || amountValue === null) {
+      return null;
+    }
+    if (mockIntent) {
+      return {
+        totalAmount: mockIntent.totalAmount ?? "--",
+        receiveAmount: mockIntent.receiveAmount ?? "--",
+        totalGas: mockIntent.totalGas ?? "--",
+      };
+    }
+    const totalGas = amountValue * 0.001;
+    const totalAmount = amountValue + totalGas;
+    return {
+      totalAmount: formatWithToken(formatMockNumber(totalAmount), tokenSuffix),
+      receiveAmount: formatWithToken(
+        formatMockNumber(amountValue),
+        tokenSuffix
+      ),
+      totalGas: formatWithToken(formatMockNumber(totalGas), tokenSuffix),
+    };
+  }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
+
+  const showMockPreview = !isConnected && hasValidAmount && mockPreview;
+  const autoIntentTriggered = useRef(false);
+
+  useEffect(() => {
+    autoIntentTriggered.current = false;
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
+  useEffect(() => {
+    if (!intent.current?.intent) {
+      setIsSourceMenuOpen(false);
+    }
+  }, [intent.current?.intent]);
+
+  useEffect(() => {
+    if (!(isConnected && isSdkReady)) {
+      return;
+    }
+    if (!isInputsValid) {
+      return;
+    }
+    if (intent.current) {
+      return;
+    }
+    if (loading) {
+      return;
+    }
+    if (autoIntentTriggered.current) {
+      return;
+    }
+    autoIntentTriggered.current = true;
+    void handleTransaction();
+  }, [
+    isInputsValid,
+    handleTransaction,
+    intent,
+    isConnected,
+    isSdkReady,
+    loading,
+  ]);
+  return (
+    <div className="flex w-full max-w-xl flex-col gap-y-4">
+      {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
+      {chainFeatures.showPromoBanner && (
+        <div
+          className="relative z-10 flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-primary shadow-sm"
+          style={{
+            background:
+              "linear-gradient(180deg, #F5AF94 0%, #FF8AA8 70%, #90D79F 75%, #7EAAD4 100%)",
+          }}
+        >
+          <div className="flex items-center gap-x-3">
+            <img
+              className="-my-5 flex w-10 shrink-0 items-center justify-center"
+              height={112}
+              src={
+                chainFeatures.promoBannerImageUrl ??
+                "https://files.availproject.org/fastbridge/megaeth/megaeth-mascot-1.png"
+              }
+              style={{ aspectRatio: "5/14" }}
+              width={40}
+            />
+            <p className="font-medium text-sm">
+              <EncryptedText
+                charset="AEFHIJKLNPRSTUXYabcdefghijklmnopqrstuvwxyz"
+                encryptedClassName="text-primary"
+                flipDelayMs={25}
+                revealDelayMs={50}
+                revealedClassName="text-primary"
+                text={
+                  chainFeatures.promoBannerLine1 ??
+                  "Zero solver and protocol fees when bridging to MegaETH."
+                }
+              />
+              <br />
+              <EncryptedText
+                charset="AEFHIJKLNPRSTUXYabcdefghijklmnopqrstuvwxyz"
+                encryptedClassName="text-primary"
+                flipDelayMs={25}
+                revealDelayMs={50}
+                revealedClassName="text-primary"
+                text={
+                  chainFeatures.promoBannerLine2 ??
+                  "48h window. Don't fade anon."
+                }
+              />
+            </p>
+          </div>
+        </div>
+      )}
+      <Card className="relative z-10 w-full">
+        <CardContent className="relative flex w-full flex-col gap-y-4 px-2 sm:px-6">
+          {showSdkDetails && (
+            <ViewHistory
+              className="absolute -top-2 right-3"
+              refreshNonce={historyRefreshNonce}
+            />
+          )}
+          <ChainSelect
+            disabled={!!prefill?.chainId}
+            handleSelect={(chain) =>
+              setInputs({
+                ...inputs,
+                chain,
+              })
+            }
+            label="To"
+            selectedChain={inputs?.chain}
+          />
+          <TokenSelect
+            disabled={!!prefill?.token}
+            handleTokenSelect={(token) => setInputs({ ...inputs, token })}
+            selectedChain={inputs?.chain}
+            selectedToken={inputs?.token}
+          />
+          <AmountInput
+            amount={inputs?.amount}
+            bridgableBalance={filteredBridgableBalance}
+            disabled={refreshing || !!prefill?.amount}
+            inputs={inputs}
+            maxAmount={maxBridgeAmount}
+            maxAvailableAmount={maxAvailableAmount}
+            onChange={(amount) => setInputs({ ...inputs, amount })}
+            onCommit={() => void commitAmount()}
+            showBalanceDetails={showSdkDetails}
+          />
+          <RecipientAddress
+            address={inputs?.recipient}
+            disabled={!!prefill?.recipient}
+            onChange={(address) =>
+              setInputs({ ...inputs, recipient: address as `0x${string}` })
+            }
+          />
+          {showMockPreview && (
+            <div className="w-full space-y-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <p className="font-light text-base">You spend</p>
+                <p className="font-light text-base">
+                  {mockPreview?.totalAmount}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="font-light text-base">You receive</p>
+                <p className="font-light text-base">
+                  {mockPreview?.receiveAmount}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="font-light text-base">Total gas</p>
+                <p className="font-light text-base">{mockPreview?.totalGas}</p>
+              </div>
+            </div>
+          )}
+
+          {showSdkDetails && intent?.current?.intent && (
+            <>
+              <SourceBreakdown
+                availableSources={availableSources}
+                intent={intent?.current?.intent}
+                isLoading={refreshing}
+                isSourceSelectionInsufficient={isSourceSelectionInsufficient}
+                missingToProceed={missingToProceed}
+                missingToSafety={missingToSafety}
+                onSourceMenuOpenChange={setIsSourceMenuOpen}
+                onToggleSourceChain={toggleSourceChain}
+                requiredSafetyTotal={requiredSafetyTotal}
+                requiredTotal={requiredTotal}
+                selectedSourceChains={selectedSourceChains}
+                selectedTotal={selectedTotal}
+                sourceCoveragePercent={sourceCoveragePercent}
+                sourceCoverageState={sourceCoverageState}
+                tokenSymbol={
+                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
+                }
+              />
+
+              <div className="flex w-full items-start justify-between gap-x-4">
+                <p className="font-light text-base">You receive</p>
+                <div className="flex min-w-fit flex-col gap-y-1">
+                  {refreshing ? (
+                    <Skeleton className="h-5 w-28" />
+                  ) : (
+                    <p className="text-right font-light text-base">
+                      {`${
+                        connectedAddress === inputs?.recipient
+                          ? intent?.current?.intent?.destination?.amount
+                          : inputs.amount
+                      } ${receiveSymbol}`}
+                    </p>
+                  )}
+                  {refreshing ? (
+                    <Skeleton className="h-4 w-36" />
+                  ) : (
+                    <p className="text-right font-light text-sm">
+                      on {intent?.current?.intent?.destination?.chainName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <FeeBreakdown
+                intent={intent?.current?.intent}
+                isLoading={refreshing}
+                tokenSymbol={
+                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
+                }
+              />
+            </>
+          )}
+
+          {!intent.current && (
+            <Button
+              disabled={
+                isConnected
+                  ? !(
+                      inputs?.amount &&
+                      inputs?.recipient &&
+                      inputs?.chain &&
+                      inputs?.token
+                    ) ||
+                    loading ||
+                    Number(inputs?.amount) > maxBridgeAmount
+                  : false
+              }
+              onClick={() => {
+                if (!isConnected) {
+                  if (onConnectWallet) {
+                    onConnectWallet();
+                  } else {
+                    toast.error("Wallet connection not available");
+                  }
+                } else if (!isSdkReady) {
+                  toast.info("Please wait, SDK is still initializing...");
+                } else if (isInputsValid) {
+                  // Connected, SDK ready, inputs valid - trigger transaction
+                  void handleTransaction();
+                } else {
+                  toast.error(
+                    "Please enter a valid amount and recipient address"
+                  );
+                }
+              }}
+            >
+              {isConnected
+                ? isSdkReady
+                  ? isInputsValid
+                    ? status === "error" || txError
+                      ? "Retry"
+                      : "Fetching intent..."
+                    : "Bridge"
+                  : "Initializing..."
+                : "Connect Wallet"}
+            </Button>
+          )}
+
+          <Dialog
+            onOpenChange={(open) => {
+              if (loading) {
+                return;
+              }
+              setIsDialogOpen(open);
+            }}
+            open={isDialogOpen}
+          >
+            {intent.current && !isDialogOpen && (
+              <div className="flex w-full items-center justify-between gap-x-2">
+                <Button
+                  className="w-1/2"
+                  onClick={reset}
+                  variant={"destructive"}
+                >
+                  Deny
+                </Button>
+                <DialogTrigger asChild>
+                  <Button
+                    className="w-1/2"
+                    disabled={refreshing || !isSourceSelectionReadyForAccept}
+                    onClick={startTransaction}
+                  >
+                    {refreshing ? "Refreshing..." : "Accept"}
+                  </Button>
+                </DialogTrigger>
+              </div>
+            )}
+
+            <DialogContent
+              showCloseButton={chainFeatures.dialogShowCloseButton}
+            >
+              <DialogHeader className="sr-only">
+                <DialogTitle>Transaction Progress</DialogTitle>
+              </DialogHeader>
+              {allowance.current ? (
+                <AllowanceModal
+                  allowance={allowance}
+                  callback={startTransaction}
+                  onCloseCallback={reset}
+                />
+              ) : (
+                <TransactionProgress
+                  completed={status === "success"}
+                  operationType={"bridge"}
+                  steps={steps}
+                  timer={timer}
+                  viewIntentUrl={lastExplorerUrl}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {txError && (
+            <div className="mt-3 flex w-full items-start justify-between gap-x-3 rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-destructive-foreground text-sm">
+              <span className="w-full flex-1">{txError}</span>
+              <Button
+                aria-label="Dismiss error"
+                className="text-destructive-foreground/80 hover:text-destructive-foreground focus:outline-none"
+                onClick={() => {
+                  reset();
+                  setTxError(null);
+                }}
+                size={"icon"}
+                type="button"
+                variant={"ghost"}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default FastBridge;

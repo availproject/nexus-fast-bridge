@@ -1,0 +1,68 @@
+"use client";
+import { appConfig } from "@fastbridge/runtime";
+import { ConnectKitButton } from "connectkit";
+import { withBasePath } from "@/lib/utils";
+import AvailLogo from "/avail_logo.svg";
+
+export default function Navbar() {
+  return (
+    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 min-w-0 items-center justify-between">
+          <div className="flex min-w-0 shrink items-center overflow-hidden">
+            {appConfig.useChainLogo && (
+              <img
+                alt={appConfig.chainName}
+                className="h-8 w-auto"
+                height={40}
+                src={withBasePath(appConfig.chainLogoUrl)}
+                width={150}
+              />
+            )}
+            {!appConfig.useChainLogo && (
+              <div
+                className="truncate font-light text-2xl sm:text-3xl"
+                style={{
+                  marginLeft: "10px",
+                  textTransform: "uppercase",
+                  color: appConfig.primaryColor,
+                  letterSpacing: "0.1em",
+                }}
+              >
+                {appConfig.chainName}
+              </div>
+            )}
+            <div
+              className="hidden text-xl md:block"
+              style={{
+                marginLeft: "5px",
+                fontWeight: "100",
+                paddingTop: "5px",
+              }}
+            >
+              Fast Bridge by
+            </div>
+            <a
+              className="hidden text-xl md:block"
+              href="https://availproject.org"
+              rel="noopener noreferrer"
+              style={{
+                marginLeft: "5px",
+                fontWeight: "100",
+                paddingTop: "5px",
+              }}
+              target="_blank"
+            >
+              <img alt="Avail Logo" height={20} src={AvailLogo} width={75} />
+            </a>
+          </div>
+
+          {/* Right side - Wallet connect only */}
+          <div className="flex shrink-0 items-center">
+            <ConnectKitButton />
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
