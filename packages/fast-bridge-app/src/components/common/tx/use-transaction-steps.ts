@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   computeAllCompleted,
   mergeStepComplete,
@@ -25,7 +25,7 @@ export function useTransactionSteps<
   );
   const lastSignatureRef = useRef<string>("");
 
-  const onStepsList = (list: T[]) => {
+  const onStepsList = useCallback((list: T[]) => {
     const signature = list.map((step) => getStepKey(step)).join("|");
     if (lastSignatureRef.current === signature) {
       setSteps((prev) => mergeStepsList(prev, list));
@@ -33,20 +33,20 @@ export function useTransactionSteps<
     }
     lastSignatureRef.current = signature;
     setSteps((prev) => mergeStepsList(prev, list));
-  };
+  }, []);
 
-  const onStepComplete = (step: T) => {
+  const onStepComplete = useCallback((step: T) => {
     setSteps((prev) => mergeStepComplete(prev, step));
-  };
+  }, []);
 
-  const seed = (expectedSteps: T[]) => {
+  const seed = useCallback((expectedSteps: T[]) => {
     setSteps(seedSteps(expectedSteps));
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setSteps(expected ? seedSteps(expected) : []);
     lastSignatureRef.current = "";
-  };
+  }, [expected]);
 
   const allCompleted = useMemo(() => computeAllCompleted(steps), [steps]);
 

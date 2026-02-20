@@ -14,9 +14,9 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setElapsedSeconds(0);
-  };
+  }, []);
 
   const stop = useCallback(() => {
     if (timerRef.current) {

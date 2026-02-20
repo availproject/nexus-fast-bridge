@@ -117,6 +117,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
           }),
         };
       case "setStatus":
+        if (state.status === action.payload) {
+          return state;
+        }
         return { ...state, status: action.payload };
       default:
         return state;
@@ -128,9 +131,17 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>
   ) => {
+    const payload = next as Partial<TransactionFlowInputs>;
+    const hasActualChange = Object.entries(payload).some(
+      ([key, value]) =>
+        state.inputs[key as keyof TransactionFlowInputs] !== value
+    );
+    if (!hasActualChange) {
+      return;
+    }
     dispatch({
       type: "setInputs",
-      payload: next as Partial<TransactionFlowInputs>,
+      payload,
     });
   };
 
@@ -143,6 +154,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     connectedAddress
   );
   const previousSelectedTokenRef = useRef(inputs?.token);
+  const lastInvalidationKeyRef = useRef<string>("");
   const maxAmountRequestIdRef = useRef(0);
   const [selectedSourceChains, setSelectedSourceChains] = useState<
     number[] | null
@@ -557,8 +569,20 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       inputs?.amount || inputs?.chain || inputs?.recipient || inputs?.token
     );
     if (!(hasInputs || intent.current)) {
+      lastInvalidationKeyRef.current = "";
       return;
     }
+    const invalidationKey = [
+      inputs?.amount ?? "",
+      inputs?.chain ?? "",
+      inputs?.recipient ?? "",
+      inputs?.token ?? "",
+      intent.current ? "intent" : "no-intent",
+    ].join("|");
+    if (lastInvalidationKeyRef.current === invalidationKey) {
+      return;
+    }
+    lastInvalidationKeyRef.current = invalidationKey;
     invalidatePendingExecution();
   }, [
     inputs?.amount,
@@ -587,7 +611,14 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
         setStatus("idle");
       }
     }
-  }, [isDialogOpen, resetSteps, setStatus, state.status, stopwatch]);
+  }, [
+    isDialogOpen,
+    resetSteps,
+    setStatus,
+    state.status,
+    stopwatch.reset,
+    stopwatch.stop,
+  ]);
 
   useEffect(() => {
     if (txError) {

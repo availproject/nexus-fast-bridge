@@ -296,12 +296,10 @@ export function useTransactionExecution({
     };
 
   const handleTransactionFailure = (params: {
-    cleanupSupersededExecution: () => void;
     currentRunId: number;
     error: unknown;
   }) => {
     if (isRunStale(params.currentRunId)) {
-      params.cleanupSupersededExecution();
       return;
     }
     const { message, code, context, details } = handleNexusError(params.error);
@@ -339,19 +337,6 @@ export function useTransactionExecution({
     }
     commitLockRef.current = true;
     const currentRunId = ++runIdRef.current;
-    let didEnterExecutingState = false;
-    const cleanupSupersededExecution = () => {
-      if (!didEnterExecutingState) {
-        return;
-      }
-      setRefreshing(false);
-      setIsDialogOpen(false);
-      setLastExplorerUrl("");
-      stopwatch.stop();
-      stopwatch.reset();
-      resetSteps();
-      setStatus("idle");
-    };
 
     try {
       const validated = validateTransactionInputs();
@@ -380,7 +365,6 @@ export function useTransactionExecution({
       }
 
       setStatus("executing");
-      didEnterExecutingState = true;
       setTxError(null);
       onStart?.();
       setLastExplorerUrl("");
@@ -399,7 +383,6 @@ export function useTransactionExecution({
       });
 
       if (isRunStale(currentRunId)) {
-        cleanupSupersededExecution();
         return;
       }
       if (!transactionResult) {
@@ -408,11 +391,7 @@ export function useTransactionExecution({
       setLastExplorerUrl(transactionResult.explorerUrl);
       await onSuccess(transactionResult.explorerUrl);
     } catch (error) {
-      handleTransactionFailure({
-        error,
-        currentRunId,
-        cleanupSupersededExecution,
-      });
+      handleTransactionFailure({ error, currentRunId });
     } finally {
       commitLockRef.current = false;
     }
@@ -479,15 +458,25 @@ export function useTransactionExecution({
 
   const invalidatePendingExecution = useCallback(() => {
     runIdRef.current += 1;
+    commitLockRef.current = false;
     if (intent.current) {
       if (denyIntentOnReset) {
         intent.current.deny();
       }
       intent.current = null;
     }
+    allowance.current = null;
+    setStatus("idle");
     setRefreshing(false);
     setAppliedSourceSelectionKey("ALL");
-  }, [denyIntentOnReset, intent, setAppliedSourceSelectionKey, setRefreshing]);
+  }, [
+    allowance,
+    denyIntentOnReset,
+    intent,
+    setAppliedSourceSelectionKey,
+    setRefreshing,
+    setStatus,
+  ]);
 
   return {
     refreshIntent,

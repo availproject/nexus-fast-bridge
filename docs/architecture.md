@@ -100,6 +100,7 @@ Source of truth for feature contract:
 
 - Shared logic belongs in `packages/fast-bridge-app/src/**`.
 - Chain wrappers should stay thin. Prefer runtime flags over app forks.
+- Bridge intent lifecycle is input-driven: when amount/token/recipient/chain changes after an intent exists, shared flow must invalidate the current intent and return status to `idle` so a fresh intent can be created. Do not leave the flow in `executing` after invalidation.
 - Runtime-imported image URLs can be root-relative (`/x.svg`) but should be normalized with `withBasePath(...)` in shared code paths.
 - Tailwind must scan shared and wrapper sources:
   - `packages/fast-bridge-app/src/index.css` uses `@source` directives.

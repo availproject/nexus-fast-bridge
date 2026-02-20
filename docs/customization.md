@@ -79,6 +79,7 @@ Consumed in `packages/fast-bridge-app/src/components/nexus/nexus-provider.tsx` a
 
 - `denyIntentOnReset`
 Controls intent reset behavior after flow interruption.
+When a user edits bridge inputs after an intent exists, shared flow invalidates that intent and transitions back to `idle` before re-fetching; this flag controls whether `deny()` is called during that reset.
 Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts`.
 
 - `tokenDenyListByChainId`
