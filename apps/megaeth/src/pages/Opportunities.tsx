@@ -1,6 +1,7 @@
 "use client";
 
 import { OpportunityList } from "../components/opportunities/OpportunityList";
+import { sampleOpportunities } from "@/lib/opportunities-data";
 
 export default function Opportunities() {
   return (
@@ -21,7 +22,7 @@ export default function Opportunities() {
       </div>
 
       {/* Opportunities List */}
-      <OpportunityList opportunities={[]} />
+      <OpportunityList opportunities={sampleOpportunities} />
 
       {/* Powered by footer */}
       <div className="flex w-full items-center gap-x-1 justify-center mt-12">
