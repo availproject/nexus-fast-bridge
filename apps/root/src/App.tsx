@@ -65,7 +65,7 @@ export default function App() {
         {/* Floating logos background */}
         <FloatingLogos mousePosition={mousePosition} />
 
-        <div className="relative z-2 mx-auto max-w-180 mt-12 bg-[radial-gradient(closest-side,var(--background-primary)_70%,transparent_100%)]">
+        <div className="relative z-2 mx-auto max-w-180 mt-12 bg-[radial-gradient(closest-side,var(--background-primary)_85%,transparent_100%)]">
           <h1 className="relative inline-flex flex-wrap items-center justify-center gap-0.5 text-[28px] leading-[1.15] font-bold tracking-[-0.02em] text-(--foreground-primary) [font-family:var(--font-display)] md:text-[clamp(52px,6vw,72px)]">
             <AuroraText>Avail FastBridge</AuroraText>
           </h1>
