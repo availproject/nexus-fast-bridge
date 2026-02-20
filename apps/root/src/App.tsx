@@ -70,7 +70,7 @@ export default function App() {
             <AuroraText>Avail FastBridge</AuroraText>
           </h1>
           <h2 className="text-[18px] md:text-[clamp(20px,3vw,32px)] font-medium text-[var(--foreground-primary)] text-center">
-            Fast Crypto Bridge for Stables across chains
+            Fast Crypto Bridge for Stables Across Chains
           </h2>
           <motion.p
             className="mx-auto mb-6 max-w-140 text-[15px] font-normal leading-[1.6] text-(--foreground-secondary) md:text-[17px] [font-family:var(--font-body)]! p-4 text-balance text-center"
@@ -78,7 +78,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
-            Avail FastBridge is fast. <br />
+            <strong>Avail FastBridge is fast.</strong> <br />
             Bridge stablecoins like USDC, USDT and others across 15+ chains in
             seconds with no wrapping and no complexity. It's a secure,
             multi-chain bridge powered by Avail Nexus.
