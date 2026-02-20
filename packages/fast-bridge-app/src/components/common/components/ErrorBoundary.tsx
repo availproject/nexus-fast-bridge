@@ -60,6 +60,7 @@ export class ErrorBoundary extends Component<
           <button
             className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
             onClick={() => this.setState({ hasError: false, error: null })}
+            type="button"
           >
             Try again
           </button>
@@ -125,6 +126,7 @@ export class WidgetErrorBoundary extends Component<
           <button
             className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
             onClick={this.handleReset}
+            type="button"
           >
             Reset widget
           </button>

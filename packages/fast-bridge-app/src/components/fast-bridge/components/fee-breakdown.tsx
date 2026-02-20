@@ -116,21 +116,17 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({
                     </div>
                     {isLoading ? (
                       <Skeleton className="h-4 w-20" />
+                    ) : shouldForceZeroFees && key !== "caGas" ? (
+                      <p className="font-semibold text-primary text-sm">
+                        0 Fees
+                      </p>
                     ) : (
-                      <>
-                        {shouldForceZeroFees && key !== "caGas" ? (
-                          <p className="font-semibold text-primary text-sm">
-                            0 Fees
-                          </p>
-                        ) : (
-                          <p className="font-light text-sm">
-                            {nexusSDK?.utils?.formatTokenBalance(value, {
-                              symbol: displaySymbol,
-                              decimals: intent?.token?.decimals,
-                            })}
-                          </p>
-                        )}
-                      </>
+                      <p className="font-light text-sm">
+                        {nexusSDK?.utils?.formatTokenBalance(value, {
+                          symbol: displaySymbol,
+                          decimals: intent?.token?.decimals,
+                        })}
+                      </p>
                     )}
                   </div>
                   <TooltipContent className="max-w-sm text-balance">

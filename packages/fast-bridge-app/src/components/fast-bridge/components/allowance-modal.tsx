@@ -116,8 +116,8 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
 
   const { sources, allow, deny } = allowance.current ?? {
     sources: [],
-    allow: () => {},
-    deny: () => {},
+    allow: () => undefined,
+    deny: () => undefined,
   };
 
   const defaultChoices = useMemo<AllowanceChoice[]>(

@@ -16,13 +16,13 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
   });
 
   React.useEffect(() => {
-    if (!targetDate || isNaN(targetDate.getTime())) {
+    if (!targetDate || Number.isNaN(targetDate.getTime())) {
       console.error("Invalid target date provided to CountdownTimer");
       return;
     }
 
     const calculateTimeLeft = () => {
-      const now = new Date().getTime();
+      const now = Date.now();
       const target = targetDate.getTime();
       const difference = target - now;
 

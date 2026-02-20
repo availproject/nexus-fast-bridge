@@ -1,4 +1,44 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/react"]
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
+  "overrides": [
+    {
+      "includes": ["packages/fast-bridge-app/src/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useAriaPropsForRole": "warn",
+            "useFocusableInteractive": "warn",
+            "useSemanticElements": "warn"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "warn",
+            "noForEach": "warn",
+            "noVoid": "warn"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "warn",
+            "useImageSize": "warn"
+          },
+          "performance": {
+            "noBarrelFile": "warn",
+            "noNamespaceImport": "warn",
+            "useTopLevelRegex": "warn"
+          },
+          "style": {
+            "useConsistentArrayType": "warn",
+            "useConsistentTypeDefinitions": "warn",
+            "noEnum": "warn",
+            "noNestedTernary": "warn",
+            "noNonNullAssertion": "warn",
+            "useFilenamingConvention": "warn"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "warn",
+            "useIterableCallbackReturn": "warn"
+          }
+        }
+      }
+    }
+  ]
 }

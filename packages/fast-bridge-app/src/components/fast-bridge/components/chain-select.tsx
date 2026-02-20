@@ -45,7 +45,7 @@ const ChainSelect: FC<ChainSelectProps> = ({
     <Select
       onValueChange={(value) => {
         if (!disabled) {
-          handleSelect(Number.parseInt(value) as SUPPORTED_CHAINS_IDS);
+          handleSelect(Number.parseInt(value, 10) as SUPPORTED_CHAINS_IDS);
         }
       }}
       value={selectedChain?.toString() ?? ""}

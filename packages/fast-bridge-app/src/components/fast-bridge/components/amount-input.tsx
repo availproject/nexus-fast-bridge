@@ -162,7 +162,7 @@ const AmountInput: FC<AmountInputProps> = ({
             let next = e.target.value.replaceAll(/[^0-9.]/g, "");
             const parts = next.split(".");
             if (parts.length > 2) {
-              next = parts[0] + "." + parts.slice(1).join("");
+              next = `${parts[0]}.${parts.slice(1).join("")}`;
             }
             if (next === ".") {
               next = "0.";

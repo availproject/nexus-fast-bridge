@@ -126,7 +126,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: async () => {
+    onComplete: () => {
       if (onComplete) {
         onComplete();
       }
@@ -311,6 +311,7 @@ const FastBridge: FC<FastBridgeProps> = ({
         >
           <div className="flex items-center gap-x-3">
             <img
+              alt="Promo mascot"
               className="-my-5 flex w-10 shrink-0 items-center justify-center"
               height={112}
               src={

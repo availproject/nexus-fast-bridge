@@ -102,7 +102,7 @@ const useBridge = ({
   isSourceMenuOpen = false,
 }: UseBridgeProps) => {
   const executeTransaction = useCallback(
-    async ({
+    ({
       token,
       amount,
       amountReadable,

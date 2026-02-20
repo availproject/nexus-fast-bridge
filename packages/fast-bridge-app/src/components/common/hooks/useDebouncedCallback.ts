@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useStableCallback } from "./useStableCallback";
 
-type AnyFn = (...args: any[]) => any;
+type UnknownFn = (...args: unknown[]) => unknown;
 
-export interface Debounced<T extends AnyFn> {
+export interface Debounced<T extends UnknownFn> {
   cancel: () => void;
   flush: () => void;
   (...args: Parameters<T>): void;
@@ -13,7 +13,7 @@ export interface Debounced<T extends AnyFn> {
  * Returns a debounced function that delays invoking `fn` until after `delay`
  * milliseconds have elapsed since the last call.
  */
-export function useDebouncedCallback<T extends AnyFn>(
+export function useDebouncedCallback<T extends UnknownFn>(
   fn: T,
   delay: number
 ): Debounced<T> {

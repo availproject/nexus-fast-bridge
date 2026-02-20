@@ -82,5 +82,3 @@ export function capture(
   console.log("[PostHog] Capturing event:", event, properties);
   posthog.capture(event, properties);
 }
-
-export { posthog };

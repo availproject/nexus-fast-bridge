@@ -41,8 +41,7 @@ function generateGibberishPreservingSpaces(
     return "";
   }
   let result = "";
-  for (let i = 0; i < original.length; i += 1) {
-    const ch = original[i];
+  for (const ch of original) {
     result += ch === " " ? " " : generateRandomCharacter(charset);
   }
   return result;
@@ -136,12 +135,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   }
 
   return (
-    <motion.span
-      aria-label={text}
-      className={cn(className)}
-      ref={ref}
-      role="text"
-    >
+    <motion.span aria-label={text} className={cn(className)} ref={ref}>
       {text.split("").map((char, index) => {
         const isRevealed = index < revealCount;
         const displayChar = isRevealed

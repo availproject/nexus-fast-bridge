@@ -3,12 +3,10 @@ import { useCallback, useEffect, useRef } from "react";
 
 // Fluffey SVG natural dimensions
 const SVG_WIDTH = 148;
-const SVG_HEIGHT = 419;
 
 // Rendered display size
 const DISPLAY_WIDTH = 300;
 const SCALE = DISPLAY_WIDTH / SVG_WIDTH;
-const DISPLAY_HEIGHT = Math.round(SVG_HEIGHT * SCALE);
 
 // Eye centers in SVG coordinate space (derived from the path data)
 const LEFT_EYE = { x: 43, y: 186.5 };

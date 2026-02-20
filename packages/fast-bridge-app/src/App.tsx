@@ -6,14 +6,6 @@ import NexusProvider from "@/components/nexus/NexusProvider";
 import { Toaster } from "@/components/ui/sonner";
 import Web3Provider from "@/providers/web3Provider";
 
-// @ts-expect-error - Environment is not exported from @avail-project/nexus-core
-enum Environment {
-  FOLLY = 0, // Dev with test-net tokens
-  CERISE = 1, // Dev with main-net tokens
-  CORAL = 2, // Test-net with main-net tokens
-  JADE = 3, // Main-net with main-net tokens
-}
-
 export default function App() {
   return (
     <Web3Provider>
