@@ -35,7 +35,7 @@ interface UseBridgeProps {
   maxAmount?: string | number;
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
-  onComplete?: (explorerUrl?: string) => void;
+  onComplete?: (explorerUrl?: string) => void | Promise<void>;
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: {

@@ -52,7 +52,7 @@ interface BaseTransactionFlowProps {
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
-  onComplete?: (explorerUrl?: string) => void;
+  onComplete?: (explorerUrl?: string) => void | Promise<void>;
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: TransactionFlowPrefill;

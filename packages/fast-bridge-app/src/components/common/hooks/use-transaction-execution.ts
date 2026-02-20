@@ -44,7 +44,7 @@ interface UseTransactionExecutionProps {
   loading: boolean;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
-  onComplete?: (explorerUrl?: string) => void;
+  onComplete?: (explorerUrl?: string) => void | Promise<void>;
   onError?: (message: string) => void;
   onStart?: () => void;
   onStepComplete: (step: BridgeStepType) => void;
@@ -155,7 +155,7 @@ export function useTransactionExecution({
   const onSuccess = async (explorerUrl?: string) => {
     stopwatch.stop();
     setStatus("success");
-    onComplete?.(explorerUrl);
+    await onComplete?.(explorerUrl);
     intent.current = null;
     allowance.current = null;
     resetInputs();

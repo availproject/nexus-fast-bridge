@@ -6,7 +6,7 @@ import type {
 import { chainFeatures } from "@fastbridge/runtime";
 import Decimal from "decimal.js";
 import { CheckCircle2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
@@ -65,12 +65,14 @@ const getDisplayTokenSymbol = (
 };
 
 const getPrimaryButtonLabel = ({
+  isLoading,
   isConnected,
   isSdkReady,
   isInputsValid,
   hasError,
 }: {
   hasError: boolean;
+  isLoading: boolean;
   isConnected: boolean;
   isInputsValid: boolean;
   isSdkReady: boolean;
@@ -84,7 +86,10 @@ const getPrimaryButtonLabel = ({
   if (!isInputsValid) {
     return "Bridge";
   }
-  return hasError ? "Retry" : "Fetching intent...";
+  if (isLoading) {
+    return "Fetching intent...";
+  }
+  return hasError ? "Retry" : "Bridge";
 };
 
 interface FastBridgeProps {
@@ -105,6 +110,15 @@ interface FastBridgeProps {
     amount?: string;
     recipient?: Address;
   };
+}
+
+interface BridgeSuccessToastData {
+  amountReceived: string;
+  amountSpent: string;
+  asset: string;
+  destination: string;
+  sources: string;
+  totalFees: string;
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This component coordinates bridge form state, SDK lifecycle, and transaction UI in one view.
@@ -133,6 +147,38 @@ function FastBridge({
   const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+
+  const buildBridgeSuccessToastData =
+    useCallback((): BridgeSuccessToastData => {
+      const currentIntent = intent.current?.intent;
+      const sourcesText =
+        currentIntent?.sources && currentIntent.sources.length > 0
+          ? currentIntent.sources.map((source) => source.chainName).join(", ")
+          : "N/A";
+      const destination = currentIntent?.destination?.chainName ?? "Unknown";
+      const tokenSymbol = currentIntent?.token?.symbol;
+      const displaySymbol = getDisplayTokenSymbol(tokenSymbol, mapUsdmToUsdc);
+      const asset = tokenSymbol ?? "Unknown";
+      const amountSpent = currentIntent?.sourcesTotal
+        ? new Decimal(currentIntent.sourcesTotal).toFixed()
+        : "NaN";
+      const amountReceived = currentIntent?.destination?.amount
+        ? new Decimal(currentIntent.destination.amount).toFixed()
+        : "NaN";
+      const totalFees = currentIntent?.fees?.total
+        ? new Decimal(currentIntent.fees.total).toFixed()
+        : "NaN";
+
+      return {
+        sources: sourcesText,
+        destination,
+        asset,
+        amountSpent: `${amountSpent} ${displaySymbol}`,
+        amountReceived: `${amountReceived} ${asset}`,
+        totalFees: `${totalFees} ${displaySymbol}`,
+      };
+    }, [intent, mapUsdmToUsdc]);
+
   const runPostBridgeWalletAction = useCallback(async () => {
     const destinationChainId = Number(
       intent.current?.intent?.destination?.chainID
@@ -168,14 +214,9 @@ function FastBridge({
     } catch (error) {
       console.error("Failed to add token to wallet:", error);
     }
-  }, [intent, walletClient]);
+  }, [intent, postBridgeWatchAsset, walletClient]);
 
-  const showBridgeSuccessToast = useCallback(() => {
-    const sourcesText =
-      intent.current?.intent?.sources?.length &&
-      intent.current?.intent.sources.length > 0
-        ? intent.current.intent.sources.map((s) => s.chainName).join(", ")
-        : "N/A";
+  const showBridgeSuccessToast = useCallback((data: BridgeSuccessToastData) => {
     toast.success(
       <div className="flex w-full flex-col gap-2">
         <div className="flex items-center gap-2">
@@ -184,44 +225,24 @@ function FastBridge({
         </div>
         <div className="flex flex-col gap-1.5 text-muted-foreground text-sm">
           <div>
-            <span className="font-medium">Source(s):</span> {sourcesText}
+            <span className="font-medium">Source(s):</span> {data.sources}
           </div>
           <div>
-            <span className="font-medium">Destination:</span>{" "}
-            {intent.current?.intent?.destination?.chainName || "Unknown"}
+            <span className="font-medium">Destination:</span> {data.destination}
           </div>
           <div>
-            <span className="font-medium">Asset:</span>{" "}
-            {intent.current?.intent?.token.symbol || "Unknown"}
+            <span className="font-medium">Asset:</span> {data.asset}
           </div>
           <div>
             <span className="font-medium">Amount Spent:</span>{" "}
-            {intent.current?.intent?.sourcesTotal
-              ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
-              : "NaN"}{" "}
-            {getDisplayTokenSymbol(
-              intent.current?.intent?.token.symbol,
-              mapUsdmToUsdc
-            )}
+            {data.amountSpent}
           </div>
           <div>
             <span className="font-medium">Amount Received:</span>{" "}
-            {intent.current?.intent?.destination?.amount
-              ? new Decimal(
-                  intent.current?.intent?.destination?.amount
-                ).toFixed()
-              : "NaN"}{" "}
-            {intent.current?.intent?.token.symbol || "Unknown"}
+            {data.amountReceived}
           </div>
           <div>
-            <span className="font-medium">Total Fees:</span>{" "}
-            {intent.current?.intent?.fees.total
-              ? new Decimal(intent.current?.intent?.fees.total).toFixed()
-              : "NaN"}{" "}
-            {getDisplayTokenSymbol(
-              intent.current?.intent?.token.symbol,
-              mapUsdmToUsdc
-            )}
+            <span className="font-medium">Total Fees:</span> {data.totalFees}
           </div>
         </div>
       </div>,
@@ -231,7 +252,7 @@ function FastBridge({
         icon: null,
       }
     );
-  }, [intent]);
+  }, []);
 
   const {
     inputs,
@@ -273,13 +294,16 @@ function FastBridge({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: async () => {
-      await runPostBridgeWalletAction();
+    onComplete: () => {
+      const toastData = buildBridgeSuccessToastData();
+      showBridgeSuccessToast(toastData);
       if (onComplete) {
         onComplete();
       }
-      showBridgeSuccessToast();
       setHistoryRefreshNonce((prev) => prev + 1);
+      runPostBridgeWalletAction().catch((error) => {
+        console.error("Post-bridge wallet action failed:", error);
+      });
     },
     onStart,
     onError: (message) => {
@@ -340,10 +364,6 @@ function FastBridge({
   }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
 
   const showMockPreview = !isConnected && hasValidAmount && mockPreview;
-  const autoIntentKeyRef = useRef<string | null>(null);
-  const inputSignature = `${inputs?.amount ?? ""}|${inputs?.chain ?? ""}|${
-    inputs?.token ?? ""
-  }|${inputs?.recipient ?? ""}`;
 
   const runHandleTransaction = useCallback(() => {
     handleTransaction().catch((error) => {
@@ -367,7 +387,22 @@ function FastBridge({
     if (!(isConnected && isSdkReady)) {
       return;
     }
+    if (
+      !(inputs?.amount && inputs?.chain && inputs?.token && inputs?.recipient)
+    ) {
+      return;
+    }
     if (!isInputsValid) {
+      return;
+    }
+    if (status !== "idle" || txError) {
+      return;
+    }
+    // Wait for balance hydration before attempting auto intent creation.
+    if (!bridgableBalance) {
+      return;
+    }
+    if (availableSources.length === 0) {
       return;
     }
     if (intent.current) {
@@ -376,22 +411,26 @@ function FastBridge({
     if (loading) {
       return;
     }
-    if (autoIntentKeyRef.current === inputSignature) {
-      return;
-    }
-    autoIntentKeyRef.current = inputSignature;
     runHandleTransaction();
   }, [
-    inputSignature,
+    availableSources.length,
+    bridgableBalance,
+    inputs?.amount,
+    inputs?.chain,
+    inputs?.recipient,
+    inputs?.token,
     isInputsValid,
     intent,
     isConnected,
     isSdkReady,
     loading,
     runHandleTransaction,
+    status,
+    txError,
   ]);
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({
+    isLoading: loading,
     isConnected,
     isSdkReady,
     isInputsValid,
