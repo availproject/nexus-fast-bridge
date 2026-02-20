@@ -1,6 +1,7 @@
 "use client";
 
 import type { RFF } from "@avail-project/nexus-core";
+import { chainFeatures } from "@fastbridge/runtime";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { TOKEN_IMAGES } from "../common/utils/constant";
 import useViewHistory from "./hooks/use-view-history";
+
+const getDestinationTokenImage = (tokenSymbol: string) => {
+  const override =
+    chainFeatures.tokenLogoOverrideBySymbol?.[tokenSymbol] ??
+    chainFeatures.tokenLogoOverrideBySymbol?.[tokenSymbol.toUpperCase()];
+  return override ?? TOKEN_IMAGES[tokenSymbol];
+};
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   const sourceList = sources ?? [];
@@ -88,7 +96,7 @@ const DestinationToken = ({
             alt={dest.token.symbol}
             className="rounded-full"
             height={24}
-            src={TOKEN_IMAGES[dest.token.symbol]}
+            src={getDestinationTokenImage(dest.token.symbol)}
             width={24}
           />
         </div>

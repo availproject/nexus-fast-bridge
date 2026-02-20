@@ -10,6 +10,7 @@ import {
   type SupportedChainsResult,
   type UserAsset,
 } from "@avail-project/nexus-core";
+import { chainFeatures } from "@fastbridge/runtime";
 
 import {
   createContext,
@@ -78,11 +79,35 @@ const NexusProvider = ({
 
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const applyTokenLogos = useCallback(
+    (chains: SupportedChainsAndTokensResult | null) => {
+      if (!chains) {
+        return null;
+      }
+      const overrides = chainFeatures.tokenLogoOverrideBySymbol ?? {};
+      if (Object.keys(overrides).length === 0) {
+        return chains;
+      }
+      return chains.map((chain) => ({
+        ...chain,
+        tokens: chain.tokens.map((token) => ({
+          ...token,
+          logo:
+            overrides[token.symbol] ??
+            overrides[token.symbol.toUpperCase()] ??
+            token.logo,
+        })),
+      }));
+    },
+    []
+  );
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsAndTokensResult | null>(
-      sdk.utils.getSupportedChains(
-        stableConfig.network === "testnet" ? 0 : undefined
-      ) ?? null
+      applyTokenLogos(
+        sdk.utils.getSupportedChains(
+          stableConfig.network === "testnet" ? 0 : undefined
+        ) ?? null
+      )
     );
   const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
     useState<SupportedChainsResult | null>(
@@ -102,16 +127,16 @@ const NexusProvider = ({
     const list = sdk.utils.getSupportedChains(
       stableConfig.network === "testnet" ? 0 : undefined
     );
-    setSupportedChainsAndTokens(list ?? null);
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
     setSwapSupportedChainsAndTokens(swapList ?? null);
-  }, [sdk, stableConfig.network]);
+  }, [applyTokenLogos, sdk, stableConfig.network]);
 
   const setupNexus = useCallback(async () => {
     const list = sdk.utils.getSupportedChains(
       stableConfig.network === "testnet" ? 0 : undefined
     );
-    setSupportedChainsAndTokens(list ?? null);
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
     setSwapSupportedChainsAndTokens(swapList ?? null);
     const [bridgeAbleBalanceResult, rates] = await Promise.allSettled([
@@ -137,7 +162,7 @@ const NexusProvider = ({
       }
       exchangeRate.current = usdPerUnit;
     }
-  }, [sdk, stableConfig.network]);
+  }, [applyTokenLogos, sdk, stableConfig.network]);
 
   const initializeNexus = async (provider: EthereumProvider) => {
     setLoading(true);

@@ -73,7 +73,7 @@ export function getConfig(env: AppEnv) {
       ),
       canonicalUrl: withFallback(
         env.VITE_CONFIG_APP_META_CANONICAL_URL,
-        "https://megaeth-fast-bridge.vercel.app"
+        "https://fastbridge.availproject.org/citrea/"
       ),
       imageUrl: withFallback(
         env.VITE_CONFIG_APP_META_IMAGE_URL,
@@ -81,7 +81,7 @@ export function getConfig(env: AppEnv) {
       ),
       faviconUrl: withFallback(
         env.VITE_CONFIG_APP_META_FAVICON_URL,
-        "https://megaeth-fast-bridge.vercel.app/faviconV2.png"
+        "https://fastbridge.availproject.org/citrea/faviconV2.png"
       ),
       themeColor: withFallback(env.VITE_CONFIG_APP_META_THEME_COLOR, "#EF8F36"),
       backgroundColor: withFallback(

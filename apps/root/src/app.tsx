@@ -54,7 +54,7 @@ export default function App() {
           />
           <div className="h-6 w-px bg-[var(--border-default)]" />
           <span className="hidden font-semibold text-[15px] text-[var(--foreground-primary)] tracking-[-0.01em] [font-family:var(--font-display)] md:inline">
-            Nexus Fast Bridge
+            Avail FastBridge
           </span>
         </motion.div>
       </motion.nav>
@@ -70,29 +70,104 @@ export default function App() {
         {/* Floating logos background */}
         <FloatingLogos mousePosition={mousePosition} />
 
-        <div className="relative z-2 mx-auto mt-12 max-w-180">
+        <div className="relative z-2 mx-auto mt-12 max-w-180 bg-[radial-gradient(closest-side,var(--background-primary)_85%,transparent_100%)]">
           <h1 className="relative inline-flex flex-wrap items-center justify-center gap-0.5 font-bold text-(--foreground-primary) text-[28px] leading-[1.15] tracking-[-0.02em] [font-family:var(--font-display)] md:text-[clamp(52px,6vw,72px)]">
-            Avail <AuroraText>Fast Bridge</AuroraText>
+            <AuroraText>Avail FastBridge</AuroraText>
           </h1>
+          <h2 className="text-center font-medium text-[18px] text-[var(--foreground-primary)] md:text-[clamp(20px,3vw,32px)]">
+            Fast Crypto Bridge for Stables Across Chains
+          </h2>
           <motion.p
             animate={{ opacity: 1, y: 0 }}
-            className="mx-auto mb-6 max-w-120 font-normal text-(--foreground-secondary) text-[15px] leading-[1.6] [font-family:var(--font-body)]! md:text-[17px]"
+            className="mx-auto mb-6 max-w-140 text-balance p-4 text-center font-normal text-(--foreground-secondary) text-[15px] leading-[1.6] [font-family:var(--font-body)]! md:text-[17px]"
             initial={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.5, delay: 0.6 }}
           >
-            Bridge assets across chains with Avail&apos;s unified
-            infrastructure. Fast, secure, and seamless cross-chain transfers.
+            <strong>Avail FastBridge is fast.</strong> <br />
+            Bridge stablecoins like USDC, USDT and others across 15+ chains in
+            seconds with no wrapping and no complexity. It's a secure,
+            multi-chain bridge powered by Avail Nexus.
           </motion.p>
         </div>
       </motion.section>
 
       {/* Chain Grid */}
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 md:px-8 md:py-12">
-        <div className="grid grid-cols-1 gap-4 md:gap-5 md:[grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
+        <h2 className="mb-6 text-center font-bold text-2xl text-[var(--foreground-primary)]">
+          Bridge Stablecoins to Any Chain
+        </h2>
+        <div className="mb-16 grid grid-cols-1 gap-4 md:gap-5 md:[grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
           {chains.map((chain, index) => {
             return <ChainCard chain={chain} index={index} key={chain.slug} />;
           })}
         </div>
+
+        <section className="mx-auto max-w-4xl space-y-6 text-[var(--foreground-secondary)]">
+          <div className="space-y-6">
+            <h2 className="text-center font-bold text-2xl text-[var(--foreground-primary)] md:text-3xl">
+              Why Use Avail FastBridge as Your Multi-Chain Bridge
+            </h2>
+
+            <div className="space-y-6 text-[var(--foreground-secondary)] text-base leading-relaxed md:text-lg">
+              <p>
+                Avail FastBridge is the quickest way to move your assets between
+                chains. In a single transaction you can instantly{" "}
+                <strong>bridge USDC across multiple chains</strong>.
+              </p>
+
+              <p>
+                It&rsquo;s one of the few{" "}
+                <strong>multi-chain, and multi-transaction bridges</strong>{" "}
+                enabling you to move assets freely in a single transaction
+                between major ecosystems like Ethereum, Base, Arbitrum,
+                Optimism, and emerging L2s such as MegaETH, Citrea, and Monad.
+              </p>
+
+              <p>
+                Avail FastBridge specializes in{" "}
+                <strong>cross-chain bridging</strong> for quick and seamless{" "}
+                <strong>stablecoin transfers</strong>, ensuring your liquidity
+                is never fragmented. Experience the speed of a true{" "}
+                <strong>fast crypto bridge</strong> that eliminates the
+                complexities of wrapping and waiting.
+              </p>
+
+              <p>
+                Powered by Avail Nexus, providing uncompromised security and
+                seamless interoperability for the decentralized age.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--background-secondary)] p-6 shadow-sm transition-all hover:shadow-md">
+              <h3 className="mb-3 font-semibold text-[var(--foreground-primary)] text-lg">
+                Supported Chains
+              </h3>
+              <p className="text-[var(--foreground-secondary)] text-sm leading-relaxed">
+                MegaETH, Citrea, Monad, Ethereum, Arbitrum, Optimism, Base,
+                Scroll, Polygon, Avalanche, and more.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--background-secondary)] p-6 shadow-sm transition-all hover:shadow-md">
+              <h3 className="mb-3 font-semibold text-[var(--foreground-primary)] text-lg">
+                Supported Tokens
+              </h3>
+              <p className="text-[var(--foreground-secondary)] text-sm leading-relaxed">
+                USDC, USDT, USDM, ETH and native assets.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--background-secondary)] p-6 shadow-sm transition-all hover:shadow-md">
+              <h3 className="mb-3 font-semibold text-[var(--foreground-primary)] text-lg">
+                Key Features
+              </h3>
+              <ul className="list-inside list-disc space-y-1 text-[var(--foreground-secondary)] text-sm leading-relaxed">
+                <li>Atomic settlement speed</li>
+                <li>Avail Nexus security</li>
+                <li>Zero slippage on stablecoins</li>
+              </ul>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}

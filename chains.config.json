@@ -7,7 +7,7 @@
     "secondaryColor": "#ECE8E8",
     "basePath": "/megaeth/",
     "appDir": "apps/megaeth",
-    "logoUrl": "https://files.availproject.org/fastbridge/megaeth/megaeth-logo.svg",
+    "logoUrl": "https://files.availproject.org/fastbridge/megaeth/megaeth-favicon.svg",
     "iconUrl": "https://files.availproject.org/fastbridge/megaeth/megaeth-favicon.svg"
   },
   {
@@ -18,8 +18,8 @@
     "secondaryColor": "#ffffff",
     "basePath": "/citrea/",
     "appDir": "apps/citrea",
-    "logoUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg",
-    "iconUrl": "https://files.availproject.org/fastbridge/citrea/citrea.svg"
+    "logoUrl": "https://files.availproject.org/fastbridge/citrea/citrea-favicon.svg",
+    "iconUrl": "https://files.availproject.org/fastbridge/citrea/citrea-favicon.svg"
   },
   {
     "slug": "monad",

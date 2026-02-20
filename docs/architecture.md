@@ -60,7 +60,7 @@ Defines chain identity and brand values (IDs, RPCs, metadata, colors, logos, SEO
 
 ### 3) Behavior Flags (`apps/<slug>/src/runtime.ts`)
 
-`chainFeatures` controls behavior differences without forking shared logic (example: MegaETH promo banner and special fee display behavior).
+`chainFeatures` controls behavior differences without forking shared logic (examples: promo banners, token logo overrides, post-bridge wallet actions, and chain-specific page/support content).
 
 Source of truth for feature contract:
 - `packages/fast-bridge-app/src/types/runtime.ts`

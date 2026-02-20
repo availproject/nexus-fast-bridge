@@ -9,6 +9,7 @@ import { CheckCircle2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
+import { useWalletClient } from "wagmi";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -119,6 +120,7 @@ function FastBridge({
 }: FastBridgeProps) {
   const maxBridgeAmount = chainFeatures.maxBridgeAmount;
   const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
+  const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
 
   const {
     nexusSDK,
@@ -128,8 +130,108 @@ function FastBridge({
     network,
     fetchBridgableBalance,
   } = useNexus();
+  const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+  const runPostBridgeWalletAction = useCallback(async () => {
+    const destinationChainId = Number(
+      intent.current?.intent?.destination?.chainID
+    );
+    const tokenSymbol = intent.current?.intent?.token?.symbol;
+    if (
+      !postBridgeWatchAsset ||
+      tokenSymbol?.toUpperCase() !==
+        postBridgeWatchAsset.tokenSymbol.toUpperCase() ||
+      destinationChainId !== postBridgeWatchAsset.destinationChainId
+    ) {
+      return;
+    }
+    try {
+      const currentChainId = await walletClient?.getChainId?.();
+      if (
+        currentChainId &&
+        currentChainId !== postBridgeWatchAsset.destinationChainId
+      ) {
+        await walletClient?.switchChain?.({
+          id: postBridgeWatchAsset.destinationChainId,
+        });
+      }
+      await walletClient?.watchAsset?.({
+        type: "ERC20",
+        options: {
+          address: postBridgeWatchAsset.walletAsset.address as Address,
+          symbol: postBridgeWatchAsset.walletAsset.symbol,
+          decimals: postBridgeWatchAsset.walletAsset.decimals,
+          image: postBridgeWatchAsset.walletAsset.image,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to add token to wallet:", error);
+    }
+  }, [intent, walletClient]);
+
+  const showBridgeSuccessToast = useCallback(() => {
+    const sourcesText =
+      intent.current?.intent?.sources?.length &&
+      intent.current?.intent.sources.length > 0
+        ? intent.current.intent.sources.map((s) => s.chainName).join(", ")
+        : "N/A";
+    toast.success(
+      <div className="flex w-full flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="size-5 text-green-500" />
+          <span className="font-semibold">Bridge Successful!</span>
+        </div>
+        <div className="flex flex-col gap-1.5 text-muted-foreground text-sm">
+          <div>
+            <span className="font-medium">Source(s):</span> {sourcesText}
+          </div>
+          <div>
+            <span className="font-medium">Destination:</span>{" "}
+            {intent.current?.intent?.destination?.chainName || "Unknown"}
+          </div>
+          <div>
+            <span className="font-medium">Asset:</span>{" "}
+            {intent.current?.intent?.token.symbol || "Unknown"}
+          </div>
+          <div>
+            <span className="font-medium">Amount Spent:</span>{" "}
+            {intent.current?.intent?.sourcesTotal
+              ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
+              : "NaN"}{" "}
+            {getDisplayTokenSymbol(
+              intent.current?.intent?.token.symbol,
+              mapUsdmToUsdc
+            )}
+          </div>
+          <div>
+            <span className="font-medium">Amount Received:</span>{" "}
+            {intent.current?.intent?.destination?.amount
+              ? new Decimal(
+                  intent.current?.intent?.destination?.amount
+                ).toFixed()
+              : "NaN"}{" "}
+            {intent.current?.intent?.token.symbol || "Unknown"}
+          </div>
+          <div>
+            <span className="font-medium">Total Fees:</span>{" "}
+            {intent.current?.intent?.fees.total
+              ? new Decimal(intent.current?.intent?.fees.total).toFixed()
+              : "NaN"}{" "}
+            {getDisplayTokenSymbol(
+              intent.current?.intent?.token.symbol,
+              mapUsdmToUsdc
+            )}
+          </div>
+        </div>
+      </div>,
+      {
+        duration: Number.POSITIVE_INFINITY,
+        closeButton: true,
+        icon: null,
+      }
+    );
+  }, [intent]);
 
   const {
     inputs,
@@ -171,70 +273,12 @@ function FastBridge({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: () => {
+    onComplete: async () => {
+      await runPostBridgeWalletAction();
       if (onComplete) {
         onComplete();
       }
-      const sourcesText =
-        intent.current?.intent?.sources?.length &&
-        intent.current?.intent.sources.length > 0
-          ? intent.current.intent.sources.map((s) => s.chainName).join(", ")
-          : "N/A";
-      toast.success(
-        <div className="flex w-full flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-5 text-green-500" />
-            <span className="font-semibold">Bridge Successful!</span>
-          </div>
-          <div className="flex flex-col gap-1.5 text-muted-foreground text-sm">
-            <div>
-              <span className="font-medium">Source(s):</span> {sourcesText}
-            </div>
-            <div>
-              <span className="font-medium">Destination:</span>{" "}
-              {intent.current?.intent?.destination?.chainName || "Unknown"}
-            </div>
-            <div>
-              <span className="font-medium">Asset:</span>{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
-            </div>
-            <div>
-              <span className="font-medium">Amount Spent:</span>{" "}
-              {intent.current?.intent?.sourcesTotal
-                ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
-                : "NaN"}{" "}
-              {getDisplayTokenSymbol(
-                intent.current?.intent?.token.symbol,
-                mapUsdmToUsdc
-              )}
-            </div>
-            <div>
-              <span className="font-medium">Amount Received:</span>{" "}
-              {intent.current?.intent?.destination?.amount
-                ? new Decimal(
-                    intent.current?.intent?.destination?.amount
-                  ).toFixed()
-                : "NaN"}{" "}
-              {intent.current?.intent?.token.symbol || "Unknown"}
-            </div>
-            <div>
-              <span className="font-medium">Total Fees:</span>{" "}
-              {intent.current?.intent?.fees.total
-                ? new Decimal(intent.current?.intent?.fees.total).toFixed()
-                : "NaN"}{" "}
-              {getDisplayTokenSymbol(
-                intent.current?.intent?.token.symbol,
-                mapUsdmToUsdc
-              )}
-            </div>
-          </div>
-        </div>,
-        {
-          duration: Number.POSITIVE_INFINITY, // Stay until dismissed
-          closeButton: true,
-          icon: null, // Remove default icon since we're adding our own
-        }
-      );
+      showBridgeSuccessToast();
       setHistoryRefreshNonce((prev) => prev + 1);
     },
     onStart,

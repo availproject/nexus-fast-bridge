@@ -67,15 +67,15 @@ export function getConfig(env: AppEnv) {
       ),
       canonicalUrl: withFallback(
         env.VITE_CONFIG_APP_META_CANONICAL_URL,
-        "https://monadfastbridge.com"
+        "https://fastbridge.availproject.org/monad/"
       ),
       imageUrl: withFallback(
         env.VITE_CONFIG_APP_META_IMAGE_URL,
-        "https://monadfastbridge.com/MonadFBMeta.png"
+        "https://fastbridge.availproject.org/monad/MonadFBMeta.png"
       ),
       faviconUrl: withFallback(
         env.VITE_CONFIG_APP_META_FAVICON_URL,
-        "https://monadfastbridge.com/faviconV2.png"
+        "https://fastbridge.availproject.org/monad/faviconV2.png"
       ),
       themeColor: withFallback(env.VITE_CONFIG_APP_META_THEME_COLOR, "#836ef9"),
       backgroundColor: withFallback(

@@ -11,8 +11,13 @@ export const chainFeatures: ChainFeatures = {
   walletInitDelayMs: 0,
   showFluffeyMascot: false,
   showPromoBanner: false,
+  pageDescription:
+    "Bridge USDC to Citrea instantly with Avail Fast Bridge. Leveraging Avail Nexus infrastructure, we provide a secure, decentralized path to move liquidity from 12+ chains including Ethereum and major L2s directly to Citrea.",
   mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: false,
+  tokenLogoOverrideBySymbol: {
+    USDM: "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/tokens/usdm/logo.png",
+  },
   denyIntentOnReset: true,
   tokenDenyListByChainId: {
     [SUPPORTED_CHAINS.CITREA]: ["cBTC"],

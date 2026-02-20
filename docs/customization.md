@@ -61,9 +61,21 @@ Consumed in `packages/fast-bridge-app/src/components/wallet-connect.tsx`.
 Controls promo hero treatment (MegaETH pattern).
 Consumed in `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx`.
 
+- `pageDescription`, `showSupportCta`, `supportCtaHref`, `supportCtaLine1`, `supportCtaLine2`
+Controls chain-specific page-level content and optional support CTA in the shared app shell.
+Consumed in `packages/fast-bridge-app/src/app.tsx`.
+
+- `postBridgeWatchAsset`
+Triggers optional wallet asset watch flow after a successful bridge for specific destination chain/token pairs.
+Consumed in `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx`.
+
 - `mapUsdmDisplaySymbolToUsdc`, `mapUsdmToUsdcBalance`
 Display and balance mapping behavior for USDM.
 Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts`, `packages/fast-bridge-app/src/components/fast-bridge/components/fee-breakdown.tsx`, and `packages/fast-bridge-app/src/components/fast-bridge/components/source-breakdown.tsx`.
+
+- `tokenLogoOverrideBySymbol`
+Overrides token logo URLs by symbol at runtime.
+Consumed in `packages/fast-bridge-app/src/components/nexus/nexus-provider.tsx` and `packages/fast-bridge-app/src/components/view-history/view-history.tsx`.
 
 - `denyIntentOnReset`
 Controls intent reset behavior after flow interruption.
@@ -94,7 +106,8 @@ Consumed in `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx
 `apps/megaeth/src/runtime.ts` demonstrates:
 - higher bridge cap (`maxBridgeAmount: 5000`)
 - delayed wallet init (`walletInitDelayMs: 500`)
-- promo mascot/banner copy
+- chain-specific page description + support CTA
+- optional post-bridge wallet asset add flow
 - USDM behavior remapping
 - fee breakdown row overrides
 - dialog close button disabled

@@ -48,13 +48,29 @@ export interface ChainFeatures {
   mapUsdmDisplaySymbolToUsdc?: boolean;
   mapUsdmToUsdcBalance?: boolean;
   maxBridgeAmount: number;
+  pageDescription?: string;
+  postBridgeWatchAsset?: {
+    destinationChainId: number;
+    tokenSymbol: string;
+    walletAsset: {
+      address: string;
+      decimals: number;
+      image: string;
+      symbol: string;
+    };
+  };
   promoBannerImageUrl?: string;
   promoBannerLine1?: string;
   promoBannerLine2?: string;
   showFluffeyMascot?: boolean;
   showPromoBanner?: boolean;
+  showSupportCta?: boolean;
   slug: string;
+  supportCtaHref?: string;
+  supportCtaLine1?: string;
+  supportCtaLine2?: string;
   tokenDenyListByChainId?: Record<number, string[]>;
+  tokenLogoOverrideBySymbol?: Record<string, string>;
   walletInitDelayMs?: number;
 }
 
@@ -65,10 +81,12 @@ export const defaultChainFeatures: ChainFeatures = {
   walletInitDelayMs: 0,
   showFluffeyMascot: false,
   showPromoBanner: false,
+  showSupportCta: false,
   mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: false,
   denyIntentOnReset: true,
   tokenDenyListByChainId: {},
+  tokenLogoOverrideBySymbol: {},
   allowanceLogoOverrideByChainId: {},
   amountInputUseCalculatedMaxHeader: false,
   amountInputShowDestinationBadge: false,
