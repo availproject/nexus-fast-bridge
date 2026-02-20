@@ -9,3 +9,4 @@ export * from "./tx/types";
 export * from "./tx/steps";
 export * from "./tx/useTransactionSteps";
 export * from "./utils/constant";
+export * from "./components/ErrorBoundary";
