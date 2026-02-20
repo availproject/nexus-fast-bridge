@@ -34,7 +34,7 @@ export const SWAP_EXPECTED_STEPS: SwapStepType[] = [
   { type: "SWAP_COMPLETE", typeID: "SWAP_COMPLETE" } as SwapStepType,
 ];
 
-export function seedSteps<T>(expected: T[]): Array<GenericStep<T>> {
+export function seedSteps<T>(expected: T[]): GenericStep<T>[] {
   return expected.map((st, index) => ({
     id: index,
     completed: false,
@@ -42,7 +42,7 @@ export function seedSteps<T>(expected: T[]): Array<GenericStep<T>> {
   }));
 }
 
-export function computeAllCompleted<T>(steps: Array<GenericStep<T>>): boolean {
+export function computeAllCompleted<T>(steps: GenericStep<T>[]): boolean {
   return steps.length > 0 && steps.every((s) => s.completed);
 }
 
@@ -51,16 +51,16 @@ export function computeAllCompleted<T>(steps: Array<GenericStep<T>>): boolean {
  * for any steps that were already marked completed (matched by key).
  */
 export function mergeStepsList<T>(
-  prev: Array<GenericStep<T>>,
+  prev: GenericStep<T>[],
   list: T[]
-): Array<GenericStep<T>> {
+): GenericStep<T>[] {
   const completedKeys = new Set<string>();
   for (const prevStep of prev) {
     if (prevStep.completed) {
       completedKeys.add(getStepKey(prevStep.step));
     }
   }
-  const next: Array<GenericStep<T>> = [];
+  const next: GenericStep<T>[] = [];
   for (let index = 0; index < list.length; index++) {
     const step = list[index];
     const key = getStepKey(step);
@@ -77,11 +77,11 @@ export function mergeStepsList<T>(
  * Mark a step complete in-place; if the step doesn't yet exist, append it.
  */
 export function mergeStepComplete<T>(
-  prev: Array<GenericStep<T>>,
+  prev: GenericStep<T>[],
   step: T
-): Array<GenericStep<T>> {
+): GenericStep<T>[] {
   const key = getStepKey(step);
-  const updated: Array<GenericStep<T>> = [];
+  const updated: GenericStep<T>[] = [];
   let found = false;
   for (const s of prev) {
     if (getStepKey(s.step) === key) {

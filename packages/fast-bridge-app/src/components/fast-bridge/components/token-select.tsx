@@ -4,7 +4,7 @@ import type {
 } from "@avail-project/nexus-core";
 import { chainFeatures } from "@fastbridge/runtime";
 import { useMemo } from "react";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import { Label } from "../../ui/label";
 import {
   Select,

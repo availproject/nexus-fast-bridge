@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDebouncedCallback } from "./useDebouncedCallback";
+import { useDebouncedCallback } from "./use-debounced-callback";
 
 /**
  * Derives a debounced value from an input value and delay.
@@ -11,8 +11,7 @@ export function useDebouncedValue<T>(value: T, delay: number): T {
   useEffect(() => {
     setter(value);
     return setter.cancel;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, delay]);
+  }, [setter, value]);
 
   return debounced;
 }

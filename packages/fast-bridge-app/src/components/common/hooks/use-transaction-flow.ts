@@ -17,7 +17,7 @@ import {
 } from "react";
 import { type Address, isAddress } from "viem";
 import type { TransactionStatus } from "../tx/types";
-import { useTransactionSteps } from "../tx/useTransactionSteps";
+import { useTransactionSteps } from "../tx/use-transaction-steps";
 import type {
   SourceCoverageState,
   TransactionFlowExecutor,
@@ -33,11 +33,11 @@ import {
   MAX_AMOUNT_DEBOUNCE_MS,
   normalizeMaxAmount,
 } from "../utils/transaction-flow";
-import { useDebouncedCallback } from "./useDebouncedCallback";
-import { useNexusError } from "./useNexusError";
-import { usePolling } from "./usePolling";
-import { useStopwatch } from "./useStopwatch";
-import { useTransactionExecution } from "./useTransactionExecution";
+import { useDebouncedCallback } from "./use-debounced-callback";
+import { useNexusError } from "./use-nexus-error";
+import { usePolling } from "./use-polling";
+import { useStopwatch } from "./use-stopwatch";
+import { useTransactionExecution } from "./use-transaction-execution";
 
 interface BaseTransactionFlowProps {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -63,10 +63,10 @@ export interface UseTransactionFlowProps extends BaseTransactionFlowProps {
   connectedAddress?: Address;
 }
 
-type State = {
+interface State {
   inputs: TransactionFlowInputs;
   status: TransactionStatus;
-};
+}
 
 type Action =
   | { type: "setInputs"; payload: Partial<TransactionFlowInputs> }
@@ -142,6 +142,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const previousConnectedAddressRef = useRef<Address | undefined>(
     connectedAddress
   );
+  const previousSelectedTokenRef = useRef(inputs?.token);
   const maxAmountRequestIdRef = useRef(0);
   const [selectedSourceChains, setSelectedSourceChains] = useState<
     number[] | null
@@ -308,6 +309,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     [allAvailableSourceChainIds]
   );
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Computes source-coverage state from SDK intent, selected chains, and fallbacks.
   const sourceSelection = useMemo(() => {
     const amount =
       intentSourceSpendAmount?.trim() ?? inputs?.amount?.trim() ?? "";
@@ -372,12 +374,12 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       const coverageState: SourceCoverageState =
         selectedTotalRaw < requiredRaw ? "error" : "healthy";
 
-      const coverageBasisPoints =
-        requiredRaw === BigInt(0)
-          ? 10_000
-          : selectedTotalRaw >= requiredRaw
-            ? 10_000
-            : Number((selectedTotalRaw * BigInt(10_000)) / requiredRaw);
+      let coverageBasisPoints = 10_000;
+      if (requiredRaw > BigInt(0) && selectedTotalRaw < requiredRaw) {
+        coverageBasisPoints = Number(
+          (selectedTotalRaw * BigInt(10_000)) / requiredRaw
+        );
+      }
 
       return {
         selectedTotal,
@@ -514,10 +516,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     debouncedRefreshMaxForSelection(requestId);
   }, [
     allAvailableSourceChainIds.length,
-    configuredMaxAmount,
     debouncedRefreshMaxForSelection,
-    inputs?.recipient,
-    sourceSelectionKey,
     inputs?.chain,
     inputs?.token,
     nexusSDK,
@@ -554,10 +553,27 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   }, [type, connectedAddress, inputs?.recipient, prefill?.recipient]);
 
   useEffect(() => {
+    const hasInputs = Boolean(
+      inputs?.amount || inputs?.chain || inputs?.recipient || inputs?.token
+    );
+    if (!(hasInputs || intent.current)) {
+      return;
+    }
     invalidatePendingExecution();
-  }, [inputs, invalidatePendingExecution]);
+  }, [
+    inputs?.amount,
+    inputs?.chain,
+    inputs?.recipient,
+    inputs?.token,
+    intent,
+    invalidatePendingExecution,
+  ]);
 
   useEffect(() => {
+    if (previousSelectedTokenRef.current === inputs?.token) {
+      return;
+    }
+    previousSelectedTokenRef.current = inputs?.token;
     setSelectedSourceChains(null);
   }, [inputs?.token]);
 
@@ -577,7 +593,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     if (txError) {
       setTxError(null);
     }
-  }, [inputs, txError]);
+  }, [txError]);
 
   return {
     inputs,

@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { useInterval } from "./useInterval";
-import { useStableCallback } from "./useStableCallback";
+import { useInterval } from "./use-interval";
+import { useStableCallback } from "./use-stable-callback";
 
 /**
  * Declarative polling with in-flight protection (no overlap).

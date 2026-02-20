@@ -5,7 +5,7 @@ import type {
 import { chainFeatures } from "@fastbridge/runtime";
 import { MessageCircleQuestion } from "lucide-react";
 import type { FC } from "react";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import {
   Accordion,
   AccordionContent,
@@ -105,6 +105,23 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({
               ) {
                 return null;
               }
+              let feeValueNode = <Skeleton className="h-4 w-20" />;
+              if (!isLoading) {
+                if (shouldForceZeroFees && key !== "caGas") {
+                  feeValueNode = (
+                    <p className="font-semibold text-primary text-sm">0 Fees</p>
+                  );
+                } else {
+                  feeValueNode = (
+                    <p className="font-light text-sm">
+                      {nexusSDK?.utils?.formatTokenBalance(value, {
+                        symbol: displaySymbol,
+                        decimals: intent?.token?.decimals,
+                      })}
+                    </p>
+                  );
+                }
+              }
               return (
                 <Tooltip key={key}>
                   <div className="flex w-full items-center justify-between">
@@ -114,20 +131,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({
                         <MessageCircleQuestion className="size-4" />
                       </TooltipTrigger>
                     </div>
-                    {isLoading ? (
-                      <Skeleton className="h-4 w-20" />
-                    ) : shouldForceZeroFees && key !== "caGas" ? (
-                      <p className="font-semibold text-primary text-sm">
-                        0 Fees
-                      </p>
-                    ) : (
-                      <p className="font-light text-sm">
-                        {nexusSDK?.utils?.formatTokenBalance(value, {
-                          symbol: displaySymbol,
-                          decimals: intent?.token?.decimals,
-                        })}
-                      </p>
-                    )}
+                    {feeValueNode}
                   </div>
                   <TooltipContent className="max-w-sm text-balance">
                     <p className="font-light text-sm">{description}</p>

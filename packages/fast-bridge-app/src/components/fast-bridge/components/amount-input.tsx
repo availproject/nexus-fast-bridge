@@ -10,12 +10,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { SHORT_CHAIN_NAME } from "../../common";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 import {
   clampAmountToMax,
   normalizeMaxAmount,
 } from "../../common/utils/transaction-flow";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import {
   Accordion,
   AccordionContent,
@@ -24,7 +24,7 @@ import {
 } from "../../ui/accordion";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
-import type { FastBridgeState } from "../hooks/useBridge";
+import type { FastBridgeState } from "../hooks/use-bridge";
 
 interface AmountInputProps {
   amount?: string;
@@ -138,8 +138,10 @@ const AmountInput: FC<AmountInputProps> = ({
       const value = await getMaxVal();
       setMaxVal(value ?? "0");
     };
-    void initMaxVal();
-  }, [getMaxVal, loading, maxAvailableAmount, nexusSDK, inputs]);
+    initMaxVal().catch((error) => {
+      console.error("Failed to initialize max bridge amount:", error);
+    });
+  }, [getMaxVal]);
 
   useEffect(() => {
     return () => {

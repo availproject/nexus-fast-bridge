@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useRef, useState } from "react";
-import { chains } from "../chains";
+import { useEffect, useRef, useState } from "react";
+import type { chains } from "../chains";
 
 function ChainCard({
   chain,
@@ -10,7 +10,7 @@ function ChainCard({
   chain: (typeof chains)[0];
   index: number;
 }) {
-  const [imageError, setImageError] = useState(false);
+  const [imageError, setImageError] = useState(!chain.logoUrl);
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const primaryColor = chain.primaryColor ?? "#2563eb";
@@ -23,15 +23,17 @@ function ChainCard({
   const springConfig = { damping: 25, stiffness: 200 };
   const rotateX = useSpring(
     useTransform(mouseY, [-0.5, 0.5], [8, -8]),
-    springConfig,
+    springConfig
   );
   const rotateY = useSpring(
     useTransform(mouseX, [-0.5, 0.5], [-8, 8]),
-    springConfig,
+    springConfig
   );
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+    if (!cardRef.current) {
+      return;
+    }
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
@@ -45,12 +47,45 @@ function ChainCard({
     setIsHovered(false);
   };
 
+  useEffect(() => {
+    if (!chain.logoUrl) {
+      setImageError(true);
+      return;
+    }
+
+    let canceled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!canceled) {
+        setImageError(false);
+      }
+    };
+    image.onerror = () => {
+      if (!canceled) {
+        setImageError(true);
+      }
+    };
+    image.src = chain.logoUrl;
+
+    return () => {
+      canceled = true;
+    };
+  }, [chain.logoUrl]);
+
   // Determine if color is light or dark for fallback text
   const isLightColor = (hex: string) => {
-    const rgb = parseInt(hex.slice(1), 16);
-    const r = (rgb >> 16) & 0xff;
-    const g = (rgb >> 8) & 0xff;
-    const b = (rgb >> 0) & 0xff;
+    const normalized = hex.startsWith("#") ? hex.slice(1) : hex;
+    if (normalized.length !== 6) {
+      return false;
+    }
+
+    const r = Number.parseInt(normalized.slice(0, 2), 16);
+    const g = Number.parseInt(normalized.slice(2, 4), 16);
+    const b = Number.parseInt(normalized.slice(4, 6), 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+      return false;
+    }
+
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     return luma > 128;
   };
@@ -59,48 +94,48 @@ function ChainCard({
 
   return (
     <motion.div
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       className="h-full"
       initial={{ opacity: 0, y: 30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      style={{ perspective: 1000 }}
       transition={{
         duration: 0.5,
         delay: index * 0.1,
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
-      style={{ perspective: 1000 }}
     >
       <motion.div
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
         ref={cardRef}
         style={{
           rotateX,
           rotateY,
           transformStyle: "preserve-3d",
         }}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={handleMouseLeave}
       >
         <a
+          className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--card-background)] p-5 text-inherit no-underline transition-[transform,box-shadow,border-color] duration-300 [transform-style:preserve-3d] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--blue-300)] hover:shadow-[0_20px_50px_-12px_hsla(214,92%,48%,0.2),0_8px_24px_-8px_hsla(0,0%,0%,0.1)] focus-visible:outline-2 focus-visible:outline-[var(--blue-500)] focus-visible:outline-offset-2 md:min-h-[200px] md:p-6"
           href={chain.basePath}
-          className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--card-background)] p-5 text-inherit no-underline [transform-style:preserve-3d] transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--blue-300)] hover:shadow-[0_20px_50px_-12px_hsla(214,92%,48%,0.2),0_8px_24px_-8px_hsla(0,0%,0%,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-500)] md:min-h-[200px] md:p-6"
         >
           {/* Animated border glow */}
           <motion.div
-            className="pointer-events-none absolute -inset-[2px] rounded-[14px] border-2 border-[var(--blue-400)] opacity-0"
             animate={{
               opacity: isHovered ? 1 : 0,
             }}
+            className="pointer-events-none absolute -inset-[2px] rounded-[14px] border-2 border-[var(--blue-400)] opacity-0"
             transition={{ duration: 0.3 }}
           />
 
           <div className="flex flex-1 items-start gap-4 md:gap-5">
             {/* Chain Logo with bounce animation */}
             <motion.div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--background-secondary)] p-2.5 transition-[background-color,border-color,transform] duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:border-[var(--blue-200)] group-hover:bg-[var(--background-tertiary)] md:h-[72px] md:w-[72px] md:p-3"
               animate={{
                 scale: isHovered ? 1.1 : 1,
                 rotate: isHovered ? [0, -5, 5, 0] : 0,
               }}
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-[var(--border-default)] bg-[var(--background-secondary)] p-2.5 transition-[background-color,border-color,transform] duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:border-[var(--blue-200)] group-hover:bg-[var(--background-tertiary)] md:h-[72px] md:w-[72px] md:p-3"
               transition={{
                 scale: { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] },
                 rotate: { duration: 0.5, ease: "easeInOut" },
@@ -108,14 +143,15 @@ function ChainCard({
             >
               {!imageError && chain.logoUrl ? (
                 <img
-                  src={chain.logoUrl}
                   alt={`${chain.name} logo`}
                   className="h-full w-full object-contain"
-                  onError={() => setImageError(true)}
+                  height={72}
+                  src={chain.logoUrl}
+                  width={72}
                 />
               ) : (
                 <div
-                  className="flex h-full w-full items-center justify-center rounded text-[28px] font-bold"
+                  className="flex h-full w-full items-center justify-center rounded font-bold text-[28px]"
                   style={{
                     background: primaryColor,
                     color: primaryIsLight ? "#111827" : "#ffffff",
@@ -129,20 +165,20 @@ function ChainCard({
             {/* Chain Info */}
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <motion.h3
-                className="m-0 text-lg font-semibold tracking-[-0.01em] text-[var(--foreground-primary)] [font-family:var(--font-display)] transition-transform duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] md:text-xl"
                 animate={{
                   x: isHovered ? 4 : 0,
                 }}
+                className="m-0 font-semibold text-[var(--foreground-primary)] text-lg tracking-[-0.01em] transition-transform duration-200 [font-family:var(--font-display)] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] md:text-xl"
                 transition={{ duration: 0.2 }}
               >
                 {chain.name}
               </motion.h3>
               {chain.description && (
                 <motion.p
-                  className="m-0 text-sm font-normal leading-[1.5] text-[var(--foreground-secondary)] transition-opacity duration-200"
                   animate={{
                     opacity: isHovered ? 1 : 0.8,
                   }}
+                  className="m-0 font-normal text-[var(--foreground-secondary)] text-sm leading-[1.5] transition-opacity duration-200"
                   transition={{ duration: 0.2 }}
                 >
                   {chain.description}
@@ -152,24 +188,24 @@ function ChainCard({
           </div>
 
           {/* Card Footer */}
-          <div className="mt-5 flex items-center justify-between border-t border-[var(--border-default)] pt-4">
+          <div className="mt-5 flex items-center justify-between border-[var(--border-default)] border-t pt-4">
             <motion.span
-              className="inline-flex items-center rounded px-2.5 py-1.5 text-xs font-medium text-[var(--foreground-muted)] [font-family:var(--font-mono)]"
               animate={{
                 backgroundColor: isHovered
                   ? "var(--background-tertiary)"
                   : "var(--background-secondary)",
               }}
+              className="inline-flex items-center rounded px-2.5 py-1.5 font-medium text-[var(--foreground-muted)] text-xs [font-family:var(--font-mono)]"
               transition={{ duration: 0.2 }}
             >
               {chain.basePath}
             </motion.span>
             <motion.div
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--button-primary-background)] px-4 py-2.5 text-sm font-semibold text-[var(--button-primary-foreground)] transition-[background-color,transform,gap] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:bg-[var(--blue-600)]"
               animate={{
                 scale: isHovered ? 1.05 : 1,
                 gap: isHovered ? 10 : 6,
               }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--button-primary-background)] px-4 py-2.5 font-semibold text-[var(--button-primary-foreground)] text-sm transition-[background-color,transform,gap] duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:bg-[var(--blue-600)]"
               transition={{
                 duration: 0.2,
                 ease: [0.34, 1.56, 0.64, 1],

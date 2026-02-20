@@ -11,18 +11,19 @@ import { appConfig, chainFeatures } from "@fastbridge/runtime";
 import { type RefObject, useCallback } from "react";
 import { type Address, isAddress } from "viem";
 import { trackBridgeSubmit } from "../../../lib/posthog";
-import {
-  type TransactionFlowExecuteParams,
-  type TransactionFlowInputs,
-  type TransactionFlowPrefill,
-  useTransactionFlow,
-} from "../../common";
+import { useTransactionFlow } from "../../common/hooks/use-transaction-flow";
+import type {
+  TransactionFlowExecuteParams,
+  TransactionFlowInputs,
+  TransactionFlowPrefill,
+} from "../../common/types/transaction-flow";
 import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 import { notifyIntentHistoryRefresh } from "../../view-history/history-events";
 
 export type FastBridgeState = TransactionFlowInputs;
 
 const ALLOWED_TOKENS = new Set(["USDC", "USDT", "USDM"]);
+const DECIMAL_PREFILL_AMOUNT_REGEX = /^\d*\.?\d*$/;
 
 interface UseBridgeProps {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -61,7 +62,11 @@ const sanitizePrefill = (
   const amount = prefill?.amount
     ? (() => {
         const value = prefill.amount.trim();
-        if (!value || value === "." || !/^\d*\.?\d*$/.test(value)) {
+        if (
+          !value ||
+          value === "." ||
+          !DECIMAL_PREFILL_AMOUNT_REGEX.test(value)
+        ) {
           return undefined;
         }
         const parsed = Number.parseFloat(value);
@@ -72,11 +77,12 @@ const sanitizePrefill = (
       })()
     : undefined;
 
-  const recipient = prefill?.recipient
-    ? isAddress(prefill.recipient)
+  let recipient = connectedAddress;
+  if (prefill?.recipient) {
+    recipient = isAddress(prefill.recipient)
       ? prefill.recipient
-      : connectedAddress
-    : connectedAddress;
+      : connectedAddress;
+  }
 
   return {
     token,

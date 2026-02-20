@@ -2,7 +2,7 @@
 import { Check, Edit } from "lucide-react";
 import { type FC, useState } from "react";
 import type { Address } from "viem";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 
@@ -28,12 +28,12 @@ const RecipientAddress: FC<RecipientAddressProps> = ({
     }
     return `${value.slice(0, head)}...${value.slice(-tail)}`;
   };
-  const displayAddress =
-    address && nexusSDK?.utils?.truncateAddress
-      ? nexusSDK.utils.truncateAddress(address, 6, 6)
-      : address
-        ? fallbackTruncate(address, 6, 6)
-        : "";
+  let displayAddress = "";
+  if (address && nexusSDK?.utils?.truncateAddress) {
+    displayAddress = nexusSDK.utils.truncateAddress(address, 6, 6);
+  } else if (address) {
+    displayAddress = fallbackTruncate(address, 6, 6);
+  }
   return (
     <div className="w-full">
       {isEditing ? (

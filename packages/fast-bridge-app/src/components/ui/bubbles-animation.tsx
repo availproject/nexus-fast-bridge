@@ -49,9 +49,13 @@ export default function BubbleAnimation({
 
     return () => {
       window.removeEventListener("mousemove", handleMove);
-      timeouts.forEach((id) => window.clearTimeout(id));
+      for (const id of timeouts) {
+        window.clearTimeout(id);
+      }
       timeouts.clear();
-      Array.from(wrapper.children).forEach((el) => el.remove());
+      for (const child of Array.from(wrapper.children)) {
+        child.remove();
+      }
     };
   }, [bubbleColor, durationMs, width, height]);
 

@@ -9,6 +9,7 @@ const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   ".."
 );
+const NEWLINE_SPLIT_REGEX = /\r?\n/;
 
 function parseArgs(argv) {
   let outputPath;
@@ -24,7 +25,7 @@ function parseArgs(argv) {
 
 function parseEnvFile(contents, sourceLabel) {
   const entries = [];
-  const lines = contents.split(/\r?\n/);
+  const lines = contents.split(NEWLINE_SPLIT_REGEX);
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -54,7 +55,7 @@ async function readEnvForChain(chain) {
   const envFileName = `.env.${slug}`;
   const candidates = [
     path.join(rootDir, chain.appDir, envFileName),
-    path.join(rootDir, envFileName)
+    path.join(rootDir, envFileName),
   ];
 
   for (const candidate of candidates) {

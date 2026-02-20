@@ -9,7 +9,7 @@ For architecture, onboarding, and customization:
 - `docs/customization.md`
 
 Primary chain-specific files in this app:
-- `getConfig.ts`
+- `get-config.ts`
 - `src/runtime.ts`
 - `.env.megaeth`
 - `public/*` assets

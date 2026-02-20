@@ -1,6 +1,6 @@
 import type { RFF } from "@avail-project/nexus-core";
 import { useCallback, useEffect, useState } from "react";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import { INTENT_HISTORY_REFRESH_EVENT } from "../history-events";
 
 const ITEMS_PER_PAGE = 10;
@@ -52,7 +52,9 @@ const useViewHistory = () => {
   }, [nexusSDK]);
 
   useEffect(() => {
-    void fetchIntentHistory();
+    fetchIntentHistory().catch((error) => {
+      console.error("Failed to fetch intent history:", error);
+    });
   }, [fetchIntentHistory]);
 
   useEffect(() => {
@@ -61,7 +63,9 @@ const useViewHistory = () => {
     }
 
     const handleRefresh = () => {
-      void fetchIntentHistory();
+      fetchIntentHistory().catch((error) => {
+        console.error("Failed to refresh intent history:", error);
+      });
     };
 
     window.addEventListener(INTENT_HISTORY_REFRESH_EVENT, handleRefresh);
@@ -115,7 +119,7 @@ const useViewHistory = () => {
     return () => {
       observer.disconnect();
     };
-  }, [sentinelNode, loadMore, hasMore, isLoadingMore, displayedHistory.length]);
+  }, [hasMore, isLoadingMore, loadMore, sentinelNode]);
 
   const getStatus = (pastIntent: RFF) => {
     if (pastIntent?.fulfilled) {

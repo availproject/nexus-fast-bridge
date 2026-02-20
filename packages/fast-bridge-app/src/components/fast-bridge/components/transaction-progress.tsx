@@ -33,7 +33,11 @@ const getOperationText = (type: string) => {
   }
 };
 
-type DisplayStep = { id: string; label: string; completed: boolean };
+interface DisplayStep {
+  completed: boolean;
+  id: string;
+  label: string;
+}
 
 const StepList: FC<{ steps: DisplayStep[]; currentIndex: number }> = memo(
   ({ steps, currentIndex }) => {

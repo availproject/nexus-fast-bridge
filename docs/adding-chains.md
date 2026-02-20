@@ -30,7 +30,7 @@ pnpm chain:add sonic --name "Sonic"
 - Updates app package name to `@fastbridge/<slug>`.
 - Sets `dev`/`build` scripts to call `prepare-env` with your slug.
 - Sets Vite default base path in `apps/<slug>/vite.config.ts`.
-- Applies default text branding updates in `apps/<slug>/getConfig.ts`.
+- Applies default text branding updates in `apps/<slug>/get-config.ts`.
 - Creates/renames env file to `apps/<slug>/.env.<slug>`.
 - Appends and sorts entry in `chains.config.json`.
 - Runs `pnpm chains:sync`.
@@ -83,6 +83,6 @@ This updates:
 
 ## Common Pitfalls
 
-- Missing prefixed env vars in CI/deploy causes fallback defaults in `getConfig.ts`.
+- Missing prefixed env vars in CI/deploy causes fallback defaults in `get-config.ts`.
 - Inconsistent `basePath` causes asset loading issues.
 - Adding new env keys without running `pnpm chains:sync` causes stale turbo env tracking.

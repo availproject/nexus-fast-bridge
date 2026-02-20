@@ -8,6 +8,7 @@ import {
 import type { Address } from "viem";
 
 const MAX_AMOUNT_REGEX = /^\d*\.?\d+$/;
+const TRAILING_ZEROES_REGEX = /0+$/;
 
 export const MAX_AMOUNT_DEBOUNCE_MS = 300;
 
@@ -74,7 +75,9 @@ export const formatAmountForDisplay = (
     return formatted;
   }
   const [whole, fraction] = formatted.split(".");
-  const trimmedFraction = fraction.slice(0, 6).replace(/0+$/, "");
+  const trimmedFraction = fraction
+    .slice(0, 6)
+    .replace(TRAILING_ZEROES_REGEX, "");
   if (!trimmedFraction && whole === "0" && amount > BigInt(0)) {
     return "0.000001";
   }

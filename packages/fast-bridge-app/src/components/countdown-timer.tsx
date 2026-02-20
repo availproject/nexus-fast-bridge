@@ -1,21 +1,19 @@
 "use client";
-import * as React from "react";
+import { useEffect, useState } from "react";
 
 interface CountdownTimerProps {
   targetDate: Date;
 }
 
-export const CountdownTimer: React.FC<CountdownTimerProps> = ({
-  targetDate,
-}) => {
-  const [timeLeft, setTimeLeft] = React.useState({
+export const CountdownTimer = ({ targetDate }: CountdownTimerProps) => {
+  const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
     minutes: 0,
     seconds: 0,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!targetDate || Number.isNaN(targetDate.getTime())) {
       console.error("Invalid target date provided to CountdownTimer");
       return;

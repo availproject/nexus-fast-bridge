@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useStableCallback } from "./useStableCallback";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useStableCallback } from "./use-stable-callback";
 
 type UnknownFn = (...args: unknown[]) => unknown;
 
@@ -21,14 +21,14 @@ export function useDebouncedCallback<T extends UnknownFn>(
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastArgsRef = useRef<Parameters<T> | null>(null);
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  };
+  }, []);
 
-  const flush = () => {
+  const flush = useCallback(() => {
     if (timerRef.current && lastArgsRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -36,17 +36,22 @@ export function useDebouncedCallback<T extends UnknownFn>(
       latest(...lastArgsRef.current);
       lastArgsRef.current = null;
     }
-  };
+  }, [latest]);
 
   // cancel when delay changes/unmounts
-  useEffect(() => cancel, [delay]);
+  useEffect(() => cancel, [cancel]);
 
   return useMemo(() => {
     const debounced = ((...args: Parameters<T>) => {
       lastArgsRef.current = args;
       cancel();
       timerRef.current = setTimeout(() => {
-        latest(...lastArgsRef.current!);
+        const pendingArgs = lastArgsRef.current;
+        if (!pendingArgs) {
+          timerRef.current = null;
+          return;
+        }
+        latest(...pendingArgs);
         lastArgsRef.current = null;
         timerRef.current = null;
       }, delay);
@@ -54,6 +59,5 @@ export function useDebouncedCallback<T extends UnknownFn>(
     debounced.cancel = cancel;
     debounced.flush = flush;
     return debounced;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [delay, latest]);
+  }, [cancel, delay, flush, latest]);
 }

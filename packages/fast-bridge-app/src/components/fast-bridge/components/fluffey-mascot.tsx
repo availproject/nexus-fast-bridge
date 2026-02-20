@@ -95,6 +95,7 @@ export default function FluffeyMascot() {
         <img
           alt=""
           className="absolute"
+          height={IRIS_SIZE}
           ref={leftIrisRef}
           src="https://files.availproject.org/fastbridge/megaeth/Iris.svg"
           style={{
@@ -104,10 +105,12 @@ export default function FluffeyMascot() {
             top: leftIrisPos.top,
             zIndex: 1,
           }}
+          width={IRIS_SIZE}
         />
         <img
           alt=""
           className="absolute"
+          height={IRIS_SIZE}
           ref={rightIrisRef}
           src="https://files.availproject.org/fastbridge/megaeth/Iris.svg"
           style={{
@@ -117,14 +120,17 @@ export default function FluffeyMascot() {
             top: rightIrisPos.top,
             zIndex: 1,
           }}
+          width={IRIS_SIZE}
         />
         {/* Fluffey body on top — eye holes are transparent cutouts */}
         <img
           alt="Fluffey"
           className="relative h-full w-full"
           draggable={false}
+          height={DISPLAY_WIDTH}
           src="https://files.availproject.org/fastbridge/megaeth/Fluffey.svg"
           style={{ zIndex: 2 }}
+          width={DISPLAY_WIDTH}
         />
       </div>
     </div>

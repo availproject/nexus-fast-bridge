@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { TOKEN_IMAGES } from "../common";
-import useViewHistory from "./hooks/useViewHistory";
+import { TOKEN_IMAGES } from "../common/utils/constant";
+import useViewHistory from "./hooks/use-view-history";
 
 const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   const sourceList = sources ?? [];
@@ -124,14 +124,18 @@ const ViewHistory = ({
     if (!(viewAsModal && isOpen)) {
       return;
     }
-    void refreshHistory();
+    refreshHistory().catch((error) => {
+      console.error("Failed to refresh history:", error);
+    });
   }, [isOpen, refreshHistory, viewAsModal]);
 
   useEffect(() => {
     if (!refreshNonce) {
       return;
     }
-    void refreshHistory();
+    refreshHistory().catch((error) => {
+      console.error("Failed to refresh history:", error);
+    });
   }, [refreshHistory, refreshNonce]);
 
   const renderHistoryContent = () => {
@@ -251,7 +255,9 @@ const ViewHistory = ({
           </div>
           <Button
             onClick={() => {
-              void refreshHistory();
+              refreshHistory().catch((error) => {
+                console.error("Failed to refresh history:", error);
+              });
             }}
             variant="outline"
           >

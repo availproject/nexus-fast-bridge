@@ -48,13 +48,13 @@ interface NexusContextType {
 
 const NexusContext = createContext<NexusContextType | undefined>(undefined);
 
-type NexusProviderProps = {
+interface NexusProviderProps {
   children: React.ReactNode;
   config?: {
     network?: NexusNetwork;
     debug?: boolean;
   };
-};
+}
 
 const defaultConfig: Required<NexusProviderProps["config"]> = {
   network: "mainnet",
@@ -276,46 +276,28 @@ const NexusProvider = ({
     allowance.current = data;
   };
 
-  const value = useMemo(
-    () => ({
-      nexusSDK,
-      initializeNexus,
-      deinitializeNexus,
-      attachEventHooks,
-      intent,
-      allowance,
-      handleInit,
-      supportedChainsAndTokens,
-      swapSupportedChainsAndTokens,
-      bridgableBalance,
-      swapBalance,
-      network: config?.network,
-      loading,
-      fetchBridgableBalance,
-      fetchSwapBalance,
-      swapIntent,
-      exchangeRate: exchangeRate.current,
-      getFiatValue,
-      setIntent,
-      setAllowance,
-    }),
-    [
-      nexusSDK,
-      initializeNexus,
-      deinitializeNexus,
-      attachEventHooks,
-      handleInit,
-      swapBalance,
-      config,
-      loading,
-      fetchBridgableBalance,
-      fetchSwapBalance,
-      setIntent,
-      setAllowance,
-      supportedChainsAndTokens,
-      swapSupportedChainsAndTokens,
-    ]
-  );
+  const value = {
+    nexusSDK,
+    initializeNexus,
+    deinitializeNexus,
+    attachEventHooks,
+    intent,
+    allowance,
+    handleInit,
+    supportedChainsAndTokens,
+    swapSupportedChainsAndTokens,
+    bridgableBalance,
+    swapBalance,
+    network: config?.network,
+    loading,
+    fetchBridgableBalance,
+    fetchSwapBalance,
+    swapIntent,
+    exchangeRate: exchangeRate.current,
+    getFiatValue,
+    setIntent,
+    setAllowance,
+  };
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>
   );

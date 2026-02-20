@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useStableCallback } from "./useStableCallback";
+import { useStableCallback } from "./use-stable-callback";
 
 interface UseIntervalOptions {
   enabled?: boolean;

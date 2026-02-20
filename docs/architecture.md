@@ -16,7 +16,7 @@ Shared React app logic, components, hooks, and styles for all chains.
 
 - `apps/<slug>`
 Thin chain wrappers. Each app mostly provides:
-  - `getConfig.ts` (env-driven app config)
+  - `get-config.ts` (env-driven app config)
   - `src/runtime.ts` (`appConfig` + `chainFeatures` exports)
   - `src/main.tsx` (boots shared app)
   - chain-specific `public/` assets and `.env.<slug>`
@@ -54,7 +54,7 @@ Used for:
 - `dev:all` dynamic package filtering.
 - Scaffolding and sync scripts.
 
-### 2) Env-driven App Config (`apps/<slug>/getConfig.ts`)
+### 2) Env-driven App Config (`apps/<slug>/get-config.ts`)
 
 Defines chain identity and brand values (IDs, RPCs, metadata, colors, logos, SEO metadata). Runtime source is `.env.<slug>` locally or `<SLUG>_` prefixed env vars in deployment.
 
@@ -114,7 +114,7 @@ flowchart LR
   B --> C["shared components/hooks"]
   C --> D["import @fastbridge/runtime"]
   D --> E["apps/<slug>/src/runtime.ts"]
-  E --> F["apps/<slug>/getConfig.ts + .env.<slug>"]
+  E --> F["apps/<slug>/get-config.ts + .env.<slug>"]
 
   G["pnpm build:all"] --> H["chain app dist outputs"]
   H --> I["scripts/collect-chains.mjs"]

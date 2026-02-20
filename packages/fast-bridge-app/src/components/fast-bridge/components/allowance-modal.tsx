@@ -9,12 +9,13 @@ import React, {
   type FC,
   memo,
   type RefObject,
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import { withBasePath } from "@/lib/utils";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
@@ -125,24 +126,23 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
     [sources.length]
   );
 
-  const isCustomValueValid = (
-    value: string,
-    minimumRaw: bigint,
-    decimals: number
-  ): boolean => {
-    if (!value || value.trim() === "") {
-      return false;
-    }
-    try {
-      const parsedValue = nexusSDK?.utils?.parseUnits(value, decimals);
-      if (parsedValue === undefined) {
+  const isCustomValueValid = useCallback(
+    (value: string, minimumRaw: bigint, decimals: number): boolean => {
+      if (!value || value.trim() === "") {
         return false;
       }
-      return parsedValue >= minimumRaw;
-    } catch {
-      return false;
-    }
-  };
+      try {
+        const parsedValue = nexusSDK?.utils?.parseUnits(value, decimals);
+        if (parsedValue === undefined) {
+          return false;
+        }
+        return parsedValue >= minimumRaw;
+      } catch {
+        return false;
+      }
+    },
+    [nexusSDK?.utils]
+  );
 
   const hasValidationErrors = useMemo(() => {
     return sources.some((source, index) => {
@@ -159,7 +159,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
         source.token.decimals
       );
     });
-  }, [sources, selectedOption, customValues]);
+  }, [customValues, isCustomValueValid, selectedOption, sources]);
 
   const onClose = () => {
     deny();

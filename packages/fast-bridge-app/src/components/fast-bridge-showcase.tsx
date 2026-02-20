@@ -2,7 +2,7 @@
 import { ConnectKitButton } from "connectkit";
 import { useAccount } from "wagmi";
 import FastBridge from "./fast-bridge/fast-bridge";
-import { PreviewPanel } from "./walletConnect";
+import { PreviewPanel } from "./wallet-connect";
 
 const FastBridgeShowcase = () => {
   const { address, isConnected } = useAccount();

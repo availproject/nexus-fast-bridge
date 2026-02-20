@@ -9,7 +9,7 @@ Use the lightest layer that solves the requirement.
 ### Layer 1: Env/App Config (`appConfig`)
 
 Location:
-- `apps/<slug>/getConfig.ts`
+- `apps/<slug>/get-config.ts`
 - `apps/<slug>/.env.<slug>`
 
 Use for:
@@ -47,15 +47,15 @@ Current behavior map:
 
 - `analyticsFastBridgeKey`
 Used in PostHog tracking payload.
-Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/useBridge.ts`.
+Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts`.
 
 - `maxBridgeAmount`
 Max allowed amount gate and default.
-Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/useBridge.ts` and `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx`.
+Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts` and `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx`.
 
 - `walletInitDelayMs`
 Delays Nexus SDK auto-init after wallet connect.
-Consumed in `packages/fast-bridge-app/src/components/walletConnect.tsx`.
+Consumed in `packages/fast-bridge-app/src/components/wallet-connect.tsx`.
 
 - `showFluffeyMascot`, `showPromoBanner`, `promoBannerLine1`, `promoBannerLine2`, `promoBannerImageUrl`
 Controls promo hero treatment (MegaETH pattern).
@@ -63,11 +63,11 @@ Consumed in `packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx
 
 - `mapUsdmDisplaySymbolToUsdc`, `mapUsdmToUsdcBalance`
 Display and balance mapping behavior for USDM.
-Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/useBridge.ts`, `packages/fast-bridge-app/src/components/fast-bridge/components/fee-breakdown.tsx`, and `packages/fast-bridge-app/src/components/fast-bridge/components/source-breakdown.tsx`.
+Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts`, `packages/fast-bridge-app/src/components/fast-bridge/components/fee-breakdown.tsx`, and `packages/fast-bridge-app/src/components/fast-bridge/components/source-breakdown.tsx`.
 
 - `denyIntentOnReset`
 Controls intent reset behavior after flow interruption.
-Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/useBridge.ts`.
+Consumed in `packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts`.
 
 - `tokenDenyListByChainId`
 Per-chain token filtering in token selector.

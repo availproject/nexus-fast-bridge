@@ -6,11 +6,11 @@ export type TransactionStatus =
   | "success"
   | "error";
 
-export type GenericStep<TStep> = {
-  id: number;
+export interface GenericStep<TStep> {
   completed: boolean;
+  id: number;
   step: TStep;
-};
+}
 
 interface StepLike {
   type?: unknown;

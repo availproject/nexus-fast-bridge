@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { NexusContext } from "./NexusProvider";
+import { NexusContext } from "./nexus-provider";
 
 export function useNexus() {
   const context = useContext(NexusContext);

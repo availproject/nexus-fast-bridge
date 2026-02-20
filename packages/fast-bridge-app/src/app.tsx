@@ -2,9 +2,9 @@ import { appConfig } from "@fastbridge/runtime";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import HeroSection from "@/components/hero-section";
 import Navbar from "@/components/navbar";
-import NexusProvider from "@/components/nexus/NexusProvider";
+import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
-import Web3Provider from "@/providers/web3Provider";
+import Web3Provider from "@/providers/web3-provider";
 
 export default function App() {
   return (

@@ -13,6 +13,7 @@ const rootDir = path.resolve(
 const chainsPath = path.join(rootDir, "chains.config.json");
 const rootPkgPath = path.join(rootDir, "apps", "root", "package.json");
 const turboPath = path.join(rootDir, "turbo.json");
+const NEWLINE_SPLIT_REGEX = /\r?\n/;
 
 async function readJson(filePath) {
   const raw = await fs.readFile(filePath, "utf8");
@@ -21,7 +22,7 @@ async function readJson(filePath) {
 
 function parseEnvFile(contents, sourceLabel) {
   const entries = [];
-  const lines = contents.split(/\r?\n/);
+  const lines = contents.split(NEWLINE_SPLIT_REGEX);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
@@ -49,7 +50,7 @@ async function readEnvKeysForChain(chain) {
   const envFileName = `.env.${slug}`;
   const candidates = [
     path.join(rootDir, chain.appDir, envFileName),
-    path.join(rootDir, envFileName)
+    path.join(rootDir, envFileName),
   ];
 
   for (const candidate of candidates) {
@@ -92,10 +93,16 @@ async function syncRootDeps(chains) {
         return acc;
       }, {});
     pkg.devDependencies = sorted;
-    await fs.writeFile(rootPkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+    await fs.writeFile(
+      rootPkgPath,
+      `${JSON.stringify(pkg, null, 2)}\n`,
+      "utf8"
+    );
     console.log("Updated apps/root/package.json");
   } else {
-    console.log("apps/root/package.json already includes chain workspace deps.");
+    console.log(
+      "apps/root/package.json already includes chain workspace deps."
+    );
   }
 }
 
@@ -106,7 +113,9 @@ async function syncTurboEnv(chains) {
 
   for (const chain of chains) {
     const keys = await readEnvKeysForChain(chain);
-    keys.forEach((key) => envSet.add(key));
+    for (const key of keys) {
+      envSet.add(key);
+    }
   }
 
   const nextEnv = Array.from(envSet);
@@ -118,7 +127,11 @@ async function syncTurboEnv(chains) {
 
   if (changed) {
     turbo.globalEnv = nextEnv;
-    await fs.writeFile(turboPath, `${JSON.stringify(turbo, null, 2)}\n`, "utf8");
+    await fs.writeFile(
+      turboPath,
+      `${JSON.stringify(turbo, null, 2)}\n`,
+      "utf8"
+    );
     console.log(`Updated turbo.json globalEnv (${nextEnv.length} entries).`);
   } else {
     console.log("turbo.json globalEnv already up to date.");
@@ -129,7 +142,9 @@ async function main() {
   const chains = await readJson(chainsPath);
   await syncRootDeps(chains);
   await syncTurboEnv(chains);
-  console.log("Done. Next: run `pnpm vercel:env` to refresh env output, then deploy.");
+  console.log(
+    "Done. Next: run `pnpm vercel:env` to refresh env output, then deploy."
+  );
 }
 
 main().catch((err) => {

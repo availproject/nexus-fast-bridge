@@ -1,15 +1,14 @@
 "use client";
 
-import type * as React from "react";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-function Separator({ className, ...props }: React.ComponentProps<"div">) {
+function Separator({ className, ...props }: ComponentProps<"hr">) {
   return (
-    <div
+    <hr
       className={cn("my-2 h-px w-full bg-border", className)}
       data-slot="separator"
-      role="separator"
       {...props}
     />
   );

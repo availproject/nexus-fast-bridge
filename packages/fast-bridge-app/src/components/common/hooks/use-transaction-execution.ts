@@ -109,6 +109,15 @@ export function useTransactionExecution({
   const commitLockRef = useRef(false);
   const runIdRef = useRef(0);
 
+  const setError = useCallback(
+    (message: string, status: TransactionStatus = "error") => {
+      setTxError(message);
+      onError?.(message);
+      setStatus(status);
+    },
+    [onError, setStatus, setTxError]
+  );
+
   const refreshIntent = async (options?: { reportError?: boolean }) => {
     if (!intent.current) {
       return false;
@@ -157,6 +166,173 @@ export function useTransactionExecution({
     notifyHistoryRefresh?.();
   };
 
+  const validateTransactionInputs = () => {
+    if (
+      !(inputs?.amount && inputs?.recipient && inputs?.chain && inputs?.token)
+    ) {
+      console.error("Missing required inputs");
+      return null;
+    }
+    if (!nexusSDK) {
+      const message = "Nexus SDK not initialized";
+      setTxError(message);
+      onError?.(message);
+      return null;
+    }
+    if (allAvailableSourceChainIds.length === 0) {
+      setError(
+        "No eligible source chains available for the selected token and destination."
+      );
+      return null;
+    }
+
+    const parsedAmount = Number(inputs.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError("Enter a valid amount greater than 0.");
+      return null;
+    }
+
+    return {
+      sdk: nexusSDK,
+      token: inputs.token,
+      amountReadable: inputs.amount,
+      recipient: inputs.recipient,
+      chain: inputs.chain,
+      amountBigInt: nexusSDK.convertTokenReadableAmountToBigInt(
+        inputs.amount,
+        inputs.token,
+        inputs.chain
+      ),
+    };
+  };
+
+  const isWithinConfiguredLimit = (params: {
+    amountBigInt: bigint;
+    chain: number;
+    sdk: NexusSDK;
+    token: string;
+  }) => {
+    if (!configuredMaxAmount) {
+      return true;
+    }
+    const configuredMaxRaw = params.sdk.convertTokenReadableAmountToBigInt(
+      configuredMaxAmount,
+      params.token,
+      params.chain
+    );
+    if (params.amountBigInt <= configuredMaxRaw) {
+      return true;
+    }
+    setError(
+      `Amount exceeds maximum limit of ${configuredMaxAmount} ${params.token}.`
+    );
+    return false;
+  };
+
+  const validateSelectedSourcesLimit = async (params: {
+    amountBigInt: bigint;
+    chain: number;
+    currentRunId: number;
+    sdk: NexusSDK;
+    token: string;
+  }) => {
+    const maxForCurrentSelection = await getMaxForCurrentSelection();
+    if (params.currentRunId !== runIdRef.current) {
+      return { isStale: true, isValid: false };
+    }
+    if (!maxForCurrentSelection) {
+      setError(
+        `Unable to determine max ${operationName} amount for selected sources. Please try again.`
+      );
+      return { isStale: false, isValid: false };
+    }
+    const maxForSelectionRaw = params.sdk.convertTokenReadableAmountToBigInt(
+      maxForCurrentSelection,
+      params.token,
+      params.chain
+    );
+    if (params.amountBigInt <= maxForSelectionRaw) {
+      return { isStale: false, isValid: true };
+    }
+    setError(
+      `Selected sources can provide up to ${maxForCurrentSelection} ${params.token}. Reduce amount or enable more sources.`
+    );
+    return { isStale: false, isValid: false };
+  };
+
+  const applyStepsListEvent = (event: TransactionFlowEvent) => {
+    const list = Array.isArray(event.args) ? event.args : [];
+    onStepsList(list as BridgeStepType[]);
+  };
+
+  const applyStepCompleteEvent = (event: TransactionFlowEvent) => {
+    if (
+      !Array.isArray(event.args) &&
+      "type" in event.args &&
+      event.args.type === "INTENT_HASH_SIGNED"
+    ) {
+      stopwatch.start();
+    }
+    if (!Array.isArray(event.args)) {
+      onStepComplete(event.args as BridgeStepType);
+    }
+  };
+
+  const isRunStale = (currentRunId: number) =>
+    currentRunId !== runIdRef.current;
+
+  const createOnEventHandler =
+    (currentRunId: number) => (event: TransactionFlowEvent) => {
+      if (isRunStale(currentRunId)) {
+        return;
+      }
+      if (event.name === NEXUS_EVENTS.STEPS_LIST) {
+        applyStepsListEvent(event);
+        return;
+      }
+      if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+        applyStepCompleteEvent(event);
+      }
+    };
+
+  const handleTransactionFailure = (params: {
+    cleanupSupersededExecution: () => void;
+    currentRunId: number;
+    error: unknown;
+  }) => {
+    if (isRunStale(params.currentRunId)) {
+      params.cleanupSupersededExecution();
+      return;
+    }
+    const { message, code, context, details } = handleNexusError(params.error);
+    console.error(`Fast ${operationName} transaction failed:`, {
+      code,
+      message,
+      context,
+      details,
+    });
+    if (denyIntentOnReset) {
+      intent.current?.deny();
+    }
+    intent.current = null;
+    allowance.current = null;
+    setTxError(message);
+    onError?.(message);
+    setIsDialogOpen(false);
+    setSelectedSourceChains(null);
+    setRefreshing(false);
+    stopwatch.stop();
+    stopwatch.reset();
+    resetSteps();
+    fetchBalance().catch((error) => {
+      console.error(
+        "Failed to refresh balance after transaction error:",
+        error
+      );
+    });
+    setStatus("error");
+  };
+
   const handleTransaction = async () => {
     if (commitLockRef.current) {
       return;
@@ -178,78 +354,28 @@ export function useTransactionExecution({
     };
 
     try {
+      const validated = validateTransactionInputs();
+      if (!validated) {
+        return;
+      }
       if (
-        !(inputs?.amount && inputs?.recipient && inputs?.chain && inputs?.token)
+        !isWithinConfiguredLimit({
+          amountBigInt: validated.amountBigInt,
+          chain: validated.chain,
+          sdk: validated.sdk,
+          token: validated.token,
+        })
       ) {
-        console.error("Missing required inputs");
         return;
       }
-      if (!nexusSDK) {
-        const message = "Nexus SDK not initialized";
-        setTxError(message);
-        onError?.(message);
-        return;
-      }
-      if (allAvailableSourceChainIds.length === 0) {
-        const message =
-          "No eligible source chains available for the selected token and destination.";
-        setTxError(message);
-        onError?.(message);
-        setStatus("error");
-        return;
-      }
-
-      const parsedAmount = Number(inputs.amount);
-      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        const message = "Enter a valid amount greater than 0.";
-        setTxError(message);
-        onError?.(message);
-        setStatus("error");
-        return;
-      }
-
-      const amountBigInt = nexusSDK.convertTokenReadableAmountToBigInt(
-        inputs.amount,
-        inputs.token,
-        inputs.chain
-      );
-
-      if (configuredMaxAmount) {
-        const configuredMaxRaw = nexusSDK.convertTokenReadableAmountToBigInt(
-          configuredMaxAmount,
-          inputs.token,
-          inputs.chain
-        );
-        if (amountBigInt > configuredMaxRaw) {
-          const message = `Amount exceeds maximum limit of ${configuredMaxAmount} ${inputs.token}.`;
-          setTxError(message);
-          onError?.(message);
-          setStatus("error");
-          return;
-        }
-      }
-
-      const maxForCurrentSelection = await getMaxForCurrentSelection();
-      if (currentRunId !== runIdRef.current) {
-        return;
-      }
-      if (!maxForCurrentSelection) {
-        const message = `Unable to determine max ${operationName} amount for selected sources. Please try again.`;
-        setTxError(message);
-        onError?.(message);
-        setStatus("error");
-        return;
-      }
-      const maxForSelectionRaw = nexusSDK.convertTokenReadableAmountToBigInt(
-        maxForCurrentSelection,
-        inputs.token,
-        inputs.chain
-      );
-      if (amountBigInt > maxForSelectionRaw) {
-        const message = `Selected sources can provide up to ${maxForCurrentSelection} ${inputs.token}. Reduce amount or enable more sources.`;
-        setTxError(message);
-        onError?.(message);
-        setStatus("error");
+      const sourceLimit = await validateSelectedSourcesLimit({
+        amountBigInt: validated.amountBigInt,
+        chain: validated.chain,
+        currentRunId,
+        sdk: validated.sdk,
+        token: validated.token,
+      });
+      if (sourceLimit.isStale || !sourceLimit.isValid) {
         return;
       }
 
@@ -260,39 +386,19 @@ export function useTransactionExecution({
       setLastExplorerUrl("");
       setAppliedSourceSelectionKey(sourceSelectionKey);
 
-      const onEvent = (event: TransactionFlowEvent) => {
-        if (currentRunId !== runIdRef.current) {
-          return;
-        }
-        if (event.name === NEXUS_EVENTS.STEPS_LIST) {
-          const list = Array.isArray(event.args) ? event.args : [];
-          onStepsList(list as BridgeStepType[]);
-        }
-        if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-          if (
-            !Array.isArray(event.args) &&
-            "type" in event.args &&
-            event.args.type === "INTENT_HASH_SIGNED"
-          ) {
-            stopwatch.start();
-          }
-          if (!Array.isArray(event.args)) {
-            onStepComplete(event.args as BridgeStepType);
-          }
-        }
-      };
+      const onEvent = createOnEventHandler(currentRunId);
 
       const transactionResult = await executeTransaction({
-        token: inputs.token,
-        amount: amountBigInt,
-        amountReadable: inputs.amount,
-        toChainId: inputs.chain,
-        recipient: inputs.recipient,
+        token: validated.token,
+        amount: validated.amountBigInt,
+        amountReadable: validated.amountReadable,
+        toChainId: validated.chain,
+        recipient: validated.recipient,
         sourceChains: sourceChainsForSdk,
         onEvent,
       });
 
-      if (currentRunId !== runIdRef.current) {
+      if (isRunStale(currentRunId)) {
         cleanupSupersededExecution();
         return;
       }
@@ -302,32 +408,11 @@ export function useTransactionExecution({
       setLastExplorerUrl(transactionResult.explorerUrl);
       await onSuccess(transactionResult.explorerUrl);
     } catch (error) {
-      if (currentRunId !== runIdRef.current) {
-        cleanupSupersededExecution();
-        return;
-      }
-      const { message, code, context, details } = handleNexusError(error);
-      console.error(`Fast ${operationName} transaction failed:`, {
-        code,
-        message,
-        context,
-        details,
+      handleTransactionFailure({
+        error,
+        currentRunId,
+        cleanupSupersededExecution,
       });
-      if (denyIntentOnReset) {
-        intent.current?.deny();
-      }
-      intent.current = null;
-      allowance.current = null;
-      setTxError(message);
-      onError?.(message);
-      setIsDialogOpen(false);
-      setSelectedSourceChains(null);
-      setRefreshing(false);
-      stopwatch.stop();
-      stopwatch.reset();
-      resetSteps();
-      void fetchBalance();
-      setStatus("error");
     } finally {
       commitLockRef.current = false;
     }
@@ -368,7 +453,7 @@ export function useTransactionExecution({
       onError?.(message);
       return;
     }
-    void (async () => {
+    const refreshAndAllow = async () => {
       const refreshed = await refreshIntent({ reportError: true });
       if (!(refreshed && intent.current)) {
         return;
@@ -376,7 +461,13 @@ export function useTransactionExecution({
       intent.current.allow();
       setIsDialogOpen(true);
       setTxError(null);
-    })();
+    };
+
+    refreshAndAllow().catch((error) => {
+      const { message } = handleNexusError(error);
+      setTxError(message);
+      onError?.(message);
+    });
   };
 
   const commitAmount = async () => {

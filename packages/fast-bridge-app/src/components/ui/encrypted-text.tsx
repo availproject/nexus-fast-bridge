@@ -1,29 +1,29 @@
 "use client";
 import { motion, useInView } from "motion/react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-type EncryptedTextProps = {
-  text: string;
-  className?: string;
-  /**
-   * Time in milliseconds between revealing each subsequent real character.
-   * Lower is faster. Defaults to 50ms per character.
-   */
-  revealDelayMs?: number;
+interface EncryptedTextProps {
   /** Optional custom character set to use for the gibberish effect. */
   charset?: string;
+  className?: string;
+  /** CSS class for styling the encrypted/scrambled characters */
+  encryptedClassName?: string;
   /**
    * Time in milliseconds between gibberish flips for unrevealed characters.
    * Lower is more jittery. Defaults to 50ms.
    */
   flipDelayMs?: number;
-  /** CSS class for styling the encrypted/scrambled characters */
-  encryptedClassName?: string;
+  /**
+   * Time in milliseconds between revealing each subsequent real character.
+   * Lower is faster. Defaults to 50ms per character.
+   */
+  revealDelayMs?: number;
   /** CSS class for styling the revealed characters */
   revealedClassName?: string;
-};
+  text: string;
+}
 
 const DEFAULT_CHARSET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-={}[];:,.<>/?";
@@ -47,6 +47,30 @@ function generateGibberishPreservingSpaces(
   return result;
 }
 
+function shouldFlipCharacters(
+  now: number,
+  lastFlipTime: number,
+  flipDelayMs: number
+): boolean {
+  return now - lastFlipTime >= Math.max(0, flipDelayMs);
+}
+
+function refreshScrambleCharacters(params: {
+  charset: string;
+  currentRevealCount: number;
+  scrambleChars: string[];
+  text: string;
+}) {
+  const { text, currentRevealCount, scrambleChars, charset } = params;
+  for (let index = 0; index < text.length; index += 1) {
+    if (index < currentRevealCount) {
+      continue;
+    }
+    scrambleChars[index] =
+      text[index] === " " ? " " : generateRandomCharacter(charset);
+  }
+}
+
 export const EncryptedText: React.FC<EncryptedTextProps> = ({
   text,
   className,
@@ -63,6 +87,17 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const lastFlipTimeRef = useRef<number>(0);
+  const characterEntries = useMemo(() => {
+    const counts = new Map<string, number>();
+    return text.split("").map((character) => {
+      const nextCount = (counts.get(character) ?? 0) + 1;
+      counts.set(character, nextCount);
+      return {
+        character,
+        key: `${character}-${nextCount}`,
+      };
+    });
+  }, [text]);
   const scrambleCharsRef = useRef<string[]>(
     text ? generateGibberishPreservingSpaces(text, charset).split("") : []
   );
@@ -101,19 +136,13 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
         return;
       }
 
-      // Re-randomize unrevealed scramble characters on an interval
-      const timeSinceLastFlip = now - lastFlipTimeRef.current;
-      if (timeSinceLastFlip >= Math.max(0, flipDelayMs)) {
-        for (let index = 0; index < totalLength; index += 1) {
-          if (index >= currentRevealCount) {
-            if (text[index] !== " ") {
-              scrambleCharsRef.current[index] =
-                generateRandomCharacter(charset);
-            } else {
-              scrambleCharsRef.current[index] = " ";
-            }
-          }
-        }
+      if (shouldFlipCharacters(now, lastFlipTimeRef.current, flipDelayMs)) {
+        refreshScrambleCharacters({
+          text,
+          currentRevealCount,
+          scrambleChars: scrambleCharsRef.current,
+          charset,
+        });
         lastFlipTimeRef.current = now;
       }
 
@@ -136,19 +165,23 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
 
   return (
     <motion.span aria-label={text} className={cn(className)} ref={ref}>
-      {text.split("").map((char, index) => {
+      {characterEntries.map(({ character, key }, index) => {
         const isRevealed = index < revealCount;
-        const displayChar = isRevealed
-          ? char
-          : char === " "
-            ? " "
-            : (scrambleCharsRef.current[index] ??
-              generateRandomCharacter(charset));
+        let displayChar = character;
+        if (!isRevealed) {
+          if (character === " ") {
+            displayChar = " ";
+          } else {
+            displayChar =
+              scrambleCharsRef.current[index] ??
+              generateRandomCharacter(charset);
+          }
+        }
 
         return (
           <span
             className={cn(isRevealed ? revealedClassName : encryptedClassName)}
-            key={index}
+            key={key}
           >
             {displayChar}
           </span>

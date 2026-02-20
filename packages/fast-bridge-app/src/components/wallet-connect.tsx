@@ -1,24 +1,25 @@
 "use client";
 import type { EthereumProvider } from "@avail-project/nexus-core";
 import { chainFeatures } from "@fastbridge/runtime";
-import * as React from "react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
-import { useNexus } from "./nexus/NexusProvider";
+import { useNexus } from "./nexus/nexus-provider";
 
 interface PreviewPanelProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
-  const [loading, setLoading] = React.useState(false);
-  const [initError, setInitError] = React.useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const { status, connector, address } = useAccount();
   const { nexusSDK, handleInit, deinitializeNexus, setIntent, setAllowance } =
     useNexus();
-  const prevAddressRef = React.useRef<string | undefined>(address);
+  const prevAddressRef = useRef<string | undefined>(address);
 
-  const initializeNexus = React.useCallback(async () => {
+  const initializeNexus = useCallback(async () => {
     if (loading || nexusSDK) {
       return; // Prevent multiple calls
     }
@@ -80,7 +81,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   }, [connector, handleInit, loading, nexusSDK]);
 
   // Handle wallet disconnection - clear Nexus state and balances
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === "disconnected" && nexusSDK) {
       deinitializeNexus();
       setIntent(null);
@@ -93,7 +94,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
 
   // Handle account change - reinitialize Nexus when account address changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       status === "connected" &&
       address &&
@@ -135,7 +136,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   ]);
 
   // Auto-initialize Nexus when wallet is connected and address is available
-  React.useEffect(() => {
+  useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
     if (
       status === "connected" &&

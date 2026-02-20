@@ -1,6 +1,10 @@
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
 import { formatUnits, parseUnits } from "viem";
 
+const FRACTION_TRAILING_ZEROES_REGEX = /(\.\d*?[1-9])0+$/u;
+const DECIMAL_TRAILING_ZEROES_REGEX = /\.0+$/u;
+const ONLY_DOT_REGEX = /^\.$/u;
+
 export const SHORT_CHAIN_NAME: Record<number, string> = {
   [SUPPORTED_CHAINS.ETHEREUM]: "Ethereum",
   [SUPPORTED_CHAINS.BASE]: "Base",
@@ -111,9 +115,9 @@ export function computeAmountFromFraction(
   const raw = formatUnits(desiredUnits, decimals);
   // strip trailing zeros and possible trailing dot
   return raw
-    .replace(/(\.\d*?[1-9])0+$/u, "$1")
-    .replace(/\.0+$/u, "")
-    .replace(/^\.$/u, "0");
+    .replace(FRACTION_TRAILING_ZEROES_REGEX, "$1")
+    .replace(DECIMAL_TRAILING_ZEROES_REGEX, "")
+    .replace(ONLY_DOT_REGEX, "0");
 }
 
 export const usdFormatter = new Intl.NumberFormat("en-US", {

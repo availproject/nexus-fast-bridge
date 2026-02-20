@@ -6,10 +6,10 @@ import type {
 import { chainFeatures } from "@fastbridge/runtime";
 import Decimal from "decimal.js";
 import { CheckCircle2, X } from "lucide-react";
-import { type FC, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
-import { useNexus } from "../nexus/NexusProvider";
+import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import {
@@ -31,7 +31,60 @@ import RecipientAddress from "./components/recipient-address";
 import SourceBreakdown from "./components/source-breakdown";
 import TokenSelect from "./components/token-select";
 import TransactionProgress from "./components/transaction-progress";
-import useBridge from "./hooks/useBridge";
+import useBridge from "./hooks/use-bridge";
+
+const TRAILING_ZEROES_REGEX = /\.?0+$/;
+
+const formatMockNumber = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
+  const fixed = value.toFixed(6);
+  return fixed.replace(TRAILING_ZEROES_REGEX, "");
+};
+
+const formatWithToken = (value: string, token?: string) => {
+  if (!token) {
+    return value;
+  }
+  return `${value} ${token}`.trim();
+};
+
+const getDisplayTokenSymbol = (
+  tokenSymbol: string | undefined,
+  mapUsdmToUsdc: boolean
+) => {
+  if (!tokenSymbol) {
+    return "Unknown";
+  }
+  if (mapUsdmToUsdc && tokenSymbol.toUpperCase() === "USDM") {
+    return "USDC";
+  }
+  return tokenSymbol;
+};
+
+const getPrimaryButtonLabel = ({
+  isConnected,
+  isSdkReady,
+  isInputsValid,
+  hasError,
+}: {
+  hasError: boolean;
+  isConnected: boolean;
+  isInputsValid: boolean;
+  isSdkReady: boolean;
+}) => {
+  if (!isConnected) {
+    return "Connect Wallet";
+  }
+  if (!isSdkReady) {
+    return "Initializing...";
+  }
+  if (!isInputsValid) {
+    return "Bridge";
+  }
+  return hasError ? "Retry" : "Fetching intent...";
+};
 
 interface FastBridgeProps {
   connectedAddress?: Address;
@@ -53,7 +106,8 @@ interface FastBridgeProps {
   };
 }
 
-const FastBridge: FC<FastBridgeProps> = ({
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This component coordinates bridge form state, SDK lifecycle, and transaction UI in one view.
+function FastBridge({
   connectedAddress,
   isWalletConnected,
   onConnectWallet,
@@ -62,18 +116,9 @@ const FastBridge: FC<FastBridgeProps> = ({
   onStart,
   onError,
   prefill,
-}) => {
+}: FastBridgeProps) {
   const maxBridgeAmount = chainFeatures.maxBridgeAmount;
   const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
-  const displayTokenSymbol = (tokenSymbol?: string) => {
-    if (!tokenSymbol) {
-      return "Unknown";
-    }
-    if (mapUsdmToUsdc && tokenSymbol.toUpperCase() === "USDM") {
-      return "USDC";
-    }
-    return tokenSymbol;
-  };
 
   const {
     nexusSDK,
@@ -158,7 +203,10 @@ const FastBridge: FC<FastBridgeProps> = ({
               {intent.current?.intent?.sourcesTotal
                 ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
                 : "NaN"}{" "}
-              {displayTokenSymbol(intent.current?.intent?.token.symbol)}
+              {getDisplayTokenSymbol(
+                intent.current?.intent?.token.symbol,
+                mapUsdmToUsdc
+              )}
             </div>
             <div>
               <span className="font-medium">Amount Received:</span>{" "}
@@ -174,7 +222,10 @@ const FastBridge: FC<FastBridgeProps> = ({
               {intent.current?.intent?.fees.total
                 ? new Decimal(intent.current?.intent?.fees.total).toFixed()
                 : "NaN"}{" "}
-              {displayTokenSymbol(intent.current?.intent?.token.symbol)}
+              {getDisplayTokenSymbol(
+                intent.current?.intent?.token.symbol,
+                mapUsdmToUsdc
+              )}
             </div>
           </div>
         </div>,
@@ -218,21 +269,6 @@ const FastBridge: FC<FastBridgeProps> = ({
     return amountValue > 0;
   }, [amountValue]);
 
-  const formatMockNumber = (value: number) => {
-    if (!Number.isFinite(value)) {
-      return "--";
-    }
-    const fixed = value.toFixed(6);
-    return fixed.replace(/\.?0+$/, "");
-  };
-
-  const formatWithToken = (value: string, token?: string) => {
-    if (!token) {
-      return value;
-    }
-    return `${value} ${token}`.trim();
-  };
-
   const tokenSuffix =
     inputs?.token ?? filteredBridgableBalance?.symbol ?? "USDC";
 
@@ -260,11 +296,22 @@ const FastBridge: FC<FastBridgeProps> = ({
   }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
 
   const showMockPreview = !isConnected && hasValidAmount && mockPreview;
-  const autoIntentTriggered = useRef(false);
+  const autoIntentKeyRef = useRef<string | null>(null);
+  const inputSignature = `${inputs?.amount ?? ""}|${inputs?.chain ?? ""}|${
+    inputs?.token ?? ""
+  }|${inputs?.recipient ?? ""}`;
 
-  useEffect(() => {
-    autoIntentTriggered.current = false;
-  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+  const runHandleTransaction = useCallback(() => {
+    handleTransaction().catch((error) => {
+      console.error("Failed to handle transaction:", error);
+    });
+  }, [handleTransaction]);
+
+  const runCommitAmount = useCallback(() => {
+    commitAmount().catch((error) => {
+      console.error("Failed to commit amount:", error);
+    });
+  }, [commitAmount]);
 
   useEffect(() => {
     if (!intent.current?.intent) {
@@ -285,19 +332,47 @@ const FastBridge: FC<FastBridgeProps> = ({
     if (loading) {
       return;
     }
-    if (autoIntentTriggered.current) {
+    if (autoIntentKeyRef.current === inputSignature) {
       return;
     }
-    autoIntentTriggered.current = true;
-    void handleTransaction();
+    autoIntentKeyRef.current = inputSignature;
+    runHandleTransaction();
   }, [
+    inputSignature,
     isInputsValid,
-    handleTransaction,
     intent,
     isConnected,
     isSdkReady,
     loading,
+    runHandleTransaction,
   ]);
+  const hasStatusError = status === "error" || Boolean(txError);
+  const primaryButtonLabel = getPrimaryButtonLabel({
+    isConnected,
+    isSdkReady,
+    isInputsValid,
+    hasError: hasStatusError,
+  });
+  const handlePrimaryButtonClick = () => {
+    if (!isConnected) {
+      if (onConnectWallet) {
+        onConnectWallet();
+      } else {
+        toast.error("Wallet connection not available");
+      }
+      return;
+    }
+    if (!isSdkReady) {
+      toast.info("Please wait, SDK is still initializing...");
+      return;
+    }
+    if (isInputsValid) {
+      runHandleTransaction();
+      return;
+    }
+    toast.error("Please enter a valid amount and recipient address");
+  };
+
   return (
     <div className="flex w-full max-w-xl flex-col gap-y-4">
       {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
@@ -382,7 +457,7 @@ const FastBridge: FC<FastBridgeProps> = ({
             maxAmount={maxBridgeAmount}
             maxAvailableAmount={maxAvailableAmount}
             onChange={(amount) => setInputs({ ...inputs, amount })}
-            onCommit={() => void commitAmount()}
+            onCommit={runCommitAmount}
             showBalanceDetails={showSdkDetails}
           />
           <RecipientAddress
@@ -482,34 +557,9 @@ const FastBridge: FC<FastBridgeProps> = ({
                     Number(inputs?.amount) > maxBridgeAmount
                   : false
               }
-              onClick={() => {
-                if (!isConnected) {
-                  if (onConnectWallet) {
-                    onConnectWallet();
-                  } else {
-                    toast.error("Wallet connection not available");
-                  }
-                } else if (!isSdkReady) {
-                  toast.info("Please wait, SDK is still initializing...");
-                } else if (isInputsValid) {
-                  // Connected, SDK ready, inputs valid - trigger transaction
-                  void handleTransaction();
-                } else {
-                  toast.error(
-                    "Please enter a valid amount and recipient address"
-                  );
-                }
-              }}
+              onClick={handlePrimaryButtonClick}
             >
-              {isConnected
-                ? isSdkReady
-                  ? isInputsValid
-                    ? status === "error" || txError
-                      ? "Retry"
-                      : "Fetching intent..."
-                    : "Bridge"
-                  : "Initializing..."
-                : "Connect Wallet"}
+              {primaryButtonLabel}
             </Button>
           )}
 
@@ -589,6 +639,6 @@ const FastBridge: FC<FastBridgeProps> = ({
       </Card>
     </div>
   );
-};
+}
 
 export default FastBridge;

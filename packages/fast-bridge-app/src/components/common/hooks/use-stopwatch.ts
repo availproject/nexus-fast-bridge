@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseStopwatchOptions {
   intervalMs?: number;
@@ -18,14 +18,14 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
     setElapsedSeconds(0);
   };
 
-  const stop = () => {
+  const stop = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  };
+  }, []);
 
-  const start = () => {
+  const start = useCallback(() => {
     if (timerRef.current) {
       return;
     }
@@ -33,7 +33,7 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
       // 1s == 1000ms; we add fractional seconds per tick
       setElapsedSeconds((prev) => prev + intervalMs / 1000);
     }, intervalMs);
-  };
+  }, [intervalMs]);
 
   useEffect(() => {
     if (running) {
@@ -42,8 +42,7 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
       stop();
     }
     return stop;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, intervalMs]);
+  }, [running, start, stop]);
 
   return {
     seconds: elapsedSeconds,

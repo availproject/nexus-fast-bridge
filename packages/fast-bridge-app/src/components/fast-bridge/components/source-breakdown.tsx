@@ -35,6 +35,26 @@ interface SourceBreakdownProps {
   tokenSymbol: SUPPORTED_TOKENS;
 }
 
+function getCoverageToneClass(coverageState: SourceCoverageState): string {
+  if (coverageState === "error") {
+    return "text-rose-500";
+  }
+  if (coverageState === "warning") {
+    return "text-amber-500";
+  }
+  return "text-emerald-500";
+}
+
+function getCoverageSurfaceClass(coverageState: SourceCoverageState): string {
+  if (coverageState === "error") {
+    return "text-rose-950 dark:text-rose-200";
+  }
+  if (coverageState === "warning") {
+    return "text-amber-950 dark:text-amber-200";
+  }
+  return "text-emerald-950 dark:text-emerald-200";
+}
+
 const SourceBreakdown = ({
   intent,
   tokenSymbol,
@@ -68,19 +88,8 @@ const SourceBreakdown = ({
     sourceCoverageState === "error" &&
     Number.parseFloat(missingToProceed ?? "0") > 0;
 
-  const coverageToneClass =
-    sourceCoverageState === "error"
-      ? "text-rose-500"
-      : sourceCoverageState === "warning"
-        ? "text-amber-500"
-        : "text-emerald-500";
-
-  const coverageSurfaceClass =
-    sourceCoverageState === "error"
-      ? " text-rose-950 dark:text-rose-200"
-      : sourceCoverageState === "warning"
-        ? " text-amber-950 dark:text-amber-200"
-        : " text-emerald-950 dark:text-emerald-200";
+  const coverageToneClass = getCoverageToneClass(sourceCoverageState);
+  const coverageSurfaceClass = getCoverageSurfaceClass(sourceCoverageState);
 
   return (
     <Accordion
@@ -241,13 +250,14 @@ const SourceBreakdown = ({
                   )?.amount;
 
                   return (
-                    <div
+                    <button
                       className={cn(
-                        "flex w-full select-none items-center justify-between gap-x-2",
+                        "flex w-full select-none items-center justify-between gap-x-2 text-left",
                         isLastSelected
                           ? "cursor-not-allowed opacity-80"
                           : "cursor-pointer"
                       )}
+                      disabled={isLastSelected}
                       key={chainId}
                       onClick={() => {
                         if (isLastSelected) {
@@ -255,17 +265,7 @@ const SourceBreakdown = ({
                         }
                         onToggleSourceChain(chainId);
                       }}
-                      onKeyDown={(e) => {
-                        if (isLastSelected) {
-                          return;
-                        }
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onToggleSourceChain(chainId);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
+                      type="button"
                     >
                       <div className="flex items-center gap-x-2">
                         <Checkbox
@@ -309,7 +309,7 @@ const SourceBreakdown = ({
                           </p>
                         )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

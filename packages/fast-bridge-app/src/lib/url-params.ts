@@ -6,6 +6,7 @@ import { isAddress } from "viem";
 
 const ALLOWED_TOKENS = new Set(["USDC", "USDT"]) as Set<SUPPORTED_TOKENS>;
 const FILTERED_CHAIN_ID = 728_126_428;
+const AMOUNT_PATTERN = /^\d*\.?\d*$/;
 
 interface BridgeParams {
   amount?: string;
@@ -48,7 +49,7 @@ function sanitizeAmount(amount: string | null): string | undefined {
   if (sanitized === "" || sanitized === ".") {
     return undefined;
   }
-  if (!/^\d*\.?\d*$/.test(sanitized)) {
+  if (!AMOUNT_PATTERN.test(sanitized)) {
     return undefined;
   }
   const num = Number.parseFloat(sanitized);
@@ -73,7 +74,7 @@ export function readBridgeParams(): BridgeParams {
       ? (Number.parseInt(toStr, 10) as SUPPORTED_CHAINS_IDS)
       : undefined;
   const token = isValidToken(tokenStr)
-    ? (tokenStr!.toUpperCase() as SUPPORTED_TOKENS)
+    ? (tokenStr.toUpperCase() as SUPPORTED_TOKENS)
     : undefined;
   const sanitizedAmount = sanitizeAmount(amountStr);
   const recipientAddress =

@@ -10,6 +10,13 @@ const rootDir = path.resolve(
 );
 const chainsPath = path.join(rootDir, "chains.config.json");
 const appsDir = path.join(rootDir, "apps");
+const HERO_TEXT_FALLBACK_REGEX = /heroText:\s*[\s\S]*?\|\|\s*"[^"]*",/;
+const DEV_SCRIPT_PORT_REGEX = /--port\s+(\d+)/;
+const VALID_SLUG_REGEX = /^[a-z0-9-]+$/;
+const VITE_BASE_FALLBACK_REGEX =
+  /const rawBase = env\.VITE_APP_BASE_PATH \|\| "[^"]+";/;
+const RUNTIME_SLUG_FIELD_REGEX = /slug:\s*"[^"]+"/;
+const RUNTIME_ANALYTICS_KEY_REGEX = /analyticsFastBridgeKey:\s*"[^"]+"/;
 
 function usage() {
   console.log(
@@ -115,7 +122,7 @@ function updateFallbackLiteral(source, field, nextLiteral) {
 
 function updateHeroFallback(source, nextLiteral) {
   return source.replace(
-    /heroText:\s*[\s\S]*?\|\|\s*"[^"]*",/,
+    HERO_TEXT_FALLBACK_REGEX,
     `heroText:\n            env.VITE_CONFIG_CHAIN_HERO_TEXT ||\n            "${nextLiteral}",`
   );
 }
@@ -127,7 +134,7 @@ function inferUsedPorts(packageJsonObjects) {
     if (typeof devScript !== "string") {
       continue;
     }
-    const match = devScript.match(/--port\s+(\d+)/);
+    const match = devScript.match(DEV_SCRIPT_PORT_REGEX);
     if (match) {
       ports.add(Number(match[1]));
     }
@@ -172,7 +179,7 @@ async function main() {
   }
 
   const slug = args.slug.toLowerCase();
-  if (!/^[a-z0-9-]+$/.test(slug)) {
+  if (!VALID_SLUG_REGEX.test(slug)) {
     throw new Error(
       `Invalid slug: ${slug}. Use lowercase letters, numbers, and dashes.`
     );
@@ -233,7 +240,7 @@ async function main() {
 
   const usedPorts = inferUsedPorts(
     await Promise.all(
-      chains.map(async (chain) => {
+      chains.map((chain) => {
         const packagePath = path.join(rootDir, chain.appDir, "package.json");
         return readJson(packagePath);
       })
@@ -253,12 +260,12 @@ async function main() {
   const vitePath = path.join(targetAppDir, "vite.config.ts");
   const viteRaw = await fs.readFile(vitePath, "utf8");
   const viteNext = viteRaw.replace(
-    /const rawBase = env\.VITE_APP_BASE_PATH \|\| "[^"]+";/,
+    VITE_BASE_FALLBACK_REGEX,
     `const rawBase = env.VITE_APP_BASE_PATH || "${basePath}";`
   );
   await fs.writeFile(vitePath, viteNext, "utf8");
 
-  const getConfigPath = path.join(targetAppDir, "getConfig.ts");
+  const getConfigPath = path.join(targetAppDir, "get-config.ts");
   const getConfigRaw = await fs.readFile(getConfigPath, "utf8");
   let getConfigNext = getConfigRaw;
   getConfigNext = updateFallbackLiteral(getConfigNext, "chainName", name);
@@ -301,11 +308,8 @@ async function main() {
   const runtimePath = path.join(targetAppDir, "src", "runtime.ts");
   const runtimeRaw = await fs.readFile(runtimePath, "utf8");
   const runtimeNext = runtimeRaw
-    .replace(/slug:\s*"[^"]+"/, `slug: "${slug}"`)
-    .replace(
-      /analyticsFastBridgeKey:\s*"[^"]+"/,
-      `analyticsFastBridgeKey: "${slug}"`
-    );
+    .replace(RUNTIME_SLUG_FIELD_REGEX, `slug: "${slug}"`)
+    .replace(RUNTIME_ANALYTICS_KEY_REGEX, `analyticsFastBridgeKey: "${slug}"`);
   await fs.writeFile(runtimePath, runtimeNext, "utf8");
 
   const newChain = {

@@ -20,7 +20,7 @@ export function useTransactionSteps<
   T extends { typeID?: string; type?: string },
 >(options: UseTransactionStepsOptions<T> = {}) {
   const { expected } = options;
-  const [steps, setSteps] = useState<Array<GenericStep<T>>>(() =>
+  const [steps, setSteps] = useState<GenericStep<T>[]>(() =>
     expected ? seedSteps(expected) : []
   );
   const lastSignatureRef = useRef<string>("");

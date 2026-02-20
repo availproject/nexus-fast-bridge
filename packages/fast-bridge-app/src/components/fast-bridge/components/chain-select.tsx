@@ -1,7 +1,7 @@
 import type { SUPPORTED_CHAINS_IDS } from "@avail-project/nexus-core";
 import { type FC, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useNexus } from "../../nexus/NexusProvider";
+import { useNexus } from "../../nexus/nexus-provider";
 import { Label } from "../../ui/label";
 import {
   Select,
