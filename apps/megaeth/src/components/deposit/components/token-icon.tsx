@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "../utils";
 
 type TokenIconSize = "sm" | "md" | "lg";
@@ -42,7 +43,7 @@ export function TokenIcon({
           alt={protocolAlt}
           width={dimensions.protocol}
           height={dimensions.protocol}
-          className="absolute -bottom-0.5 -right-0.5 translate-x-1/5 translate-y-1/5 rounded-full border-2 border-card object-cover"
+          className="absolute -bottom-0.5 -right-0.5 translate-x-1/5 translate-y-1/5 rounded-full border-2 border-base object-cover"
         />
       )}
     </div>

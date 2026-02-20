@@ -32,7 +32,7 @@ export function EmptyBalanceState({ mode, onRefresh }: EmptyBalanceStateProps) {
   const content = CONTENT[mode];
 
   return (
-    <div className="py-8 px-6 min-h-[212px] w-full rounded-lg border bg-card text-muted-foreground shadow-[0_1px_12px_0_rgba(91,91,91,0.05)]">
+    <div className="py-8 px-6 min-h-[212px] w-full rounded-lg border bg-base text-muted-foreground shadow-[0_1px_12px_0_rgba(91,91,91,0.05)]">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="h-10 w-10 rounded-full bg-muted/40 flex items-center justify-center">
           <InfoIcon className="h-5 w-5 text-muted-foreground" />

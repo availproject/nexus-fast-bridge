@@ -14,7 +14,7 @@ const ConfirmationLoading = ({ onClose }: ConfirmationLoadingProps) => {
       <WidgetHeader title="Deposit USDC" onClose={onClose} />
       <CardContent>
         <div className="flex flex-col">
-          <div className="bg-card rounded-t-lg border-t border-l border-r shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-10 pb-1 flex flex-col gap-6 animate-pulse">
+          <div className="bg-base rounded-t-lg border-t border-l border-r shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-10 pb-1 flex flex-col gap-6 animate-pulse">
             <div className="flex flex-col items-center gap-2">
               <Skeleton className="h-8 w-32" />
               <Skeleton className="h-4 w-24" />

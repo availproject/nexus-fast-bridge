@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChevronDownIcon } from "./icons";
 import type { Token } from "../types";
 import { getTokenCheckState } from "../utils/asset-helpers";
@@ -38,7 +39,7 @@ export function TokenRow({
 
   return (
     <div
-      className={`border-b bg-card relative ${isFirst ? "rounded-t-lg" : ""} ${
+      className={`border-b bg-base relative ${isFirst ? "rounded-t-lg" : ""} ${
         isLast ? "rounded-b-lg border-b-0" : ""
       }`}
     >

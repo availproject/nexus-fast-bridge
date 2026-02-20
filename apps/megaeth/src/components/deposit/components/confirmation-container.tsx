@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-
+import Image from "next/image";
 import SummaryCard from "./summary-card";
 import { GasPumpIcon, CoinIcon } from "./icons";
 import WidgetHeader from "./widget-header";
@@ -92,7 +92,7 @@ const ConfirmationContainer = ({
       />
       <CardContent>
         <div className="flex flex-col">
-          <div className="bg-card rounded-t-lg border-t border-l border-r shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-10 pb-1 flex flex-col gap-6">
+          <div className="bg-base rounded-t-lg border-t border-l border-r shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-10 pb-1 flex flex-col gap-6">
             <ReceiveAmountDisplay
               amount={receiveAmount}
               timeLabel={timeLabel}
@@ -148,7 +148,7 @@ const ConfirmationContainer = ({
                         </div>
                         <div className="flex flex-col gap-0.5 items-end">
                           <span className="font-sans text-sm text-card-foreground">
-                            {usdFormatter.format(amountUsd)}USD
+                            {usdFormatter.format(amountUsd)} USD
                           </span>
                           <span className="font-sans text-[13px] text-muted-foreground">
                             {formatTokenBalance(parseFloat(source.amount), {

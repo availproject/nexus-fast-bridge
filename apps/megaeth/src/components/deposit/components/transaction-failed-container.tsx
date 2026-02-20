@@ -37,7 +37,7 @@ const TransactionFailedContainer = ({
       />
       <CardContent>
         <div className="flex flex-col">
-          <div className="bg-card rounded-t-lg border-t border-l border-r border-border shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-6 pb-6 flex flex-col items-center gap-5">
+          <div className="bg-base rounded-t-lg border-t border-l border-r border-border shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] px-6 pt-6 pb-6 flex flex-col items-center gap-5">
             <ReceiveAmountDisplay
               label="Transaction failed"
               amount="-$0.00"

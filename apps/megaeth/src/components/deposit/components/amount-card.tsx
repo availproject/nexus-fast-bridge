@@ -14,6 +14,7 @@ import {
   SHINE_ANIMATION_DURATION_MS,
   MAX_INPUT_WIDTH_PX,
 } from "../constants/widget";
+import { TOKEN_IMAGES } from "../constants/assets";
 
 // Hoisted RegExp to avoid recreation on every render (js-hoist-regexp)
 const NUMERIC_INPUT_REGEX = /^\d*\.?\d*$/;
@@ -178,7 +179,7 @@ function AmountCard({
   );
 
   return (
-    <div className="py-8 min-h-[212px] w-full rounded-lg border bg-card text-muted-foreground shadow-[0_1px_12px_0_rgba(91,91,91,0.05)]">
+    <div className="py-8 min-h-[212px] w-full rounded-lg border bg-base text-muted-foreground shadow-[0_1px_12px_0_rgba(91,91,91,0.05)]">
       {/* Hidden span to measure text width */}
       <span
         ref={measureRef}
@@ -195,7 +196,10 @@ function AmountCard({
         }`}
       >
         <TokenIcon
-          tokenSrc={destinationConfig.tokenLogo ?? "/usdc.svg"}
+          tokenSrc={
+            destinationConfig.tokenLogo ??
+            TOKEN_IMAGES[destinationConfig.tokenSymbol]
+          }
           protocolSrc={destinationConfig?.depositTargetLogo}
           tokenAlt="USDC"
         />

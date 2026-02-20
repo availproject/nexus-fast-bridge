@@ -401,7 +401,7 @@ const AssetSelectionContainer = ({
                 )}
 
                 {otherTokens.length > 0 && (
-                  <div className="w-full bg-card rounded-t-lg border overflow-hidden mt-4">
+                  <div className="w-full bg-base rounded-t-lg border overflow-hidden mt-4">
                     <div
                       className="p-5 flex justify-between items-center cursor-pointer"
                       onClick={() => toggleExpanded("others-section")}

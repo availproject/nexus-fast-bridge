@@ -138,7 +138,7 @@ const TransactionStatusContainer = ({
         depositTargetLogo={widget?.destination?.depositTargetLogo}
       />
       <CardContent>
-        <div className="flex flex-col bg-card rounded-lg border border-border shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] pt-8 pb-7">
+        <div className="flex flex-col bg-base rounded-lg border border-border shadow-[0_1px_12px_0_rgba(91,91,91,0.05)] pt-8 pb-7">
           <div className="flex w-full mt-2 items-end justify-center">
             <div className="flex justify-between items-center w-full px-3 gap-x-3">
               <AmountDisplay
