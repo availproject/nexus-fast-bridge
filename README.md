@@ -10,6 +10,7 @@ Fast Bridge is a Turborepo + pnpm monorepo with:
 ```bash
 pnpm install
 pnpm dev:all
+pnpm dev:root
 ```
 
 Useful commands:
