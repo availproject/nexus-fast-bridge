@@ -124,6 +124,7 @@
     "MONAD_VITE_SOPHON_RPC",
     "MONAD_VITE_WALLET_CONNECT_ID"
   ],
+  "globalDependencies": ["packages/fast-bridge-app/src/**"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
