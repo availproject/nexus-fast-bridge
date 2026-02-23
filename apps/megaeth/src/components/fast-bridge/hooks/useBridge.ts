@@ -174,8 +174,15 @@ const useBridge = ({
   }, [inputs]);
 
   const resetIntent = () => {
-    intent.current = null;
-    allowance.current = null;
+    txnIdRef.current++;
+    if (intent.current) {
+      if (typeof intent.current.deny === "function") intent.current.deny();
+      intent.current = null;
+    }
+    if (allowance.current) {
+      if (typeof allowance.current.deny === "function") allowance.current.deny();
+      allowance.current = null;
+    }
   };
 
   const handleTransaction = async () => {
@@ -300,9 +307,15 @@ const useBridge = ({
   };
 
   const reset = () => {
-    // intent.current?.deny();
-    intent.current = null;
-    allowance.current = null;
+    txnIdRef.current++;
+    if (intent.current) {
+      if (typeof intent.current.deny === "function") intent.current.deny();
+      intent.current = null;
+    }
+    if (allowance.current) {
+      if (typeof allowance.current.deny === "function") allowance.current.deny();
+      allowance.current = null;
+    }
     dispatch({ type: "resetInputs" });
     dispatch({ type: "setStatus", payload: "idle" });
     setRefreshing(false);
@@ -344,9 +357,31 @@ const useBridge = ({
   const stopwatch = useStopwatch({ intervalMs: 100 });
 
   useEffect(() => {
+    // Invalidate ongoing fetch requests immediately
+    txnIdRef.current++;
+
     if (intent.current) {
-      // intent.current.deny();
+      if (typeof intent.current.deny === "function") intent.current.deny();
       intent.current = null;
+    }
+
+    if (allowance.current) {
+      if (typeof allowance.current.deny === "function") allowance.current.deny();
+      allowance.current = null;
+    }
+
+    // Actively clear UI flags if inputs become cleanly invalid (zero, empty, etc.)
+    // Otherwise FastBridge will follow up rapidly with handleTransaction that sets loading.
+    if (!areInputsValid) {
+      dispatch({ type: "setStatus", payload: "idle" });
+      setLastExplorerUrl("");
+      resetSteps();
+    }
+  }, [inputs, areInputsValid, resetSteps]);
+
+  useEffect(() => {
+    if (txError) {
+      setTxError(null);
     }
   }, [inputs]);
 
@@ -363,11 +398,7 @@ const useBridge = ({
     }
   }, [isDialogOpen, stopwatch, state.status]);
 
-  useEffect(() => {
-    if (txError) {
-      setTxError(null);
-    }
-  }, [inputs]);
+
 
   useEffect(() => {
     if (connectedAddress && !inputs?.recipient) {
