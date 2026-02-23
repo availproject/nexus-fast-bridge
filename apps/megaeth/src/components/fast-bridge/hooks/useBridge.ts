@@ -377,7 +377,8 @@ const useBridge = ({
       setLastExplorerUrl("");
       resetSteps();
     }
-  }, [inputs, areInputsValid, resetSteps]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputs]);
 
   useEffect(() => {
     if (txError) {
