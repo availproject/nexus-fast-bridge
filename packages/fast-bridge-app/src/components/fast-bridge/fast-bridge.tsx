@@ -6,7 +6,7 @@ import type {
 import { chainFeatures } from "@fastbridge/runtime";
 import Decimal from "decimal.js";
 import { CheckCircle2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
@@ -319,6 +319,12 @@ function FastBridge({
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
+  const autoIntentTriggered = useRef(false);
+
+  useEffect(() => {
+    autoIntentTriggered.current = false;
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ?? filteredBridgableBalance?.symbol;
 
@@ -395,9 +401,6 @@ function FastBridge({
     if (!isInputsValid) {
       return;
     }
-    if (status !== "idle" || txError) {
-      return;
-    }
     // Wait for balance hydration before attempting auto intent creation.
     if (!bridgableBalance) {
       return;
@@ -408,9 +411,11 @@ function FastBridge({
     if (intent.current) {
       return;
     }
-    if (loading) {
+    // Removed if (status !== "idle" || txError) and if (loading) checks to allow overlapping fetches
+    if (autoIntentTriggered.current) {
       return;
     }
+    autoIntentTriggered.current = true;
     runHandleTransaction();
   }, [
     availableSources.length,
@@ -423,10 +428,7 @@ function FastBridge({
     intent,
     isConnected,
     isSdkReady,
-    loading,
     runHandleTransaction,
-    status,
-    txError,
   ]);
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({

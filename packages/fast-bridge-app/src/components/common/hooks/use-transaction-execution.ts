@@ -456,27 +456,38 @@ export function useTransactionExecution({
     await handleTransaction();
   };
 
-  const invalidatePendingExecution = useCallback(() => {
-    runIdRef.current += 1;
-    commitLockRef.current = false;
-    if (intent.current) {
-      if (denyIntentOnReset) {
-        intent.current.deny();
+  const invalidatePendingExecution = useCallback(
+    (options?: { forceResetUI?: boolean }) => {
+      runIdRef.current += 1;
+      commitLockRef.current = false;
+      if (intent.current) {
+        if (denyIntentOnReset) {
+          intent.current.deny();
+        }
+        intent.current = null;
       }
-      intent.current = null;
-    }
-    allowance.current = null;
-    setStatus("idle");
-    setRefreshing(false);
-    setAppliedSourceSelectionKey("ALL");
-  }, [
-    allowance,
-    denyIntentOnReset,
-    intent,
-    setAppliedSourceSelectionKey,
-    setRefreshing,
-    setStatus,
-  ]);
+      allowance.current = null;
+      setAppliedSourceSelectionKey("ALL");
+
+      // Actively clear UI flags if inputs become cleanly invalid (zero, empty, etc.)
+      if (options?.forceResetUI) {
+        setStatus("idle");
+        setRefreshing(false);
+        resetSteps();
+        setLastExplorerUrl("");
+      }
+    },
+    [
+      allowance,
+      denyIntentOnReset,
+      intent,
+      setAppliedSourceSelectionKey,
+      setLastExplorerUrl,
+      setRefreshing,
+      setStatus,
+      resetSteps,
+    ]
+  );
 
   return {
     refreshIntent,

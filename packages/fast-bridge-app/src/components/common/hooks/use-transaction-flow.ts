@@ -583,7 +583,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       return;
     }
     lastInvalidationKeyRef.current = invalidationKey;
-    invalidatePendingExecution();
+    invalidatePendingExecution({ forceResetUI: !areInputsValid });
   }, [
     inputs?.amount,
     inputs?.chain,
@@ -591,6 +591,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     inputs?.token,
     intent,
     invalidatePendingExecution,
+    areInputsValid,
   ]);
 
   useEffect(() => {
