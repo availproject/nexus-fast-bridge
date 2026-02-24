@@ -266,7 +266,6 @@ const useBridge = ({
     onComplete?.();
     intent.current = null;
     allowance.current = null;
-    dispatch({ type: "resetInputs" });
     setRefreshing(false);
     await fetchBalance();
   };
@@ -346,6 +345,7 @@ const useBridge = ({
         resetSteps();
         setLastExplorerUrl("");
         dispatch({ type: "setStatus", payload: "idle" });
+        dispatch({ type: "resetInputs" });
       }
     }
   }, [isDialogOpen, stopwatch, state.status]);
