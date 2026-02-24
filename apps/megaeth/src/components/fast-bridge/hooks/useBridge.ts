@@ -174,15 +174,8 @@ const useBridge = ({
   }, [inputs]);
 
   const resetIntent = () => {
-    txnIdRef.current++;
-    if (intent.current) {
-      if (typeof intent.current.deny === "function") intent.current.deny();
-      intent.current = null;
-    }
-    if (allowance.current) {
-      if (typeof allowance.current.deny === "function") allowance.current.deny();
-      allowance.current = null;
-    }
+    intent.current = null;
+    allowance.current = null;
   };
 
   const handleTransaction = async () => {
