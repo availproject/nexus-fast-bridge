@@ -93,6 +93,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     steps,
     status,
     areInputsValid,
+    tokenPriceUSD,
   } = useBridge({
     prefill,
     network: network ?? "mainnet",
@@ -476,7 +477,7 @@ const FastBridge: FC<FastBridgeProps> = ({
                     !inputs?.chain ||
                     !inputs?.token ||
                     loading ||
-                    Number(inputs?.amount) >
+                    Number(inputs?.amount) * (tokenPriceUSD || 1) >
                       (inputs?.chain === config.chainId ? 5000 : 550)
               }
             >
