@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import Decimal from "decimal.js";
 import { EncryptedText } from "../ui/encrypted-text";
 import FluffeyMascot from "./components/fluffey-mascot";
+import config from "../../../config";
 
 interface FastBridgeProps {
   connectedAddress?: Address;
@@ -475,7 +476,8 @@ const FastBridge: FC<FastBridgeProps> = ({
                     !inputs?.chain ||
                     !inputs?.token ||
                     loading ||
-                    Number(inputs?.amount) > 5000
+                    Number(inputs?.amount) >
+                      (inputs?.chain === config.chainId ? 5000 : 550)
               }
             >
               {!isConnected

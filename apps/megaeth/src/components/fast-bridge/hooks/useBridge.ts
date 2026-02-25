@@ -198,8 +198,9 @@ const useBridge = ({
       return;
     }
 
-    if (Number(inputs.amount) > 5000) {
-      setTxError("Amount exceeds maximum limit of 5000");
+    const maxLimit = inputs.chain === config.chainId ? 5000 : 550;
+    if (Number(inputs.amount) > maxLimit) {
+      setTxError(`Amount exceeds maximum limit of ${maxLimit}`);
       return;
     }
     dispatch({ type: "setStatus", payload: "executing" });
