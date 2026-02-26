@@ -25,8 +25,11 @@ import {
   useNexusError,
   useTransactionSteps,
   type TransactionStatus,
+  useTokenPrice
 } from "../../common";
 import config from "../../../../config";
+import { trackBridgeSubmit } from "../../../lib/posthog";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -43,7 +46,7 @@ const ALLOWED_TOKENS = new Set([
 
 interface UseBridgeProps {
   network: NexusNetwork;
-  connectedAddress: Address;
+  connectedAddress?: Address;
   nexusSDK: NexusSDK | null;
   intent: RefObject<OnIntentHookData | null>;
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -71,7 +74,7 @@ type Action =
   | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
-  connectedAddress: Address,
+  connectedAddress?: Address,
   prefill?: {
     token: string;
     chainId: number;
@@ -81,20 +84,20 @@ const buildInitialInputs = (
 ): FastBridgeState => {
   const validToken =
     prefill?.token &&
-    ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
+      ALLOWED_TOKENS.has(prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       ? (prefill.token.toUpperCase() as SUPPORTED_TOKENS)
       : config.nexusPrimaryToken || "USDC";
 
   const validAmount = prefill?.amount
     ? (() => {
-        const sanitized = prefill.amount.trim();
-        if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
-          return undefined;
-        const num = Number.parseFloat(sanitized);
-        return Number.isNaN(num) || num <= 0 || num > 1e9
-          ? undefined
-          : sanitized;
-      })()
+      const sanitized = prefill.amount.trim();
+      if (!sanitized || sanitized === "." || !/^\d*\.?\d*$/.test(sanitized))
+        return undefined;
+      const num = Number.parseFloat(sanitized);
+      return Number.isNaN(num) || num <= 0 || num > 1e9
+        ? undefined
+        : sanitized;
+    })()
     : undefined;
 
   const validRecipient =
@@ -154,12 +157,15 @@ const useBridge = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
+  const txnIdRef = useRef(0);
   const {
     steps,
     onStepsList,
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
+
+  const tokenPriceUSD = useTokenPrice(inputs?.token);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -180,9 +186,24 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+    const amountInUSD = Number(inputs.amount) * (tokenPriceUSD || 1);
+    if (amountInUSD > 550) {
+      setTxError("Amount exceeds maximum limit of $550");
+      return;
+    }
+    const currentTxnId = ++txnIdRef.current;
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
+
+    // Track bridge submit event with PostHog
+    trackBridgeSubmit({
+      chain: inputs.chain,
+      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
+      tokenSymbol: inputs.token,
+      amount: inputs.amount,
+      fast_bridge: 'citrea',
+    });
 
     try {
       if (!nexusSDK) {
@@ -199,10 +220,11 @@ const useBridge = ({
           token: inputs?.token,
           amount: formattedAmount,
           toChainId: inputs?.chain,
-          recipient: inputs?.recipient ?? connectedAddress,
+          recipient: inputs?.recipient,
         },
         {
           onEvent: (event) => {
+            if (currentTxnId !== txnIdRef.current) return;
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
               onStepsList(list);
@@ -217,6 +239,8 @@ const useBridge = ({
           },
         },
       );
+      if (currentTxnId !== txnIdRef.current) return;
+
       if (!bridgeTxn) {
         throw new Error("Transaction rejected by user");
       }
@@ -225,6 +249,7 @@ const useBridge = ({
         await onSuccess();
       }
     } catch (error) {
+      if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
       intent.current?.deny();
       intent.current = null;
@@ -243,7 +268,6 @@ const useBridge = ({
     onComplete?.();
     intent.current = null;
     allowance.current = null;
-    dispatch({ type: "resetInputs" });
     setRefreshing(false);
     await fetchBalance();
   };
@@ -284,7 +308,7 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (!intent.current || loading || txError || !areInputsValid) return;
+    if (loading || txError || !areInputsValid) return;
 
     // Validate amount before proceeding
     if (inputs?.amount) {
@@ -293,12 +317,6 @@ const useBridge = ({
 
       const amount = Number.parseFloat(amountStr);
       if (Number.isNaN(amount) || amount <= 0) return;
-
-      // Check if amount exceeds maximum limit of 550
-      if (amount > 550) {
-        setTxError("Amount entered exceeds maximum limit");
-        return;
-      }
     }
 
     commitLockRef.current = true;
@@ -315,7 +333,7 @@ const useBridge = ({
 
   useEffect(() => {
     if (intent.current) {
-      intent.current.deny();
+      // intent.current.deny();
       intent.current = null;
     }
   }, [inputs]);
@@ -329,6 +347,7 @@ const useBridge = ({
         resetSteps();
         setLastExplorerUrl("");
         dispatch({ type: "setStatus", payload: "idle" });
+        dispatch({ type: "resetInputs" });
       }
     }
   }, [isDialogOpen, stopwatch, state.status]);
@@ -338,6 +357,12 @@ const useBridge = ({
       setTxError(null);
     }
   }, [inputs]);
+
+  useEffect(() => {
+    if (connectedAddress && !inputs?.recipient) {
+      setInputs({ recipient: connectedAddress as `0x${string}` });
+    }
+  }, [connectedAddress, inputs?.recipient]);
 
   return {
     inputs,
@@ -357,6 +382,8 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     status: state.status,
+    areInputsValid,
+    tokenPriceUSD
   };
 };
 

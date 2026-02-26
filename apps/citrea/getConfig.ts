@@ -38,9 +38,9 @@ export function getConfig(env: AppEnv) {
             description:
                 env.VITE_CONFIG_APP_META_DESCRIPTION || "Move assets from any chain to Citrea, instantly.",
             canonicalUrl:
-                env.VITE_CONFIG_APP_META_CANONICAL_URL || "https://megaeth-fast-bridge.vercel.app",
+                env.VITE_CONFIG_APP_META_CANONICAL_URL || "https://fastbridge.availproject.org/citrea/",
             imageUrl: env.VITE_CONFIG_APP_META_IMAGE_URL || "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-            faviconUrl: env.VITE_CONFIG_APP_META_FAVICON_URL || "https://megaeth-fast-bridge.vercel.app/faviconV2.png",
+            faviconUrl: env.VITE_CONFIG_APP_META_FAVICON_URL || "https://fastbridge.availproject.org/citrea/faviconV2.png",
             themeColor: env.VITE_CONFIG_APP_META_THEME_COLOR || "#EF8F36",
             backgroundColor: env.VITE_CONFIG_APP_META_BACKGROUND_COLOR || "#CDD2D8",
         },

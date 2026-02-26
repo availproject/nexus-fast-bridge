@@ -5,7 +5,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../../ui/accordion";
-import { type ReadableIntent } from "@avail-project/nexus-core";
+import {
+  SUPPORTED_CHAINS,
+  type ReadableIntent,
+} from "@avail-project/nexus-core";
 import { Skeleton } from "../../ui/skeleton";
 import { useNexus } from "../../nexus/NexusProvider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
@@ -18,23 +21,24 @@ interface FeeBreakdownProps {
 
 const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
   const { nexusSDK } = useNexus();
-  const feeSymbol = intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
+  const feeSymbol =
+    intent.token?.displaySymbol ?? intent.token?.symbol ?? "USDC";
 
   const feeRows = [
     {
       key: "caGas",
       label: "Fast Bridge Gas Fees",
-      value: intent?.fees?.caGas,
+      value: intent?.fees.caGas,
       description:
         "The gas fee required for executing the fast bridge transaction on the destination chain.",
     },
-    {
-      key: "gasSupplied",
-      label: "Gas Supplied",
-      value: intent?.fees?.gasSupplied,
-      description:
-        "The amount of gas tokens supplied to cover transaction costs on the destination chain.",
-    },
+    // {
+    //   key: "gasSupplied",
+    //   label: "Gas Supplied",
+    //   value: intent?.fees?.gasSupplied,
+    //   description:
+    //     "The amount of gas tokens supplied to cover transaction costs on the destination chain.",
+    // },
     {
       key: "solver",
       label: "Solver Fees",
@@ -61,12 +65,22 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
             {isLoading ? (
               <Skeleton className="h-5 w-24" />
             ) : (
-              <p className="font-light text-base min-w-max">
-                {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
-                  symbol: feeSymbol,
-                  decimals: intent?.token?.decimals,
-                })}
-              </p>
+              <div className="flex flex-col items-end">
+                {
+                  // intent.destination.chainID === SUPPORTED_CHAINS.MEGAETH ? (
+                  //   <p className="font-bold text-base text-primary">0 Fees</p>
+                  // ) :
+                  <p className="font-light text-sm text-primary min-w-max">
+                    {nexusSDK?.utils?.formatTokenBalance(intent.fees?.total, {
+                      symbol:
+                        intent.token?.symbol === "USDM"
+                          ? "USDC"
+                          : intent.token?.symbol,
+                      decimals: intent?.token?.decimals,
+                    })}
+                  </p>
+                }
+              </div>
             )}
             <AccordionTrigger
               containerClassName="w-fit"
@@ -80,7 +94,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
         <AccordionContent>
           <div className="w-full flex flex-col items-center justify-between gap-y-3 bg-muted px-4 py-2 rounded-lg mt-2">
             {feeRows.map(({ key, label, value, description }) => {
-              if (Number.parseFloat(value ?? "0") <= 0) return null;
+              // if (Number.parseFloat(value ?? "0") <= 0) return null;
               return (
                 <Tooltip key={key}>
                   <div className="flex items-center w-full justify-between">
@@ -93,12 +107,24 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({ intent, isLoading = false }) => {
                     {isLoading ? (
                       <Skeleton className="h-4 w-20" />
                     ) : (
-                      <p className="text-sm font-light">
-                        {nexusSDK?.utils?.formatTokenBalance(value, {
-                          symbol: feeSymbol,
-                          decimals: intent?.token?.decimals,
-                        })}
-                      </p>
+                      <div className="flex flex-col items-end">
+                        {/* {intent.destination.chainID ===
+                          SUPPORTED_CHAINS.MEGAETH && key !== "caGas" ? (
+                          <p className="text-sm font-semibold text-primary">
+                            0 Fees
+                          </p>
+                        ) : ( */}
+                        <p className="text-xs font-light text-primary">
+                          {nexusSDK?.utils?.formatTokenBalance(value, {
+                            symbol:
+                              intent.token?.symbol === "USDM"
+                                ? "USDC"
+                                : intent.token?.symbol,
+                            decimals: intent?.token?.decimals,
+                          })}
+                        </p>
+                        {/* )} */}
+                      </div>
                     )}
                   </div>
                   <TooltipContent className="max-w-sm text-balance">

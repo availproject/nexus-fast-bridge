@@ -22,11 +22,14 @@ Turbo + pnpm workspace with four apps:
 - Output directory: `apps/root/dist`
 - During Vercel builds, `prepare-env.mjs` reads the `<SLUG>_` project env vars and writes `.env.production`/`.env.local` for each chain app (no `.env.<slug>` files exist in Vercel).
 
+
+
 ## Adding a new chain
 1) Add the chain to `chains.config.json` with `slug`, `appDir`, etc.
 2) Create `apps/<slug>/.env.<slug>` (or `.env.<slug>` at repo root).
 3) Run `pnpm chains:sync` to add the workspace dep to `apps/root` and refresh `turbo.json` env allowlist from your `.env.<slug>` keys.
 4) Run `pnpm vercel:env` and push the output to Vercel env vars.
 5) Deploy (build: `pnpm build:all`, output: `apps/root/dist`).
+
 
 If you see Monad defaults in another chain’s build, the chain-specific env vars are missing — ensure the `<SLUG>_` vars are set in Vercel or that `.env.<slug>` exists locally.

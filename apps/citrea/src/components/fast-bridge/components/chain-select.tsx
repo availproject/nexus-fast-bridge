@@ -8,13 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../ui/select";
-import {
-  SUPPORTED_CHAINS,
-  type SUPPORTED_CHAINS_IDS,
-} from "@avail-project/nexus-core";
+import { type SUPPORTED_CHAINS_IDS } from "@avail-project/nexus-core";
 import { cn } from "@/lib/utils";
 import { useNexus } from "../../nexus/NexusProvider";
-import CitreaLogo from "/citrea-chain-logo.webp";
 
 interface ChainSelectProps {
   selectedChain: number;

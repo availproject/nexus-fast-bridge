@@ -1,10 +1,10 @@
 "use client";
-import { type FC } from "react";
+import { type FC, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "../ui/card";
 import ChainSelect from "./components/chain-select";
 import TokenSelect from "./components/token-select";
 import { Button } from "../ui/button";
-import { LoaderPinwheel, X, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { useNexus } from "../nexus/NexusProvider";
 import AmountInput from "./components/amount-input";
 import FeeBreakdown from "./components/fee-breakdown";
@@ -28,9 +28,17 @@ import { Skeleton } from "../ui/skeleton";
 import RecipientAddress from "./components/recipient-address";
 import ViewHistory from "../view-history/view-history";
 import { toast } from "sonner";
+import Decimal from "decimal.js";
 
 interface FastBridgeProps {
-  connectedAddress: Address;
+  connectedAddress?: Address;
+  isWalletConnected?: boolean;
+  onConnectWallet?: () => void;
+  mockIntent?: {
+    totalAmount?: string;
+    receiveAmount?: string;
+    totalGas?: string;
+  };
   prefill?: {
     token: SUPPORTED_TOKENS;
     chainId: SUPPORTED_CHAINS_IDS;
@@ -44,6 +52,9 @@ interface FastBridgeProps {
 
 const FastBridge: FC<FastBridgeProps> = ({
   connectedAddress,
+  isWalletConnected,
+  onConnectWallet,
+  mockIntent,
   onComplete,
   onStart,
   onError,
@@ -57,6 +68,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     network,
     fetchBridgableBalance,
   } = useNexus();
+  const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
 
   const {
     inputs,
@@ -76,6 +88,8 @@ const FastBridge: FC<FastBridgeProps> = ({
     lastExplorerUrl,
     steps,
     status,
+    areInputsValid,
+    tokenPriceUSD,
   } = useBridge({
     prefill,
     network: network ?? "mainnet",
@@ -84,7 +98,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     intent,
     bridgableBalance,
     allowance,
-    onComplete: () => {
+    onComplete: async () => {
       if (onComplete) {
         onComplete();
       }
@@ -113,17 +127,25 @@ const FastBridge: FC<FastBridgeProps> = ({
             </div>
             <div>
               <span className="font-medium">Amount Spent:</span>{" "}
-              {intent.current?.intent?.sourcesTotal?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.sourcesTotal
+                ? new Decimal(intent.current?.intent?.sourcesTotal).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             <div>
               <span className="font-medium">Amount Received:</span>{" "}
-              {intent.current?.intent?.destination?.amount?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.destination?.amount
+                ? new Decimal(
+                    intent.current?.intent?.destination?.amount,
+                  ).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             <div>
               <span className="font-medium">Total Fees:</span>{" "}
-              {intent.current?.intent?.fees.total?.toString() || "NaN"}{" "}
+              {intent.current?.intent?.fees.total
+                ? new Decimal(intent.current?.intent?.fees.total).toFixed()
+                : "NaN"}{" "}
               {intent.current?.intent?.token.symbol || "Unknown"}
             </div>
             {lastExplorerUrl ? (
@@ -146,6 +168,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           icon: null, // Remove default icon since we're adding our own
         },
       );
+      setHistoryRefreshNonce((prev) => prev + 1);
     },
     onStart,
     onError: (message) => {
@@ -156,15 +179,93 @@ const FastBridge: FC<FastBridgeProps> = ({
     },
     fetchBalance: fetchBridgableBalance,
   });
+  const isConnected = isWalletConnected ?? Boolean(connectedAddress);
+  const isSdkReady = Boolean(nexusSDK);
+  const showSdkDetails = isSdkReady;
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ??
     // @ts-expect-error - not possible
     intent?.current?.intent?.token.displaySymbol ??
     filteredBridgableBalance?.symbol;
+
+  const amountValue = useMemo(() => {
+    if (!inputs?.amount) return null;
+    const parsed = Number.parseFloat(inputs.amount);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [inputs?.amount]);
+
+  const hasValidAmount = useMemo(() => {
+    if (amountValue === null) return false;
+    return amountValue > 0;
+  }, [amountValue]);
+
+  const formatMockNumber = (value: number) => {
+    if (!Number.isFinite(value)) return "--";
+    const fixed = value.toFixed(6);
+    return fixed.replace(/\.?0+$/, "");
+  };
+
+  const formatWithToken = (value: string, token?: string) => {
+    if (!token) return value;
+    return `${value} ${token}`.trim();
+  };
+
+  const tokenSuffix =
+    inputs?.token ?? filteredBridgableBalance?.symbol ?? "USDC";
+
+  const mockPreview = useMemo(() => {
+    if (!hasValidAmount || amountValue === null) return null;
+    if (mockIntent) {
+      return {
+        totalAmount: mockIntent.totalAmount ?? "--",
+        receiveAmount: mockIntent.receiveAmount ?? "--",
+        totalGas: mockIntent.totalGas ?? "--",
+      };
+    }
+    const totalGas = amountValue * 0.001;
+    const totalAmount = amountValue + totalGas;
+    return {
+      totalAmount: formatWithToken(formatMockNumber(totalAmount), tokenSuffix),
+      receiveAmount: formatWithToken(
+        formatMockNumber(amountValue),
+        tokenSuffix,
+      ),
+      totalGas: formatWithToken(formatMockNumber(totalGas), tokenSuffix),
+    };
+  }, [amountValue, hasValidAmount, mockIntent, tokenSuffix]);
+
+  const showMockPreview = !isConnected && hasValidAmount && mockPreview;
+  const autoIntentTriggered = useRef(false);
+
+  useEffect(() => {
+    autoIntentTriggered.current = false;
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
+  useEffect(() => {
+    if (!isConnected || !isSdkReady) return;
+    if (!areInputsValid) return;
+    if (intent.current) return;
+    // if (loading) return; // Removed to allow "10" fetch even if "1" is loading
+    if (autoIntentTriggered.current) return;
+    autoIntentTriggered.current = true;
+    void handleTransaction();
+  }, [
+    areInputsValid,
+    handleTransaction,
+    intent,
+    isConnected,
+    isSdkReady,
+    loading,
+  ]);
   return (
     <Card className="w-full max-w-xl">
       <CardContent className="flex flex-col gap-y-4 w-full px-2 sm:px-6 relative">
-        <ViewHistory className="absolute -top-2 right-3" />
+        {showSdkDetails && (
+          <ViewHistory
+            className="absolute -top-2 right-3"
+            refreshNonce={historyRefreshNonce}
+          />
+        )}
         <ChainSelect
           selectedChain={inputs?.chain}
           handleSelect={(chain) =>
@@ -189,6 +290,7 @@ const FastBridge: FC<FastBridgeProps> = ({
           onCommit={() => void commitAmount()}
           disabled={refreshing || !!prefill?.amount}
           inputs={inputs}
+          showBalanceDetails={showSdkDetails}
         />
         <RecipientAddress
           address={inputs?.recipient}
@@ -197,7 +299,26 @@ const FastBridge: FC<FastBridgeProps> = ({
           }
           disabled={!!prefill?.recipient}
         />
-        {intent?.current?.intent && (
+        {showMockPreview && (
+          <div className="w-full rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-base font-light">You spend</p>
+              <p className="text-base font-light">{mockPreview?.totalAmount}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-base font-light">You receive</p>
+              <p className="text-base font-light">
+                {mockPreview?.receiveAmount}
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-base font-light">Total gas</p>
+              <p className="text-base font-light">{mockPreview?.totalGas}</p>
+            </div>
+          </div>
+        )}
+
+        {showSdkDetails && intent?.current?.intent && (
           <>
             <SourceBreakdown
               intent={intent?.current?.intent}
@@ -237,20 +358,44 @@ const FastBridge: FC<FastBridgeProps> = ({
 
         {!intent.current && (
           <Button
-            onClick={handleTransaction}
+            onClick={() => {
+              if (!isConnected) {
+                if (onConnectWallet) {
+                  onConnectWallet();
+                } else {
+                  toast.error("Wallet connection not available");
+                }
+              } else if (!isSdkReady) {
+                toast.info("Please wait, SDK is still initializing...");
+              } else if (!areInputsValid) {
+                toast.error(
+                  "Please enter a valid amount and recipient address",
+                );
+              } else {
+                // Connected, SDK ready, inputs valid - trigger transaction
+                void handleTransaction();
+              }
+            }}
             disabled={
-              !inputs?.amount ||
-              !inputs?.recipient ||
-              !inputs?.chain ||
-              !inputs?.token ||
-              loading
+              !isConnected
+                ? false
+                : !inputs?.amount ||
+                  !inputs?.recipient ||
+                  !inputs?.chain ||
+                  !inputs?.token ||
+                  loading ||
+                  Number(inputs?.amount) * (tokenPriceUSD || 1) > 550
             }
           >
-            {loading ? (
-              <LoaderPinwheel className="animate-spin size-5" />
-            ) : (
-              "Bridge"
-            )}
+            {!isConnected
+              ? "Connect Wallet"
+              : !isSdkReady
+                ? "Initializing..."
+                : !areInputsValid
+                  ? "Bridge"
+                  : status === "error" || txError
+                    ? "Retry"
+                    : "Fetching intent..."}
           </Button>
         )}
 
@@ -301,8 +446,8 @@ const FastBridge: FC<FastBridgeProps> = ({
         </Dialog>
 
         {txError && (
-          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full max-w-md">
-            <span className="flex-1 w-full truncate">{txError}</span>
+          <div className="rounded-md border border-destructive bg-destructive/80 px-3 py-2 text-sm text-destructive-foreground flex items-start justify-between gap-x-3 mt-3 w-full">
+            <span className="flex-1 w-full">{txError}</span>
             <Button
               type="button"
               size={"icon"}

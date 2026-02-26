@@ -5,6 +5,7 @@ import HeroSection from "@/components/hero-section";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import NexusProvider from "@/components/nexus/NexusProvider";
 import config from "../config";
+import { motion } from "motion/react";
 
 // @ts-expect-error - Environment is not exported from @avail-project/nexus-core
 enum Environment {
@@ -30,6 +31,7 @@ export default function App() {
             VSC_BASE_URL: "https://vsc-debugnet.availproject.org",
             VSC_WS_URL: "wss://vsc-debugnet.availproject.org",
           },
+          // network: "mainnet",
           debug: true,
         }}
       >
@@ -45,10 +47,39 @@ export default function App() {
             <main className="flex flex-col flex-1 min-w-0 max-w-full px-4 py-12 gap-8">
               <HeroSection />
               <FastBridgeShowcase />
+              <div className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-[#19191A]/80">
+                <p>
+                  Avail Fast Bridge for MegaETH enables instant, secure bridging
+                  of USDC and ETH to the MegaETH network. Powered by Avail
+                  Nexus, it supports seamless transfers from Ethereum, Base,
+                  Optimism, Arbitrum, and more, ensuring liquidity is unified
+                  without complex wrapping.
+                </p>
+              </div>
             </main>
           </div>
         </div>
         <Toaster />
+        <div className="sticky z-100 bottom-4 left-4 ml-4 flex flex-wrap items-center justify-start gap-3">
+          <motion.a
+            href="https://discord.com/invite/AvailProject"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center rounded gap-2 border border-[#19191A] bg-transparent px-[14px] py-2 text-sm font-medium text-[#19191A] no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 md:justify-self-start hover:bg-[#19191A] hover:text-white focus-visible:bg-[#19191A] focus-visible:text-white"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.85 }}
+            whileHover={{
+              scale: 1.05,
+              y: -2,
+            }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span>
+              Reach out to us if <br /> you face any issues
+            </span>
+          </motion.a>
+        </div>
       </NexusProvider>
     </Web3Provider>
   );

@@ -25,8 +25,11 @@ import {
   useNexusError,
   useTransactionSteps,
   type TransactionStatus,
+  useTokenPrice
 } from "../../common";
 import config from "../../../../config";
+import { trackBridgeSubmit } from "../../../lib/posthog";
+import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 
 export interface FastBridgeState {
   chain: SUPPORTED_CHAINS_IDS;
@@ -43,7 +46,7 @@ const ALLOWED_TOKENS = new Set([
 
 interface UseBridgeProps {
   network: NexusNetwork;
-  connectedAddress: Address;
+  connectedAddress?: Address;
   nexusSDK: NexusSDK | null;
   intent: RefObject<OnIntentHookData | null>;
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -71,7 +74,7 @@ type Action =
   | { type: "setStatus"; payload: TransactionStatus };
 
 const buildInitialInputs = (
-  connectedAddress: Address,
+  connectedAddress?: Address,
   prefill?: {
     token: string;
     chainId: number;
@@ -111,7 +114,6 @@ const buildInitialInputs = (
 };
 
 const useBridge = ({
-  network,
   connectedAddress,
   nexusSDK,
   intent,
@@ -155,12 +157,15 @@ const useBridge = ({
   const [txError, setTxError] = useState<string | null>(null);
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
+  const txnIdRef = useRef(0);
   const {
     steps,
     onStepsList,
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
+
+  const tokenPriceUSD = useTokenPrice(inputs?.token);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -171,7 +176,21 @@ const useBridge = ({
     return hasToken && hasChain && hasAmount && hasValidrecipient;
   }, [inputs]);
 
+  const resetIntent = () => {
+    intent.current = null;
+    allowance.current = null;
+  };
+
   const handleTransaction = async () => {
+    const currentTxnId = ++txnIdRef.current;
+    if (!inputs.amount) {
+      setTxError("Amount is required");
+      return;
+    }
+    if (Number(inputs.amount) === 0) {
+      setTxError("Amount should be greater than 0");
+      return;
+    }
     if (
       !inputs?.amount ||
       !inputs?.recipient ||
@@ -181,9 +200,25 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
+
+    const maxLimit = inputs.chain === config.chainId ? 5000 : 550;
+    const amountInUSD = Number(inputs.amount) * (tokenPriceUSD || 1);
+    if (amountInUSD > maxLimit) {
+      setTxError(`Amount exceeds maximum limit of $${maxLimit}`);
+      return;
+    }
     dispatch({ type: "setStatus", payload: "executing" });
     setTxError(null);
     onStart?.();
+
+    // Track bridge submit event with PostHog
+    trackBridgeSubmit({
+      chain: inputs.chain,
+      chainName: SHORT_CHAIN_NAME[inputs.chain] || `Chain ${inputs.chain}`,
+      tokenSymbol: inputs.token,
+      amount: inputs.amount,
+      fast_bridge: "megaeth",
+    });
 
     try {
       if (!nexusSDK) {
@@ -200,15 +235,17 @@ const useBridge = ({
           token: inputs?.token,
           amount: formattedAmount,
           toChainId: inputs?.chain,
-          recipient: inputs?.recipient ?? connectedAddress,
+          recipient: inputs?.recipient,
         },
         {
           onEvent: (event) => {
+            if (currentTxnId !== txnIdRef.current) return;
             if (event.name === NEXUS_EVENTS.STEPS_LIST) {
               const list = Array.isArray(event.args) ? event.args : [];
               onStepsList(list);
             }
             if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+              console.log("STEP_EVENT", event);
               if (event.args.type === "INTENT_HASH_SIGNED") {
                 stopwatch.start();
               }
@@ -217,18 +254,22 @@ const useBridge = ({
           },
         },
       );
+      if (currentTxnId !== txnIdRef.current) return;
+
       if (!bridgeTxn) {
-        throw new Error("Transaction rejected by user");
+        throw new Error("Something went wrong, please try again");
       }
       if (bridgeTxn) {
         setLastExplorerUrl(bridgeTxn.explorerUrl);
         await onSuccess();
       }
     } catch (error) {
+      if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+      // intent.current?.deny();
       intent.current = null;
       allowance.current = null;
+      console.log("NEXUS-ERROR-MESSAGE", message)
       setTxError(message);
       onError?.(message);
       setIsDialogOpen(false);
@@ -243,13 +284,12 @@ const useBridge = ({
     onComplete?.();
     intent.current = null;
     allowance.current = null;
-    dispatch({ type: "resetInputs" });
     setRefreshing(false);
     await fetchBalance();
   };
 
   const filteredBridgableBalance = useMemo(() => {
-    return bridgableBalance?.find((bal) => bal?.symbol === inputs?.token);
+    return bridgableBalance?.find((bal) => inputs.token === 'USDM' ? bal?.symbol === 'USDC' : bal?.symbol === inputs?.token);
   }, [bridgableBalance, inputs?.token]);
 
   const refreshIntent = async () => {
@@ -264,9 +304,15 @@ const useBridge = ({
   };
 
   const reset = () => {
-    intent.current?.deny();
-    intent.current = null;
-    allowance.current = null;
+    txnIdRef.current++;
+    if (intent.current) {
+      if (typeof intent.current.deny === "function") intent.current.deny();
+      intent.current = null;
+    }
+    if (allowance.current) {
+      if (typeof allowance.current.deny === "function") allowance.current.deny();
+      allowance.current = null;
+    }
     dispatch({ type: "resetInputs" });
     dispatch({ type: "setStatus", payload: "idle" });
     setRefreshing(false);
@@ -284,21 +330,15 @@ const useBridge = ({
 
   const commitAmount = async () => {
     if (commitLockRef.current) return;
-    if (!intent.current || loading || txError || !areInputsValid) return;
+    if (loading || txError || !areInputsValid) return resetIntent();
 
     // Validate amount before proceeding
     if (inputs?.amount) {
       const amountStr = inputs.amount.trim();
-      if (!amountStr) return;
+      if (!amountStr) return resetIntent();
 
       const amount = Number.parseFloat(amountStr);
-      if (Number.isNaN(amount) || amount <= 0) return;
-
-      // Check if amount exceeds maximum limit of 550
-      if (amount > 550) {
-        setTxError("Amount entered exceeds maximum limit");
-        return;
-      }
+      if (Number.isNaN(amount) || amount <= 0) return resetIntent();
     }
 
     commitLockRef.current = true;
@@ -314,9 +354,32 @@ const useBridge = ({
   const stopwatch = useStopwatch({ intervalMs: 100 });
 
   useEffect(() => {
+    // Invalidate ongoing fetch requests immediately
+    txnIdRef.current++;
+
     if (intent.current) {
-      intent.current.deny();
+      if (typeof intent.current.deny === "function") intent.current.deny();
       intent.current = null;
+    }
+
+    if (allowance.current) {
+      if (typeof allowance.current.deny === "function") allowance.current.deny();
+      allowance.current = null;
+    }
+
+    // Actively clear UI flags if inputs become cleanly invalid (zero, empty, etc.)
+    // Otherwise FastBridge will follow up rapidly with handleTransaction that sets loading.
+    if (!areInputsValid) {
+      dispatch({ type: "setStatus", payload: "idle" });
+      setLastExplorerUrl("");
+      resetSteps();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputs]);
+
+  useEffect(() => {
+    if (txError) {
+      setTxError(null);
     }
   }, [inputs]);
 
@@ -329,15 +392,18 @@ const useBridge = ({
         resetSteps();
         setLastExplorerUrl("");
         dispatch({ type: "setStatus", payload: "idle" });
+        dispatch({ type: "resetInputs" });
       }
     }
   }, [isDialogOpen, stopwatch, state.status]);
 
+
+
   useEffect(() => {
-    if (txError) {
-      setTxError(null);
+    if (connectedAddress && !inputs?.recipient) {
+      setInputs({ recipient: connectedAddress as `0x${string}` });
     }
-  }, [inputs]);
+  }, [connectedAddress, inputs?.recipient]);
 
   return {
     inputs,
@@ -357,6 +423,9 @@ const useBridge = ({
     lastExplorerUrl,
     steps,
     status: state.status,
+    areInputsValid,
+    resetIntent,
+    tokenPriceUSD
   };
 };
 

@@ -2,6 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import { initPostHog } from "./lib/posthog";
+
+// Initialize PostHog analytics
+initPostHog();
 
 // Clean up WalletConnect IndexedDB before app loads to prevent structure errors
 const cleanupWalletConnectSubscription = () => {

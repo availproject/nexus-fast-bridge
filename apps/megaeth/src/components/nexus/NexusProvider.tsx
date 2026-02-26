@@ -16,11 +16,13 @@ import {
   type RefObject,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
+import { TOKEN_IMAGES } from "../common";
 
 interface NexusContextType {
   nexusSDK: NexusSDK | null;
@@ -77,11 +79,35 @@ const NexusProvider = ({
 
   const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const supportedChainsAndTokens =
-    useRef<SupportedChainsAndTokensResult | null>(null);
-  const swapSupportedChainsAndTokens = useRef<SupportedChainsResult | null>(
-    null,
+  const applyTokenLogos = useCallback(
+    (chains: SupportedChainsAndTokensResult | null) => {
+      if (!chains) return null;
+      return chains.map((chain) => ({
+        ...chain,
+        tokens: chain.tokens.map((token) => ({
+          ...token,
+          logo:
+            token.symbol.toUpperCase() === "USDM"
+              ? TOKEN_IMAGES.USDM
+              : token.logo,
+        })),
+      }));
+    },
+    [],
   );
+
+  const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
+    useState<SupportedChainsAndTokensResult | null>(
+      applyTokenLogos(
+        sdk.utils.getSupportedChains(
+          stableConfig.network === "testnet" ? 0 : undefined,
+        ),
+      ),
+    );
+  const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
+    useState<SupportedChainsResult | null>(
+      sdk.utils.getSwapSupportedChainsAndTokens() ?? null,
+    );
   const [bridgableBalance, setBridgableBalance] = useState<UserAsset[] | null>(
     null,
   );
@@ -92,17 +118,27 @@ const NexusProvider = ({
   const allowance = useRef<OnAllowanceHookData | null>(null);
   const swapIntent = useRef<OnSwapIntentHookData | null>(null);
 
+  useEffect(() => {
+    const list = sdk.utils.getSupportedChains(
+      stableConfig.network === "testnet" ? 0 : undefined,
+    );
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
+    const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
+    setSwapSupportedChainsAndTokens(swapList ?? null);
+  }, [sdk, stableConfig.network]);
+
   const setupNexus = useCallback(async () => {
     const list = sdk.utils.getSupportedChains(
-      config?.network === "testnet" ? 0 : undefined,
+      stableConfig.network === "testnet" ? 0 : undefined,
     );
-    supportedChainsAndTokens.current = list ?? null;
+    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
     const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
-    swapSupportedChainsAndTokens.current = swapList ?? null;
+    setSwapSupportedChainsAndTokens(swapList ?? null);
     const [bridgeAbleBalanceResult, rates] = await Promise.allSettled([
       sdk.getBalancesForBridge(),
       sdk.utils.getCoinbaseRates(),
     ]);
+    console.log("bridgeAbleBalanceResult", bridgeAbleBalanceResult);
 
     if (bridgeAbleBalanceResult.status === "fulfilled") {
       setBridgableBalance(bridgeAbleBalanceResult.value);
@@ -121,7 +157,7 @@ const NexusProvider = ({
       }
       exchangeRate.current = usdPerUnit;
     }
-  }, [sdk, config?.network]);
+  }, [sdk, stableConfig.network]);
 
   const initializeNexus = async (provider: EthereumProvider) => {
     setLoading(true);
@@ -141,8 +177,6 @@ const NexusProvider = ({
       if (!nexusSDK) return;
       await nexusSDK.deinit();
       setNexusSDK(null);
-      supportedChainsAndTokens.current = null;
-      swapSupportedChainsAndTokens.current = null;
       setBridgableBalance(null);
       setSwapBalance(null);
       exchangeRate.current = null;
@@ -190,20 +224,38 @@ const NexusProvider = ({
   };
 
   const handleInit = async (provider: EthereumProvider) => {
+    console.log("[NexusProvider] handleInit called");
+    console.log("[NexusProvider] SDK isInitialized:", sdk.isInitialized());
+    console.log("[NexusProvider] Loading:", loading);
+
     if (sdk.isInitialized() || loading) {
+      console.log(
+        "[NexusProvider] Skipping init - already initialized or loading",
+      );
       return;
     }
+
     if (!provider || typeof provider.request !== "function") {
+      console.error("[NexusProvider] Invalid provider:", provider);
       throw new Error("Invalid EIP-1193 provider");
     }
+
+    console.log("[NexusProvider] Calling initializeNexus...");
     await initializeNexus(provider);
+
+    console.log("[NexusProvider] Calling setupNexus...");
     await setupNexus();
+
+    console.log("[NexusProvider] Calling attachEventHooks...");
     attachEventHooks();
+
+    console.log("[NexusProvider] handleInit complete!");
   };
 
   const fetchBridgableBalance = async () => {
     try {
       const updatedBalance = await sdk.getBalancesForBridge();
+      console.log("bridgeAbleBalanceResult", updatedBalance);
       setBridgableBalance(updatedBalance);
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
@@ -213,6 +265,7 @@ const NexusProvider = ({
   const fetchSwapBalance = async () => {
     try {
       const updatedBalance = await sdk.getBalancesForSwap();
+      console.log("swapBalance", updatedBalance);
       setSwapBalance(updatedBalance);
     } catch (error) {
       console.error("Error fetching swap balance:", error);
@@ -248,8 +301,8 @@ const NexusProvider = ({
       intent,
       allowance,
       handleInit,
-      supportedChainsAndTokens: supportedChainsAndTokens.current,
-      swapSupportedChainsAndTokens: swapSupportedChainsAndTokens.current,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
       bridgableBalance,
       swapBalance: swapBalance,
       network: config?.network,
@@ -275,6 +328,8 @@ const NexusProvider = ({
       fetchSwapBalance,
       setIntent,
       setAllowance,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
     ],
   );
   return (

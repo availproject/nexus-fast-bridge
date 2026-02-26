@@ -46,6 +46,15 @@ export default function App() {
             <main className="flex flex-col flex-1 min-w-0 max-w-full px-4 py-12 gap-8">
               <HeroSection />
               <FastBridgeShowcase />
+              <div className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-gray-600">
+                <p>
+                  Experience the fastest way to bridge assets to Monad. Avail
+                  Fast Bridge facilitates instant stablecoin and token transfers
+                  from Ethereum, Base, Arbitrum, and Optimism. Built on Avail
+                  Nexus, it ensures your transition to the Monad ecosystem is
+                  secure and seamless.
+                </p>
+              </div>
             </main>
           </div>
         </div>

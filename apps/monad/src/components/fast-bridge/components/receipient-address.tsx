@@ -17,6 +17,17 @@ const ReceipientAddress: React.FC<ReceipientAddressProps> = ({
 }) => {
   const { nexusSDK } = useNexus();
   const [isEditing, setIsEditing] = React.useState(false);
+  const fallbackTruncate = (value: string, head = 6, tail = 6) => {
+    if (!value) return "";
+    if (value.length <= head + tail) return value;
+    return `${value.slice(0, head)}...${value.slice(-tail)}`;
+  };
+  const displayAddress =
+    address && nexusSDK?.utils?.truncateAddress
+      ? nexusSDK.utils.truncateAddress(address, 6, 6)
+      : address
+        ? fallbackTruncate(address, 6, 6)
+        : "";
   return (
     <div className="w-full">
       {isEditing ? (
@@ -41,9 +52,7 @@ const ReceipientAddress: React.FC<ReceipientAddressProps> = ({
         <div className="flex items-center w-full justify-between">
           <p className="font-medium text-base">Recipient Address</p>
           <div className="flex items-center gap-x-3 ">
-            <p className="font-medium text-base">
-              {nexusSDK?.utils?.truncateAddress(address ?? "", 6, 6)}
-            </p>
+            <p className="font-medium text-base">{displayAddress}</p>
 
             <Button
               variant={"ghost"}
