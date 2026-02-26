@@ -478,7 +478,7 @@ const FastBridge: FC<FastBridgeProps> = ({
                     !inputs?.token ||
                     loading ||
                     Number(inputs?.amount) * (tokenPriceUSD || 1) >
-                      (inputs?.chain === config.chainId ? 5000 : 550)
+                      (inputs?.chain === config.chainId ? 10000 : 550)
               }
             >
               {!isConnected
