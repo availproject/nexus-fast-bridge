@@ -204,7 +204,7 @@ const useBridge = ({
     const maxLimit = inputs.chain === config.chainId ? 10000 : 550;
     const amountInUSD = Number(inputs.amount) * (tokenPriceUSD || 1);
     if (amountInUSD > maxLimit) {
-      setTxError(`Amount exceeds maximum limit of $${maxLimit === 550 ? "550" : "10K"}`);
+      setTxError(`Amount exceeds maximum limit of $${maxLimit === 550 ? "550" : "10,000"}`);
       return;
     }
     dispatch({ type: "setStatus", payload: "executing" });
