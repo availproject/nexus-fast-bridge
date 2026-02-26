@@ -25,6 +25,7 @@ import {
   useNexusError,
   useTransactionSteps,
   type TransactionStatus,
+  useTokenPrice
 } from "../../common";
 import config from "../../../../config";
 import { trackBridgeSubmit } from "../../../lib/posthog";
@@ -164,6 +165,8 @@ const useBridge = ({
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
 
+  const tokenPriceUSD = useTokenPrice(inputs?.token);
+
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
     const hasChain = inputs?.chain !== undefined && inputs?.chain !== null;
@@ -183,9 +186,9 @@ const useBridge = ({
       console.error("Missing required inputs");
       return;
     }
-
-    if (Number(inputs.amount) > 550) {
-      setTxError("Amount exceeds maximum limit of 550");
+    const amountInUSD = Number(inputs.amount) * (tokenPriceUSD || 1);
+    if (amountInUSD > 550) {
+      setTxError("Amount exceeds maximum limit of $550");
       return;
     }
     const currentTxnId = ++txnIdRef.current;
@@ -380,6 +383,7 @@ const useBridge = ({
     steps,
     status: state.status,
     areInputsValid,
+    tokenPriceUSD
   };
 };
 
