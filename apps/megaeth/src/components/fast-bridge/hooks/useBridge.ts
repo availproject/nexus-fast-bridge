@@ -25,6 +25,7 @@ import {
   useNexusError,
   useTransactionSteps,
   type TransactionStatus,
+  useTokenPrice
 } from "../../common";
 import config from "../../../../config";
 import { trackBridgeSubmit } from "../../../lib/posthog";
@@ -164,6 +165,8 @@ const useBridge = ({
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
 
+  const tokenPriceUSD = useTokenPrice(inputs?.token);
+
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
     const hasChain = inputs?.chain !== undefined && inputs?.chain !== null;
@@ -198,8 +201,10 @@ const useBridge = ({
       return;
     }
 
-    if (Number(inputs.amount) > 5000) {
-      setTxError("Amount exceeds maximum limit of 5000");
+    const maxLimit = inputs.chain === config.chainId ? 5000 : 550;
+    const amountInUSD = Number(inputs.amount) * (tokenPriceUSD || 1);
+    if (amountInUSD > maxLimit) {
+      setTxError(`Amount exceeds maximum limit of $${maxLimit}`);
       return;
     }
     dispatch({ type: "setStatus", payload: "executing" });
@@ -419,7 +424,8 @@ const useBridge = ({
     steps,
     status: state.status,
     areInputsValid,
-    resetIntent
+    resetIntent,
+    tokenPriceUSD
   };
 };
 
