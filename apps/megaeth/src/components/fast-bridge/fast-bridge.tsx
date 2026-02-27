@@ -225,7 +225,7 @@ const FastBridge: FC<FastBridgeProps> = ({
     onStart,
     onError: (message) => {
       if (message.includes("Insufficient balance")) {
-        toast.error("Insufficient balance");
+        toast.error("Insufficient balance to proceed");
       } else toast.error(message);
       if (onError) {
         onError(message);
