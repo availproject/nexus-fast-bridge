@@ -32,10 +32,12 @@ Automation for env preparation, chain sync, chain scaffolding, dev orchestration
 
 ## Runtime Injection Model
 
-Every chain app resolves shared imports with aliases in `apps/<slug>/vite.config.ts` and `apps/<slug>/tsconfig.app.json`:
+Every chain app resolves shared imports with aliases in `apps/<slug>/vite.config.ts`
+(and matching TS path aliases in `apps/<slug>/tsconfig.app.json` where applicable):
 
 - `@/*` -> `../../packages/fast-bridge-app/src/*`
 - `@fastbridge/runtime` -> `./src/runtime.ts`
+- `@avail-project/nexus-core` -> `./node_modules/@avail-project/nexus-core`
 
 That means shared code can do:
 
@@ -44,6 +46,10 @@ import { appConfig, chainFeatures } from "@fastbridge/runtime";
 ```
 
 and receive chain-specific values from the current app wrapper.
+
+The `@avail-project/nexus-core` alias is intentional. It forces all Nexus imports
+from shared code to resolve to the current chain app's installed Nexus version,
+so each app can pin its own SDK commit independently.
 
 ## Configuration Layers
 

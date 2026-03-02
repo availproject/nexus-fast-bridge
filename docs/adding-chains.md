@@ -43,9 +43,12 @@ Important keys include chain IDs, RPC URLs, explorer URL, colors, token defaults
 2. Tune behavior flags in `apps/<slug>/src/runtime.ts`.
 Use this for chain-specific UX/logic differences.
 
-3. Add or update chain assets in `apps/<slug>/public`.
+3. Set the Nexus SDK version in `apps/<slug>/package.json`.
+Each chain app owns `@avail-project/nexus-core` and can pin a different commit/version.
 
-4. Smoke test locally:
+4. Add or update chain assets in `apps/<slug>/public`.
+
+5. Smoke test locally:
 
 ```bash
 pnpm --filter @fastbridge/<slug> dev
@@ -53,7 +56,7 @@ pnpm --filter @fastbridge/<slug> build
 pnpm dev:all
 ```
 
-5. Export deployment env:
+6. Export deployment env:
 
 ```bash
 pnpm vercel:env

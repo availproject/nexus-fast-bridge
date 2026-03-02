@@ -85,6 +85,10 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": path.resolve(__dirname, "../../packages/fast-bridge-app/src"),
         "@fastbridge/runtime": path.resolve(__dirname, "./src/runtime.ts"),
+        "@avail-project/nexus-core": path.resolve(
+          __dirname,
+          "./node_modules/@avail-project/nexus-core"
+        ),
         buffer: "vite-plugin-node-polyfills/shims/buffer",
         global: "vite-plugin-node-polyfills/shims/global",
         process: "vite-plugin-node-polyfills/shims/process",
