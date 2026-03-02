@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./app";
+import { initPostHog } from "./lib/posthog";
+
+initPostHog();
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

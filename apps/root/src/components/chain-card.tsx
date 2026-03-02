@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import type { chains } from "../chains";
+import { capture } from "../lib/posthog";
 
 function ChainCard({
   chain,
@@ -118,6 +119,13 @@ function ChainCard({
         <a
           className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--card-background)] p-5 text-inherit no-underline transition-[transform,box-shadow,border-color] duration-300 [transform-style:preserve-3d] [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] hover:border-[var(--blue-300)] hover:shadow-[0_20px_50px_-12px_hsla(214,92%,48%,0.2),0_8px_24px_-8px_hsla(0,0%,0%,0.1)] focus-visible:outline-2 focus-visible:outline-[var(--blue-500)] focus-visible:outline-offset-2 md:min-h-[200px] md:p-6"
           href={chain.basePath}
+          onClick={() => {
+            capture("fastbridge_navigate_to_chain", {
+              base_path: chain.basePath,
+              chain_name: chain.name,
+              chain_slug: chain.slug,
+            });
+          }}
         >
           {/* Animated border glow */}
           <motion.div
