@@ -88,7 +88,8 @@ const NexusDeposit = ({
   open: controlledOpen,
   onOpenChange,
   defaultOpen = false,
-}: DepositWidgetProps) => {
+  children,
+}: DepositWidgetProps & { children?: React.ReactNode }) => {
   const widget = useDepositWidget({
     executeDeposit,
     destination,
@@ -117,7 +118,13 @@ const NexusDeposit = ({
         resetWidget();
       }
     },
-    [isControlled, onOpenChange, onClose, shouldPreventDialogDismiss, resetWidget],
+    [
+      isControlled,
+      onOpenChange,
+      onClose,
+      shouldPreventDialogDismiss,
+      resetWidget,
+    ],
   );
 
   const handleClose = useCallback(() => {
@@ -147,9 +154,11 @@ const NexusDeposit = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Deposit
-        </Button>
+        {children || (
+          <Button variant="outline" size="sm">
+            Deposit
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent
         className={cn("px-0 max-w-md!", className)}

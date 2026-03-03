@@ -11,7 +11,8 @@ import {
 } from "@avail-project/nexus-core";
 import { encodeFunctionData, maxUint256 } from "viem";
 // import Decimal from "decimal.js";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
+import { WithdrawModal } from "./WithdrawModal";
 import { useModal } from "connectkit";
 import {
   // useEffect,
@@ -30,10 +31,47 @@ export function OpportunityCard({
   const { title, description, tags, apy, proceedText, token } = opportunity;
   const protocol = tags?.[0] || "DeFi";
   const chain = config.chainName;
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { setOpen: setConnectModalOpen } = useModal();
   // const [gasPrice, setGasPrice] = useState<bigint>(0n);
   const [open, setOpen] = useState(false);
+
+  const withdrawConfig = opportunity.withdraw;
+
+  const { data: balanceData } = useReadContract({
+    address: withdrawConfig?.withdrawalAmount?.to as `0x${string}`,
+    abi: withdrawConfig?.withdrawalAmount?.abi as any,
+    functionName: withdrawConfig?.withdrawalAmount?.functionName || "balanceOf",
+    args: withdrawConfig?.withdrawalAmount?.params?.map((p) =>
+      p === "$user" ? address : p,
+    ) as any[],
+    query: {
+      enabled: !!address && !!withdrawConfig,
+    },
+  });
+
+  const { data: decimalsData } = useReadContract({
+    address: withdrawConfig?.withdrawalAmount?.to as `0x${string}`,
+    abi: [
+      {
+        inputs: [],
+        name: "decimals",
+        outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
+        stateMutability: "view",
+        type: "function",
+      },
+    ],
+    functionName: "decimals",
+    query: {
+      enabled: !!address && !!withdrawConfig,
+    },
+  });
+
+  const decimals =
+    decimalsData !== undefined
+      ? Number(decimalsData)
+      : opportunity.token.decimals;
+  const balance = balanceData ? BigInt(balanceData as any) : 0n;
 
   // Generate gradient based on primary color
   const primaryColor = config.primaryColor;
@@ -147,92 +185,103 @@ export function OpportunityCard({
 
           {/* CTA Button */}
           {/* <PreviewPanel> */}
-          {!isConnected ? (
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
-              style={{
-                backgroundColor: primaryColor,
-                color: config.secondaryColor,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setConnectModalOpen(true);
-              }}
-            >
-              <span className="hidden sm:inline">{proceedText}</span>
-              <span className="sm:hidden">Invest</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <NexusDeposit
-              destination={{
-                chainId: SUPPORTED_CHAINS.MONAD,
-                tokenAddress: token.address as `0x${string}`,
-                tokenSymbol: token.symbol,
-                tokenDecimals: token.decimals,
-                tokenLogo: token.icon,
-                label: opportunity.label,
-                gasTokenSymbol: "MON",
-                explorerUrl: "https://monadvision.com",
-                depositTargetLogo: opportunity.logo || opportunity.banner,
-              }}
-              heading={title}
-              embed={false}
-              open={open}
-              onOpenChange={setOpen}
-              executeDeposit={(
-                symbol,
-                address,
-                amount,
-                chainId,
-                userAddress,
-              ) => {
-                console.log(symbol, address, amount, chainId, userAddress);
-                const args = t.params!.map((p) => {
-                  switch (p) {
-                    case "$user":
-                      return userAddress;
-                    case "$amount": {
-                      return amount;
-                    }
-                    default:
-                      return p;
-                  }
-                });
-
-                const data = encodeFunctionData({
-                  abi: t.abi!,
-                  functionName: t.functionName!,
-                  args,
-                });
-                return {
-                  to: t.to as `0x${string}`,
-                  data,
-                  gas: 1_500_000n, // 1.5 million units
-                  // set static gas limit to avoid issues and high gas fees
-                  gasPrice: "medium",
-                  tokenApproval: {
-                    token: token.address,
-                    amount: approval.amount === "input" ? amount : maxUint256,
-                    spender: approval.spender as `0x${string}`,
-                  },
-                };
-              }}
-            >
+          <div className="flex gap-2">
+            {balance > 0n && (
+              <WithdrawModal
+                opportunity={opportunity}
+                balance={balance}
+                decimals={decimals}
+                userAddress={address as string}
+                primaryColor={primaryColor}
+              />
+            )}
+            {!isConnected ? (
               <button
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
                 style={{
                   backgroundColor: primaryColor,
                   color: config.secondaryColor,
                 }}
-                onClick={() => setOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConnectModalOpen(true);
+                }}
               >
                 <span className="hidden sm:inline">{proceedText}</span>
                 <span className="sm:hidden">Invest</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </NexusDeposit>
-          )}
+            ) : (
+              <NexusDeposit
+                destination={{
+                  chainId: SUPPORTED_CHAINS.MONAD,
+                  tokenAddress: token.address as `0x${string}`,
+                  tokenSymbol: token.symbol,
+                  tokenDecimals: token.decimals,
+                  tokenLogo: token.icon,
+                  label: opportunity.label,
+                  gasTokenSymbol: "MON",
+                  explorerUrl: "https://monadvision.com",
+                  depositTargetLogo: opportunity.logo || opportunity.banner,
+                }}
+                heading={title}
+                embed={false}
+                open={open}
+                onOpenChange={setOpen}
+                executeDeposit={(
+                  symbol,
+                  address,
+                  amount,
+                  chainId,
+                  userAddress,
+                ) => {
+                  console.log(symbol, address, amount, chainId, userAddress);
+                  const args = t.params!.map((p) => {
+                    switch (p) {
+                      case "$user":
+                        return userAddress;
+                      case "$amount": {
+                        return amount;
+                      }
+                      default:
+                        return p;
+                    }
+                  });
+
+                  const data = encodeFunctionData({
+                    abi: t.abi!,
+                    functionName: t.functionName!,
+                    args,
+                  });
+                  return {
+                    to: t.to as `0x${string}`,
+                    data,
+                    gas: 1_500_000n, // 1.5 million units
+                    // set static gas limit to avoid issues and high gas fees
+                    gasPrice: "medium",
+                    tokenApproval: {
+                      token: token.address,
+                      amount: approval.amount === "input" ? amount : maxUint256,
+                      spender: approval.spender as `0x${string}`,
+                    },
+                  };
+                }}
+              >
+                <button
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 group-hover:gap-2"
+                  style={{
+                    backgroundColor: primaryColor,
+                    color: config.secondaryColor,
+                  }}
+                  onClick={() => setOpen(true)}
+                >
+                  <span className="hidden sm:inline">{proceedText}</span>
+                  <span className="sm:hidden">Invest</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </NexusDeposit>
+            )}
+          </div>
           {/* </PreviewPanel> */}
         </div>
       </div>

@@ -10,7 +10,6 @@ import { Toaster } from "@/components/ui/sonner";
 import Navbar from "@/components/navbar";
 import Home from "@/components/fast-bridge/fast-bridge";
 import Opportunities from "@/pages/Opportunities";
-import Positions from "@/pages/Positions";
 import NexusProvider from "@/components/nexus/NexusProvider";
 import { NexusInitializer } from "@/components/NexusInitializer";
 import config from "../config";
@@ -26,19 +25,15 @@ function AppContent() {
   const tabs = [
     { id: "fastbridge", label: "Fast Bridge" },
     { id: "opportunities", label: "Opportunities" },
-    { id: "positions", label: "Positions" },
   ];
 
   const activeTab = location.pathname.startsWith("/opportunities")
     ? "opportunities"
-    : location.pathname.startsWith("/positions")
-      ? "positions"
-      : "fastbridge";
+    : "fastbridge";
 
   const handleTabChange = (id: string) => {
     if (id === "fastbridge") navigate("/");
     else if (id === "opportunities") navigate("/opportunities");
-    else if (id === "positions") navigate("/positions");
   };
 
   return (
@@ -74,7 +69,6 @@ function AppContent() {
               }
             />
             <Route path="/opportunities" element={<Opportunities />} />
-            <Route path="/positions" element={<Positions />} />
           </Routes>
         </main>
       </div>

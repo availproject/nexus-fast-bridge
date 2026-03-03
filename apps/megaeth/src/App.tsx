@@ -16,7 +16,6 @@ import { motion } from "motion/react";
 import { NexusInitializer } from "@/components/NexusInitializer";
 import { AnimatedTabs } from "@/components/ui/animated-tabs";
 import Opportunities from "@/pages/Opportunities";
-import Positions from "@/pages/Positions";
 import { type NexusNetwork } from "@avail-project/nexus-core";
 
 function AppContent() {
@@ -26,19 +25,15 @@ function AppContent() {
   const tabs = [
     { id: "fastbridge", label: "Fast Bridge" },
     { id: "opportunities", label: "Opportunities" },
-    { id: "positions", label: "Positions" },
   ];
 
   const activeTab = location.pathname.startsWith("/opportunities")
     ? "opportunities"
-    : location.pathname.startsWith("/positions")
-      ? "positions"
-      : "fastbridge";
+    : "fastbridge";
 
   const handleTabChange = (id: string) => {
     if (id === "fastbridge") navigate("/");
     else if (id === "opportunities") navigate("/opportunities");
-    else if (id === "positions") navigate("/positions");
   };
 
   return (
@@ -71,7 +66,6 @@ function AppContent() {
               }
             />
             <Route path="/opportunities" element={<Opportunities />} />
-            <Route path="/positions" element={<Positions />} />
           </Routes>
         </main>
       </div>
