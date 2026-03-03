@@ -40,6 +40,11 @@ export function WithdrawModal({
     hash,
   });
 
+  console.log("Withdraw Modal Balance Data:", {
+    balance,
+    formatUnits: formatUnits(balance, decimals),
+  });
+
   const handleWithdraw = () => {
     if (!withdrawLogic) return;
     if (!amount || isNaN(Number(amount))) return;

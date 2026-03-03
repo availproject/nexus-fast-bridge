@@ -29,8 +29,13 @@ export function OpportunityCard({
 
   const withdrawConfig = opportunity.withdraw;
 
+  const withdrawContractAddress =
+    withdrawConfig?.withdrawalAmount?.to?.startsWith("0x")
+      ? (withdrawConfig.withdrawalAmount.to as `0x${string}`)
+      : (`0x${withdrawConfig?.withdrawalAmount?.to}` as `0x${string}`);
+
   const { data: balanceData } = useReadContract({
-    address: withdrawConfig?.withdrawalAmount?.to as `0x${string}`,
+    address: withdrawContractAddress,
     abi: withdrawConfig?.withdrawalAmount?.abi as any,
     functionName: withdrawConfig?.withdrawalAmount?.functionName || "balanceOf",
     args: withdrawConfig?.withdrawalAmount?.params?.map((p) =>
@@ -42,7 +47,7 @@ export function OpportunityCard({
   });
 
   const { data: decimalsData } = useReadContract({
-    address: withdrawConfig?.withdrawalAmount?.to as `0x${string}`,
+    address: withdrawContractAddress,
     abi: [
       {
         inputs: [],
@@ -62,7 +67,13 @@ export function OpportunityCard({
     decimalsData !== undefined
       ? Number(decimalsData)
       : opportunity.token.decimals;
-  const balance = balanceData ? BigInt(balanceData as any) : 0n;
+  const balance = balanceData !== undefined ? BigInt(balanceData as any) : 0n;
+
+  console.log(`Withdrawal Amount for ${opportunity.title}`, {
+    balance,
+    decimals,
+    rawBalance: balanceData,
+  });
 
   // Generate gradient based on primary color
   const primaryColor = config.primaryColor;
