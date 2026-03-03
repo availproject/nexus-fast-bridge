@@ -39,7 +39,7 @@ export function WithdrawModal({
   const withdrawLogic =
     opportunity.withdraw?.logics?.[0]?.preBridge?.transaction;
 
-  const { writeContract, isPending, data: hash } = useWriteContract();
+  const { writeContract, isPending, data: hash, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -56,6 +56,7 @@ export function WithdrawModal({
   });
 
   const handleWithdraw = () => {
+    console.log("Withdraw Initiate:", { withdrawLogic, amount, decimals });
     if (!withdrawLogic) return;
     if (!amount || isNaN(Number(amount))) return;
 
@@ -73,12 +74,25 @@ export function WithdrawModal({
       }
     });
 
-    writeContract({
+    const txPayload = {
       chainId,
-      address: withdrawLogic.to as `0x${string}`,
+      address: withdrawLogic.to.startsWith("0x")
+        ? (withdrawLogic.to as `0x${string}`)
+        : (`0x${withdrawLogic.to}` as `0x${string}`),
       abi: withdrawLogic.abi as any,
       functionName: withdrawLogic.functionName as string,
       args,
+    };
+
+    console.log("Submitting Write Contract Payload:", txPayload);
+
+    writeContract(txPayload, {
+      onError: (err) => {
+        console.error("writeContract failed:", err);
+      },
+      onSuccess: (txHash) => {
+        console.log("Transaction successfully sent! Hash:", txHash);
+      },
     });
   };
 
@@ -141,6 +155,11 @@ export function WithdrawModal({
                 "Withdraw"
               )}
             </button>
+            {error && (
+              <div className="text-red-500 text-xs text-center mt-2 break-words">
+                {error.message || "An error occurred during transaction"}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
