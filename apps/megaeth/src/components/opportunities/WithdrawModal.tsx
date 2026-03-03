@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import {
@@ -21,6 +21,7 @@ interface WithdrawModalProps {
   userAddress: string;
   primaryColor: string;
   chainId: number;
+  onSuccess?: () => void;
 }
 
 export function WithdrawModal({
@@ -30,6 +31,7 @@ export function WithdrawModal({
   userAddress,
   primaryColor,
   chainId,
+  onSuccess,
 }: WithdrawModalProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -41,6 +43,12 @@ export function WithdrawModal({
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
+
+  useEffect(() => {
+    if (isSuccess && onSuccess) {
+      onSuccess();
+    }
+  }, [isSuccess, onSuccess]);
 
   console.log("Withdraw Modal Balance Data:", {
     balance,

@@ -34,7 +34,7 @@ export function OpportunityCard({
       ? (withdrawConfig.withdrawalAmount.to as `0x${string}`)
       : (`0x${withdrawConfig?.withdrawalAmount?.to}` as `0x${string}`);
 
-  const { data: balanceData } = useReadContract({
+  const { data: balanceData, refetch: refetchBalance } = useReadContract({
     chainId: SUPPORTED_CHAINS.MEGAETH,
     address: withdrawContractAddress,
     abi: withdrawConfig?.withdrawalAmount?.abi as any,
@@ -174,6 +174,7 @@ export function OpportunityCard({
                 userAddress={address as string}
                 primaryColor={primaryColor}
                 chainId={SUPPORTED_CHAINS.MEGAETH}
+                onSuccess={() => refetchBalance()}
               />
             )}
             {!isConnected ? (
@@ -209,6 +210,7 @@ export function OpportunityCard({
                 embed={false}
                 open={open}
                 onOpenChange={setOpen}
+                onSuccess={() => refetchBalance()}
                 executeDeposit={(
                   symbol,
                   address,
