@@ -44,6 +44,7 @@ export function OpportunityCard({
       : (`0x${withdrawConfig?.withdrawalAmount?.to}` as `0x${string}`);
 
   const { data: balanceData } = useReadContract({
+    chainId: SUPPORTED_CHAINS.MONAD,
     address: withdrawContractAddress,
     abi: withdrawConfig?.withdrawalAmount?.abi as any,
     functionName: withdrawConfig?.withdrawalAmount?.functionName || "balanceOf",
@@ -56,6 +57,7 @@ export function OpportunityCard({
   });
 
   const { data: decimalsData } = useReadContract({
+    chainId: SUPPORTED_CHAINS.MONAD,
     address: withdrawContractAddress,
     abi: [
       {
@@ -204,6 +206,7 @@ export function OpportunityCard({
                 decimals={decimals}
                 userAddress={address as string}
                 primaryColor={primaryColor}
+                chainId={SUPPORTED_CHAINS.MONAD}
               />
             )}
             {!isConnected ? (

@@ -20,6 +20,7 @@ interface WithdrawModalProps {
   decimals: number;
   userAddress: string;
   primaryColor: string;
+  chainId: number;
 }
 
 export function WithdrawModal({
@@ -28,6 +29,7 @@ export function WithdrawModal({
   decimals,
   userAddress,
   primaryColor,
+  chainId,
 }: WithdrawModalProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -64,6 +66,7 @@ export function WithdrawModal({
     });
 
     writeContract({
+      chainId,
       address: withdrawLogic.to as `0x${string}`,
       abi: withdrawLogic.abi as any,
       functionName: withdrawLogic.functionName as string,
