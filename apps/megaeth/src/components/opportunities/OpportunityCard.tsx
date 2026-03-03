@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import config from "../../../config";
 import NexusDeposit from "../deposit/nexus-deposit";
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
-import { encodeFunctionData, maxUint256 } from "viem";
+import { encodeFunctionData, maxUint256, formatUnits } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { WithdrawModal } from "./WithdrawModal";
 import { useModal } from "connectkit";
@@ -150,12 +150,18 @@ export function OpportunityCard({
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           {/* Protocol & Chain */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-medium text-gray-500 capitalize">
                 {protocol} • {chain}
               </span>
             </div>
+            {balance > 0n && (
+              <span className="text-sm font-semibold text-gray-700">
+                Withdrawable: {formatUnits(balance, decimals)}{" "}
+                {opportunity.token.symbol}
+              </span>
+            )}
           </div>
 
           {/* CTA Button */}
