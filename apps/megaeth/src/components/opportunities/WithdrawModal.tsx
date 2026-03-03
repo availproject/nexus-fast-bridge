@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { formatUnits, parseUnits } from "viem";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useAccount,
+  useSwitchChain,
+} from "wagmi";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +44,8 @@ export function WithdrawModal({
   const withdrawLogic =
     opportunity.withdraw?.logics?.[0]?.preBridge?.transaction;
 
+  const { chainId: currentChainId } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
   const { writeContract, isPending, data: hash, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
@@ -55,7 +62,7 @@ export function WithdrawModal({
     formatUnits: formatUnits(balance, decimals),
   });
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     console.log("Withdraw Initiate:", { withdrawLogic, amount, decimals });
     if (!withdrawLogic) return;
     if (!amount || isNaN(Number(amount))) return;
@@ -86,14 +93,23 @@ export function WithdrawModal({
 
     console.log("Submitting Write Contract Payload:", txPayload);
 
-    writeContract(txPayload, {
-      onError: (err) => {
-        console.error("writeContract failed:", err);
-      },
-      onSuccess: (txHash) => {
-        console.log("Transaction successfully sent! Hash:", txHash);
-      },
-    });
+    try {
+      if (currentChainId !== chainId) {
+        console.log(`Switching chain from ${currentChainId} to ${chainId}...`);
+        await switchChainAsync({ chainId });
+      }
+
+      writeContract(txPayload, {
+        onError: (err) => {
+          console.error("writeContract failed:", err);
+        },
+        onSuccess: (txHash) => {
+          console.log("Transaction successfully sent! Hash:", txHash);
+        },
+      });
+    } catch (err: any) {
+      console.error("Chain switch failed:", err);
+    }
   };
 
   return (
