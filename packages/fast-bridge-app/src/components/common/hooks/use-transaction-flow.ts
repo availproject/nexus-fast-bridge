@@ -565,6 +565,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   }, [type, connectedAddress, inputs?.recipient, prefill?.recipient]);
 
   useEffect(() => {
+    if (state.status === "success") {
+      return;
+    }
     const hasInputs = Boolean(
       inputs?.amount || inputs?.chain || inputs?.recipient || inputs?.token
     );
@@ -592,6 +595,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     intent,
     invalidatePendingExecution,
     areInputsValid,
+    state.status,
   ]);
 
   useEffect(() => {
