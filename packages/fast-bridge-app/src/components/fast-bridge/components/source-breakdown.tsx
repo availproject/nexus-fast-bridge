@@ -90,6 +90,18 @@ const SourceBreakdown = ({
 
   const coverageToneClass = getCoverageToneClass(sourceCoverageState);
   const coverageSurfaceClass = getCoverageSurfaceClass(sourceCoverageState);
+  const canDeselectAllSources = selectedSourceChains.length > 1;
+
+  const handleDeselectAllSources = () => {
+    if (!canDeselectAllSources) {
+      return;
+    }
+
+    const [, ...chainsToDeselect] = selectedSourceChains;
+    for (const chainId of chainsToDeselect) {
+      onToggleSourceChain(chainId);
+    }
+  };
 
   return (
     <Accordion
@@ -239,6 +251,22 @@ const SourceBreakdown = ({
               </p>
             ) : (
               <div className="flex flex-col items-center gap-y-3">
+                <div className="flex w-full items-center justify-start">
+                  <button
+                    className={cn(
+                      "font-light text-muted-foreground text-xs underline-offset-2",
+                      canDeselectAllSources
+                        ? "cursor-pointer hover:underline"
+                        : "cursor-not-allowed opacity-60"
+                    )}
+                    disabled={!canDeselectAllSources}
+                    onClick={handleDeselectAllSources}
+                    type="button"
+                  >
+                    Deselect all
+                  </button>
+                </div>
+
                 {availableSources.map((source) => {
                   const chainId = source.chain.id;
                   const isSelected = selectedSourceChains.includes(chainId);
