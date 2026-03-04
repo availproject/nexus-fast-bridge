@@ -90,10 +90,24 @@ const SourceBreakdown = ({
 
   const coverageToneClass = getCoverageToneClass(sourceCoverageState);
   const coverageSurfaceClass = getCoverageSurfaceClass(sourceCoverageState);
-  const canDeselectAllSources = selectedSourceChains.length > 1;
+  const hasSingleSelectedSource = selectedSourceChains.length <= 1;
+  const canToggleAllSources = availableSources.length > 1;
+  const allSourcesActionLabel = hasSingleSelectedSource
+    ? "Select all"
+    : "Deselect all";
 
-  const handleDeselectAllSources = () => {
-    if (!canDeselectAllSources) {
+  const handleAllSourcesAction = () => {
+    if (!canToggleAllSources) {
+      return;
+    }
+
+    if (hasSingleSelectedSource) {
+      const selectedSet = new Set(selectedSourceChains);
+      for (const source of availableSources) {
+        if (!selectedSet.has(source.chain.id)) {
+          onToggleSourceChain(source.chain.id);
+        }
+      }
       return;
     }
 
@@ -255,15 +269,15 @@ const SourceBreakdown = ({
                   <button
                     className={cn(
                       "font-light text-muted-foreground text-xs underline-offset-2",
-                      canDeselectAllSources
+                      canToggleAllSources
                         ? "cursor-pointer hover:underline"
                         : "cursor-not-allowed opacity-60"
                     )}
-                    disabled={!canDeselectAllSources}
-                    onClick={handleDeselectAllSources}
+                    disabled={!canToggleAllSources}
+                    onClick={handleAllSourcesAction}
                     type="button"
                   >
-                    Deselect all
+                    {allSourcesActionLabel}
                   </button>
                 </div>
 
