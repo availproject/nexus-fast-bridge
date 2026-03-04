@@ -245,71 +245,72 @@ const SourceBreakdown = ({
                   const isLastSelected = isSelected
                     ? selectedSourceChains.length === 1
                     : false;
+                  const sourceDisplaySymbol =
+                    source.symbol ?? displayTokenSymbol;
                   const willUseAmount = intent?.sources?.find(
                     (s) => s.chainID === chainId
                   )?.amount;
-
+                  const toggleSourceChain = () => {
+                    if (isLastSelected) {
+                      return;
+                    }
+                    onToggleSourceChain(chainId);
+                  };
                   return (
-                    <button
-                      className={cn(
-                        "flex w-full select-none items-center justify-between gap-x-2 text-left",
-                        isLastSelected
-                          ? "cursor-not-allowed opacity-80"
-                          : "cursor-pointer"
-                      )}
-                      disabled={isLastSelected}
+                    <div
+                      className="flex w-full items-center gap-x-2"
                       key={chainId}
-                      onClick={() => {
-                        if (isLastSelected) {
-                          return;
-                        }
-                        onToggleSourceChain(chainId);
-                      }}
-                      type="button"
                     >
-                      <div className="flex items-center gap-x-2">
-                        <Checkbox
-                          aria-label={`Select ${source.chain.name} as a source`}
-                          checked={isSelected}
-                          disabled={isLastSelected}
-                          onCheckedChange={() => {
-                            if (isLastSelected) {
-                              return;
-                            }
-                            onToggleSourceChain(chainId);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <img
-                          alt={source.chain.name}
-                          className="rounded-full"
-                          height={20}
-                          src={source.chain.logo}
-                          width={20}
-                        />
-                        <p className="font-light text-base">
-                          {source.chain.name}
-                        </p>
-                      </div>
+                      <Checkbox
+                        aria-label={`Select ${source.chain.name} as a source`}
+                        checked={isSelected}
+                        disabled={isLastSelected}
+                        onCheckedChange={toggleSourceChain}
+                      />
 
-                      <div className="flex min-w-fit flex-col items-end gap-y-0.5">
-                        <p className="font-light text-base">
-                          {formatTokenBalance(source.balance, {
-                            symbol: displayTokenSymbol,
-                            decimals: source.decimals,
-                          })}
-                        </p>
-                        {willUseAmount && (
-                          <p className="text-muted-foreground text-xs">
-                            Estimated to use:{" "}
-                            {formatTokenBalance(willUseAmount, {
-                              symbol: displayTokenSymbol,
-                              decimals: intent?.token?.decimals,
+                      <button
+                        className={cn(
+                          "flex w-full select-none items-center justify-between gap-x-2 text-left",
+                          isLastSelected
+                            ? "cursor-not-allowed opacity-80"
+                            : "cursor-pointer"
+                        )}
+                        disabled={isLastSelected}
+                        onClick={toggleSourceChain}
+                        type="button"
+                      >
+                        <div className="flex items-center gap-x-2">
+                          <img
+                            alt={source.chain.name}
+                            className="rounded-full"
+                            height={20}
+                            src={source.chain.logo}
+                            width={20}
+                          />
+                          <p className="font-light text-base">
+                            {source.chain.name}
+                          </p>
+                        </div>
+
+                        <div className="flex min-w-fit flex-col items-end gap-y-0.5">
+                          <p className="font-light text-base">
+                            {formatTokenBalance(source.balance, {
+                              symbol: sourceDisplaySymbol,
+                              decimals: source.decimals,
                             })}
                           </p>
-                        )}
-                      </div>
-                    </button>
+                          {willUseAmount && (
+                            <p className="text-muted-foreground text-xs">
+                              Estimated to use:{" "}
+                              {formatTokenBalance(willUseAmount, {
+                                symbol: sourceDisplaySymbol,
+                                decimals: intent?.token?.decimals,
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>

@@ -13,7 +13,7 @@ export const chainFeatures: ChainFeatures = {
   pageDescription:
     "Experience the fastest way to bridge assets to Monad. Avail Fast Bridge facilitates instant stablecoin and token transfers from Ethereum, Base, Arbitrum, and Optimism. Built on Avail Nexus, it ensures your transition to the Monad ecosystem is secure and seamless.",
   mapUsdmDisplaySymbolToUsdc: false,
-  mapUsdmToUsdcBalance: false,
+  mapUsdmToUsdcBalance: true,
   tokenLogoOverrideBySymbol: {
     USDM: "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/tokens/usdm/logo.png",
   },

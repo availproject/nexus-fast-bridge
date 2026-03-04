@@ -56,9 +56,6 @@ const AmountInput: FC<AmountInputProps> = ({
   const balanceSymbol =
     (bridgableBalance as { displaySymbol?: string } | undefined)
       ?.displaySymbol ?? bridgableBalance?.symbol;
-  const shouldForceUsdmDisplay =
-    !chainFeatures.mapUsdmDisplaySymbolToUsdc && inputs?.token === "USDM";
-  const displayBalanceSymbol = shouldForceUsdmDisplay ? "USDM" : balanceSymbol;
   const normalizedMaxAmount = useMemo(
     () => normalizeMaxAmount(maxAmount),
     [maxAmount]
@@ -197,13 +194,13 @@ const AmountInput: FC<AmountInputProps> = ({
             <p className="min-w-max font-medium text-base">
               {chainFeatures.amountInputUseCalculatedMaxHeader
                 ? nexusSDK?.utils?.formatTokenBalance(maxVal, {
-                    symbol: displayBalanceSymbol,
+                    symbol: balanceSymbol,
                     decimals: bridgableBalance?.decimals,
                   })
                 : nexusSDK?.utils?.formatTokenBalance(
                     bridgableBalance?.balance,
                     {
-                      symbol: displayBalanceSymbol,
+                      symbol: balanceSymbol,
                       decimals: bridgableBalance?.decimals,
                     }
                   )}
@@ -247,6 +244,7 @@ const AmountInput: FC<AmountInputProps> = ({
                   ) {
                     return null;
                   }
+                  const sourceBalanceSymbol = chain.symbol ?? balanceSymbol;
                   return (
                     <Fragment key={chain.chain.id}>
                       <div
@@ -287,11 +285,7 @@ const AmountInput: FC<AmountInputProps> = ({
                         </div>
                         <p className="text-right font-light text-sm">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
-                            symbol:
-                              chainFeatures.amountInputUseSourceSymbolInBreakdown &&
-                              !shouldForceUsdmDisplay
-                                ? chain.symbol
-                                : displayBalanceSymbol,
+                            symbol: sourceBalanceSymbol,
                             decimals: bridgableBalance?.decimals,
                           })}
                         </p>
