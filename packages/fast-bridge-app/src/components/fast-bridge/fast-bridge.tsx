@@ -177,7 +177,7 @@ function FastBridge({
         amountReceived: `${amountReceived} ${asset}`,
         totalFees: `${totalFees} ${displaySymbol}`,
       };
-    }, [intent, mapUsdmToUsdc]);
+    }, [intent]);
 
   const runPostBridgeWalletAction = useCallback(async () => {
     const destinationChainId = Number(
@@ -214,7 +214,7 @@ function FastBridge({
     } catch (error) {
       console.error("Failed to add token to wallet:", error);
     }
-  }, [intent, postBridgeWatchAsset, walletClient]);
+  }, [intent, walletClient]);
 
   const showBridgeSuccessToast = useCallback((data: BridgeSuccessToastData) => {
     toast.success(
@@ -320,10 +320,25 @@ function FastBridge({
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
   const autoIntentTriggered = useRef(false);
+  const lastAutoIntentKeyRef = useRef("");
+  const autoIntentKey = useMemo(
+    () =>
+      [
+        inputs?.amount ?? "",
+        inputs?.chain ?? "",
+        inputs?.token ?? "",
+        inputs?.recipient ?? "",
+      ].join("|"),
+    [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]
+  );
 
   useEffect(() => {
+    if (lastAutoIntentKeyRef.current === autoIntentKey) {
+      return;
+    }
+    lastAutoIntentKeyRef.current = autoIntentKey;
     autoIntentTriggered.current = false;
-  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+  }, [autoIntentKey]);
 
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ?? filteredBridgableBalance?.symbol;
