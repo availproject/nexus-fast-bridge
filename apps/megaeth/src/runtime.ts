@@ -21,7 +21,7 @@ export const chainFeatures: ChainFeatures = {
   supportCtaHref: "https://discord.com/invite/AvailProject",
   supportCtaLine1: "Reach out to us if",
   supportCtaLine2: "you face any issues",
-  mapUsdmDisplaySymbolToUsdc: true,
+  mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: true,
   tokenLogoOverrideBySymbol: {
     USDM: "https://mega.etherscan.io/token/images/usdm_32.png",

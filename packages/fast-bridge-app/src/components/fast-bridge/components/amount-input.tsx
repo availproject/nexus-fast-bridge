@@ -56,6 +56,9 @@ const AmountInput: FC<AmountInputProps> = ({
   const balanceSymbol =
     (bridgableBalance as { displaySymbol?: string } | undefined)
       ?.displaySymbol ?? bridgableBalance?.symbol;
+  const shouldForceUsdmDisplay =
+    !chainFeatures.mapUsdmDisplaySymbolToUsdc && inputs?.token === "USDM";
+  const displayBalanceSymbol = shouldForceUsdmDisplay ? "USDM" : balanceSymbol;
   const normalizedMaxAmount = useMemo(
     () => normalizeMaxAmount(maxAmount),
     [maxAmount]
@@ -194,13 +197,13 @@ const AmountInput: FC<AmountInputProps> = ({
             <p className="min-w-max font-medium text-base">
               {chainFeatures.amountInputUseCalculatedMaxHeader
                 ? nexusSDK?.utils?.formatTokenBalance(maxVal, {
-                    symbol: balanceSymbol,
+                    symbol: displayBalanceSymbol,
                     decimals: bridgableBalance?.decimals,
                   })
                 : nexusSDK?.utils?.formatTokenBalance(
                     bridgableBalance?.balance,
                     {
-                      symbol: balanceSymbol,
+                      symbol: displayBalanceSymbol,
                       decimals: bridgableBalance?.decimals,
                     }
                   )}
@@ -285,9 +288,10 @@ const AmountInput: FC<AmountInputProps> = ({
                         <p className="text-right font-light text-sm">
                           {nexusSDK?.utils?.formatTokenBalance(chain.balance, {
                             symbol:
-                              chainFeatures.amountInputUseSourceSymbolInBreakdown
+                              chainFeatures.amountInputUseSourceSymbolInBreakdown &&
+                              !shouldForceUsdmDisplay
                                 ? chain.symbol
-                                : balanceSymbol,
+                                : displayBalanceSymbol,
                             decimals: bridgableBalance?.decimals,
                           })}
                         </p>

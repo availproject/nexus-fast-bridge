@@ -327,6 +327,10 @@ function FastBridge({
 
   const receiveSymbol =
     intent?.current?.intent?.token.symbol ?? filteredBridgableBalance?.symbol;
+  const breakdownTokenSymbol = (inputs?.token ??
+    intent?.current?.intent?.token.symbol ??
+    filteredBridgableBalance?.symbol ??
+    "USDC") as SUPPORTED_TOKENS;
 
   const amountValue = useMemo(() => {
     if (!inputs?.amount) {
@@ -590,9 +594,7 @@ function FastBridge({
                 selectedTotal={selectedTotal}
                 sourceCoveragePercent={sourceCoveragePercent}
                 sourceCoverageState={sourceCoverageState}
-                tokenSymbol={
-                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
-                }
+                tokenSymbol={breakdownTokenSymbol}
               />
 
               <div className="flex w-full items-start justify-between gap-x-4">
@@ -621,9 +623,7 @@ function FastBridge({
               <FeeBreakdown
                 intent={intent?.current?.intent}
                 isLoading={refreshing}
-                tokenSymbol={
-                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
-                }
+                tokenSymbol={breakdownTokenSymbol}
               />
             </>
           )}
