@@ -68,6 +68,8 @@ interface State {
   status: TransactionStatus;
 }
 
+type AllowanceStepState = "not-required" | "pending" | "completed";
+
 type Action =
   | { type: "setInputs"; payload: Partial<TransactionFlowInputs> }
   | { type: "resetInputs" }
@@ -164,6 +166,8 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   >(null);
   const [appliedSourceSelectionKey, setAppliedSourceSelectionKey] =
     useState("ALL");
+  const [allowanceStepState, setAllowanceStepState] =
+    useState<AllowanceStepState>("not-required");
   const {
     steps,
     onStepsList,
@@ -427,6 +431,8 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     effectiveSelectedSourceChains,
   ]);
 
+  const hasPendingAllowanceApproval = Boolean(allowance.current);
+
   const stopwatch = useStopwatch({ intervalMs: 100 });
   const setStatus = useCallback(
     (status: TransactionStatus) =>
@@ -607,6 +613,22 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   }, [inputs?.token]);
 
   useEffect(() => {
+    if (hasPendingAllowanceApproval) {
+      setAllowanceStepState("pending");
+      return;
+    }
+    setAllowanceStepState((previous) =>
+      previous === "pending" ? "completed" : previous
+    );
+  }, [hasPendingAllowanceApproval]);
+
+  useEffect(() => {
+    if (!isDialogOpen && state.status === "idle") {
+      setAllowanceStepState("not-required");
+    }
+  }, [isDialogOpen, state.status]);
+
+  useEffect(() => {
     if (!isDialogOpen) {
       stopwatch.stop();
       stopwatch.reset();
@@ -665,5 +687,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     requiredSafetyTotal: sourceSelection.requiredSafetyTotal,
     maxAvailableAmount: selectedSourcesMaxAmount ?? undefined,
     isInputsValid: areInputsValid,
+    allowanceStepState,
   };
 }

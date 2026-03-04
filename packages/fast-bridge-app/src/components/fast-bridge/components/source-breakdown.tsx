@@ -245,8 +245,7 @@ const SourceBreakdown = ({
                   const isLastSelected = isSelected
                     ? selectedSourceChains.length === 1
                     : false;
-                  const sourceDisplaySymbol =
-                    source.symbol ?? displayTokenSymbol;
+                  const sourceDisplaySymbol = source.symbol;
                   const willUseAmount = intent?.sources?.find(
                     (s) => s.chainID === chainId
                   )?.amount;

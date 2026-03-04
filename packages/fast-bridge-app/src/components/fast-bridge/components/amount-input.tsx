@@ -244,7 +244,7 @@ const AmountInput: FC<AmountInputProps> = ({
                   ) {
                     return null;
                   }
-                  const sourceBalanceSymbol = chain.symbol ?? balanceSymbol;
+                  const sourceBalanceSymbol = chain.symbol;
                   return (
                     <Fragment key={chain.chain.id}>
                       <div

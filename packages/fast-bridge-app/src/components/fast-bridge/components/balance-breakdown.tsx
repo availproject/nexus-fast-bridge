@@ -49,7 +49,7 @@ const BalanceBreakdown = ({ assetBalances }: BalanceBreakdownProps) => {
                   </div>
 
                   <p className="font-light text-sm">
-                    {individualBalance.balance} {assetBalances.symbol}
+                    {individualBalance.balance} {individualBalance.symbol}
                   </p>
                 </div>
               ))}

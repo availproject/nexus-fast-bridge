@@ -11,6 +11,7 @@ import { Button } from "../../ui/button";
 type ProgressStep = BridgeStepType | SwapStepType;
 
 interface TransactionProgressProps {
+  allowanceStepState?: "not-required" | "pending" | "completed";
   completed?: boolean;
   operationType?: string;
   steps: Array<{ id: number; completed: boolean; step: ProgressStep }>;
@@ -75,6 +76,7 @@ const StepList: FC<{ steps: DisplayStep[]; currentIndex: number }> = memo(
 StepList.displayName = "StepList";
 
 const TransactionProgress: FC<TransactionProgressProps> = ({
+  allowanceStepState = "not-required",
   timer,
   steps,
   viewIntentUrl,
@@ -87,7 +89,11 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
     : 0;
   const rawPercent = totalSteps > 0 ? completedSteps / totalSteps : 0;
   const percent = completed ? 1 : rawPercent;
-  const allCompleted = completed || percent >= 1;
+  const includesAllowanceStep = allowanceStepState !== "not-required";
+  const allowanceStepCompleted = allowanceStepState === "completed";
+  const allCompleted =
+    completed ||
+    (percent >= 1 && (!includesAllowanceStep || allowanceStepCompleted));
   const opText = getOperationText(operationType);
   const headerText = allCompleted
     ? `${opText} Completed`
@@ -95,22 +101,47 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
   const ctaText = allCompleted ? "View Explorer" : "View Intent";
 
   const { effectiveSteps, currentIndex } = useMemo(() => {
-    const milestones = [
+    const bridgeMilestones = [
       "Intent verified",
       "Collected on sources",
       "Filled on destination",
     ];
-    const thresholds = milestones.map(
-      (_, idx) => (idx + 1) / milestones.length
+    const thresholds = bridgeMilestones.map(
+      (_, idx) => (idx + 1) / bridgeMilestones.length
     );
-    const displaySteps: DisplayStep[] = milestones.map((label, idx) => ({
-      id: `M${idx}`,
+    const isBridgeStepCompleted = (index: number) => {
+      if (allCompleted) {
+        return true;
+      }
+      if (index === 0) {
+        return timer > 0;
+      }
+      return percent >= thresholds[index];
+    };
+    const bridgeSteps: DisplayStep[] = bridgeMilestones.map((label, idx) => ({
+      id: `B${idx}`,
       label,
-      completed: idx === 0 ? timer > 0 : percent >= thresholds[idx],
+      completed: isBridgeStepCompleted(idx),
     }));
+    const displaySteps: DisplayStep[] = includesAllowanceStep
+      ? [
+          {
+            id: "A0",
+            label: "Allowance approved",
+            completed: allCompleted ? true : allowanceStepCompleted,
+          },
+          ...bridgeSteps,
+        ]
+      : bridgeSteps;
     const current = displaySteps.findIndex((st) => !st.completed);
     return { effectiveSteps: displaySteps, currentIndex: current };
-  }, [percent, timer]);
+  }, [
+    allCompleted,
+    allowanceStepCompleted,
+    includesAllowanceStep,
+    percent,
+    timer,
+  ]);
 
   return (
     <div className="flex w-full flex-col items-center">
