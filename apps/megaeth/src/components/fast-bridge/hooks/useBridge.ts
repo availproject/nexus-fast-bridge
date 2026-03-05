@@ -158,6 +158,35 @@ const useBridge = ({
   const [lastExplorerUrl, setLastExplorerUrl] = useState<string>("");
   const commitLockRef = useRef<boolean>(false);
   const txnIdRef = useRef(0);
+
+  useEffect(() => {
+    const updates: Partial<FastBridgeState> = {};
+    if (prefill?.amount && prefill.amount !== inputs.amount) {
+      const sanitized = prefill.amount.trim();
+      if (sanitized && sanitized !== "." && /^\d*\.?\d*$/.test(sanitized)) {
+        const num = Number.parseFloat(sanitized);
+        if (!Number.isNaN(num) && num > 0 && num <= 1e9) {
+          updates.amount = sanitized;
+        }
+      }
+    }
+    if (prefill?.recipient && prefill.recipient !== inputs.recipient) {
+      if (isAddress(prefill.recipient)) {
+        updates.recipient = prefill.recipient as `0x${string}`;
+      }
+    }
+    if (prefill?.token && prefill.token !== inputs.token) {
+      const tokenSymbol = prefill.token.toUpperCase() as SUPPORTED_TOKENS;
+      if (ALLOWED_TOKENS.has(tokenSymbol)) updates.token = tokenSymbol;
+    }
+    if (prefill?.chainId && prefill.chainId !== inputs.chain) {
+      updates.chain = prefill.chainId as SUPPORTED_CHAINS_IDS;
+    }
+    if (Object.keys(updates).length > 0) {
+      dispatch({ type: "setInputs", payload: updates });
+    }
+  }, [prefill?.amount, prefill?.recipient, prefill?.token, prefill?.chainId, inputs.amount, inputs.recipient, inputs.token, inputs.chain]);
+
   const {
     steps,
     onStepsList,
