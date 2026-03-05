@@ -40,7 +40,7 @@ export function readBridgeParams(): BridgeParams {
   const params = new URLSearchParams(window.location.search);
   const toStr = params.get("to");
   const tokenStr = params.get("token");
-  const recipient = params.get("recipient");
+  const recipient = params.get("recipient") || params.get("address");
   const amountStr = params.get("amount");
 
   const to = toStr && toStr !== "self" && isValidChain(toStr) ? (Number.parseInt(toStr, 10) as SUPPORTED_CHAINS_IDS) : undefined;
