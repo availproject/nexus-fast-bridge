@@ -30,7 +30,9 @@ if (fs.existsSync(localEnvPath)) {
   fs.mkdirSync(envDir, { recursive: true });
   fs.writeFileSync(outputPathProd, contents, { encoding: "utf8" });
   fs.writeFileSync(outputPathLocal, contents, { encoding: "utf8" });
-  console.log(`Copied ${path.basename(localEnvPath)} to ${outputPathProd} and .env.local`);
+  console.log(
+    `Copied ${path.basename(localEnvPath)} to ${outputPathProd} and .env.local`
+  );
   process.exit(0);
 }
 
@@ -39,7 +41,9 @@ const entries = Object.entries(process.env).filter(([key]) =>
 );
 
 if (!entries.length) {
-  console.warn(`No environment variables found with prefix ${prefix} and no ${path.basename(localEnvPath)} present.`);
+  console.warn(
+    `No environment variables found with prefix ${prefix} and no ${path.basename(localEnvPath)} present.`
+  );
 }
 
 const lines = entries.map(([key, value]) => {
@@ -51,4 +55,6 @@ const envDir = path.dirname(outputPathProd);
 fs.mkdirSync(envDir, { recursive: true });
 fs.writeFileSync(outputPathProd, lines.join("\n"), { encoding: "utf8" });
 fs.writeFileSync(outputPathLocal, lines.join("\n"), { encoding: "utf8" });
-console.log(`Wrote ${lines.length} variables to ${outputPathProd} and .env.local`);
+console.log(
+  `Wrote ${lines.length} variables to ${outputPathProd} and .env.local`
+);

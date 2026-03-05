@@ -32,12 +32,16 @@ async function main() {
     try {
       await fs.access(distDir);
     } catch {
-      console.warn(`Missing dist for ${chain.slug} at ${distDir}. Build the chain app first.`);
+      console.warn(
+        `Missing dist for ${chain.slug} at ${distDir}. Build the chain app first.`
+      );
       continue;
     }
 
     await copyDist(distDir, targetDir);
-    console.log(`Copied ${chain.slug} dist -> ${path.relative(rootDir, targetDir)}`);
+    console.log(
+      `Copied ${chain.slug} dist -> ${path.relative(rootDir, targetDir)}`
+    );
   }
 }
 

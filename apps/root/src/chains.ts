@@ -1,15 +1,15 @@
+import chainList from "../../../chains.config.json";
+
 export interface ChainConfig {
-  slug: string;
-  name: string;
+  appDir: string;
+  basePath: string;
   description?: string;
+  iconUrl?: string;
+  logoUrl?: string;
+  name: string;
   primaryColor?: string;
   secondaryColor?: string;
-  basePath: string;
-  appDir: string;
-  logoUrl?: string;
-  iconUrl?: string;
+  slug: string;
 }
-
-import chainList from "../../../chains.config.json" assert { type: "json" };
 
 export const chains = chainList as ChainConfig[];

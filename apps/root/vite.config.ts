@@ -1,13 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const chainsConfigPath = path.resolve(__dirname, "..", "..", "chains.config.json");
-const chains = JSON.parse(fs.readFileSync(chainsConfigPath, "utf8")) as Array<{ slug: string }>;
+const chainsConfigPath = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "chains.config.json"
+);
+const chains = JSON.parse(fs.readFileSync(chainsConfigPath, "utf8")) as Array<{
+  slug: string;
+}>;
 
 const baseDevPort = 5173;
 const proxy = Object.fromEntries(
@@ -21,7 +28,7 @@ const proxy = Object.fromEntries(
         changeOrigin: true,
       },
     ];
-  }),
+  })
 );
 
 export default defineConfig(({ command }) => {

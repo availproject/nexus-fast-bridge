@@ -1,20 +1,121 @@
-import { TOKEN_IMAGES } from "@/lib/constant";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TOKEN_IMAGES } from "@/lib/constant";
 
 interface FloatingLogoData {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  vx: number;
-  vy: number;
-  imageUrl: string;
-  name: string;
-  type: "chain" | "token";
   homeX?: number;
   homeY?: number;
+  id: number;
+  imageUrl: string;
+  name: string;
+  size: number;
+  type: "chain" | "token";
+  vx: number;
+  vy: number;
+  x: number;
+  y: number;
 }
+
+const CURSOR_RADIUS = 60;
+const REPEL_FORCE = 2;
+const FRICTION = 0.96;
+const MAX_SPEED = 0.8;
+const RETURN_FORCE = 0.005;
+const MIN_LOGO_BOUNDARY = 5;
+const MAX_LOGO_BOUNDARY = 95;
+const BOUNDARY_PUSH = 0.02;
+
+const setLogoHomePosition = (logo: FloatingLogoData) => {
+  if (logo.homeX === undefined) {
+    logo.homeX = logo.x;
+  }
+  if (logo.homeY === undefined) {
+    logo.homeY = logo.y;
+  }
+};
+
+const applyCursorRepel = (
+  logo: FloatingLogoData,
+  mousePosition: { x: number; y: number },
+  width: number,
+  height: number
+) => {
+  const logoPx = (logo.x / 100) * width;
+  const logoPy = (logo.y / 100) * height;
+  const dx = logoPx - mousePosition.x;
+  const dy = logoPy - mousePosition.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const influenceRadius = CURSOR_RADIUS + logo.size / 2;
+
+  if (distance >= influenceRadius || distance === 0) {
+    return;
+  }
+
+  const force = (influenceRadius - distance) / influenceRadius;
+  const angle = Math.atan2(dy, dx);
+  logo.vx += Math.cos(angle) * force * REPEL_FORCE;
+  logo.vy += Math.sin(angle) * force * REPEL_FORCE;
+};
+
+const applyAmbientDrift = (
+  logo: FloatingLogoData,
+  index: number,
+  time: number
+) => {
+  const noiseX = Math.sin(time + index * 2) * Math.cos(time * 0.7 + index);
+  const noiseY =
+    Math.cos(time * 0.8 + index * 1.5) * Math.sin(time * 0.6 + index * 0.8);
+  const jitter = (Math.random() - 0.5) * 0.03;
+
+  logo.vx += noiseX * 0.008 + jitter;
+  logo.vy += noiseY * 0.008 + jitter;
+};
+
+const applyReturnForce = (logo: FloatingLogoData) => {
+  const homeDx = (logo.homeX ?? logo.x) - logo.x;
+  const homeDy = (logo.homeY ?? logo.y) - logo.y;
+  logo.vx += homeDx * RETURN_FORCE;
+  logo.vy += homeDy * RETURN_FORCE;
+};
+
+const applyVelocity = (
+  logo: FloatingLogoData,
+  width: number,
+  height: number
+) => {
+  logo.x += (logo.vx / width) * 100;
+  logo.y += (logo.vy / height) * 100;
+};
+
+const applyFriction = (logo: FloatingLogoData) => {
+  logo.vx *= FRICTION;
+  logo.vy *= FRICTION;
+};
+
+const clampLogoSpeed = (logo: FloatingLogoData) => {
+  const speed = Math.sqrt(logo.vx * logo.vx + logo.vy * logo.vy);
+  if (speed <= MAX_SPEED) {
+    return;
+  }
+
+  logo.vx = (logo.vx / speed) * MAX_SPEED;
+  logo.vy = (logo.vy / speed) * MAX_SPEED;
+};
+
+const applyBoundaryForce = (logo: FloatingLogoData) => {
+  if (logo.x < MIN_LOGO_BOUNDARY) {
+    logo.vx += BOUNDARY_PUSH;
+  }
+  if (logo.x > MAX_LOGO_BOUNDARY) {
+    logo.vx -= BOUNDARY_PUSH;
+  }
+  if (logo.y < MIN_LOGO_BOUNDARY) {
+    logo.vy += BOUNDARY_PUSH;
+  }
+  if (logo.y > MAX_LOGO_BOUNDARY) {
+    logo.vy -= BOUNDARY_PUSH;
+  }
+};
 
 function FloatingLogos({
   mousePosition,
@@ -38,9 +139,9 @@ function FloatingLogos({
       ...tokenSymbols,
       ...tokenSymbols,
     ].sort(() => Math.random() - 0.5);
-    shuffledTokens.forEach((symbol) => {
+    for (const symbol of shuffledTokens) {
       logos.push({
-        id: id++,
+        id,
         x: Math.random() * 110 - 15,
         y: Math.random() * 110 - 20,
         size: 24 + Math.random() * 28, // 24-52px, slightly smaller than chains
@@ -50,7 +151,8 @@ function FloatingLogos({
         name: symbol,
         type: "token",
       });
-    });
+      id += 1;
+    }
 
     logosRef.current = logos;
     forceUpdate({});
@@ -59,87 +161,24 @@ function FloatingLogos({
   // Animation loop with cursor collision and gentle random movement
   const animate = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const rect = container.getBoundingClientRect();
     const logos = logosRef.current;
-    const cursorRadius = 60;
-    const repelForce = 2;
-    const friction = 0.96;
-    const maxSpeed = 0.8;
-    const returnForce = 0.005;
     const time = Date.now() * 0.0005;
 
-    logos.forEach((logo, index) => {
-      // Store original position as "home"
-      if (logo.homeX === undefined) logo.homeX = logo.x;
-      if (logo.homeY === undefined) logo.homeY = logo.y;
-
-      // Convert percentage to pixels for collision
-      const logoPx = (logo.x / 100) * rect.width;
-      const logoPy = (logo.y / 100) * rect.height;
-
-      // Calculate distance to cursor
-      const dx = logoPx - mousePosition.x;
-      const dy = logoPy - mousePosition.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Cursor collision/repulsion (gentler)
-      if (distance < cursorRadius + logo.size / 2 && distance > 0) {
-        const force =
-          (cursorRadius + logo.size / 2 - distance) /
-          (cursorRadius + logo.size / 2);
-        const angle = Math.atan2(dy, dx);
-        logo.vx += Math.cos(angle) * force * repelForce;
-        logo.vy += Math.sin(angle) * force * repelForce;
-      }
-
-      // Gentle drift movement - very slow and subtle
-      const noiseX = Math.sin(time + index * 2) * Math.cos(time * 0.7 + index);
-      const noiseY =
-        Math.cos(time * 0.8 + index * 1.5) * Math.sin(time * 0.6 + index * 0.8);
-
-      // Minimal random jitter
-      const jitter = (Math.random() - 0.5) * 0.03;
-
-      logo.vx += noiseX * 0.008 + jitter;
-      logo.vy += noiseY * 0.008 + jitter;
-
-      // Gentle return-to-home force (keeps logos in view)
-      const homeDx = logo.homeX - logo.x;
-      const homeDy = logo.homeY - logo.y;
-      logo.vx += homeDx * returnForce;
-      logo.vy += homeDy * returnForce;
-
-      // Apply velocity
-      logo.x += (logo.vx / rect.width) * 100;
-      logo.y += (logo.vy / rect.height) * 100;
-
-      // Apply friction
-      logo.vx *= friction;
-      logo.vy *= friction;
-
-      // Clamp speed
-      const speed = Math.sqrt(logo.vx * logo.vx + logo.vy * logo.vy);
-      if (speed > maxSpeed) {
-        logo.vx = (logo.vx / speed) * maxSpeed;
-        logo.vy = (logo.vy / speed) * maxSpeed;
-      }
-
-      // Soft boundary constraints (gentle push back instead of bounce)
-      if (logo.x < 5) {
-        logo.vx += 0.02;
-      }
-      if (logo.x > 95) {
-        logo.vx -= 0.02;
-      }
-      if (logo.y < 5) {
-        logo.vy += 0.02;
-      }
-      if (logo.y > 95) {
-        logo.vy -= 0.02;
-      }
-    });
+    for (const [index, logo] of logos.entries()) {
+      setLogoHomePosition(logo);
+      applyCursorRepel(logo, mousePosition, rect.width, rect.height);
+      applyAmbientDrift(logo, index, time);
+      applyReturnForce(logo);
+      applyVelocity(logo, rect.width, rect.height);
+      applyFriction(logo);
+      clampLogoSpeed(logo);
+      applyBoundaryForce(logo);
+    }
 
     forceUpdate({});
     animationRef.current = requestAnimationFrame(animate);
@@ -156,32 +195,31 @@ function FloatingLogos({
 
   return (
     <div
-      ref={containerRef}
       className="pointer-events-none absolute inset-0 z-[1] hidden overflow-hidden md:block"
+      ref={containerRef}
     >
       {logosRef.current.map((logo) => (
         <motion.div
-          key={logo.id}
-          className={`pointer-events-none absolute overflow-hidden rounded-full transition-transform duration-100 linear will-change-[transform,left,top] motion-reduce:hidden ${
+          animate={{ opacity: 0.6, scale: 1 }}
+          className={`linear pointer-events-none absolute overflow-hidden rounded-full transition-transform duration-100 will-change-[transform,left,top] motion-reduce:hidden ${
             logo.type === "chain" ? "grayscale-[30%]" : "grayscale-[50%]"
           }`}
+          initial={{ opacity: 0, scale: 0 }}
+          key={logo.id}
           style={{
             left: `${logo.x}%`,
             top: `${logo.y}%`,
             width: logo.size,
             height: logo.size,
           }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 0.6, scale: 1 }}
           transition={{ duration: 0.5, delay: Math.random() * 0.5 }}
         >
           <img
-            src={logo.imageUrl}
             alt={logo.name}
             className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
+            height={Math.round(logo.size)}
+            src={logo.imageUrl}
+            width={Math.round(logo.size)}
           />
         </motion.div>
       ))}

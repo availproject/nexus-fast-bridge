@@ -4,14 +4,22 @@
   "private": true,
   "scripts": {
     "dev:root": "turbo run dev --filter=root",
-    "dev:all": "turbo run dev --parallel --filter=@fastbridge/monad --filter=@fastbridge/megaeth --filter=@fastbridge/citrea --filter=root",
+    "dev:all": "node scripts/dev-all.mjs",
     "build:all": "TURBO_CONCURRENCY=1 turbo run build",
     "clean": "turbo run clean --force",
     "vercel:env": "node scripts/build-vercel-env.mjs",
-    "chains:sync": "node scripts/sync-chains.mjs"
+    "chains:sync": "node scripts/sync-chains.mjs",
+    "chain:add": "node scripts/chains-add.mjs",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
+    "prepare": "husky"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
-    "turbo": "^2.7.5"
+    "@biomejs/biome": "2.4.0",
+    "husky": "^9.1.7",
+    "turbo": "^2.7.5",
+    "ultracite": "7.2.3"
   }
 }
