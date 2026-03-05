@@ -72,7 +72,18 @@ const transports = {
 };
 
 const defaultConfigParams = getDefaultConfig({
-  appName: config.appTitle ?? "Nexus Elements",
+  appName: config.appTitle ?? "MegaETH Avail Fast Bridge",
+  appDescription:
+    config.appDescription ??
+    "Move your unified USDC and USDT from 12 chains to MegaETH, faster than ever.",
+  appUrl:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : (config.meta.canonicalUrl ??
+        "https://fastbridge.availproject.org/megaeth"),
+  appIcon:
+    config.meta.faviconUrl ??
+    "https://fastbridge.availproject.org/megaeth/faviconV2.png",
   walletConnectProjectId,
   chains: [
     chain,
@@ -87,7 +98,7 @@ const defaultConfigParams = getDefaultConfig({
     scroll,
     monad,
     megaeth,
-  ],
+  ] as any,
   transports,
   enableFamily: false,
 });

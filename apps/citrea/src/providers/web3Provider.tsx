@@ -72,7 +72,17 @@ const transports = {
 };
 
 const defaultConfigParams = getDefaultConfig({
-  appName: config.appTitle ?? "Nexus Elements",
+  appName: config.appTitle ?? "Citrea Fast Bridge",
+  appDescription:
+    config.appDescription ?? "Move assets from any chain to Citrea, instantly.",
+  appUrl:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : (config.meta.canonicalUrl ??
+        "https://fastbridge.availproject.org/citrea"),
+  appIcon:
+    config.meta.faviconUrl ??
+    "https://fastbridge.availproject.org/citrea/faviconV2.png",
   walletConnectProjectId,
   chains: [
     chain,
@@ -87,7 +97,7 @@ const defaultConfigParams = getDefaultConfig({
     scroll,
     monad,
     megaeth,
-  ],
+  ] as any,
   transports,
   enableFamily: false,
 });

@@ -23,7 +23,7 @@ export function getConfig(env: AppEnv) {
             "Move your assets to MegaETH faster than ever!",
 
         appTitle: env.VITE_CONFIG_APP_TITLE || "MegaETH Fast Bridge",
-        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "MegaETH Fast Bridge",
+        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Move your unified USDC and USDT from 12 chains to MegaETH, faster than ever.",
 
         primaryColor: env.VITE_CONFIG_PRIMARY_COLOR || "#19191A",
         secondaryColor: env.VITE_CONFIG_SECONDARY_COLOR || "#ECE8E8",

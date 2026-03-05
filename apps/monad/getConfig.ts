@@ -23,7 +23,7 @@ export function getConfig(env: AppEnv) {
             "Move your assets to Monad faster than ever!",
 
         appTitle: env.VITE_CONFIG_APP_TITLE || "Monad Fast Bridge",
-        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Monad Fast Bridge",
+        appDescription: env.VITE_CONFIG_APP_DESCRIPTION || "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
 
         primaryColor: env.VITE_CONFIG_PRIMARY_COLOR || "#836ef9",
         secondaryColor: env.VITE_CONFIG_SECONDARY_COLOR || "#ffffff",
