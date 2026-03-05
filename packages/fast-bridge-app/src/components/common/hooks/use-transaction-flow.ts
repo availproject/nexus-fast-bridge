@@ -168,6 +168,10 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     useState("ALL");
   const [allowanceStepState, setAllowanceStepState] =
     useState<AllowanceStepState>("not-required");
+  const [allowanceApprovalsRequired, setAllowanceApprovalsRequired] =
+    useState(0);
+  const [allowanceApprovalsCompleted, setAllowanceApprovalsCompleted] =
+    useState(0);
   const {
     steps,
     onStepsList,
@@ -432,6 +436,15 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   ]);
 
   const hasPendingAllowanceApproval = Boolean(allowance.current);
+  const registerAllowanceUserApproval = useCallback(() => {
+    setAllowanceApprovalsCompleted((previousCompleted) => {
+      const requiredCount = Math.max(1, allowanceApprovalsRequired);
+      if (previousCompleted >= requiredCount) {
+        return previousCompleted;
+      }
+      return previousCompleted + 1;
+    });
+  }, [allowanceApprovalsRequired]);
 
   const stopwatch = useStopwatch({ intervalMs: 100 });
   const setStatus = useCallback(
@@ -483,6 +496,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStart,
     onComplete,
     onError,
+    onAllowanceUserApproval: registerAllowanceUserApproval,
     fetchBalance,
     notifyHistoryRefresh,
     denyIntentOnReset,
@@ -613,18 +627,34 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   }, [inputs?.token]);
 
   useEffect(() => {
-    if (hasPendingAllowanceApproval) {
-      setAllowanceStepState("pending");
+    if (!hasPendingAllowanceApproval) {
       return;
     }
-    setAllowanceStepState((previous) =>
-      previous === "pending" ? "completed" : previous
-    );
-  }, [hasPendingAllowanceApproval]);
+    const requiredCount = Math.max(1, allowance.current?.sources?.length ?? 1);
+    setAllowanceApprovalsRequired(requiredCount);
+    setAllowanceApprovalsCompleted(0);
+    setAllowanceStepState("pending");
+  }, [allowance, hasPendingAllowanceApproval]);
+
+  useEffect(() => {
+    if (allowanceStepState !== "pending") {
+      return;
+    }
+    const requiredCount = Math.max(1, allowanceApprovalsRequired);
+    if (allowanceApprovalsCompleted >= requiredCount) {
+      setAllowanceStepState("completed");
+    }
+  }, [
+    allowanceApprovalsCompleted,
+    allowanceApprovalsRequired,
+    allowanceStepState,
+  ]);
 
   useEffect(() => {
     if (!isDialogOpen && state.status === "idle") {
       setAllowanceStepState("not-required");
+      setAllowanceApprovalsRequired(0);
+      setAllowanceApprovalsCompleted(0);
     }
   }, [isDialogOpen, state.status]);
 

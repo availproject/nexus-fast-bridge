@@ -44,6 +44,7 @@ interface UseTransactionExecutionProps {
   loading: boolean;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
+  onAllowanceUserApproval?: () => void;
   onComplete?: (explorerUrl?: string) => void | Promise<void>;
   onError?: (message: string) => void;
   onStart?: () => void;
@@ -102,6 +103,7 @@ export function useTransactionExecution({
   onStart,
   onComplete,
   onError,
+  onAllowanceUserApproval,
   fetchBalance,
   notifyHistoryRefresh,
   denyIntentOnReset = true,
@@ -265,17 +267,32 @@ export function useTransactionExecution({
     onStepsList(list as BridgeStepType[]);
   };
 
+  const getStepName = (step: unknown): string | null => {
+    if (!step || typeof step !== "object") {
+      return null;
+    }
+    const stepLike = step as { type?: unknown; typeID?: unknown };
+    if (typeof stepLike.type === "string" && stepLike.type.length > 0) {
+      return stepLike.type;
+    }
+    if (typeof stepLike.typeID === "string" && stepLike.typeID.length > 0) {
+      return stepLike.typeID;
+    }
+    return null;
+  };
+
   const applyStepCompleteEvent = (event: TransactionFlowEvent) => {
-    if (
-      !Array.isArray(event.args) &&
-      "type" in event.args &&
-      event.args.type === "INTENT_HASH_SIGNED"
-    ) {
+    if (Array.isArray(event.args)) {
+      return;
+    }
+    const stepName = getStepName(event.args);
+    if (stepName === "INTENT_HASH_SIGNED") {
       stopwatch.start();
     }
-    if (!Array.isArray(event.args)) {
-      onStepComplete(event.args as BridgeStepType);
+    if (stepName === "ALLOWANCE_USER_APPROVAL") {
+      onAllowanceUserApproval?.();
     }
+    onStepComplete(event.args as BridgeStepType);
   };
 
   const isRunStale = (currentRunId: number) =>

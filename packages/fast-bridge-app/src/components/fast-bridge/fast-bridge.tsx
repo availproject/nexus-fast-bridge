@@ -699,22 +699,21 @@ function FastBridge({
               <DialogHeader className="sr-only">
                 <DialogTitle>Transaction Progress</DialogTitle>
               </DialogHeader>
-              <TransactionProgress
-                allowanceStepState={allowanceStepState}
-                completed={status === "success"}
-                operationType={"bridge"}
-                steps={steps}
-                timer={timer}
-                viewIntentUrl={lastExplorerUrl}
-              />
-              {allowance.current && (
-                <div className="mt-6 border-border border-t pt-6">
-                  <AllowanceModal
-                    allowance={allowance}
-                    callback={startTransaction}
-                    onCloseCallback={reset}
-                  />
-                </div>
+              {allowance.current ? (
+                <AllowanceModal
+                  allowance={allowance}
+                  callback={startTransaction}
+                  onCloseCallback={reset}
+                />
+              ) : (
+                <TransactionProgress
+                  allowanceStepState={allowanceStepState}
+                  completed={status === "success"}
+                  operationType={"bridge"}
+                  steps={steps}
+                  timer={timer}
+                  viewIntentUrl={lastExplorerUrl}
+                />
               )}
             </DialogContent>
           </Dialog>
