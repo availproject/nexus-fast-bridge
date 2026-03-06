@@ -18,6 +18,8 @@ import {
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
+import { createAppKit } from "@reown/appkit/react";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
@@ -71,6 +73,21 @@ const transports = {
   [megaeth.id]: http(import.meta.env.VITE_MEGAETH_RPC),
 };
 
+const networks = [
+  chain,
+  mainnet,
+  base,
+  sophon,
+  kaia,
+  arbitrum,
+  avalanche,
+  optimism,
+  polygon,
+  scroll,
+  monad,
+  megaeth,
+] as any;
+
 const defaultConfigParams = getDefaultConfig({
   appName: config.appTitle ?? "Citrea Fast Bridge",
   appDescription:
@@ -84,32 +101,48 @@ const defaultConfigParams = getDefaultConfig({
     config.meta.faviconUrl ??
     "https://fastbridge.availproject.org/citrea/faviconV2.png",
   walletConnectProjectId,
-  chains: [
-    chain,
-    mainnet,
-    base,
-    sophon,
-    kaia,
-    arbitrum,
-    avalanche,
-    optimism,
-    polygon,
-    scroll,
-    monad,
-    megaeth,
-  ] as any,
+  chains: networks as any,
   transports,
   enableFamily: false,
 });
 
+const metadata = {
+  name: config.appTitle ?? "Citrea Fast Bridge",
+  description:
+    config.appDescription ?? "Move assets from any chain to Citrea, instantly.",
+  url: config.meta.canonicalUrl ?? "https://fastbridge.availproject.org/citrea", // origin must match your domain & subdomain
+  icons: [
+    config.meta.faviconUrl ??
+      "https://fastbridge.availproject.org/citrea/faviconV2.png",
+  ],
+};
+
 const wagmiConfig = createConfig(defaultConfigParams);
 const queryClient = new QueryClient();
 
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId: walletConnectProjectId,
+  ssr: false,
+});
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks,
+  projectId: walletConnectProjectId,
+  metadata,
+  features: {
+    analytics: true, // Optional - defaults to your Cloud configuration
+  },
+});
+
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        {/* <ConnectKitProvider theme="minimal"> */}
+        {children}
+        {/* </ConnectKitProvider> */}
       </QueryClientProvider>
     </WagmiProvider>
   );
