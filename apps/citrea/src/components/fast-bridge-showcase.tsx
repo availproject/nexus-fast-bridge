@@ -1,9 +1,8 @@
-"use client";
 import { useAccount } from "wagmi";
-import { ConnectKitButton } from "connectkit";
 import FastBridge from "./fast-bridge/fast-bridge";
 import { PreviewPanel } from "./walletConnect";
 import { readBridgeParams } from "@/lib/url-params";
+import { useAppKit } from "@reown/appkit/react";
 import { useEffect, useState } from "react";
 
 const FastBridgeShowcase = () => {
@@ -15,23 +14,21 @@ const FastBridgeShowcase = () => {
     setParams(readBridgeParams());
   }, []);
 
+  const { open } = useAppKit();
+
   return (
     <PreviewPanel>
-      <ConnectKitButton.Custom>
-        {({ show }) => (
-          <FastBridge
-            connectedAddress={address}
-            isWalletConnected={isConnected}
-            onConnectWallet={show}
-            prefill={{
-              token: params.token as any,
-              chainId: params.to as any,
-              amount: params.amount,
-              recipient: params.recipient,
-            }}
-          />
-        )}
-      </ConnectKitButton.Custom>
+      <FastBridge
+        connectedAddress={address}
+        isWalletConnected={isConnected}
+        onConnectWallet={() => void open({ view: "Connect" })}
+        prefill={{
+          token: params.token as any,
+          chainId: params.to as any,
+          amount: params.amount,
+          recipient: params.recipient,
+        }}
+      />
     </PreviewPanel>
   );
 };

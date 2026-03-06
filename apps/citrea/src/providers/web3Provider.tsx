@@ -117,7 +117,6 @@ const metadata = {
   ],
 };
 
-const wagmiConfig = createConfig(defaultConfigParams);
 const queryClient = new QueryClient();
 
 const wagmiAdapter = new WagmiAdapter({
@@ -132,22 +131,19 @@ createAppKit({
   projectId: walletConnectProjectId,
   metadata,
   features: {
-    analytics: true, // Optional - defaults to your Cloud configuration
-    connectMethodsOrder: ["wallet"],
+    analytics: true,
+    email: false,
+    socials: false,
   },
   allWallets: "SHOW",
-  enableInjected: true,
   enableEIP6963: true,
-  enableWalletGuide: false,
-  enableAuthLogger: false,
-  enableCoinbase: false,
-  experimental_preferUniversalLinks: true,
+  // Ensure that MetaMask and Base are the featured wallets on top
+  featuredWalletIds: [
+    "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+    "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa", // Coinbase/Base Wallet
+  ],
   excludeWalletIds: [
     "c34de246586459b8a33e82efe825fec5f75ac6cee50098e76abfd8161de827f2",
-  ],
-  featuredWalletIds: [
-    "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96",
-    "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa",
   ],
   defaultAccountTypes: { eip155: "eoa" },
 });
@@ -156,7 +152,7 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        <ConnectKitProvider theme="auto">{children}</ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
