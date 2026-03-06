@@ -135,7 +135,9 @@ createAppKit({
     analytics: true, // Optional - defaults to your Cloud configuration
     connectMethodsOrder: ["wallet"],
   },
-  allWallets: "ONLY_MOBILE",
+  allWallets: "SHOW",
+  enableInjected: true,
+  enableEIP6963: true,
   enableWalletGuide: false,
   enableAuthLogger: false,
   enableCoinbase: false,
