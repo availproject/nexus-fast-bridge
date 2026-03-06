@@ -133,7 +133,9 @@ createAppKit({
   metadata,
   features: {
     analytics: true, // Optional - defaults to your Cloud configuration
+    connectMethodsOrder: ["wallet"],
   },
+  allWallets: "ONLY_MOBILE",
 });
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
