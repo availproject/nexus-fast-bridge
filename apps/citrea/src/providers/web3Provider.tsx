@@ -136,6 +136,9 @@ createAppKit({
     connectMethodsOrder: ["wallet"],
   },
   allWallets: "ONLY_MOBILE",
+  enableWalletGuide: false,
+  enableAuthLogger: false,
+  enableCoinbase: false,
 });
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
