@@ -139,6 +139,7 @@ createAppKit({
   enableWalletGuide: false,
   enableAuthLogger: false,
   enableCoinbase: false,
+  experimental_preferUniversalLinks: true,
 });
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
