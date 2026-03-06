@@ -38,7 +38,7 @@ function sanitizeAmount(amount: string | null): string | undefined {
 
 export function readBridgeParams(): BridgeParams {
   const params = new URLSearchParams(window.location.search);
-  const toStr = params.get("to");
+  const toStr = params.get("to") || params.get("toChain");
   const tokenStr = params.get("token");
   const recipient = params.get("recipient") || params.get("address");
   const amountStr = params.get("amount");

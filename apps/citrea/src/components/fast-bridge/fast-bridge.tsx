@@ -275,20 +275,18 @@ const FastBridge: FC<FastBridgeProps> = ({
             })
           }
           label="To"
-          disabled={!!prefill?.chainId}
         />
         <TokenSelect
           selectedChain={inputs?.chain}
           selectedToken={inputs?.token}
           handleTokenSelect={(token) => setInputs({ ...inputs, token })}
-          disabled={!!prefill?.token}
         />
         <AmountInput
           amount={inputs?.amount}
           onChange={(amount) => setInputs({ ...inputs, amount })}
           bridgableBalance={filteredBridgableBalance}
           onCommit={() => void commitAmount()}
-          disabled={refreshing || !!prefill?.amount}
+          disabled={refreshing}
           inputs={inputs}
           showBalanceDetails={showSdkDetails}
         />
@@ -297,7 +295,6 @@ const FastBridge: FC<FastBridgeProps> = ({
           onChange={(address) =>
             setInputs({ ...inputs, recipient: address as `0x${string}` })
           }
-          disabled={!!prefill?.recipient}
         />
         {showMockPreview && (
           <div className="w-full rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-3">
