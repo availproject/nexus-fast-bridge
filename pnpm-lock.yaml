@@ -162,11 +162,17 @@ importers:
       '@rainbow-me/rainbowkit':
         specifier: ^2.2.8
         version: 2.2.10(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)(typescript@5.8.3)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
+      '@reown/appkit':
+        specifier: ^1.8.19
+        version: 1.8.19(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@reown/appkit-adapter-wagmi':
+        specifier: ^1.8.19
+        version: 1.8.19(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(@wagmi/core@2.22.1(@tanstack/query-core@5.90.20)(@types/react@19.2.10)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
       '@tailwindcss/vite':
         specifier: ^4.1.16
         version: 4.1.18(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2))
       '@tanstack/react-query':
-        specifier: ^5.90.2
+        specifier: ^5.90.20
         version: 5.90.20(react@19.2.2)
       '@vitejs/plugin-react':
         specifier: ^5.1.0
@@ -211,13 +217,13 @@ importers:
         specifier: ^4.1.13
         version: 4.1.18
       viem:
-        specifier: ^2.37.9
+        specifier: ^2.45.1
         version: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       vite-plugin-node-polyfills:
         specifier: ^0.24.0
         version: 0.24.0(rollup@4.57.1)(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2))
       wagmi:
-        specifier: ^2.17.5
+        specifier: ^2.19.5
         version: 2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
     devDependencies:
       '@eslint/js':
@@ -283,11 +289,17 @@ importers:
       '@rainbow-me/rainbowkit':
         specifier: ^2.2.8
         version: 2.2.10(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)(typescript@5.8.3)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))
+      '@reown/appkit':
+        specifier: ^1.8.19
+        version: 1.8.19(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@reown/appkit-adapter-wagmi':
+        specifier: ^1.8.19
+        version: 1.8.19(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(@wagmi/core@2.22.1(@tanstack/query-core@5.90.20)(@types/react@19.2.10)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(use-sync-external-store@1.4.0(react@19.2.2))(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(wagmi@2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6))(zod@4.3.6)
       '@tailwindcss/vite':
         specifier: ^4.1.16
         version: 4.1.18(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2))
       '@tanstack/react-query':
-        specifier: ^5.90.2
+        specifier: ^5.90.20
         version: 5.90.20(react@19.2.2)
       '@vitejs/plugin-react':
         specifier: ^5.1.0
@@ -329,13 +341,13 @@ importers:
         specifier: ^4.1.13
         version: 4.1.18
       viem:
-        specifier: ^2.37.9
+        specifier: ^2.45.1
         version: 2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       vite-plugin-node-polyfills:
         specifier: ^0.24.0
         version: 0.24.0(rollup@4.57.1)(vite@7.3.1(@types/node@24.10.9)(jiti@2.6.1)(lightningcss@1.30.2))
       wagmi:
-        specifier: ^2.17.5
+        specifier: ^2.19.5
         version: 2.19.5(@tanstack/query-core@5.90.20)(@tanstack/react-query@5.90.20(react@19.2.2))(@types/react@19.2.10)(bufferutil@4.1.0)(react@19.2.2)(typescript@5.8.3)(utf-8-validate@5.0.10)(viem@2.45.1(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))(zod@4.3.6)
     devDependencies:
       '@eslint/js':
