@@ -62,6 +62,15 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
       console.log("[Nexus Init] Provider validated, calling handleInit...");
 
+      // Wrap the provider to intercept problematic RPC calls
+      const originalRequest = provider.request.bind(provider);
+      provider.request = async (args: { method: string; params?: any[] }) => {
+        if (args.method === "wallet_getCapabilities") {
+          throw new Error("Method not supported");
+        }
+        return originalRequest(args);
+      };
+
       // Race between initialization and timeout
       await Promise.race([handleInit(provider), timeoutPromise]);
 
