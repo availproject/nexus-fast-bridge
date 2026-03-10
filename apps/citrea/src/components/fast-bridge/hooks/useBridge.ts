@@ -290,9 +290,24 @@ const useBridge = ({
     } catch (error) {
       if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+
+      // Trust Wallet workaround: Ignore "wallet did not switch chain" error 
+      // since the chain actually switches and completes behind the scenes.
+      if (
+        message &&
+        message.toLowerCase().includes("wallet did not switch chain")
+      ) {
+        console.warn("Ignored known Trust Wallet chain switch anomaly:", message);
+        // Let it fall back to polling for success
+        return;
+      }
+
+      if (typeof intent.current?.deny === "function") intent.current.deny();
       intent.current = null;
+      if (typeof allowance.current?.deny === "function") allowance.current.deny();
       allowance.current = null;
+
+      console.log("NEXUS-ERROR-MESSAGE", message);
       setTxError(message);
       onError?.(message);
       setIsDialogOpen(false);
