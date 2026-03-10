@@ -18,6 +18,8 @@ import {
 } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import config from "../../config";
+import { createAppKit } from "@reown/appkit/react";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
@@ -71,6 +73,21 @@ const transports = {
   [megaeth.id]: http(import.meta.env.VITE_MEGAETH_RPC),
 };
 
+const networks = [
+  chain,
+  mainnet,
+  base,
+  sophon,
+  kaia,
+  arbitrum,
+  avalanche,
+  optimism,
+  polygon,
+  scroll,
+  monad,
+  megaeth,
+] as any;
+
 const defaultConfigParams = getDefaultConfig({
   appName: config.appTitle ?? "Monad Avail Fast Bridge",
   appDescription:
@@ -85,32 +102,65 @@ const defaultConfigParams = getDefaultConfig({
     config.meta.faviconUrl ??
     "https://fastbridge.availproject.org/monad/favicon.png",
   walletConnectProjectId,
-  chains: [
-    chain,
-    mainnet,
-    base,
-    sophon,
-    kaia,
-    arbitrum,
-    avalanche,
-    optimism,
-    polygon,
-    scroll,
-    monad,
-    megaeth,
-  ] as any,
+  chains: networks as any,
   transports,
   enableFamily: false,
 });
 
-const wagmiConfig = createConfig(defaultConfigParams);
+const metadata = {
+  name: config.appTitle ?? "Monad Avail Fast Bridge",
+  description:
+    config.appDescription ??
+    "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
+  url:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : (config.meta.canonicalUrl ??
+        "https://fastbridge.availproject.org/monad"), // origin must match your domain & subdomain
+  icons: [
+    config.meta.faviconUrl ??
+      "https://fastbridge.availproject.org/monad/favicon.png",
+  ],
+};
+
 const queryClient = new QueryClient();
+
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId: walletConnectProjectId,
+  ssr: false,
+});
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks,
+  projectId: walletConnectProjectId,
+  metadata,
+  features: {
+    analytics: true,
+    email: false,
+    socials: false,
+  },
+  allWallets: "SHOW",
+  enableEIP6963: true,
+  // Ensure that MetaMask and Base are the featured wallets on top
+  featuredWalletIds: [
+    "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+    "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa", // Coinbase/Base Wallet
+  ],
+  excludeWalletIds: [
+    "c34de246586459b8a33e82efe825fec5f75ac6cee50098e76abfd8161de827f2",
+  ],
+  defaultAccountTypes: { eip155: "eoa" },
+});
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        <ConnectKitProvider theme="minimal" mode="light">
+          {children}
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

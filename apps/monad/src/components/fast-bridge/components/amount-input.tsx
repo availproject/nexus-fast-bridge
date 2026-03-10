@@ -4,6 +4,7 @@ import { Button } from "../../ui/button";
 import { SUPPORTED_CHAINS, type UserAsset } from "@avail-project/nexus-core";
 import { useNexus } from "../../nexus/NexusProvider";
 import { type FastBridgeState } from "../hooks/useBridge";
+import { parseUnits, formatUnits } from "viem";
 import {
   Accordion,
   AccordionContent,
@@ -35,6 +36,22 @@ const AmountInput: FC<AmountInputProps> = ({
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
+
+  let displayBalanceStr = bridgableBalance?.balance || "0";
+  try {
+    if (bridgableBalance) {
+      const decimals = bridgableBalance.decimals;
+      const totalUnits = parseUnits(bridgableBalance.balance || "0", decimals);
+      const currentChainBal =
+        bridgableBalance.breakdown?.find((c) => c.chain.id === inputs?.chain)
+          ?.balance || "0";
+      const currentUnits = parseUnits(currentChainBal, decimals);
+      const diff = totalUnits - currentUnits;
+      displayBalanceStr = formatUnits(diff > 0n ? diff : 0n, decimals);
+    }
+  } catch (e) {
+    console.error("Balance calculation error", e);
+  }
 
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
@@ -102,7 +119,7 @@ const AmountInput: FC<AmountInputProps> = ({
         >
           {showBalanceDetails && bridgableBalance && (
             <p className="text-base font-medium min-w-max">
-              {nexusSDK?.utils?.formatTokenBalance(bridgableBalance?.balance, {
+              {nexusSDK?.utils?.formatTokenBalance(displayBalanceStr, {
                 symbol:
                   bridgableBalance?.displaySymbol ?? bridgableBalance?.symbol,
                 decimals: bridgableBalance?.decimals,

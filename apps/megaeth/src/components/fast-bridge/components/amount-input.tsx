@@ -1,9 +1,10 @@
-import { type FC, Fragment, useEffect, useRef, useState } from "react";
+import { type FC, Fragment, useEffect, useRef } from "react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { SUPPORTED_CHAINS, type UserAsset } from "@avail-project/nexus-core";
 import { useNexus } from "../../nexus/NexusProvider";
 import { type FastBridgeState } from "../hooks/useBridge";
+import { parseUnits, formatUnits } from "viem";
 import {
   Accordion,
   AccordionContent,
@@ -35,24 +36,28 @@ const AmountInput: FC<AmountInputProps> = ({
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
-  const [maxVal, setMaxVal] = useState("0");
 
+  let displayBalanceStr = bridgableBalance?.balance || "0";
+  try {
+    if (bridgableBalance) {
+      const decimals = bridgableBalance.decimals;
+      const totalUnits = parseUnits(bridgableBalance.balance || "0", decimals);
+      const currentChainBal =
+        bridgableBalance.breakdown?.find((c) => c.chain.id === inputs?.chain)
+          ?.balance || "0";
+      const currentUnits = parseUnits(currentChainBal, decimals);
+      const diff = totalUnits - currentUnits;
+      displayBalanceStr = formatUnits(diff > 0n ? diff : 0n, decimals);
+    }
+  } catch (e) {
+    console.error("Balance calculation error", e);
+  }
   const scheduleCommit = (val: string) => {
     if (!onCommit || disabled) return;
     if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
     commitTimerRef.current = setTimeout(() => {
       onCommit(val);
     }, 800);
-  };
-
-  const getMaxVal = async () => {
-    if (!showBalanceDetails || !nexusSDK || !inputs) return;
-    const maxBalAvailable = await nexusSDK?.calculateMaxForBridge({
-      token: inputs?.token,
-      toChainId: inputs?.chain,
-    });
-    if (!maxBalAvailable) return;
-    return maxBalAvailable.amount;
   };
 
   const onMaxClick = async () => {
@@ -66,16 +71,6 @@ const AmountInput: FC<AmountInputProps> = ({
     onChange(maxBalAvailable.amount);
     onCommit?.(maxBalAvailable.amount);
   };
-
-  useEffect(() => {
-    const initMaxVal = async function () {
-      const v = await getMaxVal();
-      console.log("got max val in useeffect", v);
-      if (v) setMaxVal(v);
-    };
-
-    initMaxVal();
-  }, [nexusSDK, loading, inputs]);
 
   useEffect(() => {
     return () => {
@@ -123,7 +118,7 @@ const AmountInput: FC<AmountInputProps> = ({
         >
           {showBalanceDetails && bridgableBalance && (
             <p className="text-base font-medium min-w-max">
-              {nexusSDK?.utils?.formatTokenBalance(maxVal, {
+              {nexusSDK?.utils?.formatTokenBalance(displayBalanceStr, {
                 symbol:
                   bridgableBalance?.displaySymbol ?? bridgableBalance?.symbol,
                 decimals: bridgableBalance?.decimals,

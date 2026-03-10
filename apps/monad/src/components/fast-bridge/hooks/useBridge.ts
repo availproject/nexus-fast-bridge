@@ -159,9 +159,16 @@ const useBridge = ({
   const commitLockRef = useRef<boolean>(false);
   const txnIdRef = useRef(0);
 
+  const prevPrefillRef = useRef(prefill);
+
   useEffect(() => {
     const updates: Partial<FastBridgeState> = {};
-    if (prefill?.amount && prefill.amount !== inputs.amount) {
+    const pAmountChanged = prefill?.amount !== prevPrefillRef.current?.amount;
+    const pRecipientChanged = prefill?.recipient !== prevPrefillRef.current?.recipient;
+    const pTokenChanged = prefill?.token !== prevPrefillRef.current?.token;
+    const pChainChanged = prefill?.chainId !== prevPrefillRef.current?.chainId;
+
+    if (pAmountChanged && prefill?.amount) {
       const sanitized = prefill.amount.trim();
       if (sanitized && sanitized !== "." && /^\d*\.?\d*$/.test(sanitized)) {
         const num = Number.parseFloat(sanitized);
@@ -170,22 +177,25 @@ const useBridge = ({
         }
       }
     }
-    if (prefill?.recipient && prefill.recipient !== inputs.recipient) {
+    if (pRecipientChanged && prefill?.recipient) {
       if (isAddress(prefill.recipient)) {
         updates.recipient = prefill.recipient as `0x${string}`;
       }
     }
-    if (prefill?.token && prefill.token !== inputs.token) {
+    if (pTokenChanged && prefill?.token) {
       const tokenSymbol = prefill.token.toUpperCase() as SUPPORTED_TOKENS;
       if (ALLOWED_TOKENS.has(tokenSymbol)) updates.token = tokenSymbol;
     }
-    if (prefill?.chainId && prefill.chainId !== inputs.chain) {
+    if (pChainChanged && prefill?.chainId) {
       updates.chain = prefill.chainId as SUPPORTED_CHAINS_IDS;
     }
+
+    prevPrefillRef.current = prefill;
+
     if (Object.keys(updates).length > 0) {
       dispatch({ type: "setInputs", payload: updates });
     }
-  }, [prefill?.amount, prefill?.recipient, prefill?.token, prefill?.chainId, inputs.amount, inputs.recipient, inputs.token, inputs.chain]);
+  }, [prefill?.amount, prefill?.recipient, prefill?.token, prefill?.chainId]);
 
   const {
     steps,
@@ -281,9 +291,24 @@ const useBridge = ({
     } catch (error) {
       if (currentTxnId !== txnIdRef.current) return;
       const { message } = handleNexusError(error);
-      intent.current?.deny();
+
+      // Trust Wallet workaround: Ignore "wallet did not switch chain" error 
+      // since the chain actually switches and completes behind the scenes.
+      if (
+        message &&
+        message.toLowerCase().includes("wallet did not switch chain")
+      ) {
+        console.warn("Ignored known Trust Wallet chain switch anomaly:", message);
+        // Let it fall back to polling for success
+        return;
+      }
+
+      if (typeof intent.current?.deny === "function") intent.current.deny();
       intent.current = null;
+      if (typeof allowance.current?.deny === "function") allowance.current.deny();
       allowance.current = null;
+
+      console.log("NEXUS-ERROR-MESSAGE", message);
       setTxError(message);
       onError?.(message);
       setIsDialogOpen(false);
