@@ -62,17 +62,42 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
       console.log("[Nexus Init] Provider validated, calling handleInit...");
 
-      // Wrap the provider to intercept problematic RPC calls
-      const originalRequest = provider.request.bind(provider);
-      provider.request = async (args: { method: string; params?: any[] }) => {
-        if (args.method === "wallet_getCapabilities") {
-          throw new Error("Method not supported");
-        }
-        return originalRequest(args);
-      };
+      // Use a Proxy to cleanly intercept and timeout problematic RPC calls
+      const providerProxy = new Proxy(provider, {
+        get(target: any, prop: string | symbol) {
+          if (prop === "request") {
+            return async (args: { method: string; params?: any[] }) => {
+              // Reject EIP-5792 methods that Base Wallet often hangs on
+              if (
+                args.method === "wallet_getCapabilities" ||
+                args.method === "wallet_getCallsStatus" ||
+                args.method === "wallet_sendCalls"
+              ) {
+                return Promise.reject({
+                  code: -32601,
+                  message: "Method not supported",
+                });
+              }
 
-      // Race between initialization and timeout
-      await Promise.race([handleInit(provider), timeoutPromise]);
+              // Normal request with an 8-second timeout guard
+              return Promise.race([
+                target.request(args),
+                new Promise((_, reject) =>
+                  setTimeout(() => {
+                    toast.error(`Wallet RPC Timeout: ${args.method}`);
+                    reject({ code: -32000, message: `Timeout: ${args.method}` });
+                  }, 8000)
+                ),
+              ]);
+            };
+          }
+          const value = Reflect.get(target, prop);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+
+      // Race between initialization and timeout using the intercepted provider
+      await Promise.race([handleInit(providerProxy), timeoutPromise]);
 
       console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
