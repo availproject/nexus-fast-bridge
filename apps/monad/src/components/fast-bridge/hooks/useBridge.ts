@@ -159,16 +159,15 @@ const useBridge = ({
   const commitLockRef = useRef<boolean>(false);
   const txnIdRef = useRef(0);
 
-  const prevPrefillRef = useRef(prefill);
+  const isInitialPrefillApplied = useRef(false);
 
   useEffect(() => {
-    const updates: Partial<FastBridgeState> = {};
-    const pAmountChanged = prefill?.amount !== prevPrefillRef.current?.amount;
-    const pRecipientChanged = prefill?.recipient !== prevPrefillRef.current?.recipient;
-    const pTokenChanged = prefill?.token !== prevPrefillRef.current?.token;
-    const pChainChanged = prefill?.chainId !== prevPrefillRef.current?.chainId;
+    // Only apply prefill ONCE when the component mounts 
+    // to prevent reverting user's intentional input interactions.
+    if (isInitialPrefillApplied.current || !prefill) return;
 
-    if (pAmountChanged && prefill?.amount) {
+    const updates: Partial<FastBridgeState> = {};
+    if (prefill.amount) {
       const sanitized = prefill.amount.trim();
       if (sanitized && sanitized !== "." && /^\d*\.?\d*$/.test(sanitized)) {
         const num = Number.parseFloat(sanitized);
@@ -177,25 +176,24 @@ const useBridge = ({
         }
       }
     }
-    if (pRecipientChanged && prefill?.recipient) {
-      if (isAddress(prefill.recipient)) {
-        updates.recipient = prefill.recipient as `0x${string}`;
-      }
+    if (prefill.recipient && isAddress(prefill.recipient)) {
+      updates.recipient = prefill.recipient as `0x${string}`;
     }
-    if (pTokenChanged && prefill?.token) {
+
+    if (prefill.token) {
       const tokenSymbol = prefill.token.toUpperCase() as SUPPORTED_TOKENS;
       if (ALLOWED_TOKENS.has(tokenSymbol)) updates.token = tokenSymbol;
     }
-    if (pChainChanged && prefill?.chainId) {
+
+    if (prefill.chainId) {
       updates.chain = prefill.chainId as SUPPORTED_CHAINS_IDS;
     }
 
-    prevPrefillRef.current = prefill;
-
     if (Object.keys(updates).length > 0) {
       dispatch({ type: "setInputs", payload: updates });
+      isInitialPrefillApplied.current = true;
     }
-  }, [prefill?.amount, prefill?.recipient, prefill?.token, prefill?.chainId]);
+  }, [prefill]);
 
   const {
     steps,
