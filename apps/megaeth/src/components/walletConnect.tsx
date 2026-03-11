@@ -68,41 +68,51 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         const methodToCall = args.method;
         const callArgs = { ...args, method: methodToCall };
 
+        if (methodToCall === "eth_sendTransaction" && Array.isArray(callArgs.params) && callArgs.params.length > 0) {
+          const txParam = { ...callArgs.params[0] };
+          if (txParam && typeof txParam === "object") {
+            // Backpack wallet strictly requires Type 2 transactions (EIP-1559)
+            if (txParam.gasPrice) {
+              txParam.maxFeePerGas = txParam.maxFeePerGas || txParam.gasPrice;
+              txParam.maxPriorityFeePerGas = txParam.maxPriorityFeePerGas || txParam.gasPrice;
+              delete txParam.gasPrice;
+            }
+            // Ensure both EIP-1559 fields exist if one does
+            if (txParam.maxFeePerGas && !txParam.maxPriorityFeePerGas) {
+              txParam.maxPriorityFeePerGas = txParam.maxFeePerGas;
+            }
+            callArgs.params = [txParam, ...callArgs.params.slice(1)];
+          }
+        }
+
+        if (
+          methodToCall === "personal_sign" &&
+          Array.isArray(callArgs.params)
+        ) {
+          callArgs.params = callArgs.params.map((param) => {
+            // Convert any string param that doesn't start with 0x into hex (required for Phantom EVM)
+            if (typeof param === "string" && !param.startsWith("0x")) {
+              try {
+                if (typeof Buffer !== "undefined") {
+                  return "0x" + Buffer.from(param, "utf8").toString("hex");
+                }
+                return (
+                  "0x" +
+                  Array.from(new TextEncoder().encode(param))
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("")
+                );
+              } catch (e) {
+                return param;
+              }
+            }
+            return param;
+          });
+        }
+
         try {
           const response = await originalRequest(callArgs);
-          
-          if (methodToCall === "personal_sign" && typeof response === "string") {
-            const MAGIC_BYTES = "6492649264926492649264926492649264926492649264926492649264926492";
 
-            if (response.endsWith(MAGIC_BYTES)) {
-              // The struct layout for ERC-6492 is: (address factory, bytes factoryCalldata, bytes originalSignature)
-              // The data begins after the '0x' in a static/dynamic combined ABI layout.
-              
-              const dataHex = response.slice(2, -MAGIC_BYTES.length);
-              
-              // Extract the offset to the `originalSignature` parameter (the 3rd item in the tuple).
-              // Tuple parameters: 
-              // [0] address (32 bytes)
-              // [1] offset to calldata (32 bytes)
-              // [2] offset to originalSignature (32 bytes)
-              
-              const sigOffsetParamsOffset = 64 * 2; // 64 chars offset exactly covers index [0] and [1]
-              const sigOffsetHex = dataHex.substring(sigOffsetParamsOffset, sigOffsetParamsOffset + 64);
-              const sigOffsetChars = parseInt(sigOffsetHex, 16) * 2;
-              
-              // Read the dynamically sized bytes array at the `originalSignature` offset.
-              // A bytes array is prefixed by its length.
-              const sigLengthHex = dataHex.substring(sigOffsetChars, sigOffsetChars + 64);
-              const sigLengthChars = parseInt(sigLengthHex, 16) * 2;
-              
-              const originalSigHex = dataHex.substring(sigOffsetChars + 64, sigOffsetChars + 64 + sigLengthChars);
-              const finalSig = "0x" + originalSigHex;
-              
-              toast.success(`Unwrapped ERC-6492 Signature! Length: ${finalSig.length}`);
-              return finalSig;
-            }
-          }
-          
           return response;
         } catch (error) {
           throw error;
