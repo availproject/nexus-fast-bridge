@@ -70,17 +70,39 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
         try {
           const response = await originalRequest(callArgs);
-          if (methodToCall === "personal_sign") {
-            const responseStr =
-              typeof response === "object"
-                ? JSON.stringify(response)
-                : String(response);
-            toast.success(`personal_sign response: ${responseStr}`);
-            const len = responseStr.length;
-            toast.success(
-              `personal_sign character length: ${len} (expected 132 with 0x)`,
-            );
+          
+          if (methodToCall === "personal_sign" && typeof response === "string") {
+            const MAGIC_BYTES = "6492649264926492649264926492649264926492649264926492649264926492";
+
+            if (response.endsWith(MAGIC_BYTES)) {
+              // The struct layout for ERC-6492 is: (address factory, bytes factoryCalldata, bytes originalSignature)
+              // The data begins after the '0x' in a static/dynamic combined ABI layout.
+              
+              const dataHex = response.slice(2, -MAGIC_BYTES.length);
+              
+              // Extract the offset to the `originalSignature` parameter (the 3rd item in the tuple).
+              // Tuple parameters: 
+              // [0] address (32 bytes)
+              // [1] offset to calldata (32 bytes)
+              // [2] offset to originalSignature (32 bytes)
+              
+              const sigOffsetParamsOffset = 64 * 2; // 64 chars offset exactly covers index [0] and [1]
+              const sigOffsetHex = dataHex.substring(sigOffsetParamsOffset, sigOffsetParamsOffset + 64);
+              const sigOffsetChars = parseInt(sigOffsetHex, 16) * 2;
+              
+              // Read the dynamically sized bytes array at the `originalSignature` offset.
+              // A bytes array is prefixed by its length.
+              const sigLengthHex = dataHex.substring(sigOffsetChars, sigOffsetChars + 64);
+              const sigLengthChars = parseInt(sigLengthHex, 16) * 2;
+              
+              const originalSigHex = dataHex.substring(sigOffsetChars + 64, sigOffsetChars + 64 + sigLengthChars);
+              const finalSig = "0x" + originalSigHex;
+              
+              toast.success(`Unwrapped ERC-6492 Signature! Length: ${finalSig.length}`);
+              return finalSig;
+            }
           }
+          
           return response;
         } catch (error) {
           throw error;
