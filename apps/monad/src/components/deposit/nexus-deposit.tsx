@@ -90,6 +90,10 @@ const NexusDeposit = ({
   defaultOpen = false,
   children,
 }: DepositWidgetProps & { children: React.ReactNode }) => {
+  console.log("DepositWidgetProps", {
+    heading,
+    destination,
+  });
   const widget = useDepositWidget({
     executeDeposit,
     destination,

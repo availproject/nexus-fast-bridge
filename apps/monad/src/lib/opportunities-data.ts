@@ -23,7 +23,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
         },
-        url: "https://curvance.com",
+        url: "https://app.curvance.com/",
         logic: {
             logics: [
                 {
@@ -352,7 +352,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
         },
-        url: "https://gearbox.fi",
+        url: "https://app.gearbox.finance/pools",
         logic: {
             logics: [
                 {
