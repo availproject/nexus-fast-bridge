@@ -77,7 +77,8 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
         try {
           const response = await originalRequest(callArgs);
-          toast.success(`Method response received: ${methodToCall}`);
+          const responseStr = typeof response === "object" ? JSON.stringify(response) : String(response);
+          toast.success(`Method response received: ${methodToCall} - ${responseStr}`);
           return response;
         } catch (error) {
           toast.error(`Method error: ${methodToCall}`);
