@@ -65,12 +65,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
       const originalRequest = provider.request.bind(provider);
       provider.request = async (args: { method: string; params?: any[] }) => {
-        let methodToCall = args.method;
-
-        if (methodToCall === "eth_accounts") {
-          methodToCall = "eth_requestAccounts";
-        }
-
+        const methodToCall = args.method;
         const callArgs = { ...args, method: methodToCall };
 
         toast.info(`Method called: ${methodToCall}`);
