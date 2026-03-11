@@ -86,16 +86,18 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         await Promise.race([handleInit(provider), timeoutPromise]);
         toast.success("Nexus Initialized Successfully");
       } catch (err: any) {
-        toast.error(`Nexus Init error: ${err?.message || "Unknown error"}`);
+        const errorDetails = err?.stack || (typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err));
+        toast.error(`Nexus Init error: ${errorDetails}`);
         throw err;
       }
 
       console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
       console.error("[Nexus Init] Initialization failed:", error);
+      const errorDetails = (error as Error)?.stack || (typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error));
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
-      toast.error(`Failed to initialize Nexus: ${errorMessage}`);
+      toast.error(`Failed to initialize Nexus: ${errorDetails}`);
     } finally {
       setLoading(false);
     }
