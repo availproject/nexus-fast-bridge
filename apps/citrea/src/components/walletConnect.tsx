@@ -128,6 +128,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       console.error("[Nexus Init] Initialization failed:", error);
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
