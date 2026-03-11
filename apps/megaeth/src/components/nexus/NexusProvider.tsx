@@ -167,6 +167,7 @@ const NexusProvider = ({
       setNexusSDK(sdk);
     } catch (error) {
       console.error("Error initializing Nexus:", error);
+      throw error;
     } finally {
       setLoading(false);
     }
