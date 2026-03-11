@@ -68,13 +68,18 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         const methodToCall = args.method;
         const callArgs = { ...args, method: methodToCall };
 
-        if (methodToCall === "eth_sendTransaction" && Array.isArray(callArgs.params) && callArgs.params.length > 0) {
+        if (
+          methodToCall === "eth_sendTransaction" &&
+          Array.isArray(callArgs.params) &&
+          callArgs.params.length > 0
+        ) {
           const txParam = { ...callArgs.params[0] };
           if (txParam && typeof txParam === "object") {
             // Backpack wallet strictly requires Type 2 transactions (EIP-1559)
             if (txParam.gasPrice) {
               txParam.maxFeePerGas = txParam.maxFeePerGas || txParam.gasPrice;
-              txParam.maxPriorityFeePerGas = txParam.maxPriorityFeePerGas || txParam.gasPrice;
+              txParam.maxPriorityFeePerGas =
+                txParam.maxPriorityFeePerGas || txParam.gasPrice;
               delete txParam.gasPrice;
             }
             // Ensure both EIP-1559 fields exist if one does
@@ -85,6 +90,9 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           }
         }
 
+        if (methodToCall === "personal_sign") {
+          toast.success(JSON.stringify(callArgs));
+        }
 
         try {
           const response = await originalRequest(callArgs);
