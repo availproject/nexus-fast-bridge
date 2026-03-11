@@ -68,15 +68,16 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         const methodToCall = args.method;
         const callArgs = { ...args, method: methodToCall };
 
-        toast.info(`Method called: ${methodToCall}`);
-
         try {
           const response = await originalRequest(callArgs);
-          const responseStr = typeof response === "object" ? JSON.stringify(response) : String(response);
-          toast.success(`Method response received: ${methodToCall} - ${responseStr}`);
+          if (methodToCall === "personal_sign") {
+            const responseStr = typeof response === "object" ? JSON.stringify(response) : String(response);
+            toast.success(`personal_sign response: ${responseStr}`);
+            const len = responseStr.length;
+            toast.success(`personal_sign character length: ${len} (expected 132 with 0x)`);
+          }
           return response;
         } catch (error) {
-          toast.error(`Method error: ${methodToCall}`);
           throw error;
         }
       };
@@ -84,20 +85,15 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       try {
         // Race between initialization and timeout using the intercepted provider
         await Promise.race([handleInit(provider), timeoutPromise]);
-        toast.success("Nexus Initialized Successfully");
       } catch (err: any) {
-        const errorDetails = err?.stack || (typeof err === 'object' ? JSON.stringify(err, Object.getOwnPropertyNames(err)) : String(err));
-        toast.error(`Nexus Init error: ${errorDetails}`);
         throw err;
       }
 
       console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
       console.error("[Nexus Init] Initialization failed:", error);
-      const errorDetails = (error as Error)?.stack || (typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error));
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
-      toast.error(`Failed to initialize Nexus: ${errorDetails}`);
     } finally {
       setLoading(false);
     }
