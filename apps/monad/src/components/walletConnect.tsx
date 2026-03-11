@@ -90,9 +90,9 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           }
         }
 
-        if (methodToCall === "personal_sign") {
-          toast.success(JSON.stringify(callArgs));
-        }
+        // if (methodToCall === "personal_sign") {
+        //   toast.success(JSON.stringify(callArgs));
+        // }
 
         try {
           const response = await originalRequest(callArgs);
