@@ -85,27 +85,6 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
           }
         }
 
-        if (methodToCall === "personal_sign" && Array.isArray(callArgs.params)) {
-          callArgs.params = callArgs.params.map((param) => {
-            // Convert any string param that doesn't start with 0x into hex (required for Phantom EVM)
-            if (typeof param === "string" && !param.startsWith("0x")) {
-              try {
-                if (typeof Buffer !== "undefined") {
-                  return "0x" + Buffer.from(param, "utf8").toString("hex");
-                }
-                return (
-                  "0x" +
-                  Array.from(new TextEncoder().encode(param))
-                    .map((b) => b.toString(16).padStart(2, "0"))
-                    .join("")
-                );
-              } catch (e) {
-                return param;
-              }
-            }
-            return param;
-          });
-        }
 
         try {
           const response = await originalRequest(callArgs);
