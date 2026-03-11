@@ -16,6 +16,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const { nexusSDK, handleInit, deinitializeNexus, setIntent, setAllowance } =
     useNexus();
   const prevAddressRef = React.useRef<string | undefined>(address);
+  const hasAttemptedInitRef = React.useRef<boolean>(false);
 
   const initializeNexus = React.useCallback(async () => {
     if (loading || nexusSDK) return; // Prevent multiple calls
@@ -62,50 +63,36 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
       console.log("[Nexus Init] Provider validated, calling handleInit...");
 
-      // Use a Proxy to cleanly intercept and timeout problematic RPC calls
-      const providerProxy = new Proxy(provider, {
-        get(target: any, prop: string | symbol) {
-          if (prop === "request") {
-            return async (args: { method: string; params?: any[] }) => {
-              let methodToCall = args.method;
+      const originalRequest = provider.request.bind(provider);
+      provider.request = async (args: { method: string; params?: any[] }) => {
+        let methodToCall = args.method;
 
-              if (methodToCall === "eth_accounts") {
-                methodToCall = "eth_requestAccounts";
-              }
+        if (methodToCall === "eth_accounts") {
+          methodToCall = "eth_requestAccounts";
+        }
 
-              const callArgs = { ...args, method: methodToCall };
+        const callArgs = { ...args, method: methodToCall };
 
-              // Reject EIP-5792 methods that Base Wallet often hangs on
-              if (
-                methodToCall === "wallet_getCapabilities" ||
-                methodToCall === "wallet_getCallsStatus" ||
-                methodToCall === "wallet_sendCalls"
-              ) {
-                return Promise.reject({
-                  code: -32601,
-                  message: "Method not supported",
-                });
-              }
+        toast.info(`Method called: ${methodToCall}`);
 
-              toast.info(`Method called: ${methodToCall}`);
+        try {
+          const response = await originalRequest(callArgs);
+          toast.success(`Method response received: ${methodToCall}`);
+          return response;
+        } catch (error) {
+          toast.error(`Method error: ${methodToCall}`);
+          throw error;
+        }
+      };
 
-              try {
-                const response = await target.request(callArgs);
-                toast.success(`Method response received: ${methodToCall}`);
-                return response;
-              } catch (error) {
-                toast.error(`Method error: ${methodToCall}`);
-                throw error;
-              }
-            };
-          }
-          const value = Reflect.get(target, prop);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-
-      // Race between initialization and timeout using the intercepted provider
-      await Promise.race([handleInit(providerProxy), timeoutPromise]);
+      try {
+        // Race between initialization and timeout using the intercepted provider
+        await Promise.race([handleInit(provider), timeoutPromise]);
+        toast.success("Nexus Initialized Successfully");
+      } catch (err: any) {
+        toast.error(`Nexus Init error: ${err?.message || "Unknown error"}`);
+        throw err;
+      }
 
       console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
@@ -128,6 +115,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     }
     if (status === "disconnected") {
       setInitError(null);
+      hasAttemptedInitRef.current = false;
     }
   }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
 
@@ -141,6 +129,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       const previousAddress = prevAddressRef.current;
       const currentAddress = address;
       prevAddressRef.current = address;
+      hasAttemptedInitRef.current = false;
 
       // If account changed and Nexus is initialized, reinitialize with new account
       if (nexusSDK && previousAddress !== undefined) {
@@ -152,8 +141,10 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
             if (
               currentAddress === prevAddressRef.current &&
               !loading &&
-              !initError
+              !initError &&
+              !hasAttemptedInitRef.current
             ) {
+              hasAttemptedInitRef.current = true;
               initializeNexus();
             }
           }, 100);
@@ -180,9 +171,11 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       !nexusSDK &&
       !loading &&
       !initError &&
+      !hasAttemptedInitRef.current &&
       address &&
       connector
     ) {
+      hasAttemptedInitRef.current = true;
       initializeNexus();
     }
   }, [
