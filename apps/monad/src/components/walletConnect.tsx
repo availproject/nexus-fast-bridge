@@ -67,11 +67,19 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
         get(target: any, prop: string | symbol) {
           if (prop === "request") {
             return async (args: { method: string; params?: any[] }) => {
+              let methodToCall = args.method;
+
+              if (methodToCall === "eth_accounts") {
+                methodToCall = "eth_requestAccounts";
+              }
+
+              const callArgs = { ...args, method: methodToCall };
+
               // Reject EIP-5792 methods that Base Wallet often hangs on
               if (
-                args.method === "wallet_getCapabilities" ||
-                args.method === "wallet_getCallsStatus" ||
-                args.method === "wallet_sendCalls"
+                methodToCall === "wallet_getCapabilities" ||
+                methodToCall === "wallet_getCallsStatus" ||
+                methodToCall === "wallet_sendCalls"
               ) {
                 return Promise.reject({
                   code: -32601,
@@ -79,16 +87,16 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
                 });
               }
 
-              // Normal request with an 8-second timeout guard
-              return Promise.race([
-                target.request(args),
-                new Promise((_, reject) =>
-                  setTimeout(() => {
-                    toast.error(`Wallet RPC Timeout: ${args.method}`);
-                    reject({ code: -32000, message: `Timeout: ${args.method}` });
-                  }, 8000)
-                ),
-              ]);
+              toast.info(`Method called: ${methodToCall}`);
+
+              try {
+                const response = await target.request(callArgs);
+                toast.success(`Method response received: ${methodToCall}`);
+                return response;
+              } catch (error) {
+                toast.error(`Method error: ${methodToCall}`);
+                throw error;
+              }
             };
           }
           const value = Reflect.get(target, prop);
