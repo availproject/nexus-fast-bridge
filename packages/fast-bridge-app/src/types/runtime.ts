@@ -41,6 +41,7 @@ export interface ChainFeatures {
   analyticsFastBridgeKey: string;
   denyIntentOnReset?: boolean;
   dialogShowCloseButton?: boolean;
+  enableGtagOnConnectWallet?: boolean;
   feeBreakdownHideGasSupplied?: boolean;
   feeBreakdownKeepZeroRows?: boolean;
   feeBreakdownZeroForNonCaGasOnDestinationId?: number;
@@ -95,4 +96,5 @@ export const defaultChainFeatures: ChainFeatures = {
   feeBreakdownHideGasSupplied: false,
   feeBreakdownKeepZeroRows: false,
   dialogShowCloseButton: true,
+  enableGtagOnConnectWallet: false,
 };

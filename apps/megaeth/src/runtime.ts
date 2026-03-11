@@ -46,4 +46,5 @@ export const chainFeatures: ChainFeatures = {
   feeBreakdownHideGasSupplied: true,
   feeBreakdownKeepZeroRows: true,
   dialogShowCloseButton: false,
+  enableGtagOnConnectWallet: true,
 };
