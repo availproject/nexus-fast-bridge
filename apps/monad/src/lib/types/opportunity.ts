@@ -176,6 +176,7 @@ interface Opportunity {
         };
         logics: OppLogic[];
     };
+    url?: string;
 }
 
 export type {

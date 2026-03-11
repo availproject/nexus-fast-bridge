@@ -30,7 +30,8 @@ const WidgetHeader = ({
           src={depositTargetLogo}
           width={20}
           height={20}
-          className="h-5 w-5"
+          style={{ width: 20, height: 20 }}
+          className="h-5 w-5 object-contain"
         />
       ) : (
         <div className="size-5 bg-background/20 rounded-full"></div>

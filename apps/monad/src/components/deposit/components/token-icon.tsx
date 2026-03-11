@@ -35,7 +35,8 @@ export function TokenIcon({
         alt={tokenAlt}
         width={dimensions.token}
         height={dimensions.token}
-        className="rounded-full object-cover"
+        style={{ width: dimensions.token, height: dimensions.token }}
+        className="rounded-full object-contain"
       />
       {protocolSrc && (
         <img
@@ -43,7 +44,8 @@ export function TokenIcon({
           alt={protocolAlt}
           width={dimensions.protocol}
           height={dimensions.protocol}
-          className="absolute -bottom-0.5 -right-0.5 translate-x-1/5 translate-y-1/5 rounded-full border-2 border-base object-cover"
+          style={{ width: dimensions.protocol, height: dimensions.protocol }}
+          className="absolute -bottom-0.5 -right-0.5 translate-x-1/5 translate-y-1/5 rounded-full border-2 border-base object-contain bg-white"
         />
       )}
     </div>

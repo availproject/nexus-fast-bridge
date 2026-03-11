@@ -23,6 +23,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
         },
+        url: "https://curvance.com",
         logic: {
             logics: [
                 {
@@ -129,6 +130,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
         },
+        url: "https://neverland.io",
         logic: {
             logics: [
                 {
@@ -239,6 +241,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0xe7cd86e13ac4309349f30b3435a9d337750fc82d",
         },
+        url: "https://neverland.io",
         logic: {
             logics: [
                 {
@@ -349,6 +352,7 @@ export const sampleOpportunities: Opportunity[] = [
             decimals: 6,
             address: "0x754704bc059f8c67012fed69bc8a327a5aafb603",
         },
+        url: "https://gearbox.fi",
         logic: {
             logics: [
                 {

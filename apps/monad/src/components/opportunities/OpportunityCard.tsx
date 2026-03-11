@@ -18,6 +18,7 @@ import {
   // useEffect,
   useState,
 } from "react";
+import { ExternalLink } from "lucide-react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -35,6 +36,7 @@ export function OpportunityCard({
   const { setOpen: setConnectModalOpen } = useModal();
   // const [gasPrice, setGasPrice] = useState<bigint>(0n);
   const [open, setOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const withdrawConfig = opportunity.withdraw;
 
@@ -122,8 +124,8 @@ export function OpportunityCard({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
-      onClick={() => onClick?.(opportunity)}
+      className="group relative overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col items-stretch"
+      onClick={() => setIsExpanded((prev) => !prev)}
     >
       {/* Gradient Header */}
       <div
@@ -171,29 +173,26 @@ export function OpportunityCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+        <h3 className="text-lg font-bold text-gray-900 mb-2 flex flex-wrap items-center gap-2">
           {token.icon && (
             <img
               src={token.icon}
               alt={token.symbol}
-              className="w-6 h-6 rounded-full"
+              className="w-6 h-6 rounded-full object-contain"
             />
           )}
-          {title}
+          <span className={isExpanded ? "" : "line-clamp-2"}>{title}</span>
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{description}</p>
+        <p className={`text-sm text-gray-600 mb-4 ${isExpanded ? "" : "line-clamp-2"}`}>
+          {description}
+        </p>
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           {/* Protocol & Chain */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-gray-500 capitalize">
-                {protocol} • {chain}
-              </span>
-            </div>
+          <div className="flex flex-col gap-1 justify-center">
             {balance > 0n && (
               <span className="text-sm font-semibold text-gray-700">
                 Withdrawable: {formatUnits(balance, decimals)}{" "}
@@ -215,6 +214,17 @@ export function OpportunityCard({
                 chainId={SUPPORTED_CHAINS.MONAD}
                 onSuccess={() => refetchBalance()}
               />
+            )}
+            {opportunity.url && (
+              <a
+                href={opportunity.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-full border border-gray-200 transition-all hover:bg-gray-50 text-gray-700 whitespace-nowrap"
+              >
+                App <ExternalLink className="w-4 h-4 hidden sm:inline" />
+              </a>
             )}
             {!isConnected ? (
               <button
@@ -278,9 +288,6 @@ export function OpportunityCard({
                   return {
                     to: t.to as `0x${string}`,
                     data,
-                    gas: 1_500_000n, // 1.5 million units
-                    // set static gas limit to avoid issues and high gas fees
-                    gasPrice: "medium",
                     tokenApproval: {
                       token: token.address,
                       amount: approval.amount === "input" ? amount : maxUint256,
@@ -295,7 +302,10 @@ export function OpportunityCard({
                     backgroundColor: primaryColor,
                     color: config.secondaryColor,
                   }}
-                  onClick={() => setOpen(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(true);
+                  }}
                 >
                   <span className="hidden sm:inline">{proceedText}</span>
                   <span className="sm:hidden">Invest</span>
