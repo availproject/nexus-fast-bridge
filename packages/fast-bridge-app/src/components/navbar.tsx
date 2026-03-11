@@ -1,10 +1,25 @@
 "use client";
-import { appConfig } from "@fastbridge/runtime";
+import { appConfig, chainFeatures } from "@fastbridge/runtime";
 import { ConnectKitButton } from "connectkit";
+import { useAccount } from "wagmi";
 import { withBasePath } from "@/lib/utils";
 import AvailLogo from "/avail_logo.svg";
 
 export default function Navbar() {
+  const { isConnected } = useAccount();
+
+  const handleWalletClick = () => {
+    if (
+      !isConnected &&
+      chainFeatures.enableGtagOnConnectWallet &&
+      typeof window !== "undefined" &&
+      // @ts-expect-error - gtag_report_conversion is conditionally added by a global script
+      typeof window.gtag_report_conversion === "function"
+    ) {
+      // @ts-expect-error - expected injected global method
+      window.gtag_report_conversion(window.location.href);
+    }
+  };
   return (
     <nav className="relative z-10 w-full overflow-x-hidden border-border border-b">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -58,7 +73,10 @@ export default function Navbar() {
           </div>
 
           {/* Right side - Wallet connect only */}
-          <div className="flex shrink-0 items-center">
+          <div
+            className="flex shrink-0 items-center"
+            onClickCapture={handleWalletClick}
+          >
             <ConnectKitButton />
           </div>
         </div>
