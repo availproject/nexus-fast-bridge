@@ -31,7 +31,7 @@ export default defineConfig({
   },
   envPrefix: ["VITE_"],
   build: {
+    outDir: "apps/root/dist",
     emptyOutDir: true,
-    outDir: "dist",
   },
 });
