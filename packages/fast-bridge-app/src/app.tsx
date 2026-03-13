@@ -1,28 +1,20 @@
-import { appConfig, chainFeatures } from "@fastbridge/runtime";
+"use client";
 import { motion } from "motion/react";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import HeroSection from "@/components/hero-section";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
 export default function App() {
+  const { appConfig, chainFeatures } = useRuntime();
+
   return (
-    <Web3Provider>
+    <Web3Provider appConfig={appConfig}>
       <NexusProvider
         config={{
-          // network: {
-          //   NETWORK_HINT: Environment.CERISE,
-          //   COSMOS_GRPC_URL: "https://debugnet.availproject.org/grpc-web/",
-          //   COSMOS_REST_URL: "https://debugnet.availproject.org",
-          //   COSMOS_RPC_URL: "https://debugnet.availproject.org:26650",
-          //   COSMOS_WS_URL: "wss://debugnet.availproject.org:26650/websocket",
-          //   INTENT_EXPLORER_URL:
-          //     "https://explorer.nexus-cerise.availproject.org",
-          //   VSC_BASE_URL: "https://vsc-debugnet.availproject.org",
-          //   VSC_WS_URL: "wss://vsc-debugnet.availproject.org",
-          // },
           network: "mainnet",
           debug: true,
         }}

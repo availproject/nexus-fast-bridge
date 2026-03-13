@@ -48,7 +48,7 @@ export interface BridgeSubmitEventProperties {
   amount: string;
   chain: string | number;
   chainName: string;
-  fast_bridge: "megaeth" | "citrea" | "monad";
+  fast_bridge: string;
   tokenSymbol: string;
 }
 

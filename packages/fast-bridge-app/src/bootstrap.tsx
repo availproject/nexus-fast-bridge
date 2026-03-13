@@ -1,7 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
 import { initPostHog } from "./lib/posthog";
+import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
 import "./index.css";
 
 const cleanupWalletConnectSubscription = () => {
@@ -40,7 +42,24 @@ export function bootstrapApp() {
 
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <App />
+      <BrowserRouter>
+        <Routes>
+          <Route
+            element={
+              <RuntimeProvider>
+                <App />
+              </RuntimeProvider>
+            }
+            path="/:chain"
+          />
+          <Route element={<RedirectToLastChain />} path="*" />
+        </Routes>
+      </BrowserRouter>
     </React.StrictMode>
   );
+}
+
+function RedirectToLastChain() {
+  const lastChain = loadLastChain();
+  return <Navigate replace to={`/${lastChain}`} />;
 }

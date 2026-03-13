@@ -130,6 +130,25 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const inputs = state.inputs;
+
+  useEffect(() => {
+    if (prefill?.chainId && prefill.chainId !== inputs?.chain) {
+      dispatch({
+        type: "setInputs",
+        payload: { chain: prefill.chainId as SUPPORTED_CHAINS_IDS },
+      });
+    }
+  }, [prefill?.chainId, inputs?.chain]);
+
+  useEffect(() => {
+    if (prefill?.token && prefill.token !== inputs?.token) {
+      dispatch({
+        type: "setInputs",
+        payload: { token: prefill.token as SUPPORTED_TOKENS },
+      });
+    }
+  }, [prefill?.token, inputs?.token]);
+
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>
   ) => {
@@ -514,7 +533,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   );
 
   const debouncedRefreshMaxForSelection = useDebouncedCallback(
-    async (requestId: number) => {
+    async (requestId: unknown) => {
       try {
         const maxForCurrentSelection = await getMaxForCurrentSelection();
         if (requestId !== maxAmountRequestIdRef.current) {

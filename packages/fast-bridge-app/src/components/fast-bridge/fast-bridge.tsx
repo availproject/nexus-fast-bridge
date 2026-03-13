@@ -3,13 +3,14 @@ import type {
   SUPPORTED_CHAINS_IDS,
   SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import Decimal from "decimal.js";
 import { CheckCircle2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
+import { getChainSlugById } from "@/config/chain-settings";
+import { persistToken, useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -132,8 +133,9 @@ function FastBridge({
   onError,
   prefill,
 }: FastBridgeProps) {
+  const { chainFeatures, setChain } = useRuntime();
   const maxBridgeAmount = chainFeatures.maxBridgeAmount;
-  const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
+  const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc ?? false;
   const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
 
   const {
@@ -214,7 +216,7 @@ function FastBridge({
     } catch (error) {
       console.error("Failed to add token to wallet:", error);
     }
-  }, [intent, walletClient]);
+  }, [intent, walletClient, postBridgeWatchAsset]);
 
   const showBridgeSuccessToast = useCallback((data: BridgeSuccessToastData) => {
     toast.success(
@@ -543,18 +545,23 @@ function FastBridge({
           )}
           <ChainSelect
             disabled={!!prefill?.chainId}
-            handleSelect={(chain) =>
-              setInputs({
-                ...inputs,
-                chain,
-              })
-            }
+            handleSelect={(chainId) => {
+              const slug = getChainSlugById(chainId);
+              if (slug) {
+                setChain(slug);
+              } else {
+                setInputs({ ...inputs, chain: chainId });
+              }
+            }}
             label="To"
             selectedChain={inputs?.chain}
           />
           <TokenSelect
             disabled={!!prefill?.token}
-            handleTokenSelect={(token) => setInputs({ ...inputs, token })}
+            handleTokenSelect={(token) => {
+              persistToken(token);
+              setInputs({ ...inputs, token });
+            }}
             selectedChain={inputs?.chain}
             selectedToken={inputs?.token}
           />

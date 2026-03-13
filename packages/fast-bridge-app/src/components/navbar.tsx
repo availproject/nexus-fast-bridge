@@ -1,11 +1,12 @@
 "use client";
-import { appConfig, chainFeatures } from "@fastbridge/runtime";
 import { ConnectKitButton } from "connectkit";
 import { useAccount } from "wagmi";
 import { withBasePath } from "@/lib/utils";
+import { useRuntime } from "@/providers/runtime-context";
 import AvailLogo from "/avail_logo.svg";
 
 export default function Navbar() {
+  const { appConfig, chainFeatures } = useRuntime();
   const { isConnected } = useAccount();
 
   const handleWalletClick = () => {

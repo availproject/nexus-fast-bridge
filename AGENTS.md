@@ -29,54 +29,47 @@ If docs and code conflict, stop and resolve the mismatch first (update docs and 
 
 ## Core Rules
 
-- Prefer editing shared code in `packages/fast-bridge-app/src/**`.
-- Only use `apps/<slug>/src/runtime.ts` and env/config files for chain-specific behavior.
-- Avoid reintroducing duplicated per-chain component trees.
-- If you add env keys in `.env.<slug>`, run `pnpm chains:sync`.
-- If you move shared source files, update Tailwind `@source` paths in `packages/fast-bridge-app/src/index.css`.
-- For runtime-provided image URLs (`appConfig` / `chainFeatures`), use `withBasePath(...)` where needed.
+- All shared code lives in `packages/fast-bridge-app/src/**`.
+- Chain configurations are managed entirely in `packages/fast-bridge-app/src/config/chain-settings.ts`.
+- RPC URLs are maintained in `packages/fast-bridge-app/src/config/rpcs.json` (if used, else inside registry).
+- Do not use environment variables for chain-specific features.
+- Provide all logic via the `useRuntime()` context hook instead of static config imports.
 
 ## Chain Workflows
 
 ### Add a chain
 
-```bash
-pnpm chain:add <slug> --name "Chain Name"
-```
-
-Then complete the checklist in `docs/adding-chains.md`.
+1. Add a new entry to `CHAIN_REGISTRY` in `packages/fast-bridge-app/src/config/chain-settings.ts`.
+2. Add the RPC URL to the configuration or `rpcs.json`.
+3. Add any necessary custom features to the chain's `ChainFeatures` object.
 
 ### Add new chain-specific behavior
 
 1. Extend `ChainFeatures` in `packages/fast-bridge-app/src/types/runtime.ts`.
-2. Add default value in `defaultChainFeatures`.
-3. Consume flag in shared components/hooks.
-4. Set values in each `apps/<slug>/src/runtime.ts`.
+2. Add a fallback default value in `defaultChainFeatures`.
+3. Consume the new flag in shared components using `useRuntime()`.
+4. Set the exact values in the `CHAIN_REGISTRY` entry in `chain-settings.ts`.
 
 ## Validation Commands
 
-- Single chain dev: `pnpm --filter @fastbridge/<slug> dev`
-- Multi app dev: `pnpm dev:all`
-- Single chain build: `pnpm --filter @fastbridge/<slug> build`
-- Full build: `pnpm build:all`
-- Env export for deploy: `pnpm vercel:env`
+- Run dev server: `pnpm dev`
+- Build production bundle: `pnpm build`
+- Preview production build: `pnpm preview`
+- Lint code: `pnpm check`
+- Format code: `pnpm fix`
 
 ## Important Paths
 
-- Chain registry: `chains.config.json`
-- Shared app code: `packages/fast-bridge-app/src`
-- Chain runtime wrappers: `apps/<slug>/src/runtime.ts`
-- Env prep: `scripts/prepare-env.mjs`
-- Scaffold: `scripts/chains-add.mjs`
-- Sync: `scripts/sync-chains.mjs`
-- Root bundle collection: `scripts/collect-chains.mjs`
+- Chain configs: `packages/fast-bridge-app/src/config/chain-settings.ts`
+- Shared app code: `packages/fast-bridge-app/src/`
+- Runtime Hook: `packages/fast-bridge-app/src/providers/runtime-context.tsx`
 
 ## Anti-Patterns
 
-- Duplicating the same bug fix in multiple apps.
 - Hardcoding chain logic in shared code without feature gates.
-- Forgetting to sync env key changes to turbo (`pnpm chains:sync`).
-- Introducing root-relative asset paths in runtime-driven UI without base-path normalization.
+- Storing chain data in `.env` variables instead of the registry.
+- Relying on Turborepo multi-build logic (the project is now a single SPA).
+- Using `import { appConfig } from "@fastbridge/runtime"` instead of `useRuntime()`.
 
 
 # Ultracite Code Standards

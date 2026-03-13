@@ -7,9 +7,9 @@ import type {
   SUPPORTED_TOKENS,
   UserAsset,
 } from "@avail-project/nexus-core";
-import { appConfig, chainFeatures } from "@fastbridge/runtime";
 import { type RefObject, useCallback } from "react";
 import { type Address, isAddress } from "viem";
+import { loadLastToken, useRuntime } from "@/providers/runtime-context";
 import { trackBridgeSubmit } from "../../../lib/posthog";
 import { useTransactionFlow } from "../../common/hooks/use-transaction-flow";
 import type {
@@ -48,10 +48,12 @@ interface UseBridgeProps {
 
 const sanitizePrefill = (
   prefill: UseBridgeProps["prefill"],
-  connectedAddress?: Address
+  connectedAddress: Address | undefined,
+  appConfig: ReturnType<typeof useRuntime>["appConfig"]
 ): TransactionFlowPrefill => {
   const tokenCandidate = (
     prefill?.token ??
+    loadLastToken() ??
     appConfig.nexusPrimaryToken ??
     "USDC"
   ).toUpperCase();
@@ -107,6 +109,8 @@ const useBridge = ({
   maxAmount,
   isSourceMenuOpen = false,
 }: UseBridgeProps) => {
+  const { appConfig, chainFeatures } = useRuntime();
+
   const executeTransaction = useCallback(
     ({
       token,
@@ -138,9 +142,9 @@ const useBridge = ({
           sourceChains,
         },
         { onEvent }
-      );
+      ) as unknown as Promise<{ explorerUrl: string } | null>;
     },
-    [connectedAddress, nexusSDK]
+    [connectedAddress, nexusSDK, chainFeatures.analyticsFastBridgeKey]
   );
 
   const flow = useTransactionFlow({
@@ -150,7 +154,7 @@ const useBridge = ({
     nexusSDK,
     intent,
     bridgableBalance,
-    prefill: sanitizePrefill(prefill, connectedAddress),
+    prefill: sanitizePrefill(prefill, connectedAddress, appConfig),
     onComplete,
     onStart,
     onError,

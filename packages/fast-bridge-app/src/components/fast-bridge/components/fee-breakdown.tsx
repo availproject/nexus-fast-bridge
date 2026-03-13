@@ -2,9 +2,9 @@ import type {
   ReadableIntent,
   SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import { MessageCircleQuestion } from "lucide-react";
 import type { FC } from "react";
+import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../../nexus/nexus-provider";
 import {
   Accordion,
@@ -26,6 +26,7 @@ const FeeBreakdown: FC<FeeBreakdownProps> = ({
   tokenSymbol,
   isLoading = false,
 }) => {
+  const { chainFeatures } = useRuntime();
   const { nexusSDK } = useNexus();
   const displaySymbol =
     chainFeatures.mapUsdmDisplaySymbolToUsdc &&

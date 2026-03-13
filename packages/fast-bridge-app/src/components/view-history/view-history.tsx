@@ -1,7 +1,5 @@
 "use client";
 
-import type { RFF } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -16,13 +14,18 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useRuntime } from "@/providers/runtime-context";
+import type { ChainFeatures } from "@/types/runtime";
 import { TOKEN_IMAGES } from "../common/utils/constant";
 import useViewHistory from "./hooks/use-view-history";
 
-const getDestinationTokenImage = (tokenSymbol: string) => {
+const getDestinationTokenImage = (
+  tokenSymbol: string,
+  features: ChainFeatures
+) => {
   const override =
-    chainFeatures.tokenLogoOverrideBySymbol?.[tokenSymbol] ??
-    chainFeatures.tokenLogoOverrideBySymbol?.[tokenSymbol.toUpperCase()];
+    features.tokenLogoOverrideBySymbol?.[tokenSymbol] ??
+    features.tokenLogoOverrideBySymbol?.[tokenSymbol.toUpperCase()];
   return override ?? TOKEN_IMAGES[tokenSymbol];
 };
 
@@ -81,6 +84,7 @@ const DestinationToken = ({
 }: {
   destination: RFF["destinations"];
 }) => {
+  const { chainFeatures } = useRuntime();
   return (
     <div className="flex items-center">
       {destination.map((dest, index) => (
@@ -96,7 +100,7 @@ const DestinationToken = ({
             alt={dest.token.symbol}
             className="rounded-full"
             height={24}
-            src={getDestinationTokenImage(dest.token.symbol)}
+            src={getDestinationTokenImage(dest.token.symbol, chainFeatures)}
             width={24}
           />
         </div>

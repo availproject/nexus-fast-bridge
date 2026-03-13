@@ -10,8 +10,6 @@ import {
   type SupportedChainsResult,
   type UserAsset,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
-
 import {
   createContext,
   type RefObject,
@@ -23,6 +21,7 @@ import {
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
+import { useRuntime } from "@/providers/runtime-context";
 
 interface NexusContextType {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -66,6 +65,7 @@ const NexusProvider = ({
   children,
   config = defaultConfig,
 }: NexusProviderProps) => {
+  const { chainFeatures } = useRuntime();
   const stableConfig = useMemo(
     () => ({ ...defaultConfig, ...config }),
     [config]
@@ -99,7 +99,7 @@ const NexusProvider = ({
         })),
       }));
     },
-    []
+    [chainFeatures.tokenLogoOverrideBySymbol]
   );
   const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
     useState<SupportedChainsAndTokensResult | null>(
