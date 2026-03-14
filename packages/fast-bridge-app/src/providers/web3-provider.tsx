@@ -1,10 +1,12 @@
 "use client";
 
 import { appConfig } from "@fastbridge/runtime";
+import { createAppKit } from "@reown/appkit/react";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConnectKitProvider, getDefaultConfig } from "connectkit";
+import { ConnectKitProvider } from "connectkit";
 import type React from "react";
-import { createConfig, http, WagmiProvider } from "wagmi";
+import { WagmiProvider } from "wagmi";
 import {
   arbitrum,
   avalanche,
@@ -56,50 +58,70 @@ const megaeth: Chain = {
 };
 
 //ideally we should add private rpcs for each, for now it fallbacks to default rpcs
-const transports = {
-  [mainnet.id]: http(import.meta.env.VITE_MAINNET_RPC),
-  [base.id]: http(import.meta.env.VITE_BASE_RPC),
-  [arbitrum.id]: http(import.meta.env.VITE_ARBITRUM_RPC),
-  [optimism.id]: http(import.meta.env.VITE_OPTIMISM_RPC),
-  [polygon.id]: http(import.meta.env.VITE_POLYGON_RPC),
-  [scroll.id]: http(import.meta.env.VITE_SCROLL_RPC),
-  [avalanche.id]: http(import.meta.env.VITE_AVALANCHE_RPC),
-  [sophon.id]: http(import.meta.env.VITE_SOPHON_RPC),
-  [kaia.id]: http(import.meta.env.VITE_KAIA_RPC),
-  [chain.id]: http(appConfig.chainRpcUrl),
-  [monad.id]: http(import.meta.env.VITE_MONAD_RPC),
-  [megaeth.id]: http(import.meta.env.VITE_MEGAETH_RPC),
+
+const networks = [
+  chain,
+  mainnet,
+  base,
+  sophon,
+  kaia,
+  arbitrum,
+  avalanche,
+  optimism,
+  polygon,
+  scroll,
+  monad,
+  megaeth,
+] as [Chain, ...Chain[]];
+
+const metadata = {
+  name: appConfig.appTitle ?? "Nexus Elements",
+  description: appConfig.appDescription ?? "Move assets instantly.",
+  url:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://fastbridge.availproject.org",
+  icons: [appConfig.meta?.faviconUrl ?? ""],
 };
 
-const defaultConfigParams = getDefaultConfig({
-  appName: appConfig.appTitle ?? "Nexus Elements",
-  walletConnectProjectId,
-  chains: [
-    chain,
-    mainnet,
-    base,
-    sophon,
-    kaia,
-    arbitrum,
-    avalanche,
-    optimism,
-    polygon,
-    scroll,
-    monad,
-    megaeth,
-  ],
-  transports,
-  enableFamily: false,
+const wagmiAdapter = new WagmiAdapter({
+  networks,
+  projectId: walletConnectProjectId,
+  ssr: false,
 });
 
-const wagmiConfig = createConfig(defaultConfigParams);
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks,
+  projectId: walletConnectProjectId,
+  metadata,
+  features: {
+    analytics: true,
+    email: false,
+    socials: false,
+  },
+  allWallets: "SHOW",
+  enableEIP6963: true,
+  // Ensure that MetaMask and Base are the featured wallets on top
+  featuredWalletIds: [
+    "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96", // MetaMask
+    "fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa", // Coinbase/Base Wallet
+  ],
+  excludeWalletIds: [
+    "c34de246586459b8a33e82efe825fec5f75ac6cee50098e76abfd8161de827f2",
+  ],
+  defaultAccountTypes: { eip155: "eoa" },
+});
+
 const queryClient = new QueryClient();
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        <ConnectKitProvider mode="light" theme="minimal">
+          {children}
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

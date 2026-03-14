@@ -105,8 +105,8 @@ interface FastBridgeProps {
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: {
-    token: SUPPORTED_TOKENS;
-    chainId: SUPPORTED_CHAINS_IDS;
+    token?: SUPPORTED_TOKENS;
+    chainId?: SUPPORTED_CHAINS_IDS;
     amount?: string;
     recipient?: Address;
   };
@@ -542,7 +542,6 @@ function FastBridge({
             />
           )}
           <ChainSelect
-            disabled={!!prefill?.chainId}
             handleSelect={(chain) =>
               setInputs({
                 ...inputs,
@@ -553,7 +552,6 @@ function FastBridge({
             selectedChain={inputs?.chain}
           />
           <TokenSelect
-            disabled={!!prefill?.token}
             handleTokenSelect={(token) => setInputs({ ...inputs, token })}
             selectedChain={inputs?.chain}
             selectedToken={inputs?.token}
@@ -561,7 +559,7 @@ function FastBridge({
           <AmountInput
             amount={inputs?.amount}
             bridgableBalance={filteredBridgableBalance}
-            disabled={refreshing || !!prefill?.amount}
+            disabled={refreshing}
             inputs={inputs}
             maxAmount={maxBridgeAmount}
             maxAvailableAmount={maxAvailableAmount}
@@ -571,7 +569,6 @@ function FastBridge({
           />
           <RecipientAddress
             address={inputs?.recipient}
-            disabled={!!prefill?.recipient}
             onChange={(address) =>
               setInputs({ ...inputs, recipient: address as `0x${string}` })
             }
