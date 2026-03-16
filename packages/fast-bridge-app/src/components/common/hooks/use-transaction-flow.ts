@@ -18,6 +18,7 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress } from "viem";
+import { persistToken } from "@/providers/runtime-context";
 import type { TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
 import type {
@@ -58,6 +59,7 @@ interface BaseTransactionFlowProps {
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: TransactionFlowPrefill;
+  supportedTokens?: string[];
   type: TransactionFlowType;
 }
 
@@ -96,6 +98,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     mapUsdmToUsdcBalance = false,
     denyIntentOnReset = true,
     executeTransaction,
+    supportedTokens,
   } = props;
 
   const connectedAddress = props.connectedAddress;
@@ -154,6 +157,25 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       });
     }
   }, [prefill?.token]);
+
+  useEffect(() => {
+    if (
+      supportedTokens &&
+      supportedTokens.length > 0 &&
+      inputs?.token &&
+      !(
+        supportedTokens.includes(inputs.token.toUpperCase()) ||
+        supportedTokens.includes(inputs.token)
+      )
+    ) {
+      const fallback = supportedTokens[0] as SUPPORTED_TOKENS;
+      dispatch({
+        type: "setInputs",
+        payload: { token: fallback },
+      });
+      persistToken(fallback);
+    }
+  }, [supportedTokens, inputs?.token]);
 
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>

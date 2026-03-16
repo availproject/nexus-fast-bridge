@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
 import { getChainSlugById } from "@/config/chain-settings";
-import { useRuntime } from "@/providers/runtime-context";
+import { persistToken, useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -583,6 +583,7 @@ function FastBridge({
           <TokenSelect
             disabled={!!prefill?.token}
             handleTokenSelect={(token) => {
+              persistToken(token);
               setInputs({ ...inputs, token });
             }}
             selectedChain={inputs?.chain}

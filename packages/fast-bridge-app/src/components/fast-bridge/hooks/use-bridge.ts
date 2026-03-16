@@ -9,7 +9,7 @@ import type {
 } from "@avail-project/nexus-core";
 import { type RefObject, useCallback } from "react";
 import { type Address, isAddress } from "viem";
-import { useRuntime } from "@/providers/runtime-context";
+import { loadLastToken, useRuntime } from "@/providers/runtime-context";
 import { trackBridgeSubmit } from "../../../lib/posthog";
 import { useTransactionFlow } from "../../common/hooks/use-transaction-flow";
 import type {
@@ -53,6 +53,7 @@ const sanitizePrefill = (
 ): TransactionFlowPrefill => {
   const tokenCandidate = (
     prefill?.token ??
+    loadLastToken() ??
     appConfig.nexusPrimaryToken ??
     "USDC"
   ).toUpperCase();
@@ -164,6 +165,7 @@ const useBridge = ({
     notifyHistoryRefresh: notifyIntentHistoryRefresh,
     mapUsdmToUsdcBalance: chainFeatures.mapUsdmToUsdcBalance ?? false,
     denyIntentOnReset: chainFeatures.denyIntentOnReset ?? true,
+    supportedTokens: chainFeatures.supportedTokens,
     executeTransaction,
   });
 

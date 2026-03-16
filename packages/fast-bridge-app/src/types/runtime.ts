@@ -73,6 +73,7 @@ export interface ChainFeatures {
   supportCtaHref?: string;
   supportCtaLine1?: string;
   supportCtaLine2?: string;
+  supportedTokens?: string[];
   tokenDenyListByChainId?: Record<number, string[]>;
   tokenLogoOverrideBySymbol?: Record<string, string>;
   walletInitDelayMs?: number;
