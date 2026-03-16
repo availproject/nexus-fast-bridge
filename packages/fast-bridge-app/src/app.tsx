@@ -5,11 +5,13 @@ import HeroSection from "@/components/hero-section";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { usePreloadChainLogos } from "@/hooks/use-preload-chain-logos";
 import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
 export default function App() {
   const { appConfig, chainFeatures } = useRuntime();
+  usePreloadChainLogos();
 
   return (
     <Web3Provider appConfig={appConfig}>
