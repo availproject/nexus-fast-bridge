@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
 import { getChainSlugById } from "@/config/chain-settings";
-import { persistToken, useRuntime } from "@/providers/runtime-context";
+import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -487,6 +487,30 @@ function FastBridge({
   return (
     <div className="flex w-full max-w-xl flex-col gap-y-4">
       {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
+      {chainFeatures.mascotImageUrl && (
+        <div className="pointer-events-none fixed right-0 bottom-0 left-0 z-10 flex w-full justify-center">
+          <div className="w-[300px]">
+            <img
+              alt="Mascot"
+              className="h-full w-full object-contain"
+              height={300}
+              src={chainFeatures.mascotImageUrl}
+              width={300}
+            />
+          </div>
+        </div>
+      )}
+      {chainFeatures.bottomBannerImageUrl && (
+        <div className="pointer-events-none fixed right-0 bottom-0 left-0 z-0 flex w-full justify-center">
+          <img
+            alt="Banner"
+            className="h-auto w-full max-w-[1400px] object-contain object-bottom"
+            height={200}
+            src={chainFeatures.bottomBannerImageUrl}
+            width={1400}
+          />
+        </div>
+      )}
       {chainFeatures.showPromoBanner && (
         <div
           className="relative z-10 flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-primary shadow-sm"
@@ -559,7 +583,6 @@ function FastBridge({
           <TokenSelect
             disabled={!!prefill?.token}
             handleTokenSelect={(token) => {
-              persistToken(token);
               setInputs({ ...inputs, token });
             }}
             selectedChain={inputs?.chain}

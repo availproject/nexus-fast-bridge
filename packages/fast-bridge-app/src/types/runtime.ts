@@ -39,6 +39,7 @@ export interface ChainFeatures {
   amountInputUseCalculatedMaxHeader?: boolean;
   amountInputUseSourceSymbolInBreakdown?: boolean;
   analyticsFastBridgeKey: string;
+  bottomBannerImageUrl?: string;
   denyIntentOnReset?: boolean;
   dialogShowCloseButton?: boolean;
   enableGtagOnConnectWallet?: boolean;
@@ -48,6 +49,7 @@ export interface ChainFeatures {
   hideMegaethSourceForUsdm?: boolean;
   mapUsdmDisplaySymbolToUsdc?: boolean;
   mapUsdmToUsdcBalance?: boolean;
+  mascotImageUrl?: string;
   maxBridgeAmount: number;
   pageDescription?: string;
   postBridgeWatchAsset?: {
@@ -63,6 +65,7 @@ export interface ChainFeatures {
   promoBannerImageUrl?: string;
   promoBannerLine1?: string;
   promoBannerLine2?: string;
+  showEthMascot?: boolean;
   showFluffeyMascot?: boolean;
   showPromoBanner?: boolean;
   showSupportCta?: boolean;
@@ -81,6 +84,7 @@ export const defaultChainFeatures: ChainFeatures = {
   maxBridgeAmount: 550,
   walletInitDelayMs: 0,
   showFluffeyMascot: false,
+  showEthMascot: false,
   showPromoBanner: false,
   showSupportCta: false,
   mapUsdmDisplaySymbolToUsdc: false,

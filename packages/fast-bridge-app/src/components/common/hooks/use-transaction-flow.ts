@@ -4,6 +4,8 @@ import type {
   NexusSDK,
   OnAllowanceHookData,
   OnIntentHookData,
+  SUPPORTED_CHAINS_IDS,
+  SUPPORTED_TOKENS,
   UserAsset,
 } from "@avail-project/nexus-core";
 import {
@@ -131,23 +133,27 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const inputs = state.inputs;
 
+  const prevPrefillChainId = useRef(prefill?.chainId);
   useEffect(() => {
-    if (prefill?.chainId && prefill.chainId !== inputs?.chain) {
+    if (prefill?.chainId && prefill.chainId !== prevPrefillChainId.current) {
+      prevPrefillChainId.current = prefill.chainId;
       dispatch({
         type: "setInputs",
         payload: { chain: prefill.chainId as SUPPORTED_CHAINS_IDS },
       });
     }
-  }, [prefill?.chainId, inputs?.chain]);
+  }, [prefill?.chainId]);
 
+  const prevPrefillToken = useRef(prefill?.token);
   useEffect(() => {
-    if (prefill?.token && prefill.token !== inputs?.token) {
+    if (prefill?.token && prefill.token !== prevPrefillToken.current) {
+      prevPrefillToken.current = prefill.token;
       dispatch({
         type: "setInputs",
         payload: { token: prefill.token as SUPPORTED_TOKENS },
       });
     }
-  }, [prefill?.token, inputs?.token]);
+  }, [prefill?.token]);
 
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>

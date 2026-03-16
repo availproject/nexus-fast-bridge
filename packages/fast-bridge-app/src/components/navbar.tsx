@@ -29,10 +29,10 @@ export default function Navbar() {
             {appConfig.useChainLogo && (
               <img
                 alt={appConfig.chainName}
-                className="h-8 w-auto"
+                className="h-8 w-auto max-w-[130px] object-contain object-left sm:h-10 sm:max-w-none"
                 height={40}
                 src={withBasePath(appConfig.chainLogoUrl)}
-                width={150}
+                width={160}
               />
             )}
             {!appConfig.useChainLogo && (
