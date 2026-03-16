@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:all": "vite build",
+    "build": "vite build && node scripts/generate-route-html.mjs",
+    "build:all": "vite build && node scripts/generate-route-html.mjs",
+    "generate:meta": "node scripts/generate-route-html.mjs",
     "preview": "vite preview",
     "check": "ultracite check",
     "fix": "ultracite fix",

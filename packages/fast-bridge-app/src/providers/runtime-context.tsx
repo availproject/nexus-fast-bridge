@@ -105,29 +105,53 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
   const activeSlug = resolvedSlug ?? DEFAULT_CHAIN_SLUG;
   const settings = useMemo(() => getChainSettings(activeSlug), [activeSlug]);
 
-  // Update document metadata when chain changes
+  // Update document metadata when chain changes (client-side, for aesthetics)
   useEffect(() => {
     const { meta, appTitle } = settings.appConfig;
-    document.title = meta.title || appTitle;
+    const title = meta.title || appTitle;
 
-    const updateMeta = (selector: string, content: string) => {
+    // Title
+    document.title = title;
+
+    const setMeta = (selector: string, value: string) => {
       const el = document.querySelector(selector) as HTMLMetaElement | null;
       if (el) {
-        el.content = content;
+        el.content = value;
       }
     };
 
-    updateMeta('meta[name="description"]', meta.description);
-    updateMeta('meta[name="theme-color"]', meta.themeColor);
-    updateMeta('link[rel="icon"]', meta.faviconUrl);
+    // Standard
+    setMeta('meta[name="title"]', title);
+    setMeta('meta[name="description"]', meta.description);
+    setMeta('meta[name="theme-color"]', meta.themeColor);
 
-    // Update favicon
+    // Canonical
+    const canonical = document.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement | null;
+    if (canonical) {
+      canonical.href = meta.canonicalUrl;
+    }
+
+    // Favicon
     const favicon = document.querySelector(
       'link[rel="icon"]'
     ) as HTMLLinkElement | null;
     if (favicon) {
       favicon.href = meta.faviconUrl;
     }
+
+    // Open Graph
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', meta.description);
+    setMeta('meta[property="og:url"]', meta.canonicalUrl);
+    setMeta('meta[property="og:image"]', meta.imageUrl);
+
+    // Twitter / X
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', meta.description);
+    setMeta('meta[name="twitter:image"]', meta.imageUrl);
+    setMeta('meta[name="twitter:site"]', meta.canonicalUrl);
   }, [settings]);
 
   const setChain = useCallback(

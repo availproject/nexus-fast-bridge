@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)",
+      "destination": "/:slug/index.html"
+    },
+    {
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)/(.*)",
+      "destination": "/:slug/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
