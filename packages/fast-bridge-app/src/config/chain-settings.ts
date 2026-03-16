@@ -56,8 +56,8 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
-      slug: "megaeth",
       supportedTokens: ["USDM", "ETH"],
+      slug: "megaeth",
       analyticsFastBridgeKey: "megaeth",
       maxBridgeAmount: 5000,
       walletInitDelayMs: 500,
@@ -106,7 +106,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Monad ───────────────────────────────────────────────────────────────
   monad: {
     slug: "monad",
-    supportedTokens: ["USDC", "MON"],
     appConfig: {
       chainId: 143,
       chainName: "Monad",
@@ -141,6 +140,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "MON"],
       slug: "monad",
       analyticsFastBridgeKey: "monad",
       maxBridgeAmount: 550,
@@ -170,7 +170,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Citrea ──────────────────────────────────────────────────────────────
   citrea: {
     slug: "citrea",
-    supportedTokens: ["USDC", "USDT"],
     appConfig: {
       chainId: 4114,
       chainName: "Citrea",
@@ -205,6 +204,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT"],
       slug: "citrea",
       analyticsFastBridgeKey: "citrea",
       maxBridgeAmount: 550,
@@ -238,7 +238,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Arbitrum ────────────────────────────────────────────────────────────
   arbitrum: {
     slug: "arbitrum",
-    supportedTokens: ["USDC", "USDT", "ETH"],
     appConfig: {
       chainId: 42_161,
       chainName: "Arbitrum",
@@ -274,6 +273,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "arbitrum",
       analyticsFastBridgeKey: "arbitrum",
       maxBridgeAmount: 550,
@@ -288,7 +288,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Ethereum ────────────────────────────────────────────────────────────
   ethereum: {
     slug: "ethereum",
-    supportedTokens: ["USDC", "USDT", "ETH"],
     appConfig: {
       chainId: 1,
       chainName: "Ethereum",
@@ -324,6 +323,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "ethereum",
       analyticsFastBridgeKey: "ethereum",
       maxBridgeAmount: 550,
@@ -341,7 +341,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Polygon ─────────────────────────────────────────────────────────────
   polygon: {
     slug: "polygon",
-    supportedTokens: ["USDC", "USDT", "POL"],
     appConfig: {
       chainId: 137,
       chainName: "Polygon",
@@ -377,6 +376,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "POL"],
       slug: "polygon",
       analyticsFastBridgeKey: "polygon",
       maxBridgeAmount: 550,
@@ -391,7 +391,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Base ────────────────────────────────────────────────────────────────
   base: {
     slug: "base",
-    supportedTokens: ["USDC", "ETH"],
     appConfig: {
       chainId: 8453,
       chainName: "Base",
@@ -427,6 +426,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "ETH"],
       slug: "base",
       analyticsFastBridgeKey: "base",
       maxBridgeAmount: 550,
@@ -441,7 +441,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── OP Mainnet ──────────────────────────────────────────────────────────
   "op-mainnet": {
     slug: "op-mainnet",
-    supportedTokens: ["USDC", "USDT", "ETH"],
     appConfig: {
       chainId: 10,
       chainName: "OP Mainnet",
@@ -477,6 +476,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "op-mainnet",
       analyticsFastBridgeKey: "optimism",
       maxBridgeAmount: 550,
@@ -491,7 +491,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Scroll ──────────────────────────────────────────────────────────────
   scroll: {
     slug: "scroll",
-    supportedTokens: ["USDC", "USDT", "ETH"],
     appConfig: {
       chainId: 534_352,
       chainName: "Scroll",
@@ -527,6 +526,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "scroll",
       analyticsFastBridgeKey: "scroll",
       maxBridgeAmount: 550,
@@ -543,7 +543,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Kaia ────────────────────────────────────────────────────────────────
   kaia: {
     slug: "kaia",
-    supportedTokens: ["USDT", "KAIA"],
     appConfig: {
       chainId: 8217,
       chainName: "Kaia",
@@ -579,6 +578,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDT", "KAIA"],
       slug: "kaia",
       analyticsFastBridgeKey: "kaia",
       maxBridgeAmount: 550,
@@ -593,7 +593,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── BNB Smart Chain ─────────────────────────────────────────────────────
   "bnb-smart-chain": {
     slug: "bnb-smart-chain",
-    supportedTokens: ["USDC", "USDT", "ETH", "BNB"],
     appConfig: {
       chainId: 56,
       chainName: "BNB Smart Chain",
@@ -629,6 +628,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "ETH", "BNB"],
       slug: "bnb-smart-chain",
       analyticsFastBridgeKey: "bsc",
       maxBridgeAmount: 550,
@@ -643,7 +643,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── HyperEVM ────────────────────────────────────────────────────────────
   hyperevm: {
     slug: "hyperevm",
-    supportedTokens: ["USDC", "USDT", "HYPE"],
     appConfig: {
       chainId: 999,
       chainName: "HyperEVM",
@@ -679,6 +678,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "HYPE"],
       slug: "hyperevm",
       analyticsFastBridgeKey: "hyperevm",
       maxBridgeAmount: 550,
@@ -693,7 +693,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
   // ── Avalanche C-Chain ───────────────────────────────────────────────────
   avalanche: {
     slug: "avalanche",
-    supportedTokens: ["USDC", "USDT", "AVAX"],
     appConfig: {
       chainId: 43_114,
       chainName: "Avalanche C-Chain",
@@ -729,6 +728,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
+      supportedTokens: ["USDC", "USDT", "AVAX"],
       slug: "avalanche",
       analyticsFastBridgeKey: "avalanche",
       maxBridgeAmount: 550,

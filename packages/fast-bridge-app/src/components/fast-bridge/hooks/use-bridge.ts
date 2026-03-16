@@ -22,7 +22,6 @@ import { notifyIntentHistoryRefresh } from "../../view-history/history-events";
 
 export type FastBridgeState = TransactionFlowInputs;
 
-const ALLOWED_TOKENS = new Set(["USDC", "USDT", "USDM"]);
 const DECIMAL_PREFILL_AMOUNT_REGEX = /^\d*\.?\d*$/;
 
 interface UseBridgeProps {
@@ -49,7 +48,8 @@ interface UseBridgeProps {
 const sanitizePrefill = (
   prefill: UseBridgeProps["prefill"],
   connectedAddress: Address | undefined,
-  appConfig: ReturnType<typeof useRuntime>["appConfig"]
+  appConfig: ReturnType<typeof useRuntime>["appConfig"],
+  chainFeatures: ReturnType<typeof useRuntime>["chainFeatures"]
 ): TransactionFlowPrefill => {
   const tokenCandidate = (
     prefill?.token ??
@@ -57,9 +57,11 @@ const sanitizePrefill = (
     appConfig.nexusPrimaryToken ??
     "USDC"
   ).toUpperCase();
-  const token = ALLOWED_TOKENS.has(tokenCandidate)
+  const token = (chainFeatures.supportedTokens || []).includes(tokenCandidate)
     ? tokenCandidate
-    : appConfig.nexusPrimaryToken || "USDC";
+    : (chainFeatures.supportedTokens || [])[0] ||
+      appConfig.nexusPrimaryToken ||
+      "USDC";
 
   const amount = prefill?.amount
     ? (() => {
@@ -154,7 +156,12 @@ const useBridge = ({
     nexusSDK,
     intent,
     bridgableBalance,
-    prefill: sanitizePrefill(prefill, connectedAddress, appConfig),
+    prefill: sanitizePrefill(
+      prefill,
+      connectedAddress,
+      appConfig,
+      chainFeatures
+    ),
     onComplete,
     onStart,
     onError,
