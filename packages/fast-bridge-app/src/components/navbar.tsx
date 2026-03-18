@@ -1,8 +1,6 @@
 "use client";
 import { ConnectKitButton } from "connectkit";
-import { AnimatePresence, motion } from "motion/react";
 import { useAccount } from "wagmi";
-import { withBasePath } from "@/lib/utils";
 import { useRuntime } from "@/providers/runtime-context";
 import AvailLogo from "/avail_logo.svg";
 
@@ -30,7 +28,7 @@ export default function Navbar() {
           {/* Left side: chain logo + "Fast Bridge by Avail" */}
           <div className="flex min-w-0 shrink items-center overflow-hidden">
             {/* Logo area — fixed size container so neighbours don't jump */}
-            <div className="relative flex h-10 min-w-0 shrink-0 items-center">
+            {/* <div className="relative flex h-10 min-w-0 shrink-0 items-center">
               <AnimatePresence initial={false} mode="wait">
                 {appConfig.useChainLogo ? (
                   <motion.img
@@ -64,9 +62,9 @@ export default function Navbar() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className="hidden text-xl md:block"
               style={{
                 marginLeft: "5px",
@@ -75,19 +73,26 @@ export default function Navbar() {
               }}
             >
               Fast Bridge by
-            </div>
+            </div> */}
             <a
-              className="hidden text-xl md:block"
+              className="flex items-start gap-0.5 font-delight text-[16px] max-md:flex-col md:items-center md:gap-2 md:text-[32px]"
               href="https://availproject.org"
               rel="noopener noreferrer"
               style={{
-                marginLeft: "5px",
-                fontWeight: "100",
-                paddingTop: "5px",
+                fontWeight: "600",
+                transition: "color 0.5s ease-in-out",
+                color: appConfig.primaryColor,
               }}
               target="_blank"
             >
-              <img alt="Avail Logo" height={20} src={AvailLogo} width={75} />
+              <img
+                alt="Avail Logo"
+                className="h-auto w-16 md:w-30"
+                height={24}
+                src={AvailLogo}
+                width={120}
+              />
+              fastbridge
             </a>
           </div>
 
