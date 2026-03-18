@@ -1,5 +1,6 @@
 "use client";
 import { ConnectKitButton } from "connectkit";
+import { AnimatePresence, motion } from "motion/react";
 import { useAccount } from "wagmi";
 import { withBasePath } from "@/lib/utils";
 import { useRuntime } from "@/providers/runtime-context";
@@ -21,33 +22,50 @@ export default function Navbar() {
       window.gtag_report_conversion(window.location.href);
     }
   };
+
   return (
     <nav className="relative z-10 w-full overflow-x-hidden border-border border-b">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 min-w-0 items-center justify-between">
+          {/* Left side: chain logo + "Fast Bridge by Avail" */}
           <div className="flex min-w-0 shrink items-center overflow-hidden">
-            {appConfig.useChainLogo && (
-              <img
-                alt={appConfig.chainName}
-                className="h-8 w-auto max-w-[130px] object-contain object-left sm:h-10 sm:max-w-none"
-                height={40}
-                src={withBasePath(appConfig.chainLogoUrl)}
-                width={160}
-              />
-            )}
-            {!appConfig.useChainLogo && (
-              <div
-                className="truncate font-light text-2xl sm:text-3xl"
-                style={{
-                  marginLeft: "10px",
-                  textTransform: "uppercase",
-                  color: appConfig.primaryColor,
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {appConfig.chainName}
-              </div>
-            )}
+            {/* Logo area — fixed size container so neighbours don't jump */}
+            <div className="relative flex h-10 min-w-0 shrink-0 items-center">
+              <AnimatePresence initial={false} mode="wait">
+                {appConfig.useChainLogo ? (
+                  <motion.img
+                    alt={appConfig.chainName}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    className="h-8 w-auto max-w-[130px] object-contain object-left sm:h-10 sm:max-w-none"
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    height={40}
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    key={appConfig.chainLogoUrl}
+                    src={withBasePath(appConfig.chainLogoUrl)}
+                    transition={{ duration: 0.35, ease: "easeInOut" }}
+                    width={160}
+                  />
+                ) : (
+                  <motion.div
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    className="truncate font-light text-2xl sm:text-3xl"
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    key={`text-${appConfig.chainName}`}
+                    style={{
+                      marginLeft: "10px",
+                      textTransform: "uppercase",
+                      color: appConfig.primaryColor,
+                      letterSpacing: "0.1em",
+                    }}
+                    transition={{ duration: 0.35, ease: "easeInOut" }}
+                  >
+                    {appConfig.chainName}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <div
               className="hidden text-xl md:block"
               style={{

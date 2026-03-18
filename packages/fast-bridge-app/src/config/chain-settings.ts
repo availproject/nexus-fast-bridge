@@ -58,6 +58,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDM", "ETH"],
       slug: "megaeth",
+      buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
       maxBridgeAmount: 5000,
       walletInitDelayMs: 500,
@@ -142,6 +143,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "MON"],
       slug: "monad",
+      buttonFg: "white",
       analyticsFastBridgeKey: "monad",
       maxBridgeAmount: 550,
       walletInitDelayMs: 0,
@@ -206,6 +208,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT"],
       slug: "citrea",
+      buttonFg: "black",
       analyticsFastBridgeKey: "citrea",
       maxBridgeAmount: 550,
       walletInitDelayMs: 0,
@@ -275,6 +278,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "arbitrum",
+      buttonFg: "white",
       analyticsFastBridgeKey: "arbitrum",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -305,7 +309,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Ethereum faster than ever!",
       appTitle: "Ethereum Fast Bridge",
       appDescription: "Ethereum Fast Bridge",
-      primaryColor: "#8891AE",
+      primaryColor: "#5555FF",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 1,
@@ -325,6 +329,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "ethereum",
+      buttonFg: "white",
       analyticsFastBridgeKey: "ethereum",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -358,7 +363,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Polygon faster than ever!",
       appTitle: "Polygon Fast Bridge",
       appDescription: "Polygon Fast Bridge",
-      primaryColor: "#6100FF",
+      primaryColor: "#7B3FE4",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 137,
@@ -378,6 +383,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "POL"],
       slug: "polygon",
+      buttonFg: "white",
       analyticsFastBridgeKey: "polygon",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -428,6 +434,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "ETH"],
       slug: "base",
+      buttonFg: "white",
       analyticsFastBridgeKey: "base",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -478,6 +485,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "op-mainnet",
+      buttonFg: "white",
       analyticsFastBridgeKey: "optimism",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -508,7 +516,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Scroll faster than ever!",
       appTitle: "Scroll Fast Bridge",
       appDescription: "Scroll Fast Bridge",
-      primaryColor: "#FFEEDA",
+      primaryColor: "#EBC28E",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 534_352,
@@ -528,6 +536,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH"],
       slug: "scroll",
+      buttonFg: "black",
       analyticsFastBridgeKey: "scroll",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -580,6 +589,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDT", "KAIA"],
       slug: "kaia",
+      buttonFg: "black",
       analyticsFastBridgeKey: "kaia",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -630,6 +640,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH", "BNB"],
       slug: "bnb-smart-chain",
+      buttonFg: "black",
       analyticsFastBridgeKey: "bsc",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -680,6 +691,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "HYPE"],
       slug: "hyperevm",
+      buttonFg: "black",
       analyticsFastBridgeKey: "hyperevm",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,
@@ -730,6 +742,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "AVAX"],
       slug: "avalanche",
+      buttonFg: "white",
       analyticsFastBridgeKey: "avalanche",
       maxBridgeAmount: 550,
       mapUsdmToUsdcBalance: true,

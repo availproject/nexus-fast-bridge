@@ -14,6 +14,10 @@ import {
   getChainSettings,
   isValidChainSlug,
 } from "@/config/chain-settings";
+import {
+  type BrandButtonColors,
+  getBrandButtonColors,
+} from "@/lib/brand-colors";
 import type { AppConfig, ChainFeatures } from "@/types/runtime";
 import { defaultChainFeatures } from "@/types/runtime";
 
@@ -62,6 +66,7 @@ export function persistToken(symbol: string): void {
 
 interface RuntimeContextValue {
   appConfig: AppConfig;
+  brandButton: BrandButtonColors;
   chainFeatures: ChainFeatures;
   chainSlug: string;
   setChain: (slug: string) => void;
@@ -180,14 +185,24 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
     [navigate]
   );
 
+  const brandButton = useMemo(
+    () =>
+      getBrandButtonColors(
+        settings.appConfig.primaryColor,
+        settings.chainFeatures.buttonFg
+      ),
+    [settings.appConfig.primaryColor, settings.chainFeatures.buttonFg]
+  );
+
   const value = useMemo<RuntimeContextValue>(
     () => ({
       appConfig: settings.appConfig,
       chainFeatures: { ...defaultChainFeatures, ...settings.chainFeatures },
       chainSlug: activeSlug,
+      brandButton,
       setChain,
     }),
-    [settings, activeSlug, setChain]
+    [settings, activeSlug, brandButton, setChain]
   );
 
   // Don't render children until we've resolved a valid slug

@@ -40,6 +40,8 @@ export interface ChainFeatures {
   amountInputUseSourceSymbolInBreakdown?: boolean;
   analyticsFastBridgeKey: string;
   bottomBannerImageUrl?: string;
+  /** Explicit button text color. 'black' → #19191A, 'white' → #ffffff */
+  buttonFg?: "black" | "white";
   denyIntentOnReset?: boolean;
   dialogShowCloseButton?: boolean;
   enableGtagOnConnectWallet?: boolean;
@@ -102,4 +104,5 @@ export const defaultChainFeatures: ChainFeatures = {
   feeBreakdownKeepZeroRows: false,
   dialogShowCloseButton: true,
   enableGtagOnConnectWallet: false,
+  buttonFg: "white",
 };

@@ -28,6 +28,7 @@ export default function App() {
               className="absolute inset-0 z-0"
               style={{
                 background: `radial-gradient(125% 125% at 50% 10%, #fff 50%, ${appConfig.primaryColor} 125%)`,
+                transition: "background 0.6s ease-in-out",
               }}
             />
             <main className="flex min-w-0 max-w-full flex-1 flex-col gap-8 px-4 py-12">
