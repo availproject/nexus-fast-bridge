@@ -87,6 +87,21 @@
 
       gtag("config", "AW-17965318713");
     </script>
+
+    <script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          // if (typeof url != "undefined") {
+          //   window.location = url;
+          // }
+        };
+        gtag("event", "conversion", {
+          send_to: "AW-17965318713/jR9dCLawwIkcELmExPZC",
+          event_callback: callback,
+        });
+        return false;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
