@@ -7,7 +7,10 @@ export const appConfig = config;
 export const chainFeatures: ChainFeatures = {
   slug: "megaeth",
   analyticsFastBridgeKey: "megaeth",
-  maxBridgeAmount: 5000,
+  maxBridgeAmount: 550,
+  maxBridgeAmountByDestinationChainId: {
+    [SUPPORTED_CHAINS.MEGAETH]: 5000,
+  },
   walletInitDelayMs: 500,
   showFluffeyMascot: true,
   showPromoBanner: false,

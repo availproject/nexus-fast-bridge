@@ -132,7 +132,6 @@ function FastBridge({
   onError,
   prefill,
 }: FastBridgeProps) {
-  const maxBridgeAmount = chainFeatures.maxBridgeAmount;
   const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
   const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
 
@@ -314,9 +313,22 @@ function FastBridge({
       }
     },
     fetchBalance: fetchBridgableBalance,
-    maxAmount: maxBridgeAmount,
     isSourceMenuOpen,
   });
+
+  // Resolve effective max bridge amount: use per-destination override when
+  // available, otherwise fall back to the flat cap.
+  const selectedChain = inputs?.chain;
+  const maxBridgeAmount = useMemo(() => {
+    const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
+    if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
+      const override = perDestMap[selectedChain];
+      if (override !== undefined) {
+        return override;
+      }
+    }
+    return chainFeatures.maxBridgeAmount;
+  }, [selectedChain]);
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;

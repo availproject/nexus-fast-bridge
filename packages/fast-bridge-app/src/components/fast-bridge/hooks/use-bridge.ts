@@ -157,6 +157,8 @@ const useBridge = ({
     fetchBalance,
     allowance,
     maxAmount: maxAmount ?? chainFeatures.maxBridgeAmount,
+    maxAmountByDestinationChainId:
+      chainFeatures.maxBridgeAmountByDestinationChainId,
     isSourceMenuOpen,
     notifyHistoryRefresh: notifyIntentHistoryRefresh,
     mapUsdmToUsdcBalance: chainFeatures.mapUsdmToUsdcBalance ?? false,

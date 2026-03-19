@@ -49,6 +49,7 @@ interface BaseTransactionFlowProps {
   isSourceMenuOpen?: boolean;
   mapUsdmToUsdcBalance?: boolean;
   maxAmount?: string | number;
+  maxAmountByDestinationChainId?: Record<number, number>;
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
@@ -89,6 +90,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     fetchBalance,
     allowance,
     maxAmount,
+    maxAmountByDestinationChainId,
     isSourceMenuOpen = false,
     notifyHistoryRefresh,
     mapUsdmToUsdcBalance = false,
@@ -178,10 +180,21 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
-  const configuredMaxAmount = useMemo(
-    () => normalizeMaxAmount(maxAmount),
-    [maxAmount]
-  );
+  const configuredMaxAmount = useMemo(() => {
+    // When a per-destination override map is provided, resolve the cap for
+    // the currently selected destination chain. Fall back to the flat limit.
+    if (
+      maxAmountByDestinationChainId &&
+      inputs?.chain !== undefined &&
+      inputs?.chain !== null
+    ) {
+      const override = maxAmountByDestinationChainId[inputs.chain];
+      if (override !== undefined) {
+        return normalizeMaxAmount(override);
+      }
+    }
+    return normalizeMaxAmount(maxAmount);
+  }, [maxAmount, maxAmountByDestinationChainId, inputs?.chain]);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;

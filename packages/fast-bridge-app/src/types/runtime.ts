@@ -49,6 +49,7 @@ export interface ChainFeatures {
   mapUsdmDisplaySymbolToUsdc?: boolean;
   mapUsdmToUsdcBalance?: boolean;
   maxBridgeAmount: number;
+  maxBridgeAmountByDestinationChainId?: Record<number, number>;
   pageDescription?: string;
   postBridgeWatchAsset?: {
     destinationChainId: number;
