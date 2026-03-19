@@ -31,13 +31,13 @@ import {
   formatAmountForDisplay,
   getCoverageDecimals,
   MAX_AMOUNT_DEBOUNCE_MS,
-  normalizeMaxAmount,
 } from "../utils/transaction-flow";
 import { useDebouncedCallback } from "./use-debounced-callback";
 import { useNexusError } from "./use-nexus-error";
 import { usePolling } from "./use-polling";
 import { useStopwatch } from "./use-stopwatch";
 import { useTransactionExecution } from "./use-transaction-execution";
+import { useUsdMaxAmount } from "./use-usd-max-amount";
 
 interface BaseTransactionFlowProps {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -180,9 +180,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
-  const configuredMaxAmount = useMemo(() => {
-    // When a per-destination override map is provided, resolve the cap for
-    // the currently selected destination chain. Fall back to the flat limit.
+  // Resolve the USD dollar limit for the current destination chain.
+  // maxAmount and maxAmountByDestinationChainId values are treated as USD.
+  const usdLimitForDest = useMemo(() => {
     if (
       maxAmountByDestinationChainId &&
       inputs?.chain !== undefined &&
@@ -190,11 +190,20 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     ) {
       const override = maxAmountByDestinationChainId[inputs.chain];
       if (override !== undefined) {
-        return normalizeMaxAmount(override);
+        return override;
       }
     }
-    return normalizeMaxAmount(maxAmount);
+    if (maxAmount === undefined || maxAmount === null) {
+      return undefined;
+    }
+    const parsed = Number(maxAmount);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
   }, [maxAmount, maxAmountByDestinationChainId, inputs?.chain]);
+
+  // Convert the USD limit to a token-unit string using live pricing.
+  // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the
+  // current price from Binance (with CoinGecko fallback).
+  const configuredMaxAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
+import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -316,10 +317,9 @@ function FastBridge({
     isSourceMenuOpen,
   });
 
-  // Resolve effective max bridge amount: use per-destination override when
-  // available, otherwise fall back to the flat cap.
+  // Resolve the USD dollar limit for the currently selected destination chain.
   const selectedChain = inputs?.chain;
-  const maxBridgeAmount = useMemo(() => {
+  const usdLimitForDest = useMemo(() => {
     const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
     if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
       const override = perDestMap[selectedChain];
@@ -329,6 +329,11 @@ function FastBridge({
     }
     return chainFeatures.maxBridgeAmount;
   }, [selectedChain]);
+
+  // Convert the USD limit to a token-unit string for UI gating (button
+  // disabled, AmountInput maxAmount). Undefined while price loads for
+  // non-stables — treat as no-cap-yet (don't block the user).
+  const maxBridgeAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
@@ -672,7 +677,8 @@ function FastBridge({
                       inputs?.token
                     ) ||
                     loading ||
-                    Number(inputs?.amount) > maxBridgeAmount
+                    Number(inputs?.amount) >
+                      Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
                   : false
               }
               onClick={handlePrimaryButtonClick}
