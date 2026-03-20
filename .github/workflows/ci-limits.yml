@@ -1,0 +1,49 @@
+name: Transfer Limit Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - "apps/*/package.json"
+      - "apps/*/src/runtime.ts"
+      - "chains.config.json"
+      - "package.json"
+      - "packages/fast-bridge-app/src/components/common/utils/transfer-limits.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-transaction-flow.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-usd-max-amount.ts"
+      - "packages/fast-bridge-app/src/types/runtime.ts"
+      - "pnpm-lock.yaml"
+      - "tests/**"
+      - "vitest.config.ts"
+  push:
+    branches: [master]
+    paths:
+      - "apps/*/package.json"
+      - "apps/*/src/runtime.ts"
+      - "chains.config.json"
+      - "package.json"
+      - "packages/fast-bridge-app/src/components/common/utils/transfer-limits.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-transaction-flow.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-usd-max-amount.ts"
+      - "packages/fast-bridge-app/src/types/runtime.ts"
+      - "pnpm-lock.yaml"
+      - "tests/**"
+      - "vitest.config.ts"
+
+jobs:
+  test-limits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test

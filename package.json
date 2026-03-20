@@ -13,17 +13,21 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
     "@biomejs/biome": "2.4.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
+    "@types/react-test-renderer": "^19.1.0",
     "husky": "^9.1.7",
+    "react-test-renderer": "19.2.2",
     "turbo": "^2.7.5",
     "typescript": "~5.8.3",
-    "ultracite": "7.2.3"
+    "ultracite": "7.2.3",
+    "vitest": "^3.2.1"
   },
   "dependencies": {
     "@reown/appkit": "^1.8.19",
