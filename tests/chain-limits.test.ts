@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
+import { resolveUsdLimitForDestination } from "../packages/fast-bridge-app/src/components/common/utils/transfer-limits";
 import type {
   AppConfig,
   ChainFeatures,
@@ -18,13 +19,12 @@ interface ChainRuntimeModule {
 }
 
 interface ChainLimitExpectation {
-  getExpectedDestinationOverrides?: (
-    runtimeModule: ChainRuntimeModule
-  ) => Record<number, number> | undefined;
-  maxBridgeAmount: number;
+  defaultMaxBridgeAmount: number;
+  overrideByDestinationChainId?: Record<number, number>;
 }
 
 const workspaceRoot = resolve(import.meta.dirname, "..");
+const NON_OVERRIDE_DESTINATION_CHAIN_ID = -1;
 const chainRegistry = JSON.parse(
   readFileSync(resolve(workspaceRoot, "chains.config.json"), "utf8")
 ) as ChainRegistryEntry[];
@@ -49,16 +49,16 @@ const chainRuntimeModules = Object.fromEntries(
 
 const EXPECTED_LIMITS_BY_SLUG: Record<string, ChainLimitExpectation> = {
   citrea: {
-    maxBridgeAmount: 550,
+    defaultMaxBridgeAmount: 550,
   },
   megaeth: {
-    getExpectedDestinationOverrides: () => ({
+    defaultMaxBridgeAmount: 550,
+    overrideByDestinationChainId: {
       4326: 5000,
-    }),
-    maxBridgeAmount: 550,
+    },
   },
   monad: {
-    maxBridgeAmount: 550,
+    defaultMaxBridgeAmount: 550,
   },
 };
 
@@ -83,26 +83,51 @@ describe("chain transfer limits", () => {
         expect(expectation).toBeDefined();
       });
 
-      it("uses the expected default maxBridgeAmount", () => {
-        expect(runtimeModule.chainFeatures.maxBridgeAmount).toBe(
-          expectation?.maxBridgeAmount
-        );
+      it("resolves the expected default limit through shared limit logic", () => {
+        expect(
+          resolveUsdLimitForDestination({
+            defaultMaxAmount: runtimeModule.chainFeatures.maxBridgeAmount,
+            destinationChainId: NON_OVERRIDE_DESTINATION_CHAIN_ID,
+            maxAmountByDestinationChainId:
+              runtimeModule.chainFeatures.maxBridgeAmountByDestinationChainId,
+          })
+        ).toBe(expectation?.defaultMaxBridgeAmount);
       });
 
-      it("uses the expected destination-specific overrides", () => {
+      it("resolves the expected destination-specific overrides", () => {
         const expectedDestinationOverrides =
-          expectation?.getExpectedDestinationOverrides?.(runtimeModule);
+          expectation?.overrideByDestinationChainId;
         const actualDestinationOverrides =
           runtimeModule.chainFeatures.maxBridgeAmountByDestinationChainId;
 
         if (expectedDestinationOverrides === undefined) {
           expect(actualDestinationOverrides).toBeUndefined();
+          expect(
+            resolveUsdLimitForDestination({
+              defaultMaxAmount: runtimeModule.chainFeatures.maxBridgeAmount,
+              destinationChainId: NON_OVERRIDE_DESTINATION_CHAIN_ID,
+              maxAmountByDestinationChainId: actualDestinationOverrides,
+            })
+          ).toBe(expectation?.defaultMaxBridgeAmount);
           return;
         }
 
         expect(actualDestinationOverrides).toEqual(
           expectedDestinationOverrides
         );
+
+        for (const [destinationChainId, expectedUsdLimit] of Object.entries(
+          expectedDestinationOverrides
+        )) {
+          expect(
+            resolveUsdLimitForDestination({
+              defaultMaxAmount: runtimeModule.chainFeatures.maxBridgeAmount,
+              destinationChainId: Number(destinationChainId),
+              maxAmountByDestinationChainId: actualDestinationOverrides,
+            })
+          ).toBe(expectedUsdLimit);
+        }
+
         expect(Object.keys(actualDestinationOverrides ?? {})).toHaveLength(
           Object.keys(expectedDestinationOverrides).length
         );

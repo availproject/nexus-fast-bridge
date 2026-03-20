@@ -32,6 +32,7 @@ import {
   getCoverageDecimals,
   MAX_AMOUNT_DEBOUNCE_MS,
 } from "../utils/transaction-flow";
+import { resolveUsdLimitForDestination } from "../utils/transfer-limits";
 import { useDebouncedCallback } from "./use-debounced-callback";
 import { useNexusError } from "./use-nexus-error";
 import { usePolling } from "./use-polling";
@@ -182,23 +183,15 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   } = useTransactionSteps<BridgeStepType>();
   // Resolve the USD dollar limit for the current destination chain.
   // maxAmount and maxAmountByDestinationChainId values are treated as USD.
-  const usdLimitForDest = useMemo(() => {
-    if (
-      maxAmountByDestinationChainId &&
-      inputs?.chain !== undefined &&
-      inputs?.chain !== null
-    ) {
-      const override = maxAmountByDestinationChainId[inputs.chain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    if (maxAmount === undefined || maxAmount === null) {
-      return undefined;
-    }
-    const parsed = Number(maxAmount);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-  }, [maxAmount, maxAmountByDestinationChainId, inputs?.chain]);
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimitForDestination({
+        defaultMaxAmount: maxAmount,
+        destinationChainId: inputs?.chain,
+        maxAmountByDestinationChainId,
+      }),
+    [maxAmount, maxAmountByDestinationChainId, inputs?.chain]
+  );
 
   // Convert the USD limit to a token-unit string using live pricing.
   // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the

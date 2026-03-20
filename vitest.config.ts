@@ -20,6 +20,10 @@ const chainRegistry = JSON.parse(
   readFileSync(resolve(workspaceRoot, "chains.config.json"), "utf8")
 ) as ChainRegistryEntry[];
 const sharedSourceRoot = resolve(workspaceRoot, "packages/fast-bridge-app/src");
+const sharedPackageNodeModulesRoot = resolve(
+  workspaceRoot,
+  "packages/fast-bridge-app/node_modules"
+);
 const nodeBuiltinModules = new Set(
   builtinModules.map((builtinModule) =>
     builtinModule.startsWith("node:")
@@ -101,6 +105,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@/": `${sharedSourceRoot}/`,
+      react: resolve(sharedPackageNodeModulesRoot, "react"),
+      "react-dom": resolve(sharedPackageNodeModulesRoot, "react-dom"),
     },
   },
   test: {

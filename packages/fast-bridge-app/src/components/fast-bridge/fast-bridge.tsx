@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
 import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
+import { resolveUsdLimitForDestination } from "../common/utils/transfer-limits";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -319,16 +320,16 @@ function FastBridge({
 
   // Resolve the USD dollar limit for the currently selected destination chain.
   const selectedChain = inputs?.chain;
-  const usdLimitForDest = useMemo(() => {
-    const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
-    if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
-      const override = perDestMap[selectedChain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    return chainFeatures.maxBridgeAmount;
-  }, [selectedChain]);
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimitForDestination({
+        defaultMaxAmount: chainFeatures.maxBridgeAmount,
+        destinationChainId: selectedChain,
+        maxAmountByDestinationChainId:
+          chainFeatures.maxBridgeAmountByDestinationChainId,
+      }),
+    [selectedChain]
+  );
 
   // Convert the USD limit to a token-unit string for UI gating (button
   // disabled, AmountInput maxAmount). Undefined while price loads for
