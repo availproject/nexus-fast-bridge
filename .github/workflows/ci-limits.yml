@@ -5,15 +5,31 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "apps/*/package.json"
       - "apps/*/src/runtime.ts"
+      - "chains.config.json"
+      - "package.json"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-transaction-flow.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-usd-max-amount.ts"
+      - "packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx"
+      - "packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts"
       - "packages/fast-bridge-app/src/types/runtime.ts"
+      - "pnpm-lock.yaml"
       - "tests/**"
       - "vitest.config.ts"
   push:
     branches: [master]
     paths:
+      - "apps/*/package.json"
       - "apps/*/src/runtime.ts"
+      - "chains.config.json"
+      - "package.json"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-transaction-flow.ts"
+      - "packages/fast-bridge-app/src/components/common/hooks/use-usd-max-amount.ts"
+      - "packages/fast-bridge-app/src/components/fast-bridge/fast-bridge.tsx"
+      - "packages/fast-bridge-app/src/components/fast-bridge/hooks/use-bridge.ts"
       - "packages/fast-bridge-app/src/types/runtime.ts"
+      - "pnpm-lock.yaml"
       - "tests/**"
       - "vitest.config.ts"
 

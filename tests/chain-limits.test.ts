@@ -1,72 +1,112 @@
-/**
- * Chain Transfer Limit Tests
- *
- * Guards against chain-specific transfer limits leaking across chains.
- * Each chain app (apps/{chain}/src/runtime.ts) exports a chainFeatures object
- * with maxBridgeAmount (default USD limit) and an optional
- * maxBridgeAmountByDestinationChainId (per-destination overrides).
- *
- * Currently only MegaETH has a destination override (MegaETH -> MegaETH: 5000).
- * All other chains should use the default limit (550) with no overrides.
- *
- * When adding a new chain or override, update the corresponding test to assert
- * the exact shape and entry count (see the MegaETH tests as a template).
- */
-
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { chainFeatures as citreaFeatures } from "../apps/citrea/src/runtime";
-import { chainFeatures as megaethFeatures } from "../apps/megaeth/src/runtime";
-import { chainFeatures as monadFeatures } from "../apps/monad/src/runtime";
+import type {
+  AppConfig,
+  ChainFeatures,
+} from "../packages/fast-bridge-app/src/types/runtime";
+
+interface ChainRegistryEntry {
+  appDir: string;
+  slug: string;
+}
+
+interface ChainRuntimeModule {
+  appConfig: AppConfig;
+  chainFeatures: ChainFeatures;
+}
+
+interface ChainLimitExpectation {
+  getExpectedDestinationOverrides?: (
+    runtimeModule: ChainRuntimeModule
+  ) => Record<number, number> | undefined;
+  maxBridgeAmount: number;
+}
+
+const workspaceRoot = resolve(import.meta.dirname, "..");
+const chainRegistry = JSON.parse(
+  readFileSync(resolve(workspaceRoot, "chains.config.json"), "utf8")
+) as ChainRegistryEntry[];
+
+const loadChainRuntimeModule = async (
+  appDir: string
+): Promise<ChainRuntimeModule> => {
+  const runtimeModuleUrl = pathToFileURL(
+    resolve(workspaceRoot, appDir, "src/runtime.ts")
+  ).href;
+
+  return (await import(runtimeModuleUrl)) as ChainRuntimeModule;
+};
+
+const chainRuntimeModules = Object.fromEntries(
+  await Promise.all(
+    chainRegistry.map(async ({ appDir, slug }) => {
+      return [slug, await loadChainRuntimeModule(appDir)] as const;
+    })
+  )
+) as Record<string, ChainRuntimeModule>;
+
+const EXPECTED_LIMITS_BY_SLUG: Record<string, ChainLimitExpectation> = {
+  citrea: {
+    maxBridgeAmount: 550,
+  },
+  megaeth: {
+    getExpectedDestinationOverrides: () => ({
+      4326: 5000,
+    }),
+    maxBridgeAmount: 550,
+  },
+  monad: {
+    maxBridgeAmount: 550,
+  },
+};
 
 describe("chain transfer limits", () => {
-  describe("MegaETH", () => {
-    // The default transfer limit when no destination-specific override matches
-    it("has default maxBridgeAmount of 550", () => {
-      expect(megaethFeatures.maxBridgeAmount).toBe(550);
-    });
+  it("keeps explicit expectations in sync with the chain registry", () => {
+    const configuredSlugs = chainRegistry
+      .map(({ slug }) => slug)
+      .toSorted((left, right) => left.localeCompare(right));
+    const expectedSlugs = Object.keys(EXPECTED_LIMITS_BY_SLUG).toSorted(
+      (left, right) => left.localeCompare(right)
+    );
 
-    // Checks that the MegaETH destination override is set to the correct value
-    it("has a destination override only for MegaETH chain of 5000", () => {
-      expect(megaethFeatures.maxBridgeAmountByDestinationChainId).toEqual({
-        [SUPPORTED_CHAINS.MEGAETH]: 5000,
+    expect(expectedSlugs).toEqual(configuredSlugs);
+  });
+
+  for (const { slug } of chainRegistry) {
+    describe(slug, () => {
+      const runtimeModule = chainRuntimeModules[slug];
+      const expectation = EXPECTED_LIMITS_BY_SLUG[slug];
+
+      it("has an explicit transfer limit expectation", () => {
+        expect(expectation).toBeDefined();
+      });
+
+      it("uses the expected default maxBridgeAmount", () => {
+        expect(runtimeModule.chainFeatures.maxBridgeAmount).toBe(
+          expectation?.maxBridgeAmount
+        );
+      });
+
+      it("uses the expected destination-specific overrides", () => {
+        const expectedDestinationOverrides =
+          expectation?.getExpectedDestinationOverrides?.(runtimeModule);
+        const actualDestinationOverrides =
+          runtimeModule.chainFeatures.maxBridgeAmountByDestinationChainId;
+
+        if (expectedDestinationOverrides === undefined) {
+          expect(actualDestinationOverrides).toBeUndefined();
+          return;
+        }
+
+        expect(actualDestinationOverrides).toEqual(
+          expectedDestinationOverrides
+        );
+        expect(Object.keys(actualDestinationOverrides ?? {})).toHaveLength(
+          Object.keys(expectedDestinationOverrides).length
+        );
       });
     });
-
-    // Ensures no additional destination overrides have been added
-    it("has exactly one destination override entry", () => {
-      const keys = Object.keys(
-        megaethFeatures.maxBridgeAmountByDestinationChainId ?? {}
-      );
-      expect(keys).toHaveLength(1);
-    });
-  });
-
-  describe("Monad", () => {
-    // The default transfer limit applied to all Monad transfers
-    it("has default maxBridgeAmount of 550", () => {
-      expect(monadFeatures.maxBridgeAmount).toBe(550);
-    });
-
-    // Monad should not have any destination-specific overrides.
-    // If Monad gets its own override, update this to assert the exact shape + entry count.
-    it("has no destination overrides", () => {
-      expect(monadFeatures.maxBridgeAmountByDestinationChainId).toBeUndefined();
-    });
-  });
-
-  describe("Citrea", () => {
-    // The default transfer limit applied to all Citrea transfers
-    it("has default maxBridgeAmount of 550", () => {
-      expect(citreaFeatures.maxBridgeAmount).toBe(550);
-    });
-
-    // Citrea should not have any destination-specific overrides.
-    // If Citrea gets its own override, update this to assert the exact shape + entry count.
-    it("has no destination overrides", () => {
-      expect(
-        citreaFeatures.maxBridgeAmountByDestinationChainId
-      ).toBeUndefined();
-    });
-  });
+  }
 });
