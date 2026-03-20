@@ -22,7 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { EncryptedText } from "../ui/encrypted-text";
 import { Skeleton } from "../ui/skeleton";
 import ViewHistory from "../view-history/view-history";
 import AllowanceModal from "./components/allowance-modal";
@@ -134,7 +133,7 @@ function FastBridge({
   onError,
   prefill,
 }: FastBridgeProps) {
-  const { chainFeatures, brandButton, setChain } = useRuntime();
+  const { chainFeatures, brandButton, setChain, appConfig } = useRuntime();
   const maxBridgeAmount = chainFeatures.maxBridgeAmount;
   const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc ?? false;
   const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
@@ -489,9 +488,9 @@ function FastBridge({
     <div className="flex w-full max-w-xl flex-col gap-y-4">
       {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
 
-      {/* Ethereum mascot — fades in/out smoothly */}
+      {/* mascot — fades in/out smoothly */}
       <AnimatePresence>
-        {chainFeatures.mascotImageUrl && (
+        {appConfig.mascotImageUrl && (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
             className="pointer-events-none fixed right-0 bottom-0 left-0 z-10 flex w-full justify-center"
@@ -500,41 +499,19 @@ function FastBridge({
             key="mascot"
             transition={{ duration: 0.45, ease: "easeInOut" }}
           >
-            <div className="w-[300px]">
+            <div>
               <img
                 alt="Mascot"
                 className="h-full w-full object-contain"
-                height={300}
-                src={chainFeatures.mascotImageUrl}
-                width={300}
+                height={400}
+                src={appConfig.mascotImageUrl}
+                width={550}
               />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Scroll banner — slides up/down smoothly */}
-      <AnimatePresence>
-        {chainFeatures.bottomBannerImageUrl && (
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            className="pointer-events-none fixed right-0 bottom-0 left-0 z-0 flex w-full justify-center"
-            exit={{ opacity: 0, y: 40 }}
-            initial={{ opacity: 0, y: 40 }}
-            key="banner"
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <img
-              alt="Banner"
-              className="h-auto w-full max-w-[1400px] object-contain object-bottom"
-              height={200}
-              src={chainFeatures.bottomBannerImageUrl}
-              width={1400}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {chainFeatures.showPromoBanner && (
+      {/* {chainFeatures.showPromoBanner && (
         <div
           className="relative z-10 flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-primary shadow-sm"
           style={{
@@ -581,7 +558,7 @@ function FastBridge({
             </p>
           </div>
         </div>
-      )}
+      )} */}
       <Card className="relative z-10 w-full">
         <CardContent className="relative flex w-full flex-col gap-y-4 px-2 sm:px-6">
           {showSdkDetails && (

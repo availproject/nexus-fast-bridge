@@ -22,7 +22,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b">
+    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b bg-white">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 min-w-0 items-center justify-between">
           {/* Left side: chain logo + "Fast Bridge by Avail" */}

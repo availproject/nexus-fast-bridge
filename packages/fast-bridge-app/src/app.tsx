@@ -5,13 +5,19 @@ import HeroSection from "@/components/hero-section";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { usePreloadChainLogos } from "@/hooks/use-preload-chain-logos";
+import {
+  usePreloadBackgroundImages,
+  // usePreloadChainLogos,
+  usePreloadMascotImages,
+} from "@/hooks/use-preload-chain-logos";
 import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
 export default function App() {
   const { appConfig, chainFeatures } = useRuntime();
-  usePreloadChainLogos();
+  // usePreloadChainLogos();
+  usePreloadBackgroundImages();
+  usePreloadMascotImages();
 
   return (
     <Web3Provider appConfig={appConfig}>
@@ -27,7 +33,7 @@ export default function App() {
             <div
               className="absolute inset-0 z-0"
               style={{
-                background: `radial-gradient(125% 125% at 50% 10%, #fff 50%, ${appConfig.primaryColor} 125%)`,
+                background: `url(${appConfig.backgroundImageUrl}) bottom/cover no-repeat`,
                 transition: "background 0.6s ease-in-out",
               }}
             />
@@ -45,10 +51,10 @@ export default function App() {
         <Toaster />
         {
           // chainFeatures.showSupportCta && chainFeatures.supportCtaHref &&
-          <div className="sticky bottom-4 left-4 z-100 ml-4 flex flex-wrap items-center justify-start gap-3">
+          <div className="sticky bottom-4 left-4 z-100 ml-4 inline-flex flex-wrap items-center justify-start gap-3">
             <motion.a
               animate={{ opacity: 1, x: 0 }}
-              className="inline-flex min-h-11 items-center gap-2 rounded border border-[#19191A] bg-transparent px-[14px] py-2 font-medium text-[#19191A] text-sm no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 hover:bg-[#19191A] hover:text-white focus-visible:bg-[#19191A] focus-visible:text-white md:justify-self-start"
+              className="inline-flex min-h-11 items-center gap-2 rounded border border-[#19191A] bg-white px-[14px] py-2 font-medium text-[#19191A] text-sm no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 hover:bg-[#19191A] hover:text-white focus-visible:bg-[#19191A] focus-visible:text-white md:justify-self-start"
               href={chainFeatures.supportCtaHref}
               initial={{ opacity: 0, x: -10 }}
               rel="noopener noreferrer"

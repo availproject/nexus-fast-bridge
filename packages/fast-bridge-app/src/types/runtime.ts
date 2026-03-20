@@ -1,6 +1,7 @@
 export interface AppConfig {
   appDescription: string;
   appTitle: string;
+  backgroundImageUrl: string;
   chainBlockExplorerUrl: string;
   chainGifAlt: string;
   chainGifUrl: string;
@@ -16,6 +17,7 @@ export interface AppConfig {
   chainRpcUrl: string;
   chainTestnet: boolean;
   heroText: string;
+  mascotImageUrl?: string;
   meta: {
     title: string;
     description: string;
@@ -51,7 +53,6 @@ export interface ChainFeatures {
   hideMegaethSourceForUsdm?: boolean;
   mapUsdmDisplaySymbolToUsdc?: boolean;
   mapUsdmToUsdcBalance?: boolean;
-  mascotImageUrl?: string;
   maxBridgeAmount: number;
   pageDescription?: string;
   postBridgeWatchAsset?: {

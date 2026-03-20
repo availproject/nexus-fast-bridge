@@ -33,6 +33,8 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://files.availproject.org/fastbridge/megaeth/megaeth-favicon.svg",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/megaeth.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-megaeth.png",
       chainGifUrl: "/megaeth.gif",
       chainGifAlt: "Fast MegaETH",
       heroText: "Move your assets to MegaETH faster than ever!",
@@ -119,6 +121,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://files.availproject.org/fastbridge/monad/monad-favicon.svg",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/monad.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-monad.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-monad.png",
       chainGifUrl: "/salmonad.gif",
       chainGifAlt: "Fast Salmonad",
       heroText: "Move your assets to Monad faster than ever!",
@@ -184,6 +190,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://files.availproject.org/fastbridge/citrea/citrea-favicon.svg",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/citrea.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-citrea.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-citrea.png",
       chainGifUrl: "/citrea.gif",
       chainGifAlt: "Bridge to Citrea",
       heroText: "Move assets from any chain to Citrea, instantly.",
@@ -253,12 +263,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/arbitrum/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/arbitrum.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-arbitrum.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Arbitrum",
       heroText: "Move your assets to Arbitrum faster than ever!",
       appTitle: "Arbitrum Fast Bridge",
       appDescription: "Arbitrum Fast Bridge",
-      primaryColor: "#016BE5",
+      primaryColor: "#0164E9",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 42_161,
@@ -271,7 +283,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
         faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
-        themeColor: "#016BE5",
+        themeColor: "#0164E9",
         backgroundColor: "#ffffff",
       },
     },
@@ -304,6 +316,8 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/ethereum/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/ethereum.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-ethereum.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Ethereum",
       heroText: "Move your assets to Ethereum faster than ever!",
@@ -337,9 +351,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       tokenDenyListByChainId: {},
       allowanceLogoOverrideByChainId: {},
       dialogShowCloseButton: true,
-      showEthMascot: true,
-      mascotImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/eth-panda.svg",
     },
   },
 
@@ -358,6 +369,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/polygon/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/polygon.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-polygon.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-polygon.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Polygon",
       heroText: "Move your assets to Polygon faster than ever!",
@@ -409,6 +424,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/base/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/base.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-base.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-base.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Base",
       heroText: "Move your assets to Base faster than ever!",
@@ -460,6 +479,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/optimism/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/optimism.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-op.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-op.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to OP Mainnet",
       heroText: "Move your assets to OP Mainnet faster than ever!",
@@ -511,6 +534,8 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/scroll/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/scroll.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-scroll.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Scroll",
       heroText: "Move your assets to Scroll faster than ever!",
@@ -564,6 +589,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/kaia/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/kaia.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-kaia.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-kaia.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Kaia",
       heroText: "Move your assets to Kaia faster than ever!",
@@ -615,6 +644,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/bsc/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/bnb.png",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-bnb.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-bnb.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to BNB Smart Chain",
       heroText: "Move your assets to BNB Smart Chain faster than ever!",
@@ -666,6 +699,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/hyperevm/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/hyperevm.svg",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-hyperevm.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-hyperevm.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to HyperEVM",
       heroText: "Move your assets to HyperEVM faster than ever!",
@@ -717,6 +754,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/avalanche/logo.png",
       chainLogoUrl:
         "https://files.availproject.org/nexus-fast-bridge/logos/avalanche.png",
+      backgroundImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/bg/bg-avax.png",
+      mascotImageUrl:
+        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-avalanche.png",
       chainGifUrl: "",
       chainGifAlt: "Bridge to Avalanche",
       heroText: "Move your assets to Avalanche faster than ever!",
