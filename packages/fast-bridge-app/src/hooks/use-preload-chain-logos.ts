@@ -35,7 +35,7 @@ export function usePreloadBackgroundImages(): void {
 export function usePreloadMascotImages(): void {
   useEffect(() => {
     const urls = Object.values(CHAIN_REGISTRY)
-      .map((chain) => chain.chainFeatures.mascotImageUrl)
+      .map((chain) => chain.appConfig.mascotImageUrl)
       .filter(Boolean) as string[];
 
     for (const url of urls) {
