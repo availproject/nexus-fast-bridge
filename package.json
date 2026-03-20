@@ -13,7 +13,8 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
@@ -23,7 +24,8 @@
     "husky": "^9.1.7",
     "turbo": "^2.7.5",
     "typescript": "~5.8.3",
-    "ultracite": "7.2.3"
+    "ultracite": "7.2.3",
+    "vitest": "^3.2.1"
   },
   "dependencies": {
     "@reown/appkit": "^1.8.19",
