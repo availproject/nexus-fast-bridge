@@ -97,7 +97,7 @@ export default function FluffeyMascot() {
           className="absolute"
           height={IRIS_SIZE}
           ref={leftIrisRef}
-          src="https://files.availproject.org/nexus-fast-bridge/mascot/mascot-megaeth-iris.svg"
+          src="https://files.availproject.org/fastbridge/megaeth/Iris.svg"
           style={{
             width: IRIS_SIZE,
             height: IRIS_SIZE,
@@ -112,7 +112,7 @@ export default function FluffeyMascot() {
           className="absolute"
           height={IRIS_SIZE}
           ref={rightIrisRef}
-          src="https://files.availproject.org/nexus-fast-bridge/mascot/mascot-megaeth-iris.svg"
+          src="https://files.availproject.org/fastbridge/megaeth/Iris.svg"
           style={{
             width: IRIS_SIZE,
             height: IRIS_SIZE,
@@ -128,7 +128,7 @@ export default function FluffeyMascot() {
           className="relative h-full w-full"
           draggable={false}
           height={DISPLAY_WIDTH}
-          src="https://files.availproject.org/nexus-fast-bridge/mascot/mascot-megaeth.svg"
+          src="https://files.availproject.org/fastbridge/megaeth/Fluffey.svg"
           style={{ zIndex: 2 }}
           width={DISPLAY_WIDTH}
         />
