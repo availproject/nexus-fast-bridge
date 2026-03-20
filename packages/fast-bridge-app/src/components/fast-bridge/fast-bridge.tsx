@@ -488,16 +488,17 @@ function FastBridge({
     <div className="flex w-full max-w-xl flex-col gap-y-4">
       {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
 
-      {/* mascot — fades in/out smoothly */}
-      <AnimatePresence>
+      {/* mascot — cross-fades smoothly when the URL changes */}
+      <AnimatePresence mode="wait">
         {appConfig.mascotImageUrl && (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
             className="pointer-events-none fixed right-0 bottom-0 left-0 z-10 flex w-full justify-center"
-            exit={{ opacity: 0, y: 24 }}
-            initial={{ opacity: 0, y: 24 }}
-            key="mascot"
-            transition={{ duration: 0.45, ease: "easeInOut" }}
+            exit={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 16 }}
+            key={appConfig.mascotImageUrl}
+            style={{ willChange: "opacity, transform" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <div>
               <img

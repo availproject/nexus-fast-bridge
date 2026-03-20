@@ -1,7 +1,7 @@
 export default function HeroSection() {
   return (
     <div
-      className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8"
+      className="mx-auto hidden max-w-7xl px-4 text-center sm:px-6 lg:px-8"
       style={{
         display: "none",
         width: "100%",
