@@ -52,7 +52,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/megaeth/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#19191A",
         backgroundColor: "#ECE8E8",
       },
@@ -141,7 +141,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
           "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
         canonicalUrl: "https://fastbridge.availproject.org/monad/",
         imageUrl: "https://fastbridge.availproject.org/monad/MonadFBMeta.png",
-        faviconUrl: "https://fastbridge.availproject.org/monad/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#6E54FF",
         backgroundColor: "#ffffff",
       },
@@ -210,7 +210,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/citrea/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/citrea/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#EF8F36",
         backgroundColor: "#CDD2D8",
       },
@@ -282,7 +282,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/arbitrum/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#0164E9",
         backgroundColor: "#ffffff",
       },
@@ -335,7 +335,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/ethereum/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#8891AE",
         backgroundColor: "#ffffff",
       },
@@ -390,7 +390,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/polygon/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#6100FF",
         backgroundColor: "#ffffff",
       },
@@ -445,7 +445,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/base/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#0000ff",
         backgroundColor: "#ffffff",
       },
@@ -500,7 +500,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/op-mainnet/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#FF0421",
         backgroundColor: "#ffffff",
       },
@@ -553,7 +553,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/scroll/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#FFEEDA",
         backgroundColor: "#ffffff",
       },
@@ -610,7 +610,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/kaia/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#bff009",
         backgroundColor: "#ffffff",
       },
@@ -665,7 +665,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#f0b90b",
         backgroundColor: "#ffffff",
       },
@@ -720,7 +720,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/hyperevm/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#50D2C1",
         backgroundColor: "#ffffff",
       },
@@ -775,7 +775,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         canonicalUrl: "https://fastbridge.availproject.org/avalanche/",
         imageUrl:
           "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
-        faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+        faviconUrl: "/avail_logo.svg",
         themeColor: "#FF394A",
         backgroundColor: "#ffffff",
       },

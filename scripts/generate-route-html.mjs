@@ -27,7 +27,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/megaeth/",
     themeColor: "#19191A",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "monad",
@@ -37,7 +37,7 @@ const CHAIN_META = [
     imageUrl: "https://fastbridge.availproject.org/monad/MonadFBMeta.png",
     canonicalUrl: "https://fastbridge.availproject.org/monad/",
     themeColor: "#6E54FF",
-    faviconUrl: "https://fastbridge.availproject.org/monad/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "citrea",
@@ -47,7 +47,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/citrea/",
     themeColor: "#EF8F36",
-    faviconUrl: "https://fastbridge.availproject.org/citrea/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "arbitrum",
@@ -58,7 +58,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/arbitrum/",
     themeColor: "#016BE5",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "ethereum",
@@ -69,7 +69,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/ethereum/",
     themeColor: "#8891AE",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "polygon",
@@ -80,7 +80,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/polygon/",
     themeColor: "#6100FF",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "base",
@@ -90,7 +90,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/base/",
     themeColor: "#0000ff",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "op-mainnet",
@@ -101,7 +101,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/op-mainnet/",
     themeColor: "#FF0421",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "scroll",
@@ -112,7 +112,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/scroll/",
     themeColor: "#FFEEDA",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "kaia",
@@ -122,7 +122,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/kaia/",
     themeColor: "#bff009",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "bnb-smart-chain",
@@ -133,7 +133,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain/",
     themeColor: "#f0b90b",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "hyperevm",
@@ -144,7 +144,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/hyperevm/",
     themeColor: "#50D2C1",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
   {
     slug: "avalanche",
@@ -155,7 +155,7 @@ const CHAIN_META = [
       "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
     canonicalUrl: "https://fastbridge.availproject.org/avalanche/",
     themeColor: "#FF394A",
-    faviconUrl: "https://fastbridge.availproject.org/megaeth/faviconV2.png",
+    faviconUrl: "/avail_logo.svg",
   },
 ];
 
