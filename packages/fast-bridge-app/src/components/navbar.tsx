@@ -87,11 +87,12 @@ export default function Navbar() {
             >
               <img
                 alt="Avail Logo"
-                className="h-auto w-16 md:w-30"
+                className="h-auto w-6 md:w-8"
                 height={24}
                 src={AvailLogo}
-                width={120}
+                width={24}
               />
+              <span className="text-[#161615]">avail</span>
               fastbridge
             </a>
           </div>
