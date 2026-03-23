@@ -16,7 +16,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(__dirname, "../apps/root/dist");
 const indexPath = path.join(distDir, "index.html");
 
-// Chain meta data – kept in sync with chain-settings.ts
+// ---------------------------------------------------------------------------
+// Chain meta data
+//
+// Single source of truth: packages/fast-bridge-app/src/config/chain-settings.ts
+// (each chain's `appConfig.meta` object).
+//
+// WHY NOT A DIRECT IMPORT?
+// chain-settings.ts uses TypeScript syntax and imports from npm packages
+// (e.g. `import { SUPPORTED_CHAINS } from "@avail-project/nexus-core"`).
+// Plain `node` cannot execute TypeScript without a build step, so we maintain
+// this plain-JS mirror. When you update `meta` in chain-settings.ts, update
+// the matching entry here too.
+// ---------------------------------------------------------------------------
 const CHAIN_META = [
   {
     slug: "megaeth",
@@ -24,7 +36,7 @@ const CHAIN_META = [
     description:
       "Move your unified USDC and USDT from 12 chains to MegaETH, faster than ever.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/megaeth.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/megaeth/",
     themeColor: "#19191A",
     faviconUrl: "/avail_logo.svg",
@@ -34,7 +46,7 @@ const CHAIN_META = [
     title: "Monad Fast Bridge - Powered by Avail Nexus",
     description:
       "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
-    imageUrl: "https://fastbridge.availproject.org/monad/MonadFBMeta.png",
+    imageUrl: "https://files.availproject.org/nexus-fast-bridge/meta/monad.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/monad/",
     themeColor: "#6E54FF",
     faviconUrl: "/avail_logo.svg",
@@ -44,7 +56,7 @@ const CHAIN_META = [
     title: "Citrea Fast Bridge - Powered by Avail",
     description: "Move assets from any chain to Citrea, instantly.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/citrea.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/citrea/",
     themeColor: "#EF8F36",
     faviconUrl: "/avail_logo.svg",
@@ -55,9 +67,9 @@ const CHAIN_META = [
     description:
       "Bridge your assets to Arbitrum instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/arbitrum.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/arbitrum/",
-    themeColor: "#016BE5",
+    themeColor: "#0164E9",
     faviconUrl: "/avail_logo.svg",
   },
   {
@@ -66,7 +78,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to Ethereum instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/ethereum.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/ethereum/",
     themeColor: "#8891AE",
     faviconUrl: "/avail_logo.svg",
@@ -77,7 +89,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to Polygon instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/polygon.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/polygon/",
     themeColor: "#6100FF",
     faviconUrl: "/avail_logo.svg",
@@ -86,8 +98,7 @@ const CHAIN_META = [
     slug: "base",
     title: "Base Fast Bridge - Powered by Avail Nexus",
     description: "Bridge your assets to Base instantly with Avail Fast Bridge.",
-    imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+    imageUrl: "https://files.availproject.org/nexus-fast-bridge/meta/base.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/base/",
     themeColor: "#0000ff",
     faviconUrl: "/avail_logo.svg",
@@ -98,7 +109,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to OP Mainnet instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/op-mainnet/",
     themeColor: "#FF0421",
     faviconUrl: "/avail_logo.svg",
@@ -109,7 +120,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to Scroll instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/scroll.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/scroll/",
     themeColor: "#FFEEDA",
     faviconUrl: "/avail_logo.svg",
@@ -118,8 +129,7 @@ const CHAIN_META = [
     slug: "kaia",
     title: "Kaia Fast Bridge - Powered by Avail Nexus",
     description: "Bridge your assets to Kaia instantly with Avail Fast Bridge.",
-    imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+    imageUrl: "https://files.availproject.org/nexus-fast-bridge/meta/kaia.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/kaia/",
     themeColor: "#bff009",
     faviconUrl: "/avail_logo.svg",
@@ -129,8 +139,7 @@ const CHAIN_META = [
     title: "BNB Smart Chain Fast Bridge - Powered by Avail Nexus",
     description:
       "Bridge your assets to BNB Smart Chain instantly with Avail Fast Bridge.",
-    imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+    imageUrl: "https://files.availproject.org/nexus-fast-bridge/meta/bnb.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain/",
     themeColor: "#f0b90b",
     faviconUrl: "/avail_logo.svg",
@@ -141,7 +150,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to HyperEVM instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/hyperliquid.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/hyperevm/",
     themeColor: "#50D2C1",
     faviconUrl: "/avail_logo.svg",
@@ -152,7 +161,7 @@ const CHAIN_META = [
     description:
       "Bridge your assets to Avalanche instantly with Avail Fast Bridge.",
     imageUrl:
-      "https://files.availproject.org/fastbridge/megaeth/megaeth-meta-2.png",
+      "https://files.availproject.org/nexus-fast-bridge/meta/avalanche.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/avalanche/",
     themeColor: "#FF394A",
     faviconUrl: "/avail_logo.svg",
