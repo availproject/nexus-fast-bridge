@@ -500,7 +500,17 @@ function FastBridge({
             style={{ willChange: "opacity, transform" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <div>
+            <motion.div
+              animate={
+                chainFeatures.slug !== "monad" ? { y: [14, 0, 14] } : { y: 0 }
+              }
+              transition={{
+                duration: 5,
+                ease: "easeInOut",
+                repeat: Number.POSITIVE_INFINITY,
+                repeatType: "loop",
+              }}
+            >
               <img
                 alt="Mascot"
                 className="h-full w-full object-contain"
@@ -508,7 +518,7 @@ function FastBridge({
                 src={appConfig.mascotImageUrl}
                 width={550}
               />
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -13,11 +13,45 @@ import {
 import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
+const SWEEP_LTR_CHAINS = new Set(["arbitrum", "monad"]);
+
 export default function App() {
   const { appConfig, chainFeatures } = useRuntime();
   // usePreloadChainLogos();
   usePreloadBackgroundImages();
   usePreloadMascotImages();
+
+  const isLTR = SWEEP_LTR_CHAINS.has(chainFeatures.slug);
+
+  const sweepInitial = isLTR
+    ? { WebkitMaskPositionX: "100%", maskPositionX: "100%" }
+    : { WebkitMaskPositionY: "0%", maskPositionY: "0%" };
+
+  const sweepAnimate = isLTR
+    ? { WebkitMaskPositionX: "0%", maskPositionX: "0%" }
+    : { WebkitMaskPositionY: "100%", maskPositionY: "100%" };
+
+  const sweepMaskStyle = isLTR
+    ? {
+        WebkitMaskImage:
+          "linear-gradient(to right, black 0%, black 40%, transparent 55%)",
+        maskImage:
+          "linear-gradient(to right, black 0%, black 40%, transparent 55%)",
+        WebkitMaskSize: "300% 100%",
+        maskSize: "300% 100%",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat" as const,
+      }
+    : {
+        WebkitMaskImage:
+          "linear-gradient(to top, black 0%, black 40%, transparent 55%)",
+        maskImage:
+          "linear-gradient(to top, black 0%, black 40%, transparent 55%)",
+        WebkitMaskSize: "100% 300%",
+        maskSize: "100% 300%",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat" as const,
+      };
 
   return (
     <Web3Provider appConfig={appConfig}>
@@ -38,19 +72,20 @@ export default function App() {
             <div className="absolute inset-0 z-0 overflow-hidden">
               <AnimatePresence mode="popLayout">
                 <motion.div
-                  animate={{ opacity: 1 }}
+                  animate={sweepAnimate}
                   className="absolute inset-0"
                   exit={{ opacity: 0 }}
-                  initial={{ opacity: 0 }}
+                  initial={sweepInitial}
                   key={appConfig.backgroundImageUrl}
                   style={{
                     backgroundImage: `url(${appConfig.backgroundImageUrl})`,
                     backgroundPosition: "bottom",
                     backgroundSize: "cover",
                     backgroundRepeat: "no-repeat",
-                    willChange: "opacity",
+                    willChange: "mask-position",
+                    ...sweepMaskStyle,
                   }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
                 />
               </AnimatePresence>
             </div>
