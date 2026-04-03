@@ -148,6 +148,8 @@ function FastBridge({
   const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   const buildBridgeSuccessToastData =
     useCallback((): BridgeSuccessToastData => {
@@ -309,7 +311,7 @@ function FastBridge({
     },
     onStart,
     onError: (message) => {
-      toast.error(message);
+      setBridgeError(message);
       if (onError) {
         onError(message);
       }
@@ -468,6 +470,13 @@ function FastBridge({
     isSdkReady,
     runHandleTransaction,
   ]);
+
+  // Clear field-level and bridge errors whenever the user changes inputs
+  useEffect(() => {
+    setFieldError(null);
+    setBridgeError(null);
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({
     isLoading: loading,
@@ -490,19 +499,19 @@ function FastBridge({
       if (onConnectWallet) {
         onConnectWallet();
       } else {
-        toast.error("Wallet connection not available");
+        setFieldError("Wallet connection not available");
       }
       return;
     }
     if (!isSdkReady) {
-      toast.info("Please wait, SDK is still initializing...");
+      setFieldError("Please wait, SDK is still initializing…");
       return;
     }
     if (isInputsValid) {
       runHandleTransaction();
       return;
     }
-    toast.error("Please enter a valid amount and recipient address");
+    setFieldError("Please enter a valid amount and recipient address");
   };
 
   return (
@@ -590,6 +599,11 @@ function FastBridge({
             onCommit={runCommitAmount}
             showBalanceDetails={showSdkDetails}
           />
+          {(fieldError ?? bridgeError) && (
+            <p className="-mt-2 text-destructive text-sm" role="alert">
+              {fieldError ?? bridgeError}
+            </p>
+          )}
           <RecipientAddress
             address={inputs?.recipient}
             onChange={(address) =>
