@@ -159,6 +159,8 @@ const useBridge = ({
     maxAmount: maxAmount ?? chainFeatures.maxBridgeAmount,
     maxAmountByDestinationChainId:
       chainFeatures.maxBridgeAmountByDestinationChainId,
+    maxAmountByTokenAndChain: chainFeatures.maxBridgeAmountByTokenAndChain,
+
     isSourceMenuOpen,
     notifyHistoryRefresh: notifyIntentHistoryRefresh,
     mapUsdmToUsdcBalance: chainFeatures.mapUsdmToUsdcBalance ?? false,

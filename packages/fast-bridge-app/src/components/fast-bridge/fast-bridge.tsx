@@ -317,9 +317,28 @@ function FastBridge({
     isSourceMenuOpen,
   });
 
-  // Resolve the USD dollar limit for the currently selected destination chain.
+  // Resolve the USD dollar limit for the currently selected destination chain
+  // and token. Priority: token+chain override → chain-only override → default.
+  const selectedToken = inputs?.token;
   const selectedChain = inputs?.chain;
+
   const usdLimitForDest = useMemo(() => {
+    const perTokenChainMap = chainFeatures.maxBridgeAmountByTokenAndChain;
+    if (
+      perTokenChainMap &&
+      selectedToken &&
+      selectedChain !== undefined &&
+      selectedChain !== null
+    ) {
+      const tokenKey = selectedToken.toUpperCase();
+      const tokenMap = perTokenChainMap[tokenKey];
+      if (tokenMap) {
+        const tokenChainOverride = tokenMap[selectedChain];
+        if (tokenChainOverride !== undefined) {
+          return tokenChainOverride;
+        }
+      }
+    }
     const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
     if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
       const override = perDestMap[selectedChain];
@@ -328,7 +347,7 @@ function FastBridge({
       }
     }
     return chainFeatures.maxBridgeAmount;
-  }, [selectedChain]);
+  }, [selectedChain, selectedToken]);
 
   // Convert the USD limit to a token-unit string for UI gating (button
   // disabled, AmountInput maxAmount). Undefined while price loads for

@@ -8,9 +8,12 @@ export const chainFeatures: ChainFeatures = {
   slug: "megaeth",
   analyticsFastBridgeKey: "megaeth",
   maxBridgeAmount: 550,
-  maxBridgeAmountByDestinationChainId: {
-    [SUPPORTED_CHAINS.MEGAETH]: 5000,
+  maxBridgeAmountByTokenAndChain: {
+    USDM: {
+      [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+    },
   },
+
   walletInitDelayMs: 500,
   showFluffeyMascot: true,
   showPromoBanner: false,

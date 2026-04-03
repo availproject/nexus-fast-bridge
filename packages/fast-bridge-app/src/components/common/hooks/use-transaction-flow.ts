@@ -50,6 +50,7 @@ interface BaseTransactionFlowProps {
   mapUsdmToUsdcBalance?: boolean;
   maxAmount?: string | number;
   maxAmountByDestinationChainId?: Record<number, number>;
+  maxAmountByTokenAndChain?: Record<string, Record<number, number>>;
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
@@ -91,6 +92,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     allowance,
     maxAmount,
     maxAmountByDestinationChainId,
+    maxAmountByTokenAndChain,
     isSourceMenuOpen = false,
     notifyHistoryRefresh,
     mapUsdmToUsdcBalance = false,
@@ -180,9 +182,26 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
-  // Resolve the USD dollar limit for the current destination chain.
+  // Resolve the USD dollar limit for the current destination chain and token.
+  // Priority: token+chain override → chain-only override → default.
   // maxAmount and maxAmountByDestinationChainId values are treated as USD.
   const usdLimitForDest = useMemo(() => {
+    const perTokenChainMap = maxAmountByTokenAndChain;
+    if (
+      perTokenChainMap &&
+      inputs?.token &&
+      inputs?.chain !== undefined &&
+      inputs?.chain !== null
+    ) {
+      const tokenKey = inputs.token.toUpperCase();
+      const tokenMap = perTokenChainMap[tokenKey];
+      if (tokenMap) {
+        const tokenChainOverride = tokenMap[inputs.chain];
+        if (tokenChainOverride !== undefined) {
+          return tokenChainOverride;
+        }
+      }
+    }
     if (
       maxAmountByDestinationChainId &&
       inputs?.chain !== undefined &&
@@ -198,7 +217,13 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     }
     const parsed = Number(maxAmount);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-  }, [maxAmount, maxAmountByDestinationChainId, inputs?.chain]);
+  }, [
+    maxAmount,
+    maxAmountByDestinationChainId,
+    maxAmountByTokenAndChain,
+    inputs?.chain,
+    inputs?.token,
+  ]);
 
   // Convert the USD limit to a token-unit string using live pricing.
   // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the
