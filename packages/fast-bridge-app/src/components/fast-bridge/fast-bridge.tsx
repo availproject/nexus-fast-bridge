@@ -342,6 +342,29 @@ function FastBridge({
   // disabled, AmountInput maxAmount). Undefined while price loads for
   // non-stables — treat as no-cap-yet (don't block the user).
   const maxBridgeAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
+
+  // Compute an instant, synchronous error when the entered amount exceeds the
+  // configured cap. No network call — stablecoins are always 1:1 with USD so
+  // this fires on every keystroke without delay. Takes highest display priority.
+  const amountLimitError = useMemo(() => {
+    if (!(maxBridgeAmount && inputs?.amount && inputs?.token)) {
+      return null;
+    }
+    const entered = Number(inputs.amount);
+    const limit = Number(maxBridgeAmount);
+    if (
+      !(Number.isFinite(entered) && Number.isFinite(limit)) ||
+      entered <= limit
+    ) {
+      return null;
+    }
+    const limitDisplay =
+      usdLimitForDest !== undefined
+        ? `${usdLimitForDest} ${inputs.token}`
+        : `${maxBridgeAmount} ${inputs.token}`;
+    return `Maximum bridge amount is ${limitDisplay}`;
+  }, [inputs?.amount, inputs?.token, maxBridgeAmount, usdLimitForDest]);
+
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
@@ -441,6 +464,11 @@ function FastBridge({
     if (!isInputsValid) {
       return;
     }
+    // Don't fire an SDK call when the entered amount already exceeds the cap —
+    // saves the 3-4 s round-trip and lets the inline error show instantly.
+    if (amountLimitError) {
+      return;
+    }
     // Wait for balance hydration before attempting auto intent creation.
     if (!bridgableBalance) {
       return;
@@ -459,6 +487,7 @@ function FastBridge({
     runHandleTransaction();
   }, [
     availableSources.length,
+    amountLimitError,
     bridgableBalance,
     inputs?.amount,
     inputs?.chain,
@@ -599,9 +628,9 @@ function FastBridge({
             onCommit={runCommitAmount}
             showBalanceDetails={showSdkDetails}
           />
-          {(fieldError ?? bridgeError) && (
+          {(amountLimitError ?? fieldError ?? bridgeError) && (
             <p className="-mt-2 text-destructive text-sm" role="alert">
-              {fieldError ?? bridgeError}
+              {amountLimitError ?? fieldError ?? bridgeError}
             </p>
           )}
           <RecipientAddress
