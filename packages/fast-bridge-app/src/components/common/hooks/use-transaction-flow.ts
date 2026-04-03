@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress } from "viem";
+import { resolveUsdLimit } from "../../../lib/bridge-limits";
 import type { TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
 import type {
@@ -183,47 +184,25 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
   // Resolve the USD dollar limit for the current destination chain and token.
-  // Priority: token+chain override → chain-only override → default.
-  // maxAmount and maxAmountByDestinationChainId values are treated as USD.
-  const usdLimitForDest = useMemo(() => {
-    const perTokenChainMap = maxAmountByTokenAndChain;
-    if (
-      perTokenChainMap &&
-      inputs?.token &&
-      inputs?.chain !== undefined &&
-      inputs?.chain !== null
-    ) {
-      const tokenKey = inputs.token.toUpperCase();
-      const tokenMap = perTokenChainMap[tokenKey];
-      if (tokenMap) {
-        const tokenChainOverride = tokenMap[inputs.chain];
-        if (tokenChainOverride !== undefined) {
-          return tokenChainOverride;
-        }
-      }
-    }
-    if (
-      maxAmountByDestinationChainId &&
-      inputs?.chain !== undefined &&
-      inputs?.chain !== null
-    ) {
-      const override = maxAmountByDestinationChainId[inputs.chain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    if (maxAmount === undefined || maxAmount === null) {
-      return undefined;
-    }
-    const parsed = Number(maxAmount);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-  }, [
-    maxAmount,
-    maxAmountByDestinationChainId,
-    maxAmountByTokenAndChain,
-    inputs?.chain,
-    inputs?.token,
-  ]);
+  // Delegates to the shared resolver which merges global cross-chain limits
+  // with any per-app chainFeatures overrides.
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimit({
+        token: inputs?.token,
+        chainId: inputs?.chain,
+        maxAmount,
+        maxAmountByDestinationChainId,
+        maxAmountByTokenAndChain,
+      }),
+    [
+      maxAmount,
+      maxAmountByDestinationChainId,
+      maxAmountByTokenAndChain,
+      inputs?.chain,
+      inputs?.token,
+    ]
+  );
 
   // Convert the USD limit to a token-unit string using live pricing.
   // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the

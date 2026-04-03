@@ -8,14 +8,6 @@ export const chainFeatures: ChainFeatures = {
   slug: "citrea",
   analyticsFastBridgeKey: "citrea",
   maxBridgeAmount: 550,
-  maxBridgeAmountByTokenAndChain: {
-    USDC: {
-      [SUPPORTED_CHAINS.CITREA]: 2000,
-    },
-    USDT: {
-      [SUPPORTED_CHAINS.CITREA]: 2000,
-    },
-  },
 
   walletInitDelayMs: 0,
   showFluffeyMascot: false,

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
+import { resolveUsdLimit } from "../../lib/bridge-limits";
 import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
@@ -318,36 +319,22 @@ function FastBridge({
   });
 
   // Resolve the USD dollar limit for the currently selected destination chain
-  // and token. Priority: token+chain override → chain-only override → default.
+  // and token — delegates to the shared resolver which merges global limits
+  // with any per-app chainFeatures overrides.
   const selectedToken = inputs?.token;
   const selectedChain = inputs?.chain;
-
-  const usdLimitForDest = useMemo(() => {
-    const perTokenChainMap = chainFeatures.maxBridgeAmountByTokenAndChain;
-    if (
-      perTokenChainMap &&
-      selectedToken &&
-      selectedChain !== undefined &&
-      selectedChain !== null
-    ) {
-      const tokenKey = selectedToken.toUpperCase();
-      const tokenMap = perTokenChainMap[tokenKey];
-      if (tokenMap) {
-        const tokenChainOverride = tokenMap[selectedChain];
-        if (tokenChainOverride !== undefined) {
-          return tokenChainOverride;
-        }
-      }
-    }
-    const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
-    if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
-      const override = perDestMap[selectedChain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    return chainFeatures.maxBridgeAmount;
-  }, [selectedChain, selectedToken]);
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimit({
+        token: selectedToken,
+        chainId: selectedChain,
+        maxAmount: chainFeatures.maxBridgeAmount,
+        maxAmountByDestinationChainId:
+          chainFeatures.maxBridgeAmountByDestinationChainId,
+        maxAmountByTokenAndChain: chainFeatures.maxBridgeAmountByTokenAndChain,
+      }),
+    [selectedChain, selectedToken]
+  );
 
   // Convert the USD limit to a token-unit string for UI gating (button
   // disabled, AmountInput maxAmount). Undefined while price loads for
