@@ -12,6 +12,8 @@ import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
 import { getChainSlugById } from "@/config/chain-settings";
 import { persistToken, useRuntime } from "@/providers/runtime-context";
+import { resolveUsdLimit } from "../../lib/bridge-limits";
+import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -134,7 +136,6 @@ function FastBridge({
   prefill,
 }: FastBridgeProps) {
   const { chainFeatures, brandButton, setChain, appConfig } = useRuntime();
-  const maxBridgeAmount = chainFeatures.maxBridgeAmount;
   const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc ?? false;
   const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
 
@@ -149,6 +150,8 @@ function FastBridge({
   const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   const buildBridgeSuccessToastData =
     useCallback((): BridgeSuccessToastData => {
@@ -310,15 +313,61 @@ function FastBridge({
     },
     onStart,
     onError: (message) => {
-      toast.error(message);
+      setBridgeError(message);
       if (onError) {
         onError(message);
       }
     },
     fetchBalance: fetchBridgableBalance,
-    maxAmount: maxBridgeAmount,
     isSourceMenuOpen,
   });
+
+  const selectedToken = inputs?.token;
+  const selectedChain = inputs?.chain;
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimit({
+        token: selectedToken,
+        chainId: selectedChain,
+        maxAmount: chainFeatures.maxBridgeAmount,
+        maxAmountByDestinationChainId:
+          chainFeatures.maxBridgeAmountByDestinationChainId,
+        maxAmountByTokenAndChain: chainFeatures.maxBridgeAmountByTokenAndChain,
+      }),
+    [selectedChain, selectedToken, chainFeatures]
+  );
+  const maxBridgeAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
+
+  const amountLimitError = useMemo(() => {
+    if (!(maxBridgeAmount && inputs?.amount && inputs?.token)) {
+      return null;
+    }
+    const entered = Number(inputs.amount);
+    const limit = Number(maxBridgeAmount);
+    if (
+      !(Number.isFinite(entered) && Number.isFinite(limit)) ||
+      entered <= limit
+    ) {
+      return null;
+    }
+    const limitDisplay =
+      usdLimitForDest !== undefined
+        ? `${usdLimitForDest} ${getDisplayTokenSymbol(inputs.token, mapUsdmToUsdc)}`
+        : `${maxBridgeAmount} ${getDisplayTokenSymbol(inputs.token, mapUsdmToUsdc)}`;
+    return `Maximum bridge amount is ${limitDisplay}`;
+  }, [
+    inputs?.amount,
+    inputs?.token,
+    maxBridgeAmount,
+    usdLimitForDest,
+    mapUsdmToUsdc,
+  ]);
+
+  useEffect(() => {
+    setFieldError(null);
+    setBridgeError(null);
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
@@ -425,6 +474,9 @@ function FastBridge({
     if (availableSources.length === 0) {
       return;
     }
+    if (amountLimitError) {
+      return;
+    }
     if (intent.current) {
       return;
     }
@@ -481,7 +533,7 @@ function FastBridge({
       runHandleTransaction();
       return;
     }
-    toast.error("Please enter a valid amount and recipient address");
+    setFieldError("Please enter a valid amount and recipient address");
   };
 
   return (
@@ -611,6 +663,11 @@ function FastBridge({
             onCommit={runCommitAmount}
             showBalanceDetails={showSdkDetails}
           />
+          {(amountLimitError ?? fieldError ?? bridgeError) && (
+            <p className="-mt-2 text-destructive text-sm" role="alert">
+              {amountLimitError ?? fieldError ?? bridgeError}
+            </p>
+          )}
           <RecipientAddress
             address={inputs?.recipient}
             disabled={!!prefill?.recipient}
@@ -705,7 +762,8 @@ function FastBridge({
                       inputs?.token
                     ) ||
                     loading ||
-                    Number(inputs?.amount) > maxBridgeAmount
+                    Number(inputs?.amount) >
+                      Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
                   : false
               }
               onClick={handlePrimaryButtonClick}

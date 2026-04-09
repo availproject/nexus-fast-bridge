@@ -62,7 +62,12 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       slug: "megaeth",
       buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
-      maxBridgeAmount: 5000,
+      maxBridgeAmount: 550,
+      maxBridgeAmountByTokenAndChain: {
+        USDM: {
+          [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+        },
+      },
       walletInitDelayMs: 500,
       showFluffeyMascot: true,
       showPromoBanner: false,
@@ -222,6 +227,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "black",
       analyticsFastBridgeKey: "citrea",
       maxBridgeAmount: 550,
+      maxBridgeAmountByTokenAndChain: {
+        USDC: { [SUPPORTED_CHAINS.CITREA]: 2000 },
+        USDT: { [SUPPORTED_CHAINS.CITREA]: 2000 },
+      },
       walletInitDelayMs: 0,
       showFluffeyMascot: false,
       showPromoBanner: false,
