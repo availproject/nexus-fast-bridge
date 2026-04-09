@@ -8,6 +8,7 @@ export const chainFeatures: ChainFeatures = {
   slug: "citrea",
   analyticsFastBridgeKey: "citrea",
   maxBridgeAmount: 550,
+
   walletInitDelayMs: 0,
   showFluffeyMascot: false,
   showPromoBanner: false,

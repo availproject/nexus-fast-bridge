@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress } from "viem";
+import { resolveUsdLimit } from "../../../lib/bridge-limits";
 import type { TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
 import type {
@@ -50,6 +51,7 @@ interface BaseTransactionFlowProps {
   mapUsdmToUsdcBalance?: boolean;
   maxAmount?: string | number;
   maxAmountByDestinationChainId?: Record<number, number>;
+  maxAmountByTokenAndChain?: Record<string, Record<number, number>>;
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
@@ -91,6 +93,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     allowance,
     maxAmount,
     maxAmountByDestinationChainId,
+    maxAmountByTokenAndChain,
     isSourceMenuOpen = false,
     notifyHistoryRefresh,
     mapUsdmToUsdcBalance = false,
@@ -180,25 +183,26 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
-  // Resolve the USD dollar limit for the current destination chain.
-  // maxAmount and maxAmountByDestinationChainId values are treated as USD.
-  const usdLimitForDest = useMemo(() => {
-    if (
-      maxAmountByDestinationChainId &&
-      inputs?.chain !== undefined &&
-      inputs?.chain !== null
-    ) {
-      const override = maxAmountByDestinationChainId[inputs.chain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    if (maxAmount === undefined || maxAmount === null) {
-      return undefined;
-    }
-    const parsed = Number(maxAmount);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-  }, [maxAmount, maxAmountByDestinationChainId, inputs?.chain]);
+  // Resolve the USD dollar limit for the current destination chain and token.
+  // Delegates to the shared resolver which merges global cross-chain limits
+  // with any per-app chainFeatures overrides.
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimit({
+        token: inputs?.token,
+        chainId: inputs?.chain,
+        maxAmount,
+        maxAmountByDestinationChainId,
+        maxAmountByTokenAndChain,
+      }),
+    [
+      maxAmount,
+      maxAmountByDestinationChainId,
+      maxAmountByTokenAndChain,
+      inputs?.chain,
+      inputs?.token,
+    ]
+  );
 
   // Convert the USD limit to a token-unit string using live pricing.
   // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the

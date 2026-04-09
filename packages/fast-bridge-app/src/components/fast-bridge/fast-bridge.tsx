@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
+import { resolveUsdLimit } from "../../lib/bridge-limits";
 import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
@@ -147,6 +148,8 @@ function FastBridge({
   const { data: walletClient } = useWalletClient();
   const [historyRefreshNonce, setHistoryRefreshNonce] = useState(0);
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   const buildBridgeSuccessToastData =
     useCallback((): BridgeSuccessToastData => {
@@ -308,7 +311,7 @@ function FastBridge({
     },
     onStart,
     onError: (message) => {
-      toast.error(message);
+      setBridgeError(message);
       if (onError) {
         onError(message);
       }
@@ -317,23 +320,51 @@ function FastBridge({
     isSourceMenuOpen,
   });
 
-  // Resolve the USD dollar limit for the currently selected destination chain.
+  // Resolve the USD dollar limit for the currently selected destination chain
+  // and token — delegates to the shared resolver which merges global limits
+  // with any per-app chainFeatures overrides.
+  const selectedToken = inputs?.token;
   const selectedChain = inputs?.chain;
-  const usdLimitForDest = useMemo(() => {
-    const perDestMap = chainFeatures.maxBridgeAmountByDestinationChainId;
-    if (perDestMap && selectedChain !== undefined && selectedChain !== null) {
-      const override = perDestMap[selectedChain];
-      if (override !== undefined) {
-        return override;
-      }
-    }
-    return chainFeatures.maxBridgeAmount;
-  }, [selectedChain]);
+  const usdLimitForDest = useMemo(
+    () =>
+      resolveUsdLimit({
+        token: selectedToken,
+        chainId: selectedChain,
+        maxAmount: chainFeatures.maxBridgeAmount,
+        maxAmountByDestinationChainId:
+          chainFeatures.maxBridgeAmountByDestinationChainId,
+        maxAmountByTokenAndChain: chainFeatures.maxBridgeAmountByTokenAndChain,
+      }),
+    [selectedChain, selectedToken]
+  );
 
   // Convert the USD limit to a token-unit string for UI gating (button
   // disabled, AmountInput maxAmount). Undefined while price loads for
   // non-stables — treat as no-cap-yet (don't block the user).
   const maxBridgeAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
+
+  // Compute an instant, synchronous error when the entered amount exceeds the
+  // configured cap. No network call — stablecoins are always 1:1 with USD so
+  // this fires on every keystroke without delay. Takes highest display priority.
+  const amountLimitError = useMemo(() => {
+    if (!(maxBridgeAmount && inputs?.amount && inputs?.token)) {
+      return null;
+    }
+    const entered = Number(inputs.amount);
+    const limit = Number(maxBridgeAmount);
+    if (
+      !(Number.isFinite(entered) && Number.isFinite(limit)) ||
+      entered <= limit
+    ) {
+      return null;
+    }
+    const limitDisplay =
+      usdLimitForDest !== undefined
+        ? `${usdLimitForDest} ${inputs.token}`
+        : `${maxBridgeAmount} ${inputs.token}`;
+    return `Maximum bridge amount is ${limitDisplay}`;
+  }, [inputs?.amount, inputs?.token, maxBridgeAmount, usdLimitForDest]);
+
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
   const showSdkDetails = isSdkReady;
@@ -433,6 +464,11 @@ function FastBridge({
     if (!isInputsValid) {
       return;
     }
+    // Don't fire an SDK call when the entered amount already exceeds the cap —
+    // saves the 3-4 s round-trip and lets the inline error show instantly.
+    if (amountLimitError) {
+      return;
+    }
     // Wait for balance hydration before attempting auto intent creation.
     if (!bridgableBalance) {
       return;
@@ -451,6 +487,7 @@ function FastBridge({
     runHandleTransaction();
   }, [
     availableSources.length,
+    amountLimitError,
     bridgableBalance,
     inputs?.amount,
     inputs?.chain,
@@ -462,6 +499,13 @@ function FastBridge({
     isSdkReady,
     runHandleTransaction,
   ]);
+
+  // Clear field-level and bridge errors whenever the user changes inputs
+  useEffect(() => {
+    setFieldError(null);
+    setBridgeError(null);
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({
     isLoading: loading,
@@ -484,19 +528,19 @@ function FastBridge({
       if (onConnectWallet) {
         onConnectWallet();
       } else {
-        toast.error("Wallet connection not available");
+        setFieldError("Wallet connection not available");
       }
       return;
     }
     if (!isSdkReady) {
-      toast.info("Please wait, SDK is still initializing...");
+      setFieldError("Please wait, SDK is still initializing…");
       return;
     }
     if (isInputsValid) {
       runHandleTransaction();
       return;
     }
-    toast.error("Please enter a valid amount and recipient address");
+    setFieldError("Please enter a valid amount and recipient address");
   };
 
   return (
@@ -584,6 +628,11 @@ function FastBridge({
             onCommit={runCommitAmount}
             showBalanceDetails={showSdkDetails}
           />
+          {(amountLimitError ?? fieldError ?? bridgeError) && (
+            <p className="-mt-2 text-destructive text-sm" role="alert">
+              {amountLimitError ?? fieldError ?? bridgeError}
+            </p>
+          )}
           <RecipientAddress
             address={inputs?.recipient}
             onChange={(address) =>

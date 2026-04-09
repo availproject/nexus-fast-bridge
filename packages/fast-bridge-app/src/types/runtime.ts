@@ -50,6 +50,7 @@ export interface ChainFeatures {
   mapUsdmToUsdcBalance?: boolean;
   maxBridgeAmount: number;
   maxBridgeAmountByDestinationChainId?: Record<number, number>;
+  maxBridgeAmountByTokenAndChain?: Record<string, Record<number, number>>;
   pageDescription?: string;
   postBridgeWatchAsset?: {
     destinationChainId: number;
@@ -87,6 +88,7 @@ export const defaultChainFeatures: ChainFeatures = {
   mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: false,
   denyIntentOnReset: true,
+  maxBridgeAmountByTokenAndChain: {},
   tokenDenyListByChainId: {},
   tokenLogoOverrideBySymbol: {},
   allowanceLogoOverrideByChainId: {},
