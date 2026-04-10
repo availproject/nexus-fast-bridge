@@ -43,7 +43,7 @@ body.landing-page-active {
 .landing-page-wrapper {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 20px;
+  padding: 0;
   overflow-x: hidden;
 }
 
