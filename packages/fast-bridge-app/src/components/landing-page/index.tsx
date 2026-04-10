@@ -62,7 +62,7 @@ export default function LandingPage() {
 
     // Dynamically inject CSS so it doesn't leak into the SPA
     const link = document.createElement("link");
-    link.href = "/landing-assets/landing.css";
+    link.href = "/landing-assets/landing2.css";
     link.rel = "stylesheet";
 
     link.onload = () => {
