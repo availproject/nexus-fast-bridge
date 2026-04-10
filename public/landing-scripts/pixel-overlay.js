@@ -1,10 +1,5 @@
 // Pixel grid overlay - generates a grid of small squares with twinkle animation
 (() => {
-  const _COLS = 120;
-  const TOTAL = 9600; // 120 * 80 rows
-  const _CELL = 3,
-    _GAP = 2;
-
   // Lit cells: [index, type("lo"=outline,"lf"=filled), opacity]
   const LIT = [
     [2653, "lo", 0.32],
@@ -1757,22 +1752,35 @@
 
   const grid = document.createElement("div");
   grid.className = "pixel-grid";
+
+  // Clean up any existing intervals and grid to prevent memory leaks/duplicates on re-renders
+  if (window.__pixelIntervals) {
+    window.__pixelIntervals.forEach((id) => {
+      clearInterval(id);
+    });
+  }
+  container.innerHTML = "";
   container.appendChild(grid);
 
-  // Generate cells
+  // Generate cells ONLY for lit items significantly improving performance
   const fragment = document.createDocumentFragment();
   const litEls = [];
 
-  for (let i = 0; i < TOTAL; i++) {
+  for (const [iStr, info] of Object.entries(litMap)) {
+    const i = Number.parseInt(iStr, 10);
     const span = document.createElement("span");
     span.className = "px-c";
-    const info = litMap[i];
-    if (info) {
-      const [type, opacity] = info;
-      span.classList.add(type === "lf" ? "px-lf" : "px-lo");
-      span.style.opacity = opacity;
-      litEls.push(span);
-    }
+
+    // Explicitly set grid position instead of padding out thousands of empty DOM nodes
+    const row = Math.floor(i / 120) + 1;
+    const col = (i % 120) + 1;
+    span.style.gridRow = row;
+    span.style.gridColumn = col;
+
+    const [type, opacity] = info;
+    span.classList.add(type === "lf" ? "px-lf" : "px-lo");
+    span.style.opacity = opacity;
+    litEls.push(span);
     fragment.appendChild(span);
   }
   grid.appendChild(fragment);
@@ -1823,7 +1831,8 @@
   }
 
   function twinkle() {
-    const batchSize = Math.floor(litCount * 0.08);
+    // Reduce batch size for better performance, 4% is sufficient to create sparkle without lag
+    const batchSize = Math.floor(litCount * 0.04);
     for (let i = 0; i < batchSize; i++) {
       const dot = litEls[Math.floor(Math.random() * litCount)];
       const targetOpacity =
@@ -1835,7 +1844,7 @@
   }
 
   function sparkle() {
-    const sparkleCount = 1 + Math.floor(Math.random() * 3);
+    const sparkleCount = 1 + Math.floor(Math.random() * 2);
     for (let i = 0; i < sparkleCount; i++) {
       const dot = litEls[Math.floor(Math.random() * litCount)];
       dot.style.opacity = 1;
@@ -1852,6 +1861,8 @@
     }
   }
 
-  setInterval(twinkle, 120);
-  setInterval(sparkle, 400);
+  window.__pixelIntervals = [
+    setInterval(twinkle, 200), // increased from 120ms to 200ms
+    setInterval(sparkle, 600), // increased from 400ms to 600ms
+  ];
 })();

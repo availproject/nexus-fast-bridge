@@ -635,6 +635,7 @@ body.landing-page-active {
   align-items: center;
   width: max-content;
   animation: scroll-logos 30s linear infinite;
+  will-change: transform;
 }
 
 @keyframes scroll-logos {

@@ -7,9 +7,16 @@
 
   const isMobile = window.innerWidth <= 1024;
 
+  if (window.__stepsSectionObserver) {
+    window.__stepsSectionObserver.disconnect();
+  }
+  if (window.__stepsVideoObserver) {
+    window.__stepsVideoObserver.disconnect();
+  }
+
   // Toggle scroll-snap on html and sticky title when how-it-works is in viewport (desktop only)
   if (!isMobile) {
-    const sectionObserver = new IntersectionObserver(
+    window.__stepsSectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -22,11 +29,11 @@
       { threshold: 0.1 }
     );
 
-    sectionObserver.observe(howItWorks);
+    window.__stepsSectionObserver.observe(howItWorks);
   }
 
   // Fade in steps + play/pause videos as they scroll into view
-  const videoObserver = new IntersectionObserver(
+  window.__stepsVideoObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         const card = entry.target;
@@ -49,6 +56,6 @@
   );
 
   for (let i = 0; i < stepCards.length; i++) {
-    videoObserver.observe(stepCards[i]);
+    window.__stepsVideoObserver.observe(stepCards[i]);
   }
 })();

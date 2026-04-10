@@ -5,6 +5,11 @@
   let currentBlog = 0;
   const totalBlogs = blogCards.length;
 
+  // Clear existing dots in case of script re-execution
+  if (dotsContainer) {
+    dotsContainer.innerHTML = "";
+  }
+
   // Create dots
   for (let i = 0; i < totalBlogs; i++) {
     const dot = document.createElement("div");

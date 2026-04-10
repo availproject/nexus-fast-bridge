@@ -267,6 +267,13 @@
     dots[index].classList.add("dot-active");
   }
 
+  if (window.__heroCarouselObserver) {
+    window.__heroCarouselObserver.disconnect();
+  }
+  if (window.__heroCarouselAutoTimer) {
+    clearInterval(window.__heroCarouselAutoTimer);
+  }
+
   let autoTimer = null;
 
   function nextSlide() {
@@ -277,6 +284,7 @@
   function startTimer() {
     if (!autoTimer) {
       autoTimer = setInterval(nextSlide, 3000);
+      window.__heroCarouselAutoTimer = autoTimer;
     }
   }
 
@@ -284,6 +292,7 @@
     if (autoTimer) {
       clearInterval(autoTimer);
       autoTimer = null;
+      window.__heroCarouselAutoTimer = null;
     }
   }
 
@@ -295,7 +304,7 @@
   // Watch hero visibility
   const hero = document.querySelector(".hero");
   let wasVisible = true;
-  const observer = new IntersectionObserver(
+  window.__heroCarouselObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -314,7 +323,7 @@
     { threshold: 0.1 }
   );
 
-  observer.observe(hero);
+  window.__heroCarouselObserver.observe(hero);
 
   // Click handlers — reset timer on manual click
   dots.forEach((dot) => {
