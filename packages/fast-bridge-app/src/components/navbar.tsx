@@ -28,10 +28,9 @@ export default function Navbar() {
           <div className="flex min-w-0 shrink items-center overflow-hidden">
             <a
               className="flex items-center"
-              href="https://availproject.org"
+              href="/"
               rel="noopener noreferrer"
               style={{ textDecoration: "none" }}
-              target="_blank"
             >
               <img
                 alt=""

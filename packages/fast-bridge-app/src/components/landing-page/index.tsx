@@ -254,8 +254,8 @@ export default function LandingPage() {
         <div className="chains-header">
           <h2 className="chains-title">Supported Chains</h2>
           <p className="chains-description">
-            Aggregate your stablecoins like USDC, USDT and others across all
-            major EVM chains in seconds with no wrapping and no gas management.
+            Aggregate and spend your stablecoins like USDC, USDT and others
+            across all major EVM chains in seconds with no gas management.
           </p>
         </div>
         <div className="chains-logos">
