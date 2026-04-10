@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fontsource/geist-sans";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [cssLoaded, setCssLoaded] = useState(false);
 
   const handleBridgeClick = () => {
     // Read the dynamically injected active slide slug from the vanilla DOM carousel
@@ -67,6 +68,8 @@ export default function LandingPage() {
     link.onload = () => {
       // Run scripts only after CSS has loaded and layout is correctly established
       runScripts();
+      // Paint the UI to prevent FOUC
+      setCssLoaded(true);
     };
 
     document.head.appendChild(link);
@@ -82,7 +85,13 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="page landing-page-wrapper">
+    <div
+      className="page landing-page-wrapper"
+      style={{
+        opacity: cssLoaded ? 1 : 0,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
       {/* Hero Section */}
       <section className="hero">
         {/* Navbar */}
