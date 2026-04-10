@@ -58,7 +58,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       },
     },
     chainFeatures: {
-      supportedTokens: ["USDM", "ETH"],
+      supportedTokens: ["USDM", "USDT", "ETH"],
       slug: "megaeth",
       buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
