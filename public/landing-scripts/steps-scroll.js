@@ -7,8 +7,6 @@
 
   const isMobile = window.innerWidth <= 1024;
 
-  const title = howItWorks.querySelector(".how-it-works-title");
-
   // Toggle scroll-snap on html and sticky title when how-it-works is in viewport (desktop only)
   if (!isMobile) {
     const sectionObserver = new IntersectionObserver(
@@ -16,14 +14,8 @@
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             document.documentElement.classList.add("snap-active");
-            if (title) {
-              title.classList.add("sticky-active");
-            }
           } else {
             document.documentElement.classList.remove("snap-active");
-            if (title) {
-              title.classList.remove("sticky-active");
-            }
           }
         });
       },
