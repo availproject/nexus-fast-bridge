@@ -1378,6 +1378,30 @@ html.snap-active {
   color: #848483;
 }
 
+.powered-by {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: -8px;
+  text-align: center;
+}
+
+.powered-by span {
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #848483;
+}
+
+.powered-by-logo {
+  width: auto;
+  height: 14px;
+  opacity: 0.5;
+  filter: grayscale(100%) brightness(1.5);
+}
+
 /* ========== RESPONSIVE: TABLET (max-width: 1024px) ========== */
 @media (max-width: 1024px) {
   .landing-page-wrapper {

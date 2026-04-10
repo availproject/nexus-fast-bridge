@@ -752,30 +752,64 @@ function FastBridge({
           )}
 
           {!intent.current && (
-            <Button
-              disabled={
-                isConnected
-                  ? !(
-                      inputs?.amount &&
-                      inputs?.recipient &&
-                      inputs?.chain &&
-                      inputs?.token
-                    ) ||
-                    loading ||
-                    Number(inputs?.amount) >
-                      Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
-                  : false
-              }
-              onClick={handlePrimaryButtonClick}
-              style={{
-                backgroundColor: brandButton.bg,
-                color: brandButton.fg,
-                transition:
-                  "background-color 0.5s ease-in-out, color 0.3s ease-in-out",
-              }}
-            >
-              {primaryButtonLabel}
-            </Button>
+            <div className="flex flex-col gap-6">
+              <Button
+                disabled={
+                  isConnected
+                    ? !(
+                        inputs?.amount &&
+                        inputs?.recipient &&
+                        inputs?.chain &&
+                        inputs?.token
+                      ) ||
+                      loading ||
+                      Number(inputs?.amount) >
+                        Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
+                    : false
+                }
+                onClick={handlePrimaryButtonClick}
+                style={{
+                  backgroundColor: brandButton.bg,
+                  color: brandButton.fg,
+                  transition:
+                    "background-color 0.5s ease-in-out, color 0.3s ease-in-out",
+                }}
+              >
+                {primaryButtonLabel}
+              </Button>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "-8px",
+                  width: "100%",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Geist', sans-serif",
+                    fontSize: "14px",
+                    fontWeight: 400,
+                    color: "#848483",
+                  }}
+                >
+                  Powered by
+                </span>
+                <img
+                  alt="Avail"
+                  src="/landing-assets/avail-logo.png"
+                  style={{
+                    height: "14px",
+                    width: "auto",
+                    filter: "grayscale(100%) brightness(1.5)",
+                    opacity: 0.5,
+                  }}
+                />
+              </div>
+            </div>
           )}
 
           <Dialog

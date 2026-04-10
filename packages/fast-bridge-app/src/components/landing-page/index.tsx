@@ -191,7 +191,7 @@ export default function LandingPage() {
                           src="/landing-assets/musd-icon-inner.svg"
                         />
                       </div>
-                      <span className="field-text">MUSD</span>
+                      <span className="field-text">USDM</span>
                     </div>
                     <img
                       alt=""
@@ -220,6 +220,14 @@ export default function LandingPage() {
               >
                 Bridge
               </button>
+              <div className="powered-by">
+                <span>Powered by</span>
+                <img
+                  alt="Avail"
+                  className="powered-by-logo"
+                  src="/landing-assets/avail-logo.png"
+                />
+              </div>
             </div>
             {/* Dots */}
             <div className="dots">
