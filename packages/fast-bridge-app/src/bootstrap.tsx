@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
+import LandingPage from "./components/landing-page";
 import { initPostHog } from "./lib/posthog";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
 import "./index.css";
@@ -44,6 +45,7 @@ export function bootstrapApp() {
     <React.StrictMode>
       <BrowserRouter>
         <Routes>
+          <Route element={<LandingPage />} path="/" />
           <Route
             element={
               <RuntimeProvider>

@@ -92,7 +92,7 @@ export default function Navbar() {
                 src={AvailLogo}
                 width={24}
               />
-              <span className="text-[#161615]">avail</span>
+              {/* <span className="text-[#161615]">avail</span> */}
               fastbridge
             </a>
           </div>

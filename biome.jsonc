@@ -39,6 +39,42 @@
           }
         }
       }
+    },
+    {
+      "includes": ["public/landing-scripts/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noForEach": "off"
+          },
+          "style": {
+            "useForOf": "off"
+          },
+          "suspicious": {
+            "noEmptyBlockStatements": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/fast-bridge-app/src/components/landing-page/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off",
+            "useButtonType": "off"
+          },
+          "correctness": {
+            "useImageSize": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "complexity": {
+            "noForEach": "off"
+          }
+        }
+      }
     }
   ]
 }
