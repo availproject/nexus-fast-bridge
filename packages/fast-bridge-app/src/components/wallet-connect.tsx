@@ -7,6 +7,28 @@ import { useAccount } from "wagmi";
 import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "./nexus/nexus-provider";
 
+function patchBackpackTransactionParam(txParam: Record<string, unknown>) {
+  if (!txParam) {
+    return txParam;
+  }
+  const patched = { ...txParam };
+  // Backpack wallet strictly requires Type 2 transactions (EIP-1559)
+  if (patched.gasPrice !== undefined) {
+    patched.maxFeePerGas = patched.maxFeePerGas ?? patched.gasPrice;
+    patched.maxPriorityFeePerGas =
+      patched.maxPriorityFeePerGas ?? patched.gasPrice;
+    patched.gasPrice = undefined;
+  }
+  // Ensure both EIP-1559 fields exist if one does
+  if (
+    patched.maxFeePerGas !== undefined &&
+    patched.maxPriorityFeePerGas === undefined
+  ) {
+    patched.maxPriorityFeePerGas = patched.maxFeePerGas;
+  }
+  return patched;
+}
+
 interface PreviewPanelProps {
   children: ReactNode;
 }
@@ -19,6 +41,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   const { nexusSDK, handleInit, deinitializeNexus, setIntent, setAllowance } =
     useNexus();
   const prevAddressRef = useRef<string | undefined>(address);
+  const hasAttemptedInitRef = useRef<boolean>(false);
 
   const initializeNexus = useCallback(async () => {
     if (loading || nexusSDK) {
@@ -67,7 +90,27 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
 
       console.log("[Nexus Init] Provider validated, calling handleInit...");
 
-      // Race between initialization and timeout
+      const originalRequest = provider.request.bind(provider);
+      provider.request = (args: { method: string; params?: unknown[] }) => {
+        const methodToCall = args.method;
+        const callArgs = { ...args, method: methodToCall };
+
+        if (
+          methodToCall === "eth_sendTransaction" &&
+          Array.isArray(callArgs.params) &&
+          callArgs.params.length > 0
+        ) {
+          const txParam = callArgs.params[0] as Record<string, unknown>;
+          if (txParam && typeof txParam === "object") {
+            const patchedTxParam = patchBackpackTransactionParam(txParam);
+            callArgs.params = [patchedTxParam, ...callArgs.params.slice(1)];
+          }
+        }
+
+        return originalRequest(callArgs);
+      };
+
+      // Race between initialization and timeout using the intercepted provider
       await Promise.race([handleInit(provider), timeoutPromise]);
 
       console.log("[Nexus Init] Initialization successful!");
@@ -75,7 +118,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       console.error("[Nexus Init] Initialization failed:", error);
       const errorMessage = (error as Error)?.message || "Unknown error";
       setInitError(errorMessage);
-      toast.error(`Failed to initialize Nexus: ${errorMessage}`);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -91,6 +134,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     }
     if (status === "disconnected") {
       setInitError(null);
+      hasAttemptedInitRef.current = false;
     }
   }, [status, nexusSDK, deinitializeNexus, setIntent, setAllowance]);
 
@@ -104,6 +148,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       const previousAddress = prevAddressRef.current;
       const currentAddress = address;
       prevAddressRef.current = address;
+      hasAttemptedInitRef.current = false;
 
       // If account changed and Nexus is initialized, reinitialize with new account
       if (nexusSDK && previousAddress !== undefined) {
@@ -115,8 +160,10 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
             if (
               currentAddress === prevAddressRef.current &&
               !loading &&
-              !initError
+              !initError &&
+              !hasAttemptedInitRef.current
             ) {
+              hasAttemptedInitRef.current = true;
               initializeNexus();
             }
           }, 100);
@@ -144,9 +191,11 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       !nexusSDK &&
       !loading &&
       !initError &&
+      !hasAttemptedInitRef.current &&
       address &&
       connector
     ) {
+      hasAttemptedInitRef.current = true;
       const delayMs = chainFeatures.walletInitDelayMs ?? 0;
       if (delayMs > 0) {
         timeoutId = setTimeout(() => {

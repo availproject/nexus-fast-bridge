@@ -108,8 +108,8 @@ interface FastBridgeProps {
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: {
-    token: SUPPORTED_TOKENS;
-    chainId: SUPPORTED_CHAINS_IDS;
+    token?: SUPPORTED_TOKENS;
+    chainId?: SUPPORTED_CHAINS_IDS;
     amount?: string;
     recipient?: Address;
   };
@@ -467,6 +467,11 @@ function FastBridge({
     if (!isInputsValid) {
       return;
     }
+    // Don't fire an SDK call when the entered amount already exceeds the cap —
+    // saves the 3-4 s round-trip and lets the inline error show instantly.
+    if (amountLimitError) {
+      return;
+    }
     // Wait for balance hydration before attempting auto intent creation.
     if (!bridgableBalance) {
       return;
@@ -488,6 +493,7 @@ function FastBridge({
     runHandleTransaction();
   }, [
     availableSources.length,
+    amountLimitError,
     bridgableBalance,
     inputs?.amount,
     inputs?.chain,
@@ -499,6 +505,13 @@ function FastBridge({
     isSdkReady,
     runHandleTransaction,
   ]);
+
+  // Clear field-level and bridge errors whenever the user changes inputs
+  useEffect(() => {
+    setFieldError(null);
+    setBridgeError(null);
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
+
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({
     isLoading: loading,
@@ -521,12 +534,12 @@ function FastBridge({
       if (onConnectWallet) {
         onConnectWallet();
       } else {
-        toast.error("Wallet connection not available");
+        setFieldError("Wallet connection not available");
       }
       return;
     }
     if (!isSdkReady) {
-      toast.info("Please wait, SDK is still initializing...");
+      setFieldError("Please wait, SDK is still initializing…");
       return;
     }
     if (isInputsValid) {
@@ -655,7 +668,7 @@ function FastBridge({
           <AmountInput
             amount={inputs?.amount}
             bridgableBalance={filteredBridgableBalance}
-            disabled={refreshing || !!prefill?.amount}
+            disabled={refreshing}
             inputs={inputs}
             maxAmount={maxBridgeAmount}
             maxAvailableAmount={maxAvailableAmount}
@@ -670,7 +683,6 @@ function FastBridge({
           )}
           <RecipientAddress
             address={inputs?.recipient}
-            disabled={!!prefill?.recipient}
             onChange={(address) =>
               setInputs({ ...inputs, recipient: address as `0x${string}` })
             }

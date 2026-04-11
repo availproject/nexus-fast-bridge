@@ -120,7 +120,9 @@ const Web3Provider = ({ appConfig, children }: Web3ProviderProps) => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider theme="minimal">{children}</ConnectKitProvider>
+        <ConnectKitProvider mode="light" theme="minimal">
+          {children}
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

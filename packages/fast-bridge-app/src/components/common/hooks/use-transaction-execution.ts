@@ -320,6 +320,15 @@ export function useTransactionExecution({
       return;
     }
     const { message, code, context, details } = handleNexusError(params.error);
+
+    // Trust Wallet workaround: Ignore "wallet did not switch chain" error
+    // since the chain actually switches and completes behind the scenes.
+    if (message?.toLowerCase().includes("wallet did not switch chain")) {
+      console.warn("Ignored known Trust Wallet chain switch anomaly:", message);
+      // Let it fall back to polling for success
+      return;
+    }
+
     console.error(`Fast ${operationName} transaction failed:`, {
       code,
       message,

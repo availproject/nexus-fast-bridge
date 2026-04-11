@@ -38,8 +38,8 @@ interface UseBridgeProps {
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: {
-    token: SUPPORTED_TOKENS;
-    chainId: SUPPORTED_CHAINS_IDS;
+    token?: SUPPORTED_TOKENS;
+    chainId?: SUPPORTED_CHAINS_IDS;
     amount?: string;
     recipient?: Address;
   };
