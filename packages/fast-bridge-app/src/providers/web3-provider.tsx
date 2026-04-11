@@ -91,22 +91,41 @@ export const wagmiAdapter = new WagmiAdapter({
   transports: staticTransports,
 });
 
-createAppKit({
-  adapters: [wagmiAdapter],
-  networks: staticChains,
-  projectId: walletConnectProjectId,
-  metadata,
-  features: {
-    analytics: true,
-    email: false,
-    socials: false,
-  },
-  allWallets: "SHOW",
-  enableEIP6963: true,
-  featuredWalletIds: [],
-  excludeWalletIds: [],
-  defaultAccountTypes: { eip155: "eoa" },
-});
+export let appKit: ReturnType<typeof createAppKit> | null = null;
+
+export function initGlobalAppKit() {
+  if (appKit) {
+    return appKit;
+  }
+
+  try {
+    appKit = createAppKit({
+      adapters: [wagmiAdapter],
+      networks: staticChains,
+      projectId: walletConnectProjectId,
+      metadata,
+      features: {
+        analytics: true,
+        email: false,
+        socials: false,
+      },
+      allWallets: "SHOW",
+      enableEIP6963: true,
+      featuredWalletIds: [],
+      excludeWalletIds: [],
+      defaultAccountTypes: { eip155: "eoa" },
+      themeMode: "light",
+      themeVariables: {
+        "--w3m-accent": "#161615",
+        "--w3m-border-radius-master": "1px",
+      },
+    });
+    console.log("AppKit initialized successfully");
+    return appKit;
+  } catch (error) {
+    console.error("Failed to initialize AppKit:", error);
+  }
+}
 
 interface Web3ProviderProps {
   appConfig: AppConfig;

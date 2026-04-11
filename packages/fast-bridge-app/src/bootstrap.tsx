@@ -5,6 +5,7 @@ import App from "./app";
 import LandingPage from "./components/landing-page";
 import { initPostHog } from "./lib/posthog";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
+import { initGlobalAppKit } from "./providers/web3-provider";
 import "./index.css";
 
 const cleanupWalletConnectSubscription = () => {
@@ -33,6 +34,7 @@ const cleanupWalletConnectSubscription = () => {
 };
 
 export function bootstrapApp() {
+  initGlobalAppKit();
   initPostHog();
   cleanupWalletConnectSubscription();
 
