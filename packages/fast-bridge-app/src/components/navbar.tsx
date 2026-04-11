@@ -1,5 +1,4 @@
 "use client";
-import { ConnectKitButton } from "connectkit";
 import { useAccount } from "wagmi";
 import { useRuntime } from "@/providers/runtime-context";
 
@@ -60,7 +59,7 @@ export default function Navbar() {
             className="flex shrink-0 items-center"
             onClickCapture={handleWalletClick}
           >
-            <ConnectKitButton />
+            <appkit-button />
           </div>
         </div>
       </div>

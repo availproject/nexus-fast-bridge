@@ -1,9 +1,10 @@
 "use client";
 
+import { createAppKit } from "@reown/appkit/react";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConnectKitProvider, getDefaultConfig } from "connectkit";
-import { type ReactNode, useMemo } from "react";
-import { createConfig, http, WagmiProvider } from "wagmi";
+import type { ReactNode } from "react";
+import { http, WagmiProvider } from "wagmi";
 import {
   arbitrum,
   avalanche,
@@ -67,63 +68,55 @@ const staticChains = [
   scroll,
   monad,
   megaeth,
-] as const;
+] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();
+
+const metadata = {
+  name: "Nexus FastBridge",
+  description: "Move assets instantly.",
+  url:
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://fastbridge.availproject.org",
+  icons: [
+    "https://fastbridge.availproject.org/landing-assets/fastbridge-icon.svg",
+  ],
+};
+
+export const wagmiAdapter = new WagmiAdapter({
+  networks: staticChains,
+  projectId: walletConnectProjectId,
+  ssr: false,
+  transports: staticTransports,
+});
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks: staticChains,
+  projectId: walletConnectProjectId,
+  metadata,
+  features: {
+    analytics: true,
+    email: false,
+    socials: false,
+  },
+  allWallets: "SHOW",
+  enableEIP6963: true,
+  featuredWalletIds: [],
+  excludeWalletIds: [],
+  defaultAccountTypes: { eip155: "eoa" },
+});
 
 interface Web3ProviderProps {
   appConfig: AppConfig;
   children: ReactNode;
 }
 
-const Web3Provider = ({ appConfig, children }: Web3ProviderProps) => {
-  const wagmiConfig = useMemo(() => {
-    const destinationChain: Chain = {
-      id: appConfig.chainId,
-      name: appConfig.chainName,
-      nativeCurrency: {
-        name: appConfig.chainNativeCurrency.name,
-        symbol: appConfig.chainNativeCurrency.symbol,
-        decimals: appConfig.chainNativeCurrency.decimals,
-      },
-      rpcUrls: {
-        default: { http: [appConfig.chainRpcUrl] },
-      },
-      blockExplorers: {
-        default: { name: "Explorer", url: appConfig.chainBlockExplorerUrl },
-      },
-      testnet: appConfig.chainTestnet,
-    };
-
-    const transports = {
-      ...staticTransports,
-      [destinationChain.id]: http(appConfig.chainRpcUrl),
-    };
-
-    // De-dupe chains: if the destination is already in staticChains, don't add twice
-    const allChains = staticChains.some((c) => c.id === destinationChain.id)
-      ? [...staticChains]
-      : [destinationChain, ...staticChains];
-
-    const defaultConfigParams = getDefaultConfig({
-      appName: appConfig.appTitle ?? "Nexus Elements",
-      walletConnectProjectId,
-      // @ts-expect-error - wagmi chains tuple type is strict but runtime array works
-      chains: allChains,
-      transports,
-      enableFamily: false,
-    });
-
-    return createConfig(defaultConfigParams);
-  }, [appConfig]);
-
+const Web3Provider = ({ children }: Web3ProviderProps) => {
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider mode="light" theme="minimal">
-          {children}
-        </ConnectKitProvider>
-      </QueryClientProvider>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </WagmiProvider>
   );
 };
