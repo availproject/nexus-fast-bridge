@@ -1,12 +1,13 @@
 "use client";
-import { appConfig, chainFeatures } from "@fastbridge/runtime";
-import { ConnectKitButton } from "connectkit";
+import { useAppKit } from "@reown/appkit/react";
+import { useMemo } from "react";
 import { useAccount } from "wagmi";
-import { withBasePath } from "@/lib/utils";
-import AvailLogo from "/avail_logo.svg";
+import { useRuntime } from "@/providers/runtime-context";
 
 export default function Navbar() {
-  const { isConnected } = useAccount();
+  const { chainFeatures } = useRuntime();
+  const { isConnected, address } = useAccount();
+  const { open } = useAppKit();
 
   const handleWalletClick = () => {
     if (
@@ -20,64 +21,69 @@ export default function Navbar() {
       window.gtag_report_conversion(window.location.href);
     }
   };
+
+  const shortAddress = useMemo(() => {
+    if (!address) {
+      return "";
+    }
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }, [address]);
+
   return (
-    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b">
+    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b bg-white">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 min-w-0 items-center justify-between">
           <div className="flex min-w-0 shrink items-center overflow-hidden">
-            {appConfig.useChainLogo && (
+            <a
+              className="flex items-center"
+              href="/"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "none" }}
+            >
               <img
-                alt={appConfig.chainName}
-                className="h-8 w-auto"
-                height={40}
-                src={withBasePath(appConfig.chainLogoUrl)}
-                width={150}
+                alt=""
+                height={24}
+                src="/landing-assets/fastbridge-icon.svg"
+                style={{ width: "24px", height: "24px" }}
+                width={24}
               />
-            )}
-            {!appConfig.useChainLogo && (
-              <div
-                className="truncate font-light text-2xl sm:text-3xl"
+              <span
                 style={{
-                  marginLeft: "10px",
-                  textTransform: "uppercase",
-                  color: appConfig.primaryColor,
-                  letterSpacing: "0.1em",
+                  marginLeft: "4px",
+                  fontFamily: '"Delight", sans-serif',
+                  fontSize: "24px",
+                  fontWeight: 600,
+                  lineHeight: "29px",
+                  color: "#161615",
+                  letterSpacing: "0.48px",
                 }}
               >
-                {appConfig.chainName}
-              </div>
-            )}
-            <div
-              className="hidden text-xl md:block"
-              style={{
-                marginLeft: "5px",
-                fontWeight: "100",
-                paddingTop: "5px",
-              }}
-            >
-              Fast Bridge by
-            </div>
-            <a
-              className="hidden text-xl md:block"
-              href="https://availproject.org"
-              rel="noopener noreferrer"
-              style={{
-                marginLeft: "5px",
-                fontWeight: "100",
-                paddingTop: "5px",
-              }}
-              target="_blank"
-            >
-              <img alt="Avail Logo" height={20} src={AvailLogo} width={75} />
+                fastbridge
+              </span>
             </a>
           </div>
 
-          {/* Right side - Wallet connect only */}
           <div
             className="flex shrink-0 items-center"
             onClickCapture={handleWalletClick}
           >
-            <ConnectKitButton />
+            {isConnected ? (
+              <button
+                className="flex items-center gap-2 rounded bg-gray-100 px-[14px] py-2 font-medium text-[#161615] text-sm transition-colors hover:bg-gray-200"
+                onClick={() => open()}
+                type="button"
+              >
+                {shortAddress}
+              </button>
+            ) : (
+              <button
+                className="flex items-center gap-2 rounded bg-[#161615] px-[14px] py-2 font-medium text-sm text-white transition-opacity hover:opacity-90"
+                onClick={() => open({ view: "Connect" })}
+                type="button"
+              >
+                Connect Wallet
+              </button>
+            )}
           </div>
         </div>
       </div>

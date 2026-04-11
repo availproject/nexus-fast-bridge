@@ -2,8 +2,8 @@ import type {
   SUPPORTED_CHAINS_IDS,
   SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import { useMemo } from "react";
+import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../../nexus/nexus-provider";
 import { Label } from "../../ui/label";
 import {
@@ -32,6 +32,7 @@ const TokenSelect = ({
   disabled = false,
   label,
 }: TokenSelectProps) => {
+  const { chainFeatures } = useRuntime();
   const { supportedChainsAndTokens } = useNexus();
   const tokenData = useMemo(() => {
     const data = supportedChainsAndTokens

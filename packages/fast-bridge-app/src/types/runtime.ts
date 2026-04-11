@@ -1,6 +1,7 @@
 export interface AppConfig {
   appDescription: string;
   appTitle: string;
+  backgroundImageUrl: string;
   chainBlockExplorerUrl: string;
   chainGifAlt: string;
   chainGifUrl: string;
@@ -16,6 +17,7 @@ export interface AppConfig {
   chainRpcUrl: string;
   chainTestnet: boolean;
   heroText: string;
+  mascotImageUrl?: string;
   meta: {
     title: string;
     description: string;
@@ -39,6 +41,9 @@ export interface ChainFeatures {
   amountInputUseCalculatedMaxHeader?: boolean;
   amountInputUseSourceSymbolInBreakdown?: boolean;
   analyticsFastBridgeKey: string;
+  bottomBannerImageUrl?: string;
+  /** Explicit button text color. 'black' → #19191A, 'white' → #ffffff */
+  buttonFg?: "black" | "white";
   denyIntentOnReset?: boolean;
   dialogShowCloseButton?: boolean;
   enableGtagOnConnectWallet?: boolean;
@@ -65,6 +70,7 @@ export interface ChainFeatures {
   promoBannerImageUrl?: string;
   promoBannerLine1?: string;
   promoBannerLine2?: string;
+  showEthMascot?: boolean;
   showFluffeyMascot?: boolean;
   showPromoBanner?: boolean;
   showSupportCta?: boolean;
@@ -72,6 +78,7 @@ export interface ChainFeatures {
   supportCtaHref?: string;
   supportCtaLine1?: string;
   supportCtaLine2?: string;
+  supportedTokens?: string[];
   tokenDenyListByChainId?: Record<number, string[]>;
   tokenLogoOverrideBySymbol?: Record<string, string>;
   walletInitDelayMs?: number;
@@ -83,6 +90,7 @@ export const defaultChainFeatures: ChainFeatures = {
   maxBridgeAmount: 550,
   walletInitDelayMs: 0,
   showFluffeyMascot: false,
+  showEthMascot: false,
   showPromoBanner: false,
   showSupportCta: false,
   mapUsdmDisplaySymbolToUsdc: false,
@@ -100,4 +108,5 @@ export const defaultChainFeatures: ChainFeatures = {
   feeBreakdownKeepZeroRows: false,
   dialogShowCloseButton: true,
   enableGtagOnConnectWallet: false,
+  buttonFg: "white",
 };

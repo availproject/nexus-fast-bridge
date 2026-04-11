@@ -3,6 +3,17 @@
 @source "./**/*.{js,jsx,ts,tsx}";
 @source "../../../apps/*/src/**/*.{js,jsx,ts,tsx}";
 
+@font-face {
+  font-family: "Delight";
+  src: url("/delight-vf.ttf") format("truetype-variations");
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+.font-delight {
+  font-family: "Delight", sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -56,7 +67,7 @@ body,
 #root {
   width: 100svw;
   height: 100svh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 @media (prefers-color-scheme: light) {

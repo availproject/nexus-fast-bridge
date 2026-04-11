@@ -4,6 +4,8 @@ import type {
   NexusSDK,
   OnAllowanceHookData,
   OnIntentHookData,
+  SUPPORTED_CHAINS_IDS,
+  SUPPORTED_TOKENS,
   UserAsset,
 } from "@avail-project/nexus-core";
 import {
@@ -16,6 +18,7 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress } from "viem";
+import { persistToken } from "@/providers/runtime-context";
 import { resolveUsdLimit } from "../../../lib/bridge-limits";
 import type { TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
@@ -59,6 +62,7 @@ interface BaseTransactionFlowProps {
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: TransactionFlowPrefill;
+  supportedTokens?: string[];
   type: TransactionFlowType;
 }
 
@@ -99,6 +103,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     mapUsdmToUsdcBalance = false,
     denyIntentOnReset = true,
     executeTransaction,
+    supportedTokens,
   } = props;
 
   const connectedAddress = props.connectedAddress;
@@ -135,6 +140,48 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const inputs = state.inputs;
+
+  const prevPrefillChainId = useRef(prefill?.chainId);
+  useEffect(() => {
+    if (prefill?.chainId && prefill.chainId !== prevPrefillChainId.current) {
+      prevPrefillChainId.current = prefill.chainId;
+      dispatch({
+        type: "setInputs",
+        payload: { chain: prefill.chainId as SUPPORTED_CHAINS_IDS },
+      });
+    }
+  }, [prefill?.chainId]);
+
+  const prevPrefillToken = useRef(prefill?.token);
+  useEffect(() => {
+    if (prefill?.token && prefill.token !== prevPrefillToken.current) {
+      prevPrefillToken.current = prefill.token;
+      dispatch({
+        type: "setInputs",
+        payload: { token: prefill.token as SUPPORTED_TOKENS },
+      });
+    }
+  }, [prefill?.token]);
+
+  useEffect(() => {
+    if (
+      supportedTokens &&
+      supportedTokens.length > 0 &&
+      inputs?.token &&
+      !(
+        supportedTokens.includes(inputs.token.toUpperCase()) ||
+        supportedTokens.includes(inputs.token)
+      )
+    ) {
+      const fallback = supportedTokens[0] as SUPPORTED_TOKENS;
+      dispatch({
+        type: "setInputs",
+        payload: { token: fallback },
+      });
+      persistToken(fallback);
+    }
+  }, [supportedTokens, inputs?.token]);
+
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>
   ) => {
@@ -205,8 +252,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   );
 
   // Convert the USD limit to a token-unit string using live pricing.
-  // For stablecoins (USDC/USDT/USDM) this is 1:1; for ETH it fetches the
-  // current price from Binance (with CoinGecko fallback).
   const configuredMaxAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
 
   const areInputsValid = useMemo(() => {
@@ -540,7 +585,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   );
 
   const debouncedRefreshMaxForSelection = useDebouncedCallback(
-    async (requestId: number) => {
+    async (requestId: unknown) => {
       try {
         const maxForCurrentSelection = await getMaxForCurrentSelection();
         if (requestId !== maxAmountRequestIdRef.current) {

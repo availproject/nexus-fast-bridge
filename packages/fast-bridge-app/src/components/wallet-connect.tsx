@@ -1,10 +1,10 @@
 "use client";
 import type { EthereumProvider } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
+import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "./nexus/nexus-provider";
 
 function patchBackpackTransactionParam(txParam: Record<string, unknown>) {
@@ -34,6 +34,7 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
+  const { chainFeatures } = useRuntime();
   const [loading, setLoading] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const { status, connector, address } = useAccount();
@@ -218,6 +219,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     connector,
     initializeNexus,
     loading,
+    chainFeatures.walletInitDelayMs,
   ]);
 
   return (

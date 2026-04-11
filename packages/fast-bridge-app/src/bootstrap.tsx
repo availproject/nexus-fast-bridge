@@ -1,6 +1,11 @@
+import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
+import LandingPage from "./components/landing-page";
 import { initPostHog } from "./lib/posthog";
+import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
+import { initGlobalAppKit } from "./providers/web3-provider";
 import "./index.css";
 
 const cleanupWalletConnectSubscription = () => {
@@ -29,6 +34,7 @@ const cleanupWalletConnectSubscription = () => {
 };
 
 export function bootstrapApp() {
+  initGlobalAppKit();
   initPostHog();
   cleanupWalletConnectSubscription();
 
@@ -37,5 +43,27 @@ export function bootstrapApp() {
     throw new Error("Root element with id 'root' was not found.");
   }
 
-  ReactDOM.createRoot(rootElement).render(<App />);
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<LandingPage />} path="/" />
+          <Route
+            element={
+              <RuntimeProvider>
+                <App />
+              </RuntimeProvider>
+            }
+            path="/:chain"
+          />
+          <Route element={<RedirectToLastChain />} path="*" />
+        </Routes>
+      </BrowserRouter>
+    </React.StrictMode>
+  );
+}
+
+function RedirectToLastChain() {
+  const lastChain = loadLastChain();
+  return <Navigate replace to={`/${lastChain}`} />;
 }

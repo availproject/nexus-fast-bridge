@@ -35,3 +35,4 @@ apps/root/public/*/
 # Coverage / logs
 coverage
 *.log
+dist

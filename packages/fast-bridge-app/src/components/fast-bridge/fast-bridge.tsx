@@ -3,13 +3,15 @@ import type {
   SUPPORTED_CHAINS_IDS,
   SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import Decimal from "decimal.js";
 import { CheckCircle2, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Address } from "viem";
 import { useWalletClient } from "wagmi";
+import { getChainSlugById } from "@/config/chain-settings";
+import { persistToken, useRuntime } from "@/providers/runtime-context";
 import { resolveUsdLimit } from "../../lib/bridge-limits";
 import { useUsdMaxAmount } from "../common/hooks/use-usd-max-amount";
 import { useNexus } from "../nexus/nexus-provider";
@@ -22,7 +24,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { EncryptedText } from "../ui/encrypted-text";
 import { Skeleton } from "../ui/skeleton";
 import ViewHistory from "../view-history/view-history";
 import AllowanceModal from "./components/allowance-modal";
@@ -134,7 +135,8 @@ function FastBridge({
   onError,
   prefill,
 }: FastBridgeProps) {
-  const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc;
+  const { chainFeatures, brandButton, setChain, appConfig } = useRuntime();
+  const mapUsdmToUsdc = chainFeatures.mapUsdmDisplaySymbolToUsdc ?? false;
   const postBridgeWatchAsset = chainFeatures.postBridgeWatchAsset;
 
   const {
@@ -217,7 +219,7 @@ function FastBridge({
     } catch (error) {
       console.error("Failed to add token to wallet:", error);
     }
-  }, [intent, walletClient]);
+  }, [intent, walletClient, postBridgeWatchAsset]);
 
   const showBridgeSuccessToast = useCallback((data: BridgeSuccessToastData) => {
     toast.success(
@@ -320,9 +322,6 @@ function FastBridge({
     isSourceMenuOpen,
   });
 
-  // Resolve the USD dollar limit for the currently selected destination chain
-  // and token — delegates to the shared resolver which merges global limits
-  // with any per-app chainFeatures overrides.
   const selectedToken = inputs?.token;
   const selectedChain = inputs?.chain;
   const usdLimitForDest = useMemo(
@@ -335,17 +334,10 @@ function FastBridge({
           chainFeatures.maxBridgeAmountByDestinationChainId,
         maxAmountByTokenAndChain: chainFeatures.maxBridgeAmountByTokenAndChain,
       }),
-    [selectedChain, selectedToken]
+    [selectedChain, selectedToken, chainFeatures]
   );
-
-  // Convert the USD limit to a token-unit string for UI gating (button
-  // disabled, AmountInput maxAmount). Undefined while price loads for
-  // non-stables — treat as no-cap-yet (don't block the user).
   const maxBridgeAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
 
-  // Compute an instant, synchronous error when the entered amount exceeds the
-  // configured cap. No network call — stablecoins are always 1:1 with USD so
-  // this fires on every keystroke without delay. Takes highest display priority.
   const amountLimitError = useMemo(() => {
     if (!(maxBridgeAmount && inputs?.amount && inputs?.token)) {
       return null;
@@ -360,10 +352,21 @@ function FastBridge({
     }
     const limitDisplay =
       usdLimitForDest !== undefined
-        ? `${usdLimitForDest} ${inputs.token}`
-        : `${maxBridgeAmount} ${inputs.token}`;
+        ? `${usdLimitForDest} ${getDisplayTokenSymbol(inputs.token, mapUsdmToUsdc)}`
+        : `${maxBridgeAmount} ${getDisplayTokenSymbol(inputs.token, mapUsdmToUsdc)}`;
     return `Maximum bridge amount is ${limitDisplay}`;
-  }, [inputs?.amount, inputs?.token, maxBridgeAmount, usdLimitForDest]);
+  }, [
+    inputs?.amount,
+    inputs?.token,
+    maxBridgeAmount,
+    usdLimitForDest,
+    mapUsdmToUsdc,
+  ]);
+
+  useEffect(() => {
+    setFieldError(null);
+    setBridgeError(null);
+  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
 
   const isConnected = isWalletConnected ?? Boolean(connectedAddress);
   const isSdkReady = Boolean(nexusSDK);
@@ -476,6 +479,9 @@ function FastBridge({
     if (availableSources.length === 0) {
       return;
     }
+    if (amountLimitError) {
+      return;
+    }
     if (intent.current) {
       return;
     }
@@ -546,7 +552,42 @@ function FastBridge({
   return (
     <div className="flex w-full max-w-xl flex-col gap-y-4">
       {chainFeatures.showFluffeyMascot && <FluffeyMascot />}
-      {chainFeatures.showPromoBanner && (
+
+      {/* mascot — cross-fades smoothly when the URL changes */}
+      <AnimatePresence mode="wait">
+        {appConfig.mascotImageUrl && (
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="pointer-events-none fixed right-0 bottom-0 left-0 z-10 flex w-full justify-center"
+            exit={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 16 }}
+            key={appConfig.mascotImageUrl}
+            style={{ willChange: "opacity, transform" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <motion.div
+              animate={
+                chainFeatures.slug !== "monad" ? { y: [14, 0, 14] } : { y: 0 }
+              }
+              transition={{
+                duration: 5,
+                ease: "easeInOut",
+                repeat: Number.POSITIVE_INFINITY,
+                repeatType: "loop",
+              }}
+            >
+              <img
+                alt="Mascot"
+                className="h-full w-full object-contain"
+                height={400}
+                src={appConfig.mascotImageUrl}
+                width={550}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* {chainFeatures.showPromoBanner && (
         <div
           className="relative z-10 flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-primary shadow-sm"
           style={{
@@ -593,7 +634,7 @@ function FastBridge({
             </p>
           </div>
         </div>
-      )}
+      )} */}
       <Card className="relative z-10 w-full">
         <CardContent className="relative flex w-full flex-col gap-y-4 px-2 sm:px-6">
           {showSdkDetails && (
@@ -603,17 +644,24 @@ function FastBridge({
             />
           )}
           <ChainSelect
-            handleSelect={(chain) =>
-              setInputs({
-                ...inputs,
-                chain,
-              })
-            }
+            disabled={!!prefill?.chainId}
+            handleSelect={(chainId) => {
+              const slug = getChainSlugById(chainId);
+              if (slug) {
+                setChain(slug);
+              } else {
+                setInputs({ ...inputs, chain: chainId });
+              }
+            }}
             label="To"
             selectedChain={inputs?.chain}
           />
           <TokenSelect
-            handleTokenSelect={(token) => setInputs({ ...inputs, token })}
+            disabled={!!prefill?.token}
+            handleTokenSelect={(token) => {
+              persistToken(token);
+              setInputs({ ...inputs, token });
+            }}
             selectedChain={inputs?.chain}
             selectedToken={inputs?.token}
           />
@@ -716,24 +764,64 @@ function FastBridge({
           )}
 
           {!intent.current && (
-            <Button
-              disabled={
-                isConnected
-                  ? !(
-                      inputs?.amount &&
-                      inputs?.recipient &&
-                      inputs?.chain &&
-                      inputs?.token
-                    ) ||
-                    loading ||
-                    Number(inputs?.amount) >
-                      Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
-                  : false
-              }
-              onClick={handlePrimaryButtonClick}
-            >
-              {primaryButtonLabel}
-            </Button>
+            <div className="flex flex-col gap-6">
+              <Button
+                disabled={
+                  isConnected
+                    ? !(
+                        inputs?.amount &&
+                        inputs?.recipient &&
+                        inputs?.chain &&
+                        inputs?.token
+                      ) ||
+                      loading ||
+                      Number(inputs?.amount) >
+                        Number(maxBridgeAmount ?? Number.POSITIVE_INFINITY)
+                    : false
+                }
+                onClick={handlePrimaryButtonClick}
+                style={{
+                  backgroundColor: brandButton.bg,
+                  color: brandButton.fg,
+                  transition:
+                    "background-color 0.5s ease-in-out, color 0.3s ease-in-out",
+                }}
+              >
+                {primaryButtonLabel}
+              </Button>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "-8px",
+                  width: "100%",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'Geist', sans-serif",
+                    fontSize: "14px",
+                    fontWeight: 400,
+                    color: "#848483",
+                  }}
+                >
+                  Powered by
+                </span>
+                <img
+                  alt="Avail"
+                  src="/landing-assets/avail-logo.png"
+                  style={{
+                    height: "14px",
+                    width: "auto",
+                    filter: "grayscale(100%) brightness(1.5)",
+                    opacity: 0.5,
+                  }}
+                />
+              </div>
+            </div>
           )}
 
           <Dialog
@@ -759,6 +847,12 @@ function FastBridge({
                     className="w-1/2"
                     disabled={refreshing || !isSourceSelectionReadyForAccept}
                     onClick={startTransaction}
+                    style={{
+                      backgroundColor: brandButton.bg,
+                      color: brandButton.fg,
+                      transition:
+                        "background-color 0.5s ease-in-out, color 0.3s ease-in-out",
+                    }}
                   >
                     {refreshing ? "Refreshing..." : "Accept"}
                   </Button>

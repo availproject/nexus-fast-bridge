@@ -4,8 +4,8 @@ import {
   type SUPPORTED_TOKENS,
   type UserAsset,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import { cn } from "@/lib/utils";
+import { useRuntime } from "@/providers/runtime-context";
 import {
   Accordion,
   AccordionContent,
@@ -71,6 +71,7 @@ const SourceBreakdown = ({
   requiredTotal,
   requiredSafetyTotal,
 }: SourceBreakdownProps) => {
+  const { chainFeatures } = useRuntime();
   const displayTokenSymbol =
     chainFeatures.mapUsdmDisplaySymbolToUsdc &&
     intent?.token?.symbol?.toUpperCase() === "USDM"

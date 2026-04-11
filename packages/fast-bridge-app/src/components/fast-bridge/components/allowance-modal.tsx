@@ -4,7 +4,6 @@ import {
   CHAIN_METADATA,
   type OnAllowanceHookData,
 } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import React, {
   type FC,
   memo,
@@ -15,6 +14,7 @@ import React, {
   useState,
 } from "react";
 import { withBasePath } from "@/lib/utils";
+import { useRuntime } from "@/providers/runtime-context";
 import { useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -111,6 +111,7 @@ const AllowanceModal: FC<AllowanceModalProps> = ({
   callback,
   onCloseCallback,
 }) => {
+  const { chainFeatures } = useRuntime();
   const { nexusSDK } = useNexus();
   const [selectedOption, setSelectedOption] = useState<AllowanceChoice[]>([]);
   const [customValues, setCustomValues] = useState<string[]>([]);

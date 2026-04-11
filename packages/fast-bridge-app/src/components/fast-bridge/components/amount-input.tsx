@@ -1,5 +1,4 @@
 import { SUPPORTED_CHAINS, type UserAsset } from "@avail-project/nexus-core";
-import { chainFeatures } from "@fastbridge/runtime";
 import { LoaderCircle } from "lucide-react";
 import {
   type FC,
@@ -10,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRuntime } from "@/providers/runtime-context";
 import { SHORT_CHAIN_NAME } from "../../common/utils/constant";
 import {
   clampAmountToMax,
@@ -49,6 +49,7 @@ const AmountInput: FC<AmountInputProps> = ({
   maxAmount,
   maxAvailableAmount,
 }) => {
+  const { chainFeatures } = useRuntime();
   const { nexusSDK, loading } = useNexus();
   const commitTimerRef = useRef<NodeJS.Timeout | null>(null);
   const showBalanceDivider = showBalanceDetails && Boolean(bridgableBalance);
