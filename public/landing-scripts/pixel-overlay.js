@@ -1861,8 +1861,53 @@
     }
   }
 
-  window.__pixelIntervals = [
-    setInterval(twinkle, 200), // increased from 120ms to 200ms
-    setInterval(sparkle, 600), // increased from 400ms to 600ms
-  ];
+  let twinkleTimer = null;
+  let sparkleTimer = null;
+
+  function startPixelAnimation() {
+    if (!twinkleTimer) {
+      twinkleTimer = setInterval(twinkle, 200);
+    }
+    if (!sparkleTimer) {
+      sparkleTimer = setInterval(sparkle, 600);
+    }
+    window.__pixelIntervals = [twinkleTimer, sparkleTimer];
+  }
+
+  function stopPixelAnimation() {
+    if (twinkleTimer) {
+      clearInterval(twinkleTimer);
+      twinkleTimer = null;
+    }
+    if (sparkleTimer) {
+      clearInterval(sparkleTimer);
+      sparkleTimer = null;
+    }
+    window.__pixelIntervals = []; // clear the global array
+  }
+
+  // Use IntersectionObserver to pause animation when not visible
+  if (window.__pixelObserver) {
+    window.__pixelObserver.disconnect();
+  }
+
+  const hero = document.querySelector(".hero");
+  if (hero) {
+    window.__pixelObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            startPixelAnimation();
+          } else {
+            stopPixelAnimation();
+          }
+        });
+      },
+      { threshold: 0 }
+    );
+    window.__pixelObserver.observe(hero);
+  } else {
+    // Fallback if hero isn't found for some reason
+    startPixelAnimation();
+  }
 })();
