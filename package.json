@@ -15,6 +15,11 @@
     "prepare": "husky"
   },
   "packageManager": "pnpm@9.0.0",
+  "pnpm": {
+    "overrides": {
+      "axios": ">=1.15.0"
+    }
+  },
   "dependencies": {
     "@avail-project/nexus-core": "^1.2.0",
     "@fontsource/geist-sans": "^5.2.5",
