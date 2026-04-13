@@ -179,6 +179,7 @@ const RE_OG_TITLE = /<meta\s+property="og:title"[^>]*>/;
 const RE_OG_DESCRIPTION = /<meta\s+property="og:description"[^>]*>/;
 const RE_OG_URL = /<meta\s+property="og:url"[^>]*>/;
 const RE_OG_IMAGE = /<meta\s+property="og:image"[^>]*>/;
+const RE_ITEMPROP_IMAGE = /<meta\s+itemprop="image"[^>]*>/;
 const RE_TWITTER_TITLE = /<meta\s+name="twitter:title"[^>]*>/;
 const RE_TWITTER_DESCRIPTION = /<meta\s+name="twitter:description"[^>]*>/;
 const RE_TWITTER_IMAGE = /<meta\s+name="twitter:image"[^>]*>/;
@@ -193,7 +194,7 @@ function injectMeta(baseHtml, chain) {
     .replace(RE_CANONICAL, `<link rel="canonical" href="${canonicalUrl}">`)
     .replace(
       RE_FAVICON,
-      `<link rel="icon" href="${faviconUrl}" type="image/x-icon">`
+      `<link rel="icon" href="${faviconUrl}" type="image/svg+xml">`
     )
     .replace(
       RE_THEME_COLOR,
@@ -211,6 +212,7 @@ function injectMeta(baseHtml, chain) {
     )
     .replace(RE_OG_URL, `<meta property="og:url" content="${canonicalUrl}">`)
     .replace(RE_OG_IMAGE, `<meta property="og:image" content="${imageUrl}">`)
+    .replace(RE_ITEMPROP_IMAGE, `<meta itemprop="image" content="${imageUrl}">`)
     .replace(RE_TWITTER_TITLE, `<meta name="twitter:title" content="${title}">`)
     .replace(
       RE_TWITTER_DESCRIPTION,
