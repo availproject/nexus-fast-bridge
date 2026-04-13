@@ -149,7 +149,7 @@ export default function LandingPage() {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                Integrate FastBridge
+                Add FastBridge
               </a>
             </div>
           </div>
