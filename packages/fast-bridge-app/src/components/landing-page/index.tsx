@@ -145,7 +145,7 @@ export default function LandingPage() {
               </button>
               <a
                 className="btn-secondary"
-                href="https://docs.availproject.org/docs/nexus/get-started"
+                href="https://elements.nexus.availproject.org/docs/components/fast-bridge"
                 rel="noopener noreferrer"
                 target="_blank"
               >
@@ -732,7 +732,7 @@ export default function LandingPage() {
               </p>
               <a
                 className="btn-tertiary"
-                href="https://docs.availproject.org/docs/nexus/get-started"
+                href="https://elements.nexus.availproject.org/docs/components/fast-bridge"
                 rel="noopener noreferrer"
                 target="_blank"
               >
