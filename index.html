@@ -1,95 +1,99 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/avail_logo.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://files.availproject.org" crossorigin>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/avail_logo.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://files.availproject.org" crossorigin />
 
-    <meta name="theme-color" content="#19191A">
+    <meta name="theme-color" content="#19191A" />
     <meta
       name="description"
-      content="Bridge your assets instantly with Avail Fast Bridge, powered by Avail Nexus."
-    >
-    <link rel="apple-touch-icon" href="/avail_logo.svg">
-    <title>Avail Fast Bridge - Powered by Avail Nexus</title>
-    <link rel="canonical" href="https://fastbridge.availproject.org/">
-    <meta name="title" content="Avail Fast Bridge - Powered by Avail Nexus">
+      content="Bridge USDC, USDT, ETH, and other tokens across major EVM chains in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus."
+    />
+    <link rel="apple-touch-icon" href="/avail_logo.svg" />
+    <title>FastBridge by Avail | Unified Cross-Chain Swaps and Transfers</title>
+    <link rel="canonical" href="https://fastbridge.availproject.org/" />
+    <meta
+      name="title"
+      content="FastBridge by Avail | Unified Cross-Chain Swaps and Transfers"
+    />
 
     <!-- Open Graph / Facebook -->
     <meta
       property="og:title"
-      content="Avail Fast Bridge - Powered by Avail Nexus"
-    >
+      content="FastBridge by Avail | Unified Cross-Chain Swaps and Transfers"
+    />
     <meta
       property="og:description"
-      content="Bridge your assets instantly with Avail Fast Bridge, powered by Avail Nexus."
-    >
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://fastbridge.availproject.org/">
+      content="Bridge USDC, USDT, ETH, and other tokens across major EVM chains in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fastbridge.availproject.org/" />
     <meta
       property="og:image"
       content="https://files.availproject.org/nexus-fast-bridge/meta/generic-meta.png"
-    >
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="627">
-    <meta property="og:image:alt" content="Avail Fast Bridge">
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="627" />
+    <meta property="og:image:alt" content="FastBridge by Avail" />
     <meta
       itemprop="image"
       content="https://files.availproject.org/nexus-fast-bridge/meta/generic-meta.png"
-    >
+    />
 
     <!-- X (Twitter) -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="https://fastbridge.availproject.org/">
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="https://fastbridge.availproject.org/" />
     <meta
       name="twitter:title"
-      content="Avail Fast Bridge - Powered by Avail Nexus"
-    >
+      content="FastBridge by Avail | Unified Cross-Chain Swaps and Transfers"
+    />
     <meta
       name="twitter:description"
-      content="Bridge your assets instantly with Avail Fast Bridge, powered by Avail Nexus."
-    >
+      content="Bridge USDC, USDT, ETH, and other tokens across major EVM chains in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus."
+    />
     <meta
       name="twitter:image"
       content="https://files.availproject.org/nexus-fast-bridge/meta/generic-meta.png"
-    >
-    <meta name="twitter:image:alt" content="Avail Fast Bridge">
+    />
+    <meta name="twitter:image:alt" content="Avail Fast Bridge" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://files.availproject.org" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://files.availproject.org" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Gloock&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
       rel="stylesheet"
-    >
+    />
 
     <script>
-    "use strict";
+      "use strict";
 
-    const script1 = document.createElement("script");
-    script1.async = true;
-    script1.src = "https://www.googletagmanager.com/gtag/js?id=AW-17965318713";
-    document.head.appendChild(script1);
+      const script1 = document.createElement("script");
+      script1.async = true;
+      script1.src =
+        "https://www.googletagmanager.com/gtag/js?id=AW-17965318713";
+      document.head.appendChild(script1);
 
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = (...args) => {
-      window.dataLayer.push(args);
-    };
-    window.gtag("js", new Date());
-    window.gtag("config", "AW-17965318713");
-
-    function _gtag_report_conversion(_url) {
-      const callback = () => {
-        /* noop */
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = (...args) => {
+        window.dataLayer.push(args);
       };
-      window.gtag("event", "conversion", {
-        send_to: "AW-17965318713/XXyLCKT5oZscELmExPZC",
-        event_callback: callback,
-      });
-      return false;
-    }
-    window.gtag_report_conversion = _gtag_report_conversion;
+      window.gtag("js", new Date());
+      window.gtag("config", "AW-17965318713");
+
+      function _gtag_report_conversion(_url) {
+        const callback = () => {
+          /* noop */
+        };
+        window.gtag("event", "conversion", {
+          send_to: "AW-17965318713/XXyLCKT5oZscELmExPZC",
+          event_callback: callback,
+        });
+        return false;
+      }
+      window.gtag_report_conversion = _gtag_report_conversion;
     </script>
   </head>
   <body>
