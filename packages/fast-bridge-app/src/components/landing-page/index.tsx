@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "@fontsource/geist-sans";
 
 export default function LandingPage() {
@@ -523,11 +523,15 @@ export default function LandingPage() {
               Answers to all your questions, quickly and clearly
             </p>
           </div>
+          <Link className="section-btn" to="/faqs">
+            View More
+          </Link>
         </div>
         <div className="faq-list">
           <div className="faq-item faq-item--open">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -558,6 +562,7 @@ export default function LandingPage() {
           <div className="faq-item">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -593,6 +598,7 @@ export default function LandingPage() {
           <div className="faq-item">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -624,6 +630,7 @@ export default function LandingPage() {
           <div className="faq-item">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -655,6 +662,7 @@ export default function LandingPage() {
           <div className="faq-item">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -683,6 +691,7 @@ export default function LandingPage() {
           <div className="faq-item">
             <button className="faq-question">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -749,6 +758,7 @@ export default function LandingPage() {
                 >
                   Docs
                 </a>
+                <Link to="/faqs">FAQs</Link>
                 <a
                   href="https://discord.com/invite/AvailProject"
                   rel="noopener noreferrer"
