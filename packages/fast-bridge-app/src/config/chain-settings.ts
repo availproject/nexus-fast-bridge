@@ -107,7 +107,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       feeBreakdownHideGasSupplied: true,
       feeBreakdownKeepZeroRows: true,
       dialogShowCloseButton: false,
-      enableGtagOnConnectWallet: true,
     },
   },
 

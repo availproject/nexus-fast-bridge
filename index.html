@@ -67,37 +67,38 @@
       rel="stylesheet"
     />
 
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=AW-17965318713"
+    ></script>
     <script>
-      "use strict";
-
-      const script1 = document.createElement("script");
-      script1.async = true;
-      script1.src =
-        "https://www.googletagmanager.com/gtag/js?id=AW-17965318713";
-      document.head.appendChild(script1);
-
+      // biome-ignore lint: vendor-provided Google gtag snippet — must remain exactly as prescribed
       window.dataLayer = window.dataLayer || [];
-      window.gtag = (...args) => {
-        window.dataLayer.push(args);
-      };
-      window.gtag("js", new Date());
-      window.gtag("config", "AW-17965318713");
-
-      function _gtag_report_conversion(_url) {
-        const callback = () => {
-          /* noop */
-        };
-        window.gtag("event", "conversion", {
-          send_to: "AW-17965318713/XXyLCKT5oZscELmExPZC",
-          event_callback: callback,
-        });
-        return false;
+      function gtag() {
+        dataLayer.push(arguments);
       }
-      window.gtag_report_conversion = _gtag_report_conversion;
+      gtag("js", new Date());
+      gtag("config", "AW-17965318713");
     </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/packages/fast-bridge-app/src/main.tsx"></script>
+    <script>
+      // biome-ignore lint: vendor-provided Google Ads conversion snippet
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof url != "undefined") {
+            // do nothing
+          }
+        };
+        gtag("event", "conversion", {
+          send_to: "AW-17965318713/XXyLCKT5oZscELmExPZC",
+          event_callback: callback,
+        });
+        return false;
+      }
+    </script>
   </body>
 </html>

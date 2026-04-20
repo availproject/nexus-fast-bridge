@@ -523,13 +523,12 @@ function FastBridge({
   const handlePrimaryButtonClick = () => {
     if (!isConnected) {
       if (
-        chainFeatures.enableGtagOnConnectWallet &&
         typeof window !== "undefined" &&
-        // @ts-expect-error - gtag_report_conversion is conditionally added by a global script
+        // @ts-expect-error - gtag_report_conversion is added by a global script in index.html
         typeof window.gtag_report_conversion === "function"
       ) {
         // @ts-expect-error - expected injected global method
-        window.gtag_report_conversion(window.location.href);
+        window.gtag_report_conversion();
       }
       if (onConnectWallet) {
         onConnectWallet();
