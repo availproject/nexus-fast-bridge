@@ -820,6 +820,19 @@ function FastBridge({
                   }}
                 />
               </div>
+              {chainFeatures.supportCtaHref && (
+                <div className="mt-[-16px] flex w-full items-center justify-start">
+                  <a
+                    className="font-sans text-[#848483] text-[11px] underline underline-offset-2 transition-colors hover:text-[#19191A]"
+                    href={chainFeatures.supportCtaHref}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {chainFeatures.supportCtaLine1 ?? "Need help?"}{" "}
+                    {chainFeatures.supportCtaLine2 ?? "Reach out to us."}
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

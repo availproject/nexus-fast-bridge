@@ -155,10 +155,10 @@ const AmountInput: FC<AmountInputProps> = ({
 
   return (
     <div className="flex w-full flex-col gap-y-2 pb-2">
-      <div className="flex w-full flex-col gap-y-2 rounded-lg border border-border sm:flex-row">
+      <div className="flex w-full items-center rounded-lg border border-border">
         <Input
           aria-invalid={Boolean(amount) && Number.isNaN(Number(amount))}
-          className="h-12! w-full rounded-r-none border-none bg-transparent px-3 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="h-12 w-full rounded-r-none border-none bg-transparent px-3 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           disabled={disabled}
           inputMode="decimal"
           onChange={(e) => {

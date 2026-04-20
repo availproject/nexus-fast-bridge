@@ -738,6 +738,7 @@ html.snap-active {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  max-height: 800px;
   scroll-snap-align: start;
   scroll-snap-stop: always;
   background: #141413;
