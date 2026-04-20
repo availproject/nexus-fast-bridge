@@ -101,8 +101,8 @@ export default function App() {
           </div>
         </div>
         <Toaster />
-        {
-          // chainFeatures.showSupportCta && chainFeatures.supportCtaHref &&
+        {/* TODO: re-enable support CTA when layout issue is resolved
+        {chainFeatures.showSupportCta && chainFeatures.supportCtaHref && (
           <div className="sticky bottom-4 left-4 z-100 ml-4 inline-flex flex-wrap items-center justify-start gap-3">
             <motion.a
               animate={{ opacity: 1, x: 0 }}
@@ -124,7 +124,8 @@ export default function App() {
               </span>
             </motion.a>
           </div>
-        }
+        )}
+        */}
       </NexusProvider>
     </Web3Provider>
   );
