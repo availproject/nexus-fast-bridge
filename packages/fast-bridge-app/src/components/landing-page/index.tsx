@@ -107,12 +107,17 @@ export default function LandingPage() {
               />
               <span className="nav-logo-text">fastbridge</span>
             </div>
-            <button className="btn-primary nav-btn" onClick={handleBridgeClick}>
+            <button
+              className="btn-primary nav-btn"
+              onClick={handleBridgeClick}
+              type="button"
+            >
               Bridge Now
             </button>
           </div>
         </nav>
         <div className="hero-bg">
+          {/* biome-ignore lint/correctness/useImageSize: Handled by fluid CSS layout */}
           <img
             alt=""
             className="hero-bg-img"
@@ -140,7 +145,11 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="hero-buttons">
-              <button className="btn-primary" onClick={handleBridgeClick}>
+              <button
+                className="btn-primary"
+                onClick={handleBridgeClick}
+                type="button"
+              >
                 Bridge Now
               </button>
               <a
@@ -217,6 +226,7 @@ export default function LandingPage() {
               <button
                 className="connect-wallet-btn"
                 onClick={handleBridgeClick}
+                type="button"
               >
                 Bridge
               </button>
@@ -529,7 +539,7 @@ export default function LandingPage() {
         </div>
         <div className="faq-list">
           <div className="faq-item faq-item--open">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -560,7 +570,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -596,7 +606,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -628,7 +638,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -660,7 +670,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -689,7 +699,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
                 aria-hidden="true"
                 className="faq-chevron"
@@ -727,6 +737,7 @@ export default function LandingPage() {
           <div className="footer-top">
             <div className="footer-brand">
               <div className="footer-logo">
+                {/* biome-ignore lint/correctness/useImageSize: Footer icon sizing handled by CSS */}
                 <img
                   alt="Avail"
                   className="footer-logo-icon"
