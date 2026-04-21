@@ -3,7 +3,7 @@
 /* Navbar override for FAQ page */
 .navbar--dark-page {
   position: absolute;
-  top: 0;
+  top: 50px;
   right: 0;
   left: 0;
   z-index: 10;
@@ -297,6 +297,9 @@
 
 /* ========== RESPONSIVE: MOBILE (max-width: 640px) ========== */
 @media (max-width: 640px) {
+  .navbar--dark-page {
+    top: -10px;
+  }
   .faqs-hero {
     min-height: 300px;
   }
