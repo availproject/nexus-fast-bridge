@@ -521,7 +521,7 @@
     font-size: 15px;
   }
   .faqs-hero-buttons {
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
   }
 }

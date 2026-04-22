@@ -19,6 +19,10 @@
   margin: 0;
 }
 
+html {
+  scroll-snap-type: y proximity;
+}
+
 :root {
   --foreground-primary: #161615;
   --foreground-secondary: #5b5b5a;
@@ -723,12 +727,6 @@ body.landing-page-active {
 
 .steps-scroll {
   width: 100%;
-  height: 100vh;
-  max-height: 800px;
-  overflow-y: auto;
-  -ms-overflow-style: none;
-  scroll-snap-type: y mandatory;
-  scrollbar-width: none;
 }
 
 .steps-scroll::-webkit-scrollbar {
@@ -741,25 +739,15 @@ body.landing-page-active {
 }
 
 .step-card {
+  position: sticky;
+  top: 0;
   display: flex;
-  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  max-height: 800px;
+  width: 100%;
+  min-height: 100vh;
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   background: #141413;
-  opacity: 0;
-  transform: translateY(80px) scale(0.97);
-  transition:
-    opacity 1s ease-out,
-    transform 1s ease-out;
-}
-
-.step-card.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
 }
 
 .step-card-inner {
@@ -1394,6 +1382,34 @@ body.landing-page-active {
   color: #848483;
 }
 
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 32px;
+  margin-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-bottom-links {
+  display: flex;
+  align-items: center;
+}
+
+.footer-bottom-links a {
+  font-family: "Geist Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 18px;
+  color: #848483;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-bottom-links a:hover {
+  color: var(--foreground-primary);
+}
+
 .powered-by {
   display: flex;
   gap: 6px;
@@ -1581,8 +1597,20 @@ body.landing-page-active {
   }
   .blog-grid {
     display: flex;
-    flex-direction: column;
-    gap: 24px;
+    flex-direction: row;
+    gap: 16px;
+    padding-bottom: 16px;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .blog-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .blog-card {
+    flex: 0 0 85%;
+    scroll-snap-align: center;
   }
   .faq-section {
     padding: 60px 40px;
@@ -1928,5 +1956,13 @@ body.landing-page-active {
   }
   .btn-tertiary {
     font-size: 14px;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  .footer-bottom-links {
+    display: none;
   }
 }
