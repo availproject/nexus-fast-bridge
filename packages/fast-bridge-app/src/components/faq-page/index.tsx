@@ -1242,13 +1242,6 @@ export default function FAQPage() {
                   GitHub
                 </a>
                 <a
-                  href="https://blog.availproject.org/"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Blog
-                </a>
-                <a
                   href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
                   rel="noopener noreferrer"
                   target="_blank"
@@ -1265,6 +1258,13 @@ export default function FAQPage() {
                   target="_blank"
                 >
                   Avail Website
+                </a>
+                <a
+                  href="https://blog.availproject.org/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Blog
                 </a>
                 <a
                   href="https://x.com/AvailProject"

@@ -1904,11 +1904,15 @@ body.landing-page-active {
     max-width: 100%;
   }
   .footer-links {
-    flex-direction: column;
+    flex-direction: row;
     gap: 20px;
+    justify-content: space-between;
+    width: 100%;
   }
   .footer-col {
+    flex: 1;
     gap: 16px;
+    align-items: flex-start;
   }
   .footer-description {
     font-size: 14px;
