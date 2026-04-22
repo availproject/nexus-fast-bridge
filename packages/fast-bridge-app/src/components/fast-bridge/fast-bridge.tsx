@@ -182,7 +182,7 @@ function FastBridge({
         amountReceived: `${amountReceived} ${asset}`,
         totalFees: `${totalFees} ${displaySymbol}`,
       };
-    }, [intent]);
+    }, [intent, mapUsdmToUsdc]);
 
   const runPostBridgeWalletAction = useCallback(async () => {
     const destinationChainId = Number(
@@ -363,6 +363,7 @@ function FastBridge({
     mapUsdmToUsdc,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reset errors on input change
   useEffect(() => {
     setFieldError(null);
     setBridgeError(null);
@@ -485,12 +486,16 @@ function FastBridge({
     if (intent.current) {
       return;
     }
-    // Removed if (status !== "idle" || txError) and if (loading) checks to allow overlapping fetches
     if (autoIntentTriggered.current) {
       return;
     }
-    autoIntentTriggered.current = true;
-    runHandleTransaction();
+
+    const timer = setTimeout(() => {
+      autoIntentTriggered.current = true;
+      runHandleTransaction();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [
     availableSources.length,
     amountLimitError,
@@ -505,12 +510,6 @@ function FastBridge({
     isSdkReady,
     runHandleTransaction,
   ]);
-
-  // Clear field-level and bridge errors whenever the user changes inputs
-  useEffect(() => {
-    setFieldError(null);
-    setBridgeError(null);
-  }, [inputs?.amount, inputs?.chain, inputs?.token, inputs?.recipient]);
 
   const hasStatusError = status === "error" || Boolean(txError);
   const primaryButtonLabel = getPrimaryButtonLabel({
@@ -707,60 +706,62 @@ function FastBridge({
             </div>
           )}
 
-          {showSdkDetails && intent?.current?.intent && (
-            <>
-              <SourceBreakdown
-                availableSources={availableSources}
-                intent={intent?.current?.intent}
-                isLoading={refreshing}
-                isSourceSelectionInsufficient={isSourceSelectionInsufficient}
-                missingToProceed={missingToProceed}
-                missingToSafety={missingToSafety}
-                onSourceMenuOpenChange={setIsSourceMenuOpen}
-                onToggleSourceChain={toggleSourceChain}
-                requiredSafetyTotal={requiredSafetyTotal}
-                requiredTotal={requiredTotal}
-                selectedSourceChains={selectedSourceChains}
-                selectedTotal={selectedTotal}
-                sourceCoveragePercent={sourceCoveragePercent}
-                sourceCoverageState={sourceCoverageState}
-                tokenSymbol={
-                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
-                }
-              />
+          {showSdkDetails &&
+            Boolean(inputs?.amount) &&
+            intent?.current?.intent && (
+              <>
+                <SourceBreakdown
+                  availableSources={availableSources}
+                  intent={intent?.current?.intent}
+                  isLoading={refreshing}
+                  isSourceSelectionInsufficient={isSourceSelectionInsufficient}
+                  missingToProceed={missingToProceed}
+                  missingToSafety={missingToSafety}
+                  onSourceMenuOpenChange={setIsSourceMenuOpen}
+                  onToggleSourceChain={toggleSourceChain}
+                  requiredSafetyTotal={requiredSafetyTotal}
+                  requiredTotal={requiredTotal}
+                  selectedSourceChains={selectedSourceChains}
+                  selectedTotal={selectedTotal}
+                  sourceCoveragePercent={sourceCoveragePercent}
+                  sourceCoverageState={sourceCoverageState}
+                  tokenSymbol={
+                    filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
+                  }
+                />
 
-              <div className="flex w-full items-start justify-between gap-x-4">
-                <p className="font-light text-base">You receive</p>
-                <div className="flex min-w-fit flex-col gap-y-1">
-                  {refreshing ? (
-                    <Skeleton className="h-5 w-28" />
-                  ) : (
-                    <p className="text-right font-light text-base">
-                      {`${
-                        connectedAddress === inputs?.recipient
-                          ? intent?.current?.intent?.destination?.amount
-                          : inputs.amount
-                      } ${receiveSymbol}`}
-                    </p>
-                  )}
-                  {refreshing ? (
-                    <Skeleton className="h-4 w-36" />
-                  ) : (
-                    <p className="text-right font-light text-sm">
-                      on {intent?.current?.intent?.destination?.chainName}
-                    </p>
-                  )}
+                <div className="flex w-full items-start justify-between gap-x-4">
+                  <p className="font-light text-base">You receive</p>
+                  <div className="flex min-w-fit flex-col gap-y-1">
+                    {refreshing ? (
+                      <Skeleton className="h-5 w-28" />
+                    ) : (
+                      <p className="text-right font-light text-base">
+                        {`${
+                          connectedAddress === inputs?.recipient
+                            ? intent?.current?.intent?.destination?.amount
+                            : inputs.amount
+                        } ${receiveSymbol}`}
+                      </p>
+                    )}
+                    {refreshing ? (
+                      <Skeleton className="h-4 w-36" />
+                    ) : (
+                      <p className="text-right font-light text-sm">
+                        on {intent?.current?.intent?.destination?.chainName}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <FeeBreakdown
-                intent={intent?.current?.intent}
-                isLoading={refreshing}
-                tokenSymbol={
-                  filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
-                }
-              />
-            </>
-          )}
+                <FeeBreakdown
+                  intent={intent?.current?.intent}
+                  isLoading={refreshing}
+                  tokenSymbol={
+                    filteredBridgableBalance?.symbol as SUPPORTED_TOKENS
+                  }
+                />
+              </>
+            )}
 
           {!intent.current && (
             <div className="flex flex-col gap-6">

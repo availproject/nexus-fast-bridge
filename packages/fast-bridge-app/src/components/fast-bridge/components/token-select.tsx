@@ -43,7 +43,11 @@ const TokenSelect = ({
       return data;
     }
     return data?.filter((token) => !denyList.includes(token.symbol));
-  }, [selectedChain, supportedChainsAndTokens]);
+  }, [
+    selectedChain,
+    supportedChainsAndTokens,
+    chainFeatures.tokenDenyListByChainId,
+  ]);
 
   const selectedTokenData = tokenData?.find((token) => {
     return token.symbol === selectedToken;
