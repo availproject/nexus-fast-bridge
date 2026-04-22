@@ -117,7 +117,6 @@ export default function LandingPage() {
           </div>
         </nav>
         <div className="hero-bg">
-          {/* biome-ignore lint/correctness/useImageSize: Handled by fluid CSS layout */}
           <img
             alt=""
             className="hero-bg-img"
@@ -449,7 +448,7 @@ export default function LandingPage() {
           <div>
             <h2 className="blog-title">Latest blog posts</h2>
             <p className="blog-subtitle">
-              Discover stories, tips, and resources to inspire your next big
+              Discover guides, tips, and resources to inspire your next big
               idea.
             </p>
           </div>
@@ -463,6 +462,24 @@ export default function LandingPage() {
           </a>
         </div>
         <div className="blog-grid">
+          <a
+            className="blog-card"
+            href="https://blog.availproject.org/fastbridge-by-avail-the-fastest-way-to-move-crypto-from-multiple-chains/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <div className="blog-card-image">
+              <img
+                alt="FastBridge by Avail"
+                src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/The-Multi-Chain-Bridge-That-Pulls-From-All-Your-Chains-at-Once--MK_1709---7-.png"
+              />
+            </div>
+            <h3 className="blog-card-title">
+              FastBridge by Avail: The Fastest Way to Move Crypto From Multiple
+              Chains
+            </h3>
+            <p className="blog-card-meta">April 16, 2026 &middot; 5 min read</p>
+          </a>
           <a
             className="blog-card"
             href="https://blog.availproject.org/how-to-bridge-to-monad-in-under-60-seconds/"
@@ -494,23 +511,6 @@ export default function LandingPage() {
             </div>
             <h3 className="blog-card-title">Bridge to Citrea in Real Time</h3>
             <p className="blog-card-meta">April 6, 2026 &middot; 3 min read</p>
-          </a>
-          <a
-            className="blog-card"
-            href="https://blog.availproject.org/fastbridge-vs-canonical-bridge-why-7-days-is-too-long-for-defi/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <div className="blog-card-image">
-              <img
-                alt="FastBridge vs Canonical Bridge"
-                src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/FastBridge-vs-Canonical-Bridge--MK_1678--1.png"
-              />
-            </div>
-            <h3 className="blog-card-title">
-              FastBridge vs Canonical Bridge: Why 7 Days Is Too Long for DeFi
-            </h3>
-            <p className="blog-card-meta">April 2, 2026 &middot; 4 min read</p>
           </a>
         </div>
         <div className="blog-dots" />
@@ -737,7 +737,6 @@ export default function LandingPage() {
           <div className="footer-top">
             <div className="footer-brand">
               <div className="footer-logo">
-                {/* biome-ignore lint/correctness/useImageSize: Footer icon sizing handled by CSS */}
                 <img
                   alt="Avail"
                   className="footer-logo-icon"
@@ -795,6 +794,13 @@ export default function LandingPage() {
               <div className="footer-col">
                 <span className="footer-col-title">Socials</span>
                 <a
+                  href="https://availproject.org/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Avail Website
+                </a>
+                <a
                   href="https://x.com/AvailProject"
                   rel="noopener noreferrer"
                   target="_blank"
@@ -823,6 +829,21 @@ export default function LandingPage() {
                   YouTube
                 </a>
               </div>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p className="footer-copyright">
+              &copy; {new Date().getFullYear()} Avail. All rights reserved.
+            </p>
+            <div className="footer-bottom-links">
+              <a
+                href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Privacy Policy
+              </a>
+              <Link to="/contact">Get in Touch</Link>
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "MegaETH Fast Bridge - Powered by Avail Nexus",
         description:
           "Move your unified USDC and USDT from 12 chains to MegaETH, faster than ever.",
-        canonicalUrl: "https://fastbridge.availproject.org/megaeth/",
+        canonicalUrl: "https://fastbridge.availproject.org/megaeth",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/megaeth.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -143,7 +143,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Monad Fast Bridge - Powered by Avail Nexus",
         description:
           "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
-        canonicalUrl: "https://fastbridge.availproject.org/monad/",
+        canonicalUrl: "https://fastbridge.availproject.org/monad",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/monad.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -212,7 +212,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       meta: {
         title: "Citrea Fast Bridge - Powered by Avail",
         description: "Move assets from any chain to Citrea, instantly.",
-        canonicalUrl: "https://fastbridge.availproject.org/citrea/",
+        canonicalUrl: "https://fastbridge.availproject.org/citrea",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/citrea.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -288,7 +288,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Arbitrum Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Arbitrum instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/arbitrum/",
+        canonicalUrl: "https://fastbridge.availproject.org/arbitrum",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/arbitrum.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -341,7 +341,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Ethereum Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Ethereum instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/ethereum/",
+        canonicalUrl: "https://fastbridge.availproject.org/ethereum",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/ethereum.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -396,7 +396,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Polygon Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Polygon instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/polygon/",
+        canonicalUrl: "https://fastbridge.availproject.org/polygon",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/polygon.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -451,7 +451,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Base Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Base instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/base/",
+        canonicalUrl: "https://fastbridge.availproject.org/base",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/base.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -506,7 +506,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "OP Mainnet Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to OP Mainnet instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/op-mainnet/",
+        canonicalUrl: "https://fastbridge.availproject.org/op-mainnet",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -559,7 +559,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Scroll Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Scroll instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/scroll/",
+        canonicalUrl: "https://fastbridge.availproject.org/scroll",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/scroll.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -616,7 +616,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Kaia Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Kaia instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/kaia/",
+        canonicalUrl: "https://fastbridge.availproject.org/kaia",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/kaia.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -671,7 +671,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "BNB Smart Chain Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to BNB Smart Chain instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain/",
+        canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/bnb.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -726,7 +726,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "HyperEVM Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to HyperEVM instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/hyperevm/",
+        canonicalUrl: "https://fastbridge.availproject.org/hyperevm",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/hyperliquid.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -781,7 +781,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         title: "Avalanche Fast Bridge - Powered by Avail Nexus",
         description:
           "Bridge your assets to Avalanche instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/avalanche/",
+        canonicalUrl: "https://fastbridge.availproject.org/avalanche",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/avalanche.jpg",
         faviconUrl: "/avail_logo.svg",

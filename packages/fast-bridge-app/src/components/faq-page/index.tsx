@@ -141,14 +141,24 @@ export default function FAQPage() {
             Everything you need to know about FastBridge. Can&apos;t find the
             answer you&apos;re looking for?
           </p>
-          <a
-            className="btn-secondary faqs-hero-btn"
-            href="https://discord.com/invite/AvailProject"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Join Discord
-          </a>
+          <div className="faqs-hero-buttons">
+            <a
+              className="btn-secondary faqs-hero-btn"
+              href="https://discord.com/invite/AvailProject"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Join Discord
+            </a>
+            <a
+              className="btn-secondary faqs-hero-btn"
+              href="https://t.me/AvailCommunity"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Join Telegram
+            </a>
+          </div>
         </div>
       </section>
 
@@ -1242,6 +1252,13 @@ export default function FAQPage() {
               <div className="footer-col">
                 <span className="footer-col-title">Socials</span>
                 <a
+                  href="https://availproject.org/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Avail Website
+                </a>
+                <a
                   href="https://x.com/AvailProject"
                   rel="noopener noreferrer"
                   target="_blank"
@@ -1270,6 +1287,21 @@ export default function FAQPage() {
                   YouTube
                 </a>
               </div>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p className="footer-copyright">
+              &copy; {new Date().getFullYear()} Avail. All rights reserved.
+            </p>
+            <div className="footer-bottom-links">
+              <a
+                href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Privacy Policy
+              </a>
+              <Link to="/contact">Get in Touch</Link>
             </div>
           </div>
         </div>
