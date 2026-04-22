@@ -1394,35 +1394,6 @@ body.landing-page-active {
   color: #848483;
 }
 
-.footer-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 32px;
-  margin-top: 32px;
-  border-top: 1px solid var(--border-light);
-}
-
-.footer-bottom-links {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-}
-
-.footer-bottom-links a {
-  font-family: "Geist Sans", sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 18px;
-  color: #848483;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.footer-bottom-links a:hover {
-  color: var(--foreground-primary);
-}
-
 .powered-by {
   display: flex;
   gap: 6px;
@@ -1664,11 +1635,6 @@ body.landing-page-active {
   }
   .footer-col {
     align-items: center;
-  }
-  .footer-bottom {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
   }
 }
 
@@ -1958,13 +1924,5 @@ body.landing-page-active {
   }
   .btn-tertiary {
     font-size: 14px;
-  }
-  .footer-bottom {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
-  }
-  .footer-bottom-links {
-    gap: 16px;
   }
 }

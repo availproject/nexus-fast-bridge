@@ -790,6 +790,14 @@ export default function LandingPage() {
                 >
                   Blog
                 </a>
+                <a
+                  href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Privacy Policy
+                </a>
+                <Link to="/contact">Get in Touch</Link>
               </div>
               <div className="footer-col">
                 <span className="footer-col-title">Socials</span>
@@ -829,21 +837,6 @@ export default function LandingPage() {
                   YouTube
                 </a>
               </div>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p className="footer-copyright">
-              &copy; {new Date().getFullYear()} Avail. All rights reserved.
-            </p>
-            <div className="footer-bottom-links">
-              <a
-                href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Privacy Policy
-              </a>
-              <Link to="/contact">Get in Touch</Link>
             </div>
           </div>
         </div>
