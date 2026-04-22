@@ -76,7 +76,7 @@ export default function ContactPage() {
       // paste the doPost handler, deploy as web app.
       // For now, we use a mailto fallback since we need the sheet URL from the team.
       const GOOGLE_SCRIPT_URL =
-        "https://script.google.com/macros/s/PLACEHOLDER/exec";
+        "https://script.google.com/macros/s/AKfycbw9iLDyqZjxG2yeSV-7LWcdh5_HutJyr8_rkpz3syrZn5xwX6M8d_I9oWGcZMMx_gfG/exec";
 
       if (GOOGLE_SCRIPT_URL.includes("PLACEHOLDER")) {
         // Fallback: open mailto with form data
