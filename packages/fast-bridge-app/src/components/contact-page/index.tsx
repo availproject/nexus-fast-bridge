@@ -11,6 +11,11 @@ export default function ContactPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+
   const handleBridgeClick = () => {
     navigate("/");
   };
@@ -70,13 +75,21 @@ export default function ContactPage() {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
       subject: formData.get("subject") as string,
+      telegram: formData.get("telegram") as string,
       message: formData.get("message") as string,
       timestamp: new Date().toISOString(),
       turnstileToken, // Send token to backend for verification
     };
 
     // Validate required fields
-    if (!(data.name && data.email && data.message && turnstileToken)) {
+    if (
+      !(
+        data.name &&
+        data.email &&
+        data.message &&
+        (turnstileToken || isLocalhost)
+      )
+    ) {
       setError("Please fill in all required fields and complete the captcha.");
       setIsSubmitting(false);
       return;
@@ -88,7 +101,7 @@ export default function ContactPage() {
       // paste the doPost handler, deploy as web app.
       // For now, we use a mailto fallback since we need the sheet URL from the team.
       const GOOGLE_SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycby69YREgImwNSjvWCRBI3JW4VowbCckC4jmOGi85YLZvCW8RKvth8kQKTwc31rzTCxH/exec";
+        "https://script.google.com/macros/s/AKfycbwtdbHQH6JWv-Ne81Deh72VuKeDQOu9d8FQy48d0k6lDif0wCdHPw8dfE0Ad3dJxo_M/exec";
 
       if (GOOGLE_SCRIPT_URL.includes("PLACEHOLDER")) {
         // Fallback: open mailto with form data
@@ -248,8 +261,10 @@ export default function ContactPage() {
                     className="contact-input"
                     id="contact-email"
                     name="email"
+                    pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
                     placeholder="you@example.com"
                     required
+                    title="Please enter a valid email address"
                     type="email"
                   />
                 </div>
@@ -258,13 +273,31 @@ export default function ContactPage() {
                 <label className="contact-label" htmlFor="contact-subject">
                   Subject
                 </label>
-                <input
+                <select
                   className="contact-input"
+                  defaultValue=""
                   id="contact-subject"
                   name="subject"
-                  placeholder="What is this about?"
-                  type="text"
-                />
+                  required
+                >
+                  <option disabled value="">
+                    Select a topic
+                  </option>
+                  <option value="Integration Support">
+                    Integration Support
+                  </option>
+                  <option value="Partnership/Business Development">
+                    Partnership/Business Development
+                  </option>
+                  <option value="Report a Bug">Report a Bug</option>
+                  <option value="Security / Vulnerability Report">
+                    Security / Vulnerability Report
+                  </option>
+                  <option value="Feature Request">Feature Request</option>
+                  <option value="General Inquiry/Feedback">
+                    General Inquiry/Feedback
+                  </option>
+                </select>
               </div>
               <div className="contact-field">
                 <label className="contact-label" htmlFor="contact-message">
@@ -273,30 +306,45 @@ export default function ContactPage() {
                 <textarea
                   className="contact-input contact-textarea"
                   id="contact-message"
+                  maxLength={1000}
                   name="message"
-                  placeholder="Tell us more..."
+                  placeholder="Tell us more... (max 1000 characters)"
                   required
                   rows={6}
                 />
               </div>
-
-              {/* Cloudflare Turnstile */}
-              <div className="contact-field mt-4 mb-2">
-                <Turnstile
-                  // NOTE: This is Cloudflare's official testing key that always passes.
-                  // You MUST replace this with your actual Site Key from the Cloudflare Dashboard!
-                  onSuccess={(t) => setTurnstileToken(t)}
-                  options={{
-                    theme: "light",
-                  }}
-                  siteKey="0x4AAAAAADBxLiHcrd8rgAJI"
+              <div className="contact-field">
+                <label className="contact-label" htmlFor="contact-telegram">
+                  Telegram ID
+                </label>
+                <input
+                  className="contact-input"
+                  id="contact-telegram"
+                  name="telegram"
+                  placeholder="@username (optional)"
+                  type="text"
                 />
               </div>
+
+              {/* Cloudflare Turnstile */}
+              {!isLocalhost && (
+                <div className="contact-field mt-4 mb-2">
+                  <Turnstile
+                    // NOTE: This is Cloudflare's official testing key that always passes.
+                    // You MUST replace this with your actual Site Key from the Cloudflare Dashboard!
+                    onSuccess={(t) => setTurnstileToken(t)}
+                    options={{
+                      theme: "light",
+                    }}
+                    siteKey="0x4AAAAAADBxLiHcrd8rgAJI"
+                  />
+                </div>
+              )}
 
               {error && <p className="contact-error">{error}</p>}
               <button
                 className="btn-primary contact-submit"
-                disabled={isSubmitting || !turnstileToken}
+                disabled={isSubmitting || !(turnstileToken || isLocalhost)}
                 type="submit"
               >
                 {isSubmitting ? "Sending..." : "Send Message"}
