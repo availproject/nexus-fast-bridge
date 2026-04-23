@@ -17,6 +17,9 @@ importers:
       '@fontsource/geist-sans':
         specifier: ^5.2.5
         version: 5.2.5
+      '@marsidev/react-turnstile':
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -624,6 +627,12 @@ packages:
 
   '@lit/reactive-element@2.1.2':
     resolution: {integrity: sha512-pbCDiVMnne1lYUIaYNN5wrwQXDtHaYtg7YEFPeW+hws6U47WeFvISGUWekPGKWOP1ygrs0ef0o1VJMk1exos5A==}
+
+  '@marsidev/react-turnstile@1.5.0':
+    resolution: {integrity: sha512-Ph6mcj8u9WBDsBO7s9jKPsyRDz1sBPBJwrk+Ngx09vFInvKsQ6U6kW5amEcGq4dHOreB6DgFrOJk7/fy318YlQ==}
+    peerDependencies:
+      react: ^17.0.2 || ^18.0.0 || ^19.0
+      react-dom: ^17.0.2 || ^18.0.0 || ^19.0
 
   '@metamask/eth-json-rpc-provider@1.0.1':
     resolution: {integrity: sha512-whiUMPlAOrVGmX8aKYVPvlKyG4CpQXiNNyt74vE1xb5sPvmx5oA7B/kOi/JdBvhGQq97U1/AVdXEdk2zkP8qyA==}
@@ -5168,6 +5177,11 @@ snapshots:
   '@lit/reactive-element@2.1.2':
     dependencies:
       '@lit-labs/ssr-dom-shim': 1.5.1
+
+  '@marsidev/react-turnstile@1.5.0(react-dom@19.2.2(react@19.2.2))(react@19.2.2)':
+    dependencies:
+      react: 19.2.2
+      react-dom: 19.2.2(react@19.2.2)
 
   '@metamask/eth-json-rpc-provider@1.0.1':
     dependencies:

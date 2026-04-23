@@ -1,3 +1,4 @@
+import { Turnstile } from "@marsidev/react-turnstile";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -6,6 +7,7 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
@@ -55,17 +57,27 @@ export default function ContactPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const honeypot = formData.get("website") as string;
+
+    // If the honeypot is filled out, pretend it was successful and silently return
+    if (honeypot) {
+      setSubmitted(true);
+      setIsSubmitting(false);
+      return;
+    }
+
     const data = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
       subject: formData.get("subject") as string,
       message: formData.get("message") as string,
       timestamp: new Date().toISOString(),
+      turnstileToken, // Send token to backend for verification
     };
 
     // Validate required fields
-    if (!(data.name && data.email && data.message)) {
-      setError("Please fill in all required fields.");
+    if (!(data.name && data.email && data.message && turnstileToken)) {
+      setError("Please fill in all required fields and complete the captcha.");
       setIsSubmitting(false);
       return;
     }
@@ -76,7 +88,7 @@ export default function ContactPage() {
       // paste the doPost handler, deploy as web app.
       // For now, we use a mailto fallback since we need the sheet URL from the team.
       const GOOGLE_SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycbw9iLDyqZjxG2yeSV-7LWcdh5_HutJyr8_rkpz3syrZn5xwX6M8d_I9oWGcZMMx_gfG/exec";
+        "https://script.google.com/macros/s/AKfycby69YREgImwNSjvWCRBI3JW4VowbCckC4jmOGi85YLZvCW8RKvth8kQKTwc31rzTCxH/exec";
 
       if (GOOGLE_SCRIPT_URL.includes("PLACEHOLDER")) {
         // Fallback: open mailto with form data
@@ -199,6 +211,19 @@ export default function ContactPage() {
               onSubmit={handleSubmit}
               ref={formRef}
             >
+              {/* Honeypot Field (Hidden from real users, filled by dumb bots) */}
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: "-9999px",
+                  top: "-9999px",
+                }}
+              >
+                <label htmlFor="website">Website</label>
+                <input id="website" name="website" tabIndex={-1} type="text" />
+              </div>
+
               <div className="contact-form-row">
                 <div className="contact-field">
                   <label className="contact-label" htmlFor="contact-name">
@@ -254,10 +279,24 @@ export default function ContactPage() {
                   rows={6}
                 />
               </div>
+
+              {/* Cloudflare Turnstile */}
+              <div className="contact-field mt-4 mb-2">
+                <Turnstile
+                  // NOTE: This is Cloudflare's official testing key that always passes.
+                  // You MUST replace this with your actual Site Key from the Cloudflare Dashboard!
+                  onSuccess={(t) => setTurnstileToken(t)}
+                  options={{
+                    theme: "light",
+                  }}
+                  siteKey="0x4AAAAAADBxLiHcrd8rgAJI"
+                />
+              </div>
+
               {error && <p className="contact-error">{error}</p>}
               <button
                 className="btn-primary contact-submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !turnstileToken}
                 type="submit"
               >
                 {isSubmitting ? "Sending..." : "Send Message"}
