@@ -286,16 +286,16 @@ export default function ContactPage() {
                   <option value="Integration Support">
                     Integration Support
                   </option>
-                  <option value="Partnership/Business Development">
-                    Partnership/Business Development
+                  <option value="Partnership / Business Development">
+                    Partnership / Business Development
                   </option>
+                  <option value="Feature Request">Feature Request</option>
                   <option value="Report a Bug">Report a Bug</option>
                   <option value="Security / Vulnerability Report">
                     Security / Vulnerability Report
                   </option>
-                  <option value="Feature Request">Feature Request</option>
-                  <option value="General Inquiry/Feedback">
-                    General Inquiry/Feedback
+                  <option value="General Inquiry / Feedback">
+                    General Inquiry / Feedback
                   </option>
                 </select>
               </div>
