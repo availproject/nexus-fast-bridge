@@ -471,6 +471,8 @@ export default function LandingPage() {
             <div className="blog-card-image">
               <img
                 alt="FastBridge by Avail"
+                decoding="async"
+                loading="lazy"
                 src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/The-Multi-Chain-Bridge-That-Pulls-From-All-Your-Chains-at-Once--MK_1709---7-.png"
               />
             </div>
@@ -489,6 +491,8 @@ export default function LandingPage() {
             <div className="blog-card-image">
               <img
                 alt="How to Bridge to Monad"
+                decoding="async"
+                loading="lazy"
                 src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/How-to-Bridge-to-Monad-in-Under-60-Seconds--MK_1684---4--1.png"
               />
             </div>
@@ -506,6 +510,8 @@ export default function LandingPage() {
             <div className="blog-card-image">
               <img
                 alt="Bridge to Citrea"
+                decoding="async"
+                loading="lazy"
                 src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/Bridge_to_Citrea_in_Real_Time_-MK_1685-_Option_1.jpeg"
               />
             </div>

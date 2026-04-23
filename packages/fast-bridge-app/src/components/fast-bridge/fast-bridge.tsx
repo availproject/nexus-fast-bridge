@@ -812,6 +812,7 @@ function FastBridge({
                 </span>
                 <img
                   alt="Avail"
+                  height={14}
                   src="/landing-assets/avail-logo.png"
                   style={{
                     height: "14px",
@@ -819,6 +820,7 @@ function FastBridge({
                     filter: "grayscale(100%) brightness(1.5)",
                     opacity: 0.5,
                   }}
+                  width={34}
                 />
               </div>
               {chainFeatures.supportCtaHref && (

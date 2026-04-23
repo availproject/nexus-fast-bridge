@@ -1604,6 +1604,9 @@ body.landing-page-active {
     -ms-overflow-style: none;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scroll-behavior: smooth;
+    will-change: scroll-position;
   }
   .blog-grid::-webkit-scrollbar {
     display: none;
@@ -1611,6 +1614,7 @@ body.landing-page-active {
   .blog-card {
     flex: 0 0 85%;
     scroll-snap-align: center;
+    will-change: transform; /* Hint for hover/reveal transitions */
   }
   .faq-section {
     padding: 60px 40px;

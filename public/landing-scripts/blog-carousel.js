@@ -2,65 +2,55 @@
   const blogGrid = document.querySelector(".blog-grid");
   const blogCards = document.querySelectorAll(".blog-card");
   const dotsContainer = document.querySelector(".blog-dots");
-  let currentBlog = 0;
-  const totalBlogs = blogCards.length;
 
-  // Clear existing dots in case of script re-execution
-  if (dotsContainer) {
-    dotsContainer.innerHTML = "";
+  if (!(blogGrid && dotsContainer) || blogCards.length === 0) {
+    return;
   }
 
+  // Clear existing dots
+  dotsContainer.innerHTML = "";
+
+  const dots = [];
+  const totalCards = blogCards.length;
+
   // Create dots
-  for (let i = 0; i < totalBlogs; i++) {
+  for (let i = 0; i < totalCards; i++) {
     const dot = document.createElement("div");
     dot.className = `blog-dot${i === 0 ? " blog-dot--active" : ""}`;
     dot.dataset.index = i;
-    dot.addEventListener("click", function () {
-      goToBlog(Number.parseInt(this.dataset.index, 10));
+
+    dot.addEventListener("click", () => {
+      // Calculate position relative to the grid's start
+      const card = blogCards[i];
+      if (card) {
+        blogGrid.scrollTo({
+          left: card.offsetLeft - blogGrid.offsetLeft,
+          behavior: "smooth",
+        });
+      }
     });
+
     dotsContainer.appendChild(dot);
+    dots.push(dot);
   }
 
-  function goToBlog(index) {
-    currentBlog = index;
-    for (let j = 0; j < totalBlogs; j++) {
-      blogCards[j].style.transform = `translateX(-${index * 100}%)`;
-    }
-    const dots = dotsContainer.querySelectorAll(".blog-dot");
-    for (let d = 0; d < dots.length; d++) {
-      dots[d].classList.remove("blog-dot--active");
-    }
-    dots[index].classList.add("blog-dot--active");
-  }
+  // Update dots based on scroll position
+  const updateDots = () => {
+    const scrollLeft = blogGrid.scrollLeft;
+    const width = blogGrid.clientWidth || 1;
+    const activeIndex = Math.round(scrollLeft / width);
 
-  // Touch swipe support
-  let startX = 0;
-  let diffX = 0;
-
-  blogGrid.addEventListener(
-    "touchstart",
-    (e) => {
-      startX = e.touches[0].clientX;
-    },
-    { passive: true }
-  );
-
-  blogGrid.addEventListener(
-    "touchmove",
-    (e) => {
-      diffX = e.touches[0].clientX - startX;
-    },
-    { passive: true }
-  );
-
-  blogGrid.addEventListener("touchend", () => {
-    if (Math.abs(diffX) > 50) {
-      if (diffX < 0 && currentBlog < totalBlogs - 1) {
-        goToBlog(currentBlog + 1);
-      } else if (diffX > 0 && currentBlog > 0) {
-        goToBlog(currentBlog - 1);
+    for (let i = 0; i < dots.length; i++) {
+      if (i === activeIndex) {
+        dots[i].classList.add("blog-dot--active");
+      } else {
+        dots[i].classList.remove("blog-dot--active");
       }
     }
-    diffX = 0;
-  });
+  };
+
+  blogGrid.addEventListener("scroll", updateDots, { passive: true });
+
+  // Initial check
+  updateDots();
 })();
