@@ -1535,6 +1535,7 @@ body.landing-page-active {
   }
   .step-card {
     height: auto;
+    min-height: auto;
     padding: 0;
     scroll-snap-align: none;
   }
@@ -1612,7 +1613,9 @@ body.landing-page-active {
     display: none;
   }
   .blog-card {
-    flex: 0 0 85%;
+    flex: 0 0 85vw;
+    width: 85vw;
+    max-width: 320px;
     scroll-snap-align: center;
     will-change: transform; /* Hint for hover/reveal transitions */
   }
@@ -1837,6 +1840,7 @@ body.landing-page-active {
   }
   .step-card {
     height: auto;
+    min-height: auto;
     padding: 0;
     scroll-snap-align: none;
   }
