@@ -115,14 +115,17 @@ export default function ContactPage() {
       } else {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(data),
         });
 
-        // no-cors mode always returns opaque response, so we trust it went through
-        if (response.type === "opaque" || response.ok) {
+        const result = await response.json();
+
+        if (result.success) {
           setSubmitted(true);
+        } else {
+          setError(result.error || "Form submission failed. Please try again.");
+          setIsSubmitting(false);
         }
       }
     } catch {
