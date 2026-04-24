@@ -46,10 +46,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 4326,
       nexusPrimaryToken: "USDM",
       meta: {
-        title: "MegaETH Fast Bridge - Powered by Avail Nexus",
+        title: "Bridge to MegaETH – Instant Cross-Chain Transfers | FastBridge",
         description:
-          "Move your unified USDC and USDT from 12 chains to MegaETH, faster than ever.",
-        canonicalUrl: "https://fastbridge.availproject.org/megaeth/",
+          "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to MegaETH in one transaction. FastBridge is the fastest way to bridge to MegaETH with low fees from any chain.",
+        canonicalUrl: "https://fastbridge.availproject.org/megaeth",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/megaeth.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -107,7 +107,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       feeBreakdownHideGasSupplied: true,
       feeBreakdownKeepZeroRows: true,
       dialogShowCloseButton: false,
-      enableGtagOnConnectWallet: true,
     },
   },
 
@@ -141,10 +140,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 143,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Monad Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Monad – Fast & Cheap Cross-Chain Transfers | FastBridge",
         description:
-          "Move your unified USDC and USDT from 12 chains to Monad, faster than ever.",
-        canonicalUrl: "https://fastbridge.availproject.org/monad/",
+          "Bridge USDC and other tokens from major EVM chains to Monad in one transaction. FastBridge offers the fastest, lowest-fee routes from multiple chains to Monad mainnet.",
+        canonicalUrl: "https://fastbridge.availproject.org/monad",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/monad.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -211,9 +211,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 4114,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Citrea Fast Bridge - Powered by Avail",
-        description: "Move assets from any chain to Citrea, instantly.",
-        canonicalUrl: "https://fastbridge.availproject.org/citrea/",
+        title:
+          "Bridge to Citrea – Bitcoin ZK Rollup Cross-Chain Bridge | FastBridge",
+        description:
+          "Bridge USDC, USDT, and other tokens from multiple EVM chains to Citrea in one transaction. FastBridge is the easiest way to bridge to Citrea with fast, low-fee transfers.",
+        canonicalUrl: "https://fastbridge.availproject.org/citrea",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/citrea.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -286,10 +288,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 42_161,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Arbitrum Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Arbitrum from Multiple Chains in One Transaction | FastBridge",
         description:
-          "Bridge your assets to Arbitrum instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/arbitrum/",
+          "Bridge ETH, USDC, and USDT to Arbitrum One from Ethereum and other chains, all at once. FastBridge offers instant, low-cost cross-chain swaps and transfers to Arbitrum.",
+        canonicalUrl: "https://fastbridge.availproject.org/arbitrum",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/arbitrum.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -339,10 +342,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 1,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Ethereum Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Ethereum – Combine Your L2 Balances in One Transaction | FastBridge",
         description:
-          "Bridge your assets to Ethereum instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/ethereum/",
+          "Bridge from L2 chains like Base, Arbitrum, Optimism, Polygon, and more back to Ethereum mainnet. FastBridge enables cross-chain transfers and swaps with your assets consolidated.",
+        canonicalUrl: "https://fastbridge.availproject.org/ethereum",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/ethereum.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -394,10 +398,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 137,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Polygon Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Polygon – Instant Cross-Chain Swaps & Transfers | FastBridge",
         description:
-          "Bridge your assets to Polygon instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/polygon/",
+          "Bridge USDC, USDT and POL to Polygon from Ethereum, Arbitrum, and more. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to Polygon PoS.",
+        canonicalUrl: "https://fastbridge.availproject.org/polygon",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/polygon.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -449,10 +454,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 8453,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Base Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Base – Fastest ETH & USDC Transfers to Base Chain | FastBridge",
         description:
-          "Bridge your assets to Base instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/base/",
+          "Bridge ETH, and USDC from Ethereum, and other L2 chains to Base, in one transaction. FastBridge combines your multi-chain balances and delivers fast, low-fee transfers to Coinbase’s L2 instantly.",
+        canonicalUrl: "https://fastbridge.availproject.org/base",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/base.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -504,10 +510,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 10,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "OP Mainnet Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Optimism from Multiple Chains in One Transaction | FastBridge",
         description:
-          "Bridge your assets to OP Mainnet instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/op-mainnet/",
+          "Bridge ETH, USDC, and USDT to Optimism from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to OP Mainnet.",
+        canonicalUrl: "https://fastbridge.availproject.org/op-mainnet",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -557,10 +564,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 534_352,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Scroll Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
         description:
-          "Bridge your assets to Scroll instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/scroll/",
+          "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
+        canonicalUrl: "https://fastbridge.availproject.org/scroll",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/scroll.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -614,10 +622,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 8217,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Kaia Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",
         description:
-          "Bridge your assets to Kaia instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/kaia/",
+          "Bridge USDT and KAIA tokens to Kaia blockchain from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Kaia (formerly Klaytn).",
+        canonicalUrl: "https://fastbridge.availproject.org/kaia",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/kaia.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -669,10 +678,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 56,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "BNB Smart Chain Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to BNB Smart Chain – Fast ETH to BNB Transfers | FastBridge",
         description:
-          "Bridge your assets to BNB Smart Chain instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain/",
+          "Bridge ETH, BNB, USDT and USDC to BNB chain from Ethereum, Polygon, Arbitrum and other EVM chains, all at once. FastBridge combines your balances from multiple chains and delivers low-fee cross-chain transfers to BSC.",
+        canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/bnb.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -724,10 +734,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 999,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "HyperEVM Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to HyperEVM from Multiple Chains in One Transaction | FastBridge",
         description:
-          "Bridge your assets to HyperEVM instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/hyperevm/",
+          "Bridge USDC, USDT and HYPE to HyperEVM, Hyperliquid's EVM L1. FastBridge combines your balances from Ethereum, Arbitrum, and other EVM chains in a single transaction and delivers unified cross-chain swaps and transfers to HyperEVM.",
+        canonicalUrl: "https://fastbridge.availproject.org/hyperevm",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/hyperliquid.jpg",
         faviconUrl: "/avail_logo.svg",
@@ -779,10 +790,11 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       nexusSupportedChain: 43_114,
       nexusPrimaryToken: "USDC",
       meta: {
-        title: "Avalanche Fast Bridge - Powered by Avail Nexus",
+        title:
+          "Bridge to Avalanche from Multiple Chains in One Transaction | FastBridge",
         description:
-          "Bridge your assets to Avalanche instantly with Avail Fast Bridge.",
-        canonicalUrl: "https://fastbridge.availproject.org/avalanche/",
+          "Bridge USDC, USDT and AVAX to Avalanche C-Chain from Ethereum, Arbitrum, BNB and other EVM chains. FastBridge consolidates your funds across chains and delivers fast, unified cross-chain transfers to Avax chain, in a single transaction.",
+        canonicalUrl: "https://fastbridge.availproject.org/avalanche",
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/avalanche.jpg",
         faviconUrl: "/avail_logo.svg",

@@ -46,7 +46,6 @@ export interface ChainFeatures {
   buttonFg?: "black" | "white";
   denyIntentOnReset?: boolean;
   dialogShowCloseButton?: boolean;
-  enableGtagOnConnectWallet?: boolean;
   feeBreakdownHideGasSupplied?: boolean;
   feeBreakdownKeepZeroRows?: boolean;
   feeBreakdownZeroForNonCaGasOnDestinationId?: number;
@@ -92,7 +91,10 @@ export const defaultChainFeatures: ChainFeatures = {
   showFluffeyMascot: false,
   showEthMascot: false,
   showPromoBanner: false,
-  showSupportCta: false,
+  showSupportCta: true,
+  supportCtaHref: "https://discord.com/invite/AvailProject",
+  supportCtaLine1: "Need help?",
+  supportCtaLine2: "Reach out to us.",
   mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: false,
   denyIntentOnReset: true,
@@ -107,6 +109,5 @@ export const defaultChainFeatures: ChainFeatures = {
   feeBreakdownHideGasSupplied: false,
   feeBreakdownKeepZeroRows: false,
   dialogShowCloseButton: true,
-  enableGtagOnConnectWallet: false,
   buttonFg: "white",
 };

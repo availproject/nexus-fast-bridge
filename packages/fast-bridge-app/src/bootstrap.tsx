@@ -2,6 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
+import ContactPage from "./components/contact-page";
+import FAQPage from "./components/faq-page";
 import LandingPage from "./components/landing-page";
 import { initPostHog } from "./lib/posthog";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
@@ -48,6 +50,9 @@ export function bootstrapApp() {
       <BrowserRouter>
         <Routes>
           <Route element={<LandingPage />} path="/" />
+          <Route element={<FAQPage />} path="/faqs" />
+          <Route element={<FAQPage />} path="/faq" />
+          <Route element={<ContactPage />} path="/contact" />
           <Route
             element={
               <RuntimeProvider>

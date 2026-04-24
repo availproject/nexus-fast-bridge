@@ -55,8 +55,8 @@ const RecipientAddress: FC<RecipientAddressProps> = ({
           </Button>
         </div>
       ) : (
-        <div className="flex w-full flex-col items-start justify-between sm:flex-row sm:items-center">
-          <p className="font-light text-base">Recipient Address</p>
+        <div className="flex w-full items-center justify-between">
+          <p className="shrink-0 font-light text-base">Recipient Address</p>
           <div className="flex items-center gap-x-3">
             {address && (
               <p className="font-light text-base">{displayAddress}</p>

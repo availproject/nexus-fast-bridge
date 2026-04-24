@@ -398,6 +398,37 @@ export function useTransactionExecution({
 
       const onEvent = createOnEventHandler(currentRunId);
 
+      if (nexusSDK) {
+        nexusSDK.setOnIntentHook((data) => {
+          if (isRunStale(currentRunId)) {
+            try {
+              data.deny();
+            } catch {
+              // Ignore failure to deny stale intent
+            }
+            return;
+          }
+
+          if (!inputs.amount) {
+            try {
+              data.deny();
+            } catch {
+              // Ignore failure to deny intent for empty amount
+            }
+            return;
+          }
+
+          intent.current = data;
+        });
+
+        nexusSDK.setOnAllowanceHook((data) => {
+          if (isRunStale(currentRunId)) {
+            return;
+          }
+          allowance.current = data;
+        });
+      }
+
       const transactionResult = await executeTransaction({
         token: validated.token,
         amount: validated.amountBigInt,

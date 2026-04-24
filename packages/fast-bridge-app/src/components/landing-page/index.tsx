@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "@fontsource/geist-sans";
 
 export default function LandingPage() {
@@ -107,7 +107,11 @@ export default function LandingPage() {
               />
               <span className="nav-logo-text">fastbridge</span>
             </div>
-            <button className="btn-primary nav-btn" onClick={handleBridgeClick}>
+            <button
+              className="btn-primary nav-btn"
+              onClick={handleBridgeClick}
+              type="button"
+            >
               Bridge Now
             </button>
           </div>
@@ -140,7 +144,11 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="hero-buttons">
-              <button className="btn-primary" onClick={handleBridgeClick}>
+              <button
+                className="btn-primary"
+                onClick={handleBridgeClick}
+                type="button"
+              >
                 Bridge Now
               </button>
               <a
@@ -217,6 +225,7 @@ export default function LandingPage() {
               <button
                 className="connect-wallet-btn"
                 onClick={handleBridgeClick}
+                type="button"
               >
                 Bridge
               </button>
@@ -439,7 +448,7 @@ export default function LandingPage() {
           <div>
             <h2 className="blog-title">Latest blog posts</h2>
             <p className="blog-subtitle">
-              Discover stories, tips, and resources to inspire your next big
+              Discover guides, tips, and resources to inspire your next big
               idea.
             </p>
           </div>
@@ -455,6 +464,26 @@ export default function LandingPage() {
         <div className="blog-grid">
           <a
             className="blog-card"
+            href="https://blog.availproject.org/fastbridge-by-avail-the-fastest-way-to-move-crypto-from-multiple-chains/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <div className="blog-card-image">
+              <img
+                alt="FastBridge by Avail"
+                decoding="async"
+                loading="lazy"
+                src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/The-Multi-Chain-Bridge-That-Pulls-From-All-Your-Chains-at-Once--MK_1709---7-.png"
+              />
+            </div>
+            <h3 className="blog-card-title">
+              FastBridge by Avail: The Fastest Way to Move Crypto From Multiple
+              Chains
+            </h3>
+            <p className="blog-card-meta">April 16, 2026 &middot; 5 min read</p>
+          </a>
+          <a
+            className="blog-card"
             href="https://blog.availproject.org/how-to-bridge-to-monad-in-under-60-seconds/"
             rel="noopener noreferrer"
             target="_blank"
@@ -462,6 +491,8 @@ export default function LandingPage() {
             <div className="blog-card-image">
               <img
                 alt="How to Bridge to Monad"
+                decoding="async"
+                loading="lazy"
                 src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/How-to-Bridge-to-Monad-in-Under-60-Seconds--MK_1684---4--1.png"
               />
             </div>
@@ -479,28 +510,13 @@ export default function LandingPage() {
             <div className="blog-card-image">
               <img
                 alt="Bridge to Citrea"
+                decoding="async"
+                loading="lazy"
                 src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/Bridge_to_Citrea_in_Real_Time_-MK_1685-_Option_1.jpeg"
               />
             </div>
             <h3 className="blog-card-title">Bridge to Citrea in Real Time</h3>
             <p className="blog-card-meta">April 6, 2026 &middot; 3 min read</p>
-          </a>
-          <a
-            className="blog-card"
-            href="https://blog.availproject.org/fastbridge-vs-canonical-bridge-why-7-days-is-too-long-for-defi/"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            <div className="blog-card-image">
-              <img
-                alt="FastBridge vs Canonical Bridge"
-                src="https://storage.ghost.io/c/27/aa/27aae9e1-3aa4-4c20-b62f-4fe146313235/content/images/size/w760/format/webp/2026/04/FastBridge-vs-Canonical-Bridge--MK_1678--1.png"
-              />
-            </div>
-            <h3 className="blog-card-title">
-              FastBridge vs Canonical Bridge: Why 7 Days Is Too Long for DeFi
-            </h3>
-            <p className="blog-card-meta">April 2, 2026 &middot; 4 min read</p>
           </a>
         </div>
         <div className="blog-dots" />
@@ -523,11 +539,15 @@ export default function LandingPage() {
               Answers to all your questions, quickly and clearly
             </p>
           </div>
+          <Link className="section-btn" to="/faqs">
+            View More
+          </Link>
         </div>
         <div className="faq-list">
           <div className="faq-item faq-item--open">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -556,8 +576,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -591,8 +612,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -622,8 +644,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -653,8 +676,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -681,8 +705,9 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="faq-item">
-            <button className="faq-question">
+            <button className="faq-question" type="button">
               <svg
+                aria-hidden="true"
                 className="faq-chevron"
                 fill="none"
                 height="24"
@@ -749,6 +774,7 @@ export default function LandingPage() {
                 >
                   Docs
                 </a>
+                <Link to="/faqs">FAQs</Link>
                 <a
                   href="https://discord.com/invite/AvailProject"
                   rel="noopener noreferrer"
@@ -764,15 +790,30 @@ export default function LandingPage() {
                   GitHub
                 </a>
                 <a
+                  href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Privacy Policy
+                </a>
+                <Link to="/contact">Get in Touch</Link>
+              </div>
+              <div className="footer-col">
+                <span className="footer-col-title">Socials</span>
+                <a
+                  href="https://availproject.org/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Avail Website
+                </a>
+                <a
                   href="https://blog.availproject.org/"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
                   Blog
                 </a>
-              </div>
-              <div className="footer-col">
-                <span className="footer-col-title">Socials</span>
                 <a
                   href="https://x.com/AvailProject"
                   rel="noopener noreferrer"
@@ -803,6 +844,20 @@ export default function LandingPage() {
                 </a>
               </div>
             </div>
+          </div>
+          <div className="footer-bottom">
+            <p className="footer-copyright">
+              Copyright &copy; Avail Project. All rights reserved.
+            </p>
+            {/* <div className="footer-bottom-links">
+              <a
+                href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Privacy Policy
+              </a>
+            </div> */}
           </div>
         </div>
       </footer>

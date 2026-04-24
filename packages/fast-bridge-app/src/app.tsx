@@ -101,30 +101,7 @@ export default function App() {
           </div>
         </div>
         <Toaster />
-        {
-          // chainFeatures.showSupportCta && chainFeatures.supportCtaHref &&
-          <div className="sticky bottom-4 left-4 z-100 ml-4 inline-flex flex-wrap items-center justify-start gap-3">
-            <motion.a
-              animate={{ opacity: 1, x: 0 }}
-              className="inline-flex min-h-11 items-center gap-2 rounded border border-[#19191A] bg-white px-[14px] py-2 font-medium text-[#19191A] text-sm no-underline transition-[transform,background-color,border-color,box-shadow] duration-200 hover:bg-[#19191A] hover:text-white focus-visible:bg-[#19191A] focus-visible:text-white md:justify-self-start"
-              href={chainFeatures.supportCtaHref}
-              initial={{ opacity: 0, x: -10 }}
-              rel="noopener noreferrer"
-              target="_blank"
-              transition={{ delay: 0.85 }}
-              whileHover={{
-                scale: 1.05,
-                y: -2,
-              }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span>
-                {chainFeatures.supportCtaLine1 ?? "Reach out to us if"} <br />
-                {chainFeatures.supportCtaLine2 ?? "you face any issues"}
-              </span>
-            </motion.a>
-          </div>
-        }
+        {/* Removed CTA from app.tsx root */}
       </NexusProvider>
     </Web3Provider>
   );

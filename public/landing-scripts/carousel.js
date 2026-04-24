@@ -128,24 +128,39 @@
   let currentSlide = 0;
   let transitioning = false;
 
-  // Preload and cache images in memory
-  const imageCache = [];
+  // Preload and cache images by attaching them invisibly to the DOM
+  // This prevents aggressive garbage collection of unbound Image objects on mobile WebKit
+  const preloadCache = document.createElement("div");
+  preloadCache.style.position = "absolute";
+  preloadCache.style.width = "0px";
+  preloadCache.style.height = "0px";
+  preloadCache.style.overflow = "hidden";
+  preloadCache.style.opacity = "0";
+  preloadCache.style.pointerEvents = "none";
+  document.body.appendChild(preloadCache);
+
+  const attachPreload = (src) => {
+    if (!src) {
+      return;
+    }
+    const img = document.createElement("img");
+    img.src = src;
+    img.decoding = "sync"; // Hint browser to decode immediately
+    preloadCache.appendChild(img);
+  };
+
   slides.forEach((s) => {
-    const bg = new Image();
-    bg.src = s.bg;
-    imageCache.push(bg);
-    const icon = new Image();
-    icon.src = s.chainIcon;
-    imageCache.push(icon);
-    const token = new Image();
-    token.src = s.tokenIcon;
-    imageCache.push(token);
+    attachPreload(s.chainIcon);
+    attachPreload(s.tokenIcon);
+    if (s.tokenInner) {
+      attachPreload(s.tokenInner);
+    }
   });
 
   function fadeSwap(el, newHTML) {
     // Fade out
     el.style.transition =
-      "opacity 0.15s ease-in-out, transform 0.15s ease-in-out";
+      "opacity 0.1s ease-in-out, transform 0.1s ease-in-out";
     el.style.opacity = "0";
     el.style.transform = "translateY(4px)";
 
@@ -159,12 +174,12 @@
         requestAnimationFrame(() => {
           // Fade in
           el.style.transition =
-            "opacity 0.15s ease-in-out, transform 0.15s ease-in-out";
+            "opacity 0.1s ease-in-out, transform 0.1s ease-in-out";
           el.style.opacity = "1";
           el.style.transform = "translateY(0)";
         });
       });
-    }, 150);
+    }, 100);
   }
 
   function updateCard(slide) {
