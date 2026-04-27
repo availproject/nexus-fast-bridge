@@ -27,7 +27,7 @@ export function initPostHog(options?: {
     api_host: apiHost,
     person_profiles: "identified_only",
     autocapture: false,
-    capture_pageview: false,
+    capture_pageview: "history_change",
     capture_pageleave: true,
     persistence: "localStorage", // Use localStorage for persistence
     loaded: (ph) => {
