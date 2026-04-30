@@ -266,3 +266,36 @@ for (const chain of CHAIN_META) {
 }
 
 console.log(`\n🎉  Done — generated ${generated} route-specific HTML files.\n`);
+
+// Generate sitemap.xml
+const sitemapPath = path.join(distDir, "sitemap.xml");
+const baseUrl = "https://fastbridge.availproject.org";
+const staticUrls = [
+  { loc: `${baseUrl}/`, priority: "1.0" },
+  { loc: `${baseUrl}/faq`, priority: "0.8" },
+  { loc: `${baseUrl}/contact`, priority: "0.8" },
+];
+
+const allUrls = [
+  ...staticUrls,
+  ...CHAIN_META.map((chain) => ({
+    loc: chain.canonicalUrl,
+    priority: "0.9",
+  })),
+];
+
+const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allUrls
+  .map(
+    (url) => `  <url>
+    <loc>${url.loc}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>${url.priority}</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
+
+fs.writeFileSync(sitemapPath, sitemapContent, "utf-8");
+console.log("✅  Generated sitemap.xml");
