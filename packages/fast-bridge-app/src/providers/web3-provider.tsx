@@ -104,6 +104,7 @@ export function initGlobalAppKit() {
       networks: staticChains,
       projectId: walletConnectProjectId,
       metadata,
+      allowUnsupportedChain: true,
       features: {
         analytics: true,
         email: false,
