@@ -33,4 +33,5 @@ overrides:
   protobufjs: "8.5.0"
   qs: "6.15.2"
   uuid: "14.0.0"
+  viem: "2.47.12"
   ws: "8.21.0"
