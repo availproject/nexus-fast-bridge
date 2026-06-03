@@ -1,21 +1,26 @@
 "use client";
-import { useAppKit } from "@reown/appkit/react";
+import { TOKEN_CONTRACT_ADDRESSES } from "@avail-project/nexus-core";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
-import { readBridgeParams } from "../lib/url-params";
-import FastBridge from "./fast-bridge/fast-bridge";
+import { CHAIN_REGISTRY } from "@/config/chain-settings";
+import { useRuntime } from "@/providers/runtime-context";
+import { readBridgeParams, writeBridgeParams } from "../lib/url-params";
+import type { SwapTokenOption } from "./nexus-one/components/swap-asset-selector";
+import { NexusOne } from "./nexus-one/nexus-one";
 import { PreviewPanel } from "./wallet-connect";
 
 const FastBridgeShowcase = () => {
   const { address, isConnected, chainId } = useAccount();
   const chains = useChains();
   const { switchChain } = useSwitchChain();
+  const { setChain } = useRuntime();
+  const location = useLocation();
   const [params, setParams] = useState(readBridgeParams());
 
   useEffect(() => {
-    // Only fetch once on mount
     setParams(readBridgeParams());
-  }, []);
+  }, [location]);
 
   useEffect(() => {
     if (isConnected && chainId && switchChain) {
@@ -27,26 +32,55 @@ const FastBridgeShowcase = () => {
     }
   }, [isConnected, chainId, chains, switchChain]);
 
-  const { open } = useAppKit();
+  const handleDestinationTokenChange = (token: SwapTokenOption) => {
+    if (!token.chainId) {
+      return;
+    }
+    const targetSlug = Object.values(CHAIN_REGISTRY).find(
+      (c) => c.appConfig.chainId === token.chainId
+    )?.slug;
+
+    if (targetSlug) {
+      // Update the route slug
+      setChain(targetSlug);
+
+      // Update URL query parameters
+      const newParams = {
+        ...params,
+        to: token.chainId,
+        token: token.symbol,
+      };
+      writeBridgeParams(newParams);
+      setParams(newParams);
+    }
+  };
+
+  const tokenAddress =
+    params.token && params.to
+      ? ((TOKEN_CONTRACT_ADDRESSES as Record<string, Record<number, string>>)[
+          params.token.toUpperCase()
+        ]?.[params.to] as `0x${string}`)
+      : undefined;
 
   return (
     <PreviewPanel>
-      <FastBridge
+      <NexusOne
+        config={{
+          mode: "swap",
+          prefill: {
+            amount: params.amount,
+            recipient: params.recipient,
+            destination:
+              params.to && tokenAddress
+                ? {
+                    chain: params.to,
+                    token: tokenAddress,
+                  }
+                : undefined,
+          },
+        }}
         connectedAddress={address}
-        isWalletConnected={isConnected}
-        onConnectWallet={() => {
-          open({ view: "Connect" });
-        }}
-        prefill={{
-          token: params.token as
-            | import("@avail-project/nexus-core").SUPPORTED_TOKENS
-            | undefined,
-          chainId: params.to as
-            | import("@avail-project/nexus-core").SUPPORTED_CHAINS_IDS
-            | undefined,
-          amount: params.amount,
-          recipient: params.recipient,
-        }}
+        onDestinationTokenChange={handleDestinationTokenChange}
       />
     </PreviewPanel>
   );

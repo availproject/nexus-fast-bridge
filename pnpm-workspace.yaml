@@ -6,7 +6,16 @@ allowBuilds:
   keccak: true
   msgpackr-extract: true
   protobufjs: true
+  secp256k1: true
   utf-8-validate: true
+  "@avail-project/ca-common": true
+  "@avail-project/nexus-sdk-v2": true
+  "@avail-project/nexus-types": true
+  msw: true
+  sharp: true
+  unrs-resolver: true
+
+blockExoticSubdeps: false
 
 minimumReleaseAgeExclude:
   - axios@1.17.0

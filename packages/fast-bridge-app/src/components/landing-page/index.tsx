@@ -8,7 +8,7 @@ export default function LandingPage() {
 
   const handleBridgeClick = () => {
     // Read the dynamically injected active slide slug from the vanilla DOM carousel
-    const targetSlug = (window as any).__fastbridgeSelectedSlug || "megaeth";
+    const targetSlug = (window as any).__fastbridgeSelectedSlug || "ethereum";
     navigate(`/${targetSlug}`);
   };
 

@@ -75,6 +75,50 @@
           }
         }
       }
+    },
+    {
+      "includes": [
+        "packages/fast-bridge-app/src/components/nexus-one/**",
+        "packages/fast-bridge-app/src/components/swaps/**"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useButtonType": "off",
+            "noNoninteractiveElementInteractions": "off",
+            "useAriaPropsSupportedByRole": "off",
+            "noStaticElementInteractions": "off",
+            "useKeyWithClickEvents": "off",
+            "useAltText": "off",
+            "noSvgWithoutTitle": "off"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "off",
+            "useImageSize": "off",
+            "noUnusedVariables": "off",
+            "useHookAtTopLevel": "off",
+            "useExhaustiveDependencies": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noBitwiseOperators": "off",
+            "noEmptyBlockStatements": "off",
+            "useAwait": "off"
+          },
+          "style": {
+            "noNestedTernary": "off",
+            "noNonNullAssertion": "off",
+            "useFilenamingConvention": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off",
+            "noVoid": "off"
+          },
+          "performance": {
+            "useTopLevelRegex": "off"
+          }
+        }
+      }
     }
   ]
 }

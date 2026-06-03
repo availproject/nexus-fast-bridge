@@ -1,5 +1,6 @@
 "use client";
 
+import type { RFF } from "@avail-project/nexus-core";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -33,24 +34,26 @@ const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
   const sourceList = sources ?? [];
   return (
     <div className="flex items-center">
-      {sourceList.map((source, index) => (
-        <div
-          className={cn(
-            "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
-          )}
-          key={source?.chain?.id}
-          style={{ zIndex: sourceList.length - index }}
-        >
-          <img
-            alt={source?.chain?.name}
-            className="rounded-full"
-            height={24}
-            src={source?.chain?.logo}
-            width={24}
-          />
-        </div>
-      ))}
+      {sourceList.map(
+        (source: NonNullable<RFF["sources"]>[number], index: number) => (
+          <div
+            className={cn(
+              "rounded-full transition-transform hover:scale-110",
+              index > 0 && "-ml-2"
+            )}
+            key={source?.chain?.id}
+            style={{ zIndex: sourceList.length - index }}
+          >
+            <img
+              alt={source?.chain?.name}
+              className="rounded-full"
+              height={24}
+              src={source?.chain?.logo}
+              width={24}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 };
@@ -87,24 +90,26 @@ const DestinationToken = ({
   const { chainFeatures } = useRuntime();
   return (
     <div className="flex items-center">
-      {destination.map((dest, index) => (
-        <div
-          className={cn(
-            "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
-          )}
-          key={dest.token.symbol}
-          style={{ zIndex: destination.length - index }}
-        >
-          <img
-            alt={dest.token.symbol}
-            className="rounded-full"
-            height={24}
-            src={getDestinationTokenImage(dest.token.symbol, chainFeatures)}
-            width={24}
-          />
-        </div>
-      ))}
+      {destination.map(
+        (dest: NonNullable<RFF["destinations"]>[number], index: number) => (
+          <div
+            className={cn(
+              "rounded-full transition-transform hover:scale-110",
+              index > 0 && "-ml-2"
+            )}
+            key={dest.token.symbol}
+            style={{ zIndex: destination.length - index }}
+          >
+            <img
+              alt={dest.token.symbol}
+              className="rounded-full"
+              height={24}
+              src={getDestinationTokenImage(dest.token.symbol, chainFeatures)}
+              width={24}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 };

@@ -38,6 +38,7 @@ interface NexusContextType {
   loading: boolean;
   network?: NexusNetwork;
   nexusSDK: NexusSDK | null;
+  resolveTokenUsdRate: (symbol: string) => Promise<number>;
   setAllowance: (data: OnAllowanceHookData | null) => void;
   setIntent: (data: OnIntentHookData | null) => void;
   supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
@@ -46,7 +47,9 @@ interface NexusContextType {
   swapSupportedChainsAndTokens: SupportedChainsResult | null;
 }
 
-const NexusContext = createContext<NexusContextType | undefined>(undefined);
+export const NexusContext = createContext<NexusContextType | undefined>(
+  undefined
+);
 
 interface NexusProviderProps {
   children: React.ReactNode;
@@ -288,6 +291,33 @@ const NexusProvider = ({
     return rate * amount;
   }
 
+  const resolveTokenUsdRate = useCallback(
+    async (symbol: string): Promise<number> => {
+      const key = symbol.toUpperCase();
+      if (exchangeRate.current?.[key] !== undefined) {
+        return exchangeRate.current[key];
+      }
+      try {
+        const rates = await sdk.utils.getCoinbaseRates();
+        if (rates) {
+          const usdPerUnit: Record<string, number> = {};
+          for (const [sym, value] of Object.entries(rates)) {
+            const unitsPerUsd = Number.parseFloat(String(value));
+            if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+              usdPerUnit[sym.toUpperCase()] = 1 / unitsPerUsd;
+            }
+          }
+          exchangeRate.current = usdPerUnit;
+          return usdPerUnit[key] ?? 0;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return 0;
+    },
+    [sdk]
+  );
+
   useAccountEffect({
     onDisconnect() {
       deinitializeNexus();
@@ -321,6 +351,7 @@ const NexusProvider = ({
     swapIntent,
     exchangeRate: exchangeRate.current,
     getFiatValue,
+    resolveTokenUsdRate,
     setIntent,
     setAllowance,
   };

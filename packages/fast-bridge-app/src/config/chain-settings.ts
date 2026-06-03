@@ -11,7 +11,7 @@ export interface ChainSettings {
   slug: string;
 }
 
-export const DEFAULT_CHAIN_SLUG = "megaeth";
+export const DEFAULT_CHAIN_SLUG = "ethereum";
 
 // ---------------------------------------------------------------------------
 // Registry

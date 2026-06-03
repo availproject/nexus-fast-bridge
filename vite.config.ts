@@ -33,5 +33,11 @@ export default defineConfig({
   build: {
     outDir: "apps/root/dist",
     emptyOutDir: true,
+    target: "esnext",
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "esnext",
+    },
   },
 });

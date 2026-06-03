@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useStableCallback } from "./use-stable-callback";
 
-type UnknownFn = (...args: unknown[]) => unknown;
+// biome-ignore lint/suspicious/noExplicitAny: generic callback definition requires any
+type UnknownFn = (...args: any[]) => any;
 
 export interface Debounced<T extends UnknownFn> {
   cancel: () => void;
