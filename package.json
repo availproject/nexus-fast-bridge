@@ -17,7 +17,7 @@
   "packageManager": "pnpm@11.5.1",
   "dependencies": {
     "@avail-project/nexus-core": "1.5.0",
-    "@avail-project/nexus-sdk-v2": "github:availproject/nexus-sdk-v2#2403381e4b2165bd7ba5356302af5da173f95194",
+    "@avail-project/nexus-sdk-v2": "git+https://github.com/availproject/nexus-sdk-v2.git#2403381e4b2165bd7ba5356302af5da173f95194",
     "@fontsource/geist-sans": "5.2.5",
     "@marsidev/react-turnstile": "1.5.0",
     "@radix-ui/react-accordion": "1.2.12",

@@ -28,7 +28,7 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@6.0.6)(zod@4.3.6)
       '@avail-project/nexus-sdk-v2':
-        specifier: github:availproject/nexus-sdk-v2#2403381e4b2165bd7ba5356302af5da173f95194
+        specifier: git+https://github.com/availproject/nexus-sdk-v2.git#2403381e4b2165bd7ba5356302af5da173f95194
         version: git+https://git@github.com:availproject/nexus-sdk-v2.git#2403381e4b2165bd7ba5356302af5da173f95194(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
@@ -193,7 +193,7 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@avail-project/nexus-sdk-v2@git+https://git@github.com:availproject/nexus-sdk-v2.git#2403381e4b2165bd7ba5356302af5da173f95194':
-    resolution: {commit: 2403381e4b2165bd7ba5356302af5da173f95194, repo: git@github.com:availproject/nexus-sdk-v2.git, type: git}
+    resolution: {commit: 2403381e4b2165bd7ba5356302af5da173f95194, repo: https://github.com/availproject/nexus-sdk-v2.git, type: git}
     version: 0.0.1
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
