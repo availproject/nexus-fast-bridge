@@ -1,15 +1,21 @@
 "use client";
-import {
-  type EthereumProvider,
-  type NexusNetwork,
-  NexusSDK,
-  type OnAllowanceHookData,
-  type OnIntentHookData,
-  type OnSwapIntentHookData,
-  type SupportedChainsAndTokensResult,
-  type SupportedChainsResult,
-  type UserAsset,
+import type {
+  NexusNetwork as LegacyNexusNetwork,
+  NexusSDK as LegacyNexusSDK,
+  OnAllowanceHookData as LegacyOnAllowanceHookData,
+  OnIntentHookData as LegacyOnIntentHookData,
+  OnSwapIntentHookData as LegacyOnSwapIntentHookData,
 } from "@avail-project/nexus-core";
+import {
+  type ChainBalance,
+  createNexusClient,
+  type EthereumProvider,
+  type NexusClient,
+  type NexusNetwork,
+  type SupportedChainsAndTokensResult,
+  type TokenBalance,
+} from "@avail-project/nexus-sdk-v2";
+import { getCoinbaseRates } from "@avail-project/nexus-sdk-v2/utils";
 import {
   createContext,
   type RefObject,
@@ -23,8 +29,28 @@ import {
 import { useAccountEffect } from "wagmi";
 import { useRuntime } from "@/providers/runtime-context";
 
+export type UserAsset = TokenBalance & {
+  balanceInFiat: number;
+  breakdown: Array<
+    ChainBalance & {
+      balanceInFiat: number;
+      chain: ChainBalance["chain"];
+      contractAddress: string;
+      decimals: number;
+      icon?: string;
+      symbol: string;
+    }
+  >;
+  icon?: string;
+};
+
+export type UserAssetDatum = UserAsset;
+
+type SupportedChainsResult = SupportedChainsAndTokensResult;
+export type NexusContextSDK = NexusClient & LegacyNexusSDK;
+
 interface NexusContextType {
-  allowance: RefObject<OnAllowanceHookData | null>;
+  allowance: RefObject<LegacyOnAllowanceHookData | null>;
   attachEventHooks: () => void;
   bridgableBalance: UserAsset[] | null;
   deinitializeNexus: () => Promise<void>;
@@ -34,16 +60,16 @@ interface NexusContextType {
   getFiatValue: (amount: number, token: string) => number;
   handleInit: (provider: EthereumProvider) => Promise<void>;
   initializeNexus: (provider: EthereumProvider) => Promise<void>;
-  intent: RefObject<OnIntentHookData | null>;
+  intent: RefObject<LegacyOnIntentHookData | null>;
   loading: boolean;
-  network?: NexusNetwork;
-  nexusSDK: NexusSDK | null;
+  network?: LegacyNexusNetwork;
+  nexusSDK: NexusContextSDK | null;
   resolveTokenUsdRate: (symbol: string) => Promise<number>;
-  setAllowance: (data: OnAllowanceHookData | null) => void;
-  setIntent: (data: OnIntentHookData | null) => void;
+  setAllowance: (data: LegacyOnAllowanceHookData | null) => void;
+  setIntent: (data: LegacyOnIntentHookData | null) => void;
   supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
   swapBalance: UserAsset[] | null;
-  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  swapIntent: RefObject<LegacyOnSwapIntentHookData | null>;
   swapSupportedChainsAndTokens: SupportedChainsResult | null;
 }
 
@@ -64,6 +90,21 @@ const defaultConfig: Required<NexusProviderProps["config"]> = {
   debug: false,
 };
 
+const getUsdRateKey = (symbol: string) => symbol.trim().toUpperCase();
+
+const buildUsdRates = (rates: Record<string, string | number>) => {
+  const usdPerUnit: Record<string, number> = {};
+
+  for (const [symbol, value] of Object.entries(rates)) {
+    const unitsPerUsd = Number.parseFloat(String(value));
+    if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+      usdPerUnit[getUsdRateKey(symbol)] = 1 / unitsPerUsd;
+    }
+  }
+
+  return usdPerUnit;
+};
+
 const NexusProvider = ({
   children,
   config = defaultConfig,
@@ -74,14 +115,28 @@ const NexusProvider = ({
     [config]
   );
 
-  const sdkRef = useRef<NexusSDK | null>(null);
-  sdkRef.current ??= new NexusSDK({
-    ...stableConfig,
-  });
-  const sdk = sdkRef.current;
-
-  const [nexusSDK, setNexusSDK] = useState<NexusSDK | null>(null);
+  const sdkRef = useRef<NexusClient | null>(null);
+  const initializedRef = useRef(false);
+  const [nexusSDK, setNexusSDK] = useState<NexusContextSDK | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
+    useState<SupportedChainsAndTokensResult | null>(null);
+  const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
+    useState<SupportedChainsResult | null>(null);
+  const [bridgableBalance, setBridgableBalance] = useState<UserAsset[] | null>(
+    null
+  );
+  const [swapBalance, setSwapBalance] = useState<UserAsset[] | null>(null);
+  const [exchangeRateState, setExchangeRateState] = useState<Record<
+    string,
+    number
+  > | null>(null);
+  const exchangeRate = useRef<Record<string, number> | null>(null);
+
+  const intent = useRef<LegacyOnIntentHookData | null>(null);
+  const allowance = useRef<LegacyOnAllowanceHookData | null>(null);
+  const swapIntent = useRef<LegacyOnSwapIntentHookData | null>(null);
+
   const applyTokenLogos = useCallback(
     (chains: SupportedChainsAndTokensResult | null) => {
       if (!chains) {
@@ -104,95 +159,186 @@ const NexusProvider = ({
     },
     [chainFeatures.tokenLogoOverrideBySymbol]
   );
-  const [supportedChainsAndTokens, setSupportedChainsAndTokens] =
-    useState<SupportedChainsAndTokensResult | null>(
-      applyTokenLogos(
-        sdk.utils.getSupportedChains(
-          stableConfig.network === "testnet" ? 0 : undefined
-        ) ?? null
-      )
-    );
-  const [swapSupportedChainsAndTokens, setSwapSupportedChainsAndTokens] =
-    useState<SupportedChainsResult | null>(
-      sdk.utils.getSwapSupportedChainsAndTokens() ?? null
-    );
-  const [bridgableBalance, setBridgableBalance] = useState<UserAsset[] | null>(
-    null
-  );
-  const [swapBalance, setSwapBalance] = useState<UserAsset[] | null>(null);
-  const exchangeRate = useRef<Record<string, number> | null>(null);
 
-  const intent = useRef<OnIntentHookData | null>(null);
-  const allowance = useRef<OnAllowanceHookData | null>(null);
-  const swapIntent = useRef<OnSwapIntentHookData | null>(null);
+  const updateSupportedChains = useCallback(
+    (client: NexusClient) => {
+      const list = applyTokenLogos(client.getSupportedChains() ?? null);
+      setSupportedChainsAndTokens(list);
+      setSwapSupportedChainsAndTokens(list);
+    },
+    [applyTokenLogos]
+  );
+
+  const getFiatValue = useCallback((amount: number, token: string) => {
+    const key = getUsdRateKey(token);
+    const stableRate = ["USDC", "USDT", "USDM"].includes(key) ? 1 : 0;
+    const rate = exchangeRate.current?.[key] ?? stableRate;
+    return rate * amount;
+  }, []);
+
+  const normalizeUserAssets = useCallback(
+    (assets: TokenBalance[] | null): UserAsset[] | null => {
+      if (!assets) {
+        return null;
+      }
+
+      return assets.map((asset) => {
+        let computedAssetUsd = 0;
+        const sourceBalances =
+          asset.chainBalances ??
+          (asset as unknown as { breakdown?: ChainBalance[] }).breakdown ??
+          [];
+
+        const breakdown = sourceBalances.map((entry) => {
+          const balance = Number.parseFloat(String(entry.balance ?? "0"));
+          const safeBalance =
+            Number.isFinite(balance) && balance > 0 ? balance : 0;
+          const existingUsd = Number.parseFloat(String(entry.value ?? "0"));
+          const balanceInFiat =
+            Number.isFinite(existingUsd) && existingUsd >= 0
+              ? existingUsd
+              : getFiatValue(safeBalance, entry.symbol ?? asset.symbol);
+
+          computedAssetUsd += balanceInFiat;
+
+          return {
+            ...entry,
+            balanceInFiat,
+            contractAddress: entry.contractAddress,
+            decimals: entry.decimals,
+            icon: asset.logo,
+            symbol: entry.symbol,
+          };
+        });
+
+        const assetUsd = Number.parseFloat(String(asset.value ?? "0"));
+        const balanceInFiat =
+          Number.isFinite(assetUsd) && assetUsd >= 0
+            ? assetUsd
+            : computedAssetUsd;
+
+        return {
+          ...asset,
+          balanceInFiat,
+          breakdown,
+          icon: asset.logo,
+        };
+      });
+    },
+    [getFiatValue]
+  );
 
   useEffect(() => {
-    const list = sdk.utils.getSupportedChains(
-      stableConfig.network === "testnet" ? 0 : undefined
-    );
-    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
-    const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
-    setSwapSupportedChainsAndTokens(swapList ?? null);
-  }, [applyTokenLogos, sdk, stableConfig.network]);
+    let cancelled = false;
+    const client = createNexusClient({
+      network: stableConfig.network,
+      debug: stableConfig.debug,
+    });
 
-  const setupNexus = useCallback(async () => {
-    const list = sdk.utils.getSupportedChains(
-      stableConfig.network === "testnet" ? 0 : undefined
-    );
-    setSupportedChainsAndTokens(applyTokenLogos(list ?? null));
-    const swapList = sdk.utils.getSwapSupportedChainsAndTokens();
-    setSwapSupportedChainsAndTokens(swapList ?? null);
-    const [bridgeAbleBalanceResult, rates] = await Promise.allSettled([
-      sdk.getBalancesForBridge(),
-      sdk.utils.getCoinbaseRates(),
-    ]);
-    console.log("bridgeAbleBalanceResult", bridgeAbleBalanceResult);
-
-    if (bridgeAbleBalanceResult.status === "fulfilled") {
-      setBridgableBalance(bridgeAbleBalanceResult.value);
-    }
-
-    if (rates?.status === "fulfilled") {
-      // Coinbase returns "units per USD" (e.g., 1 USD = 0.00028 ETH).
-      // Convert to "USD per unit" (e.g., 1 ETH = ~$3514) for straightforward UI calculations.
-      const usdPerUnit: Record<string, number> = {};
-
-      for (const [symbol, value] of Object.entries(rates.value)) {
-        const unitsPerUsd = Number.parseFloat(String(value));
-        if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-          usdPerUnit[symbol.toUpperCase()] = 1 / unitsPerUsd;
+    client
+      .initialize()
+      .then(() => {
+        if (cancelled) {
+          client.destroy();
+          return;
         }
-      }
-      exchangeRate.current = usdPerUnit;
-    }
-  }, [applyTokenLogos, sdk, stableConfig.network]);
+        sdkRef.current = client;
+        updateSupportedChains(client);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to initialize read-only Nexus client:", error);
+        }
+      });
 
-  const initializeNexus = async (provider: EthereumProvider) => {
-    setLoading(true);
-    try {
-      if (sdk.isInitialized()) {
-        throw new Error("Nexus is already initialized");
+    return () => {
+      cancelled = true;
+      client.destroy();
+      if (sdkRef.current === client) {
+        sdkRef.current = null;
       }
-      await sdk.initialize(provider);
-      setNexusSDK(sdk);
-    } catch (error) {
-      console.error("Error initializing Nexus:", error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+  }, [stableConfig, updateSupportedChains]);
 
-  const deinitializeNexus = async () => {
-    try {
-      if (!nexusSDK) {
+  const refreshRates = useCallback(async () => {
+    const rates = await getCoinbaseRates();
+    const usdPerUnit = buildUsdRates(rates);
+    exchangeRate.current = usdPerUnit;
+    setExchangeRateState(usdPerUnit);
+    return usdPerUnit;
+  }, []);
+
+  const setupNexus = useCallback(
+    async (client = sdkRef.current) => {
+      if (!client) {
         return;
       }
-      await nexusSDK.deinit();
+
+      updateSupportedChains(client);
+
+      const [bridgeBalanceResult, swapBalanceResult, ratesResult] =
+        await Promise.allSettled([
+          client.getBalancesForBridge(),
+          client.getBalancesForSwap(),
+          refreshRates(),
+        ]);
+
+      if (ratesResult.status === "rejected") {
+        console.warn("Unable to preload Nexus rates", ratesResult.reason);
+      }
+
+      if (bridgeBalanceResult.status === "fulfilled") {
+        setBridgableBalance(normalizeUserAssets(bridgeBalanceResult.value));
+      }
+
+      if (swapBalanceResult.status === "fulfilled") {
+        setSwapBalance(normalizeUserAssets(swapBalanceResult.value));
+      }
+    },
+    [normalizeUserAssets, refreshRates, updateSupportedChains]
+  );
+
+  const initializeNexus = useCallback(
+    async (provider: EthereumProvider) => {
+      setLoading(true);
+      try {
+        const client = createNexusClient({
+          network: stableConfig.network,
+          debug: stableConfig.debug,
+        });
+
+        await client.initialize();
+        await client.setEVMProvider(provider);
+
+        sdkRef.current?.destroy();
+        sdkRef.current = client;
+        initializedRef.current = true;
+        setNexusSDK(client as unknown as NexusContextSDK);
+        updateSupportedChains(client);
+      } catch (error) {
+        console.error("Error initializing Nexus:", error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [stableConfig, updateSupportedChains]
+  );
+
+  const deinitializeNexus = useCallback(() => {
+    try {
+      const activeSdk = sdkRef.current;
+      if (!activeSdk) {
+        return Promise.resolve();
+      }
+      activeSdk.destroy();
+      sdkRef.current = null;
+      initializedRef.current = false;
       setNexusSDK(null);
       setBridgableBalance(null);
       setSwapBalance(null);
       exchangeRate.current = null;
+      setExchangeRateState(null);
       intent.current = null;
       swapIntent.current = null;
       allowance.current = null;
@@ -200,123 +346,85 @@ const NexusProvider = ({
     } catch (error) {
       console.error("Error deinitializing Nexus:", error);
     }
-  };
+    return Promise.resolve();
+  }, []);
 
-  const attachEventHooks = () => {
-    sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
-      /**
-       * Useful when you want the user to select, min, max or a custom value
-       * Can use this to capture data and then show it on the UI
-       * @see - always call data.allow() to progress the flow, otherwise it will stay stuck here.
-       * const {allow, sources, deny} = data
-       * @example allow(['min', 'max', '0.5']), the array in allow function should match number of sources.
-       * You can skip setting this hook if you want, sdk will auto progress if this hook is not attached
-       */
-      allowance.current = data;
-    });
+  const attachEventHooks = useCallback(() => {
+    // v2 takes hooks per operation. Refs stay here for the existing UI.
+  }, []);
 
-    sdk.setOnIntentHook((data: OnIntentHookData) => {
-      /**
-       * Useful when you want to capture the intent, and display it on the UI (bridge, bridgeAndTransfer, bridgeAndExecute)
-       * const {allow, deny, intent, refresh} = data
-       * @see - always call data.allow() to progress the flow, otherwise it will stay stuck here.
-       * deny() to reject the intent
-       * refresh() to refresh the intent, best to call refresh in 15 second intervals
-       * data.intent -> details about the intent, useful when wanting to display info on UI
-       * You can skip setting this hook if you want, sdk will auto progress if this hook is not attached
-       */
-      intent.current = data;
-    });
+  const handleInit = useCallback(
+    async (provider: EthereumProvider) => {
+      if (initializedRef.current || loading) {
+        return;
+      }
 
-    sdk.setOnSwapIntentHook((data: OnSwapIntentHookData) => {
-      /**
-       * Same behaviour and function as setOnIntentHook, except this one is for swaps exclusively
-       */
-      swapIntent.current = data;
-    });
-  };
+      if (!provider || typeof provider.request !== "function") {
+        throw new Error("Invalid EIP-1193 provider");
+      }
 
-  const handleInit = async (provider: EthereumProvider) => {
-    console.log("[NexusProvider] handleInit called");
-    console.log("[NexusProvider] SDK isInitialized:", sdk.isInitialized());
-    console.log("[NexusProvider] Loading:", loading);
+      await initializeNexus(provider);
+      await setupNexus();
+      attachEventHooks();
+    },
+    [attachEventHooks, initializeNexus, loading, setupNexus]
+  );
 
-    if (sdk.isInitialized() || loading) {
-      console.log(
-        "[NexusProvider] Skipping init - already initialized or loading"
-      );
-      return;
-    }
-
-    if (!provider || typeof provider.request !== "function") {
-      console.error("[NexusProvider] Invalid provider:", provider);
-      throw new Error("Invalid EIP-1193 provider");
-    }
-
-    console.log("[NexusProvider] Calling initializeNexus...");
-    await initializeNexus(provider);
-
-    console.log("[NexusProvider] Calling setupNexus...");
-    await setupNexus();
-
-    console.log("[NexusProvider] Calling attachEventHooks...");
-    attachEventHooks();
-
-    console.log("[NexusProvider] handleInit complete!");
-  };
-
-  const fetchBridgableBalance = async () => {
+  const fetchBridgableBalance = useCallback(async () => {
     try {
-      const updatedBalance = await sdk.getBalancesForBridge();
-      console.log("bridgeAbleBalanceResult", updatedBalance);
-      setBridgableBalance(updatedBalance);
+      const activeSdk = sdkRef.current;
+      if (!activeSdk) {
+        return;
+      }
+      const updatedBalance = await activeSdk.getBalancesForBridge();
+      setBridgableBalance(normalizeUserAssets(updatedBalance));
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
     }
-  };
+  }, [normalizeUserAssets]);
 
-  const fetchSwapBalance = async () => {
+  const fetchSwapBalance = useCallback(async () => {
     try {
-      const updatedBalance = await sdk.getBalancesForSwap();
-      console.log("swapBalance", updatedBalance);
-      setSwapBalance(updatedBalance);
+      const activeSdk = sdkRef.current;
+      if (!activeSdk) {
+        return;
+      }
+      const updatedBalance = await activeSdk.getBalancesForSwap();
+      setSwapBalance(normalizeUserAssets(updatedBalance));
     } catch (error) {
       console.error("Error fetching swap balance:", error);
     }
-  };
-
-  function getFiatValue(amount: number, token: string) {
-    const key = token.toUpperCase();
-    const rate = exchangeRate.current?.[key] ?? 1;
-    return rate * amount;
-  }
+  }, [normalizeUserAssets]);
 
   const resolveTokenUsdRate = useCallback(
     async (symbol: string): Promise<number> => {
-      const key = symbol.toUpperCase();
+      const key = getUsdRateKey(symbol);
       if (exchangeRate.current?.[key] !== undefined) {
         return exchangeRate.current[key];
       }
-      try {
-        const rates = await sdk.utils.getCoinbaseRates();
-        if (rates) {
-          const usdPerUnit: Record<string, number> = {};
-          for (const [sym, value] of Object.entries(rates)) {
-            const unitsPerUsd = Number.parseFloat(String(value));
-            if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-              usdPerUnit[sym.toUpperCase()] = 1 / unitsPerUsd;
-            }
-          }
-          exchangeRate.current = usdPerUnit;
-          return usdPerUnit[key] ?? 0;
-        }
-      } catch (e) {
-        console.error(e);
+
+      if (["USDC", "USDT", "USDM"].includes(key)) {
+        return 1;
       }
-      return 0;
+
+      try {
+        const rates = await refreshRates();
+        return rates[key] ?? 0;
+      } catch (error) {
+        console.error(error);
+        return 0;
+      }
     },
-    [sdk]
+    [refreshRates]
   );
+
+  useEffect(() => {
+    if (!exchangeRateState) {
+      return;
+    }
+    setSwapBalance((previous) => normalizeUserAssets(previous));
+    setBridgableBalance((previous) => normalizeUserAssets(previous));
+  }, [exchangeRateState, normalizeUserAssets]);
 
   useAccountEffect({
     onDisconnect() {
@@ -324,37 +432,60 @@ const NexusProvider = ({
     },
   });
 
-  const setIntent = (data: OnIntentHookData | null) => {
+  const setIntent = useCallback((data: LegacyOnIntentHookData | null) => {
     intent.current = data;
-  };
+  }, []);
 
-  const setAllowance = (data: OnAllowanceHookData | null) => {
+  const setAllowance = useCallback((data: LegacyOnAllowanceHookData | null) => {
     allowance.current = data;
-  };
+  }, []);
 
-  const value = {
-    nexusSDK,
-    initializeNexus,
-    deinitializeNexus,
-    attachEventHooks,
-    intent,
-    allowance,
-    handleInit,
-    supportedChainsAndTokens,
-    swapSupportedChainsAndTokens,
-    bridgableBalance,
-    swapBalance,
-    network: config?.network,
-    loading,
-    fetchBridgableBalance,
-    fetchSwapBalance,
-    swapIntent,
-    exchangeRate: exchangeRate.current,
-    getFiatValue,
-    resolveTokenUsdRate,
-    setIntent,
-    setAllowance,
-  };
+  const value = useMemo(
+    () => ({
+      nexusSDK,
+      initializeNexus,
+      deinitializeNexus,
+      attachEventHooks,
+      intent,
+      allowance,
+      handleInit,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
+      bridgableBalance,
+      swapBalance,
+      network: stableConfig.network as LegacyNexusNetwork,
+      loading,
+      fetchBridgableBalance,
+      fetchSwapBalance,
+      swapIntent,
+      exchangeRate: exchangeRateState,
+      getFiatValue,
+      resolveTokenUsdRate,
+      setIntent,
+      setAllowance,
+    }),
+    [
+      nexusSDK,
+      initializeNexus,
+      deinitializeNexus,
+      attachEventHooks,
+      handleInit,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
+      bridgableBalance,
+      swapBalance,
+      stableConfig.network,
+      loading,
+      fetchBridgableBalance,
+      fetchSwapBalance,
+      exchangeRateState,
+      getFiatValue,
+      resolveTokenUsdRate,
+      setIntent,
+      setAllowance,
+    ]
+  );
+
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>
   );

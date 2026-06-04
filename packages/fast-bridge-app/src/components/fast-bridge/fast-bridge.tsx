@@ -158,7 +158,9 @@ function FastBridge({
       const currentIntent = intent.current?.intent;
       const sourcesText =
         currentIntent?.sources && currentIntent.sources.length > 0
-          ? currentIntent.sources.map((source) => source.chainName).join(", ")
+          ? currentIntent.sources
+              .map((source: { chainName?: string }) => source.chainName)
+              .join(", ")
           : "N/A";
       const destination = currentIntent?.destination?.chainName ?? "Unknown";
       const tokenSymbol = currentIntent?.token?.symbol;

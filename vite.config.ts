@@ -14,6 +14,11 @@ export default defineConfig({
     tailwindcss(),
     nodePolyfills({
       exclude: ["fs"],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
       protocolImports: true,
     }),
   ],
@@ -27,6 +32,10 @@ export default defineConfig({
       buffer: "vite-plugin-node-polyfills/shims/buffer",
       global: "vite-plugin-node-polyfills/shims/global",
       process: "vite-plugin-node-polyfills/shims/process",
+      "safe-buffer": path.resolve(
+        __dirname,
+        "./packages/fast-bridge-app/src/shims/safe-buffer.ts"
+      ),
     },
   },
   envPrefix: ["VITE_"],

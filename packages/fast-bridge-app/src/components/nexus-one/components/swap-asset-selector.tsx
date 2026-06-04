@@ -1,11 +1,11 @@
 "use client";
-import {
-  CHAIN_METADATA,
-  formatTokenBalance,
-  type SupportedChainsAndTokensResult,
-  type SupportedChainsResult,
-  type UserAsset,
-} from "@avail-project/nexus-core";
+import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-sdk-v2";
+import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import { CHAIN_METADATA } from "../../common/utils/constant";
+import type { UserAsset } from "../../nexus/nexus-provider";
+
+type SupportedChainsResult = SupportedChainsAndTokensResult;
+
 import Decimal from "decimal.js";
 import {
   Check,

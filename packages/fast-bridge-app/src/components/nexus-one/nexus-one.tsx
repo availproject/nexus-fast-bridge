@@ -1,13 +1,9 @@
 "use client";
 
 import {
-  type BridgeStepType,
-  CHAIN_METADATA,
   ERROR_CODES,
   type EthereumProvider,
-  type SwapStepType,
-  TOKEN_METADATA,
-} from "@avail-project/nexus-core";
+} from "@avail-project/nexus-sdk-v2";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import type React from "react";
 import {
@@ -19,6 +15,7 @@ import {
   useState,
 } from "react";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
+import { CHAIN_METADATA, TOKEN_METADATA } from "../common/utils/constant";
 import { useNexus } from "../nexus/nexus-provider";
 import { DepositIdleForm } from "./components/deposit-idle-form";
 import {
@@ -43,6 +40,7 @@ import {
   type SwapIntentData,
   SwapIntentPreview,
 } from "./components/swap-intent-preview";
+import type { BridgeStepType, SwapStepType } from "./sdk-types";
 import type {
   DepositOpportunity,
   NexusOneMode,
@@ -2475,7 +2473,10 @@ export function NexusOne({
 
     if (!maxUsdAmount || maxUsdAmount.lte(0)) {
       const sourcesUsd = await (max.sources ?? []).reduce(
-        async (sumPromise, source) => {
+        async (
+          sumPromise: Promise<Decimal>,
+          source: { amount: string; symbol: string }
+        ) => {
           const sum = await sumPromise;
           const amount = parseFiatNumber(source.amount) ?? new Decimal(0);
           if (amount.lte(0)) {
@@ -3637,13 +3638,11 @@ export function NexusOne({
     setPreviewQuoteRefreshing(false);
   }, []);
 
-  const registerIntentHook = useCallback(
-    (runId: number) => {
-      nexusSDK?.setOnSwapIntentHook((data) =>
-        handleSwapIntentCallback(data, runId)
-      );
+  const getSwapIntentHook = useCallback(
+    (runId: number) => (data: any) => {
+      handleSwapIntentCallback(data, runId);
     },
-    [handleSwapIntentCallback, nexusSDK]
+    [handleSwapIntentCallback]
   );
 
   // Deposit-specific
@@ -4784,7 +4783,7 @@ export function NexusOne({
     closeDrawerToIdle();
   };
 
-  /** Start swap flow — SDK will trigger setOnSwapIntentHook for preview */
+  /** Start swap flow. SDK intent hooks populate preview data. */
   const handleEnterPreview = async (options: { background?: boolean } = {}) => {
     const { background = false } = options;
     const isExactOutFlow = activeMode === "deposit" || activeMode === "send";
@@ -4932,7 +4931,7 @@ export function NexusOne({
     swapRunIdRef.current += 1;
     const runId = swapRunIdRef.current;
 
-    registerIntentHook(runId);
+    const onSwapIntent = getSwapIntentHook(runId);
 
     const getSwapStepListFromEvent = (event: { args: any }) => {
       const args = (event as any).args;
@@ -5177,12 +5176,13 @@ export function NexusOne({
             {
               toChainId: toToken.chainId!,
               toTokenAddress: toToken.contractAddress as `0x${string}`,
-              toAmount: amountBigInt,
+              toAmountRaw: amountBigInt,
               execute: executeConfig,
               ...fromSourcesPayload,
             },
             {
               onEvent,
+              onIntent: onSwapIntent,
             }
           );
 
@@ -5191,8 +5191,8 @@ export function NexusOne({
           if (!(swapResult || swapSkipped)) {
             throw new Error("Swap failed");
           }
-          const executeTxHash = result?.executeResponse?.txHash || null;
-          const intentExplorerUrl = swapResult?.explorerURL || null;
+          const executeTxHash = result?.execute?.txHash || null;
+          const intentExplorerUrl = swapResult?.intentExplorerUrl || null;
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -5213,10 +5213,13 @@ export function NexusOne({
             {
               toChainId: toToken.chainId!,
               toTokenAddress: toToken.contractAddress as `0x${string}`,
-              toAmount: amountBigInt,
+              toAmountRaw: amountBigInt,
               ...fromSourcesPayload,
             },
             {
+              hooks: {
+                onIntent: onSwapIntent,
+              },
               onEvent: (event: any) => {
                 if (swapRunIdRef.current !== runId) {
                   return;
@@ -5257,8 +5260,7 @@ export function NexusOne({
               },
             }
           );
-          const intentExplorerUrl =
-            (result.success ? result.result.explorerURL : null) || null;
+          const intentExplorerUrl = result.intentExplorerUrl || null;
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -5275,10 +5277,10 @@ export function NexusOne({
           setSwapStep("success");
         }
       } else {
-        const fromPayload: {
+        const sourcesPayload: {
+          amountRaw: bigint;
           chainId: number;
           tokenAddress: `0x${string}`;
-          amount: bigint;
         }[] = [];
 
         const exactInSourceTokens = getReadyExactInSourceTokens(fromTokens);
@@ -5321,14 +5323,14 @@ export function NexusOne({
             )
             .toFixed();
 
-          fromPayload.push({
+          sourcesPayload.push({
+            amountRaw: parseUnits(safeTokenAmountStr, token.decimals || 18),
             chainId: token.chainId!,
             tokenAddress: token.contractAddress as `0x${string}`,
-            amount: parseUnits(safeTokenAmountStr, token.decimals || 18),
           });
         }
 
-        if (fromPayload.length === 0) {
+        if (sourcesPayload.length === 0) {
           throw new Error("No source amount available for swap.");
         }
 
@@ -5336,11 +5338,14 @@ export function NexusOne({
         // Start exact-in swap — the intent hook will fire and populate preview
         const result = await nexusSDK.swapWithExactIn(
           {
-            from: fromPayload,
+            sources: sourcesPayload,
             toChainId: toToken.chainId!,
             toTokenAddress: toToken.contractAddress as `0x${string}`,
           },
           {
+            hooks: {
+              onIntent: onSwapIntent,
+            },
             onEvent: (event: any) => {
               if (swapRunIdRef.current !== runId) {
                 return;
@@ -5381,8 +5386,7 @@ export function NexusOne({
             },
           }
         );
-        const intentExplorerUrl =
-          (result.success ? result.result.explorerURL : null) || null;
+        const intentExplorerUrl = result.intentExplorerUrl || null;
         const intentId =
           extractIntentIdFromUrl(intentExplorerUrl) ??
           currentSwapEntry?.intentId;

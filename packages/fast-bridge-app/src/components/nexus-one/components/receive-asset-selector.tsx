@@ -1,5 +1,5 @@
 "use client";
-import { CHAIN_METADATA, formatTokenBalance } from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
 import type React from "react";
 import {
@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { CHAIN_METADATA } from "../../common/utils/constant";
 import { useNexus } from "../../nexus/nexus-provider";
 import {
   CITREA_CHAIN_ID,

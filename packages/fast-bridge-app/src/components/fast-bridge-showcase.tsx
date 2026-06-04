@@ -1,15 +1,11 @@
 "use client";
-import {
-  type SUPPORTED_CHAINS_IDS,
-  type SUPPORTED_TOKENS,
-  TOKEN_CONTRACT_ADDRESSES,
-} from "@avail-project/nexus-core";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
 import { CHAIN_REGISTRY } from "@/config/chain-settings";
 import { useRuntime } from "@/providers/runtime-context";
 import { readBridgeParams, writeBridgeParams } from "../lib/url-params";
+import { TOKEN_CONTRACT_ADDRESSES } from "./common/utils/constant";
 import type { SwapTokenOption } from "./nexus-one/components/swap-asset-selector";
 import { NexusOne } from "./nexus-one/nexus-one";
 import { PreviewPanel } from "./wallet-connect";
@@ -52,9 +48,9 @@ const FastBridgeShowcase = () => {
       // Update URL query parameters
       const newParams = {
         ...params,
-        to: token.chainId as SUPPORTED_CHAINS_IDS,
-        token: token.symbol as SUPPORTED_TOKENS,
-      };
+        to: token.chainId,
+        token: token.symbol.toUpperCase(),
+      } as typeof params;
       writeBridgeParams(newParams);
       setParams(newParams);
     }
