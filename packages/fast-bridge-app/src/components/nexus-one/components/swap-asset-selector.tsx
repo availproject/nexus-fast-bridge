@@ -2,6 +2,7 @@
 import {
   CHAIN_METADATA,
   formatTokenBalance,
+  type SupportedChainsAndTokensResult,
   type SupportedChainsResult,
   type UserAsset,
 } from "@avail-project/nexus-core";
@@ -71,7 +72,10 @@ interface SwapAssetSelectorProps {
   selectedTokens?: SwapTokenOption[];
   staticOptions?: SwapTokenOption[];
   swapBalance: UserAsset[] | null;
-  swapSupportedChains?: SupportedChainsResult | null;
+  swapSupportedChains?:
+    | SupportedChainsAndTokensResult
+    | SupportedChainsResult
+    | null;
   title: string;
 }
 
@@ -381,7 +385,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
       }}
     >
       {tooltip}
-      {shown.map((c, _i) =>
+      {shown.map((c, i) =>
         c.logo ? (
           <img
             alt=""
@@ -651,16 +655,16 @@ export const formatTokenAmountDisplay = (value: unknown) => {
       return `${amount
         .div(unit.value)
         .toDecimalPlaces(4, Decimal.ROUND_DOWN)
-        .toFixed(0)}${unit.suffix}`;
+        .toFixed()}${unit.suffix}`;
     }
   }
 
   const minDisplay = new Decimal("0.00001");
   if (amount.gt(0) && amount.lt(minDisplay)) {
-    return `>${minDisplay.toFixed(0)}`;
+    return `>${minDisplay.toFixed()}`;
   }
 
-  return amount.toDecimalPlaces(5, Decimal.ROUND_DOWN).toFixed(0);
+  return amount.toDecimalPlaces(5, Decimal.ROUND_DOWN).toFixed();
 };
 
 const addThousandsSeparators = (value: string) => {
@@ -693,7 +697,7 @@ export const formatUsdBalanceLabel = (value: unknown) => {
       return `$${amount
         .div(unit.value)
         .toDecimalPlaces(4, Decimal.ROUND_DOWN)
-        .toFixed(0)}${unit.suffix}`;
+        .toFixed()}${unit.suffix}`;
     }
   }
 
@@ -1088,7 +1092,7 @@ export function SwapAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, []);
+  }, [query, activeTab, selectedChainFilter]);
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;

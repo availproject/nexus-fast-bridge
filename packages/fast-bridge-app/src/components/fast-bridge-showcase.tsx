@@ -1,5 +1,9 @@
 "use client";
-import { TOKEN_CONTRACT_ADDRESSES } from "@avail-project/nexus-core";
+import {
+  type SUPPORTED_CHAINS_IDS,
+  type SUPPORTED_TOKENS,
+  TOKEN_CONTRACT_ADDRESSES,
+} from "@avail-project/nexus-core";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
@@ -18,6 +22,7 @@ const FastBridgeShowcase = () => {
   const location = useLocation();
   const [params, setParams] = useState(readBridgeParams());
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: location is needed to trigger readBridgeParams on route updates
   useEffect(() => {
     setParams(readBridgeParams());
   }, [location]);
@@ -47,8 +52,8 @@ const FastBridgeShowcase = () => {
       // Update URL query parameters
       const newParams = {
         ...params,
-        to: token.chainId,
-        token: token.symbol,
+        to: token.chainId as SUPPORTED_CHAINS_IDS,
+        token: token.symbol as SUPPORTED_TOKENS,
       };
       writeBridgeParams(newParams);
       setParams(newParams);

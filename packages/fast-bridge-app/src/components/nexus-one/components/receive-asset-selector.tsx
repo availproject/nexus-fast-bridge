@@ -157,7 +157,7 @@ const getNativeAddressAlias = (address?: string) => {
   return null;
 };
 
-let _rawTokensCache: any = null;
+let rawTokensCache: any = null;
 let rawTokensPromise: Promise<any> | null = null;
 
 export const preloadReceiveTokens = () => {
@@ -178,12 +178,10 @@ export const preloadReceiveTokens = () => {
           Date.now() - Number(cachedTime) < 24 * 60 * 60 * 1000
         ) {
           const data = JSON.parse(cachedData);
-          if (data?.tokens && Object.keys(data.tokens).length > 0) {
-            _rawTokensCache = data;
-            return data;
-          }
+          rawTokensCache = data;
+          return data;
         }
-      } catch (_err) {}
+      } catch (err) {}
 
       let data: any = { tokens: {}, stableSymbols: [] };
       try {
@@ -217,14 +215,12 @@ export const preloadReceiveTokens = () => {
         console.error("Failed to fetch tokens from li.quest", err);
       }
 
-      _rawTokensCache = data;
+      rawTokensCache = data;
 
       try {
-        if (data.tokens && Object.keys(data.tokens).length > 0) {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-          localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-        }
-      } catch (_err) {}
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+      } catch (err) {}
 
       return data;
     })();
@@ -389,7 +385,7 @@ export function ReceiveAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, []);
+  }, [query, activeTab, selectedChainFilter]);
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;
@@ -557,7 +553,6 @@ export function ReceiveAssetSelector({
     query,
     activeTab,
     dynamicStableSymbols,
-    isNativeToken,
   ]);
 
   const sortedFiltered = useMemo(() => {

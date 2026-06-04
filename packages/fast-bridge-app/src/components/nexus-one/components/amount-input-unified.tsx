@@ -43,22 +43,22 @@ export function AmountInputUnified({
 
   const isUsdMode = !tokenSymbol;
   const totalBalanceValue = useMemo(() => {
-    if (!unifiedBalances?.length) {
+    if (!(unifiedBalances && unifiedBalances.length)) {
       return "";
     }
     if (isUsdMode) {
       return unifiedBalances
         .reduce((acc, curr) => acc.add(curr.balanceInFiat ?? 0), new Decimal(0))
         .toDecimalPlaces(8, Decimal.ROUND_DOWN)
-        .toFixed(0);
+        .toFixed();
     }
     return unifiedBalances
       .reduce((acc, curr) => acc.add(curr.balance ?? 0), new Decimal(0))
       .toDecimalPlaces(8, Decimal.ROUND_DOWN)
-      .toFixed(0);
+      .toFixed();
   }, [isUsdMode, unifiedBalances]);
   const totalBalanceLabel = useMemo(() => {
-    if (!unifiedBalances?.length) {
+    if (!(unifiedBalances && unifiedBalances.length)) {
       return "0";
     }
     if (isUsdMode) {
@@ -117,7 +117,7 @@ export function AmountInputUnified({
                 let next = e.target.value.replaceAll(/[^0-9.]/g, "");
                 const parts = next.split(".");
                 if (parts.length > 2) {
-                  next = `${parts[0]}.${parts.slice(1).join("")}`;
+                  next = parts[0] + "." + parts.slice(1).join("");
                 }
                 if (next === ".") {
                   next = "0.";

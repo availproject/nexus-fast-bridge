@@ -114,7 +114,7 @@ const formatAmount = (
 ) => {
   const amount = toDecimal(value);
   const max = options.max ?? 2;
-  return amount.toDecimalPlaces(max).toFixed(0);
+  return amount.toDecimalPlaces(max).toFixed();
 };
 
 const formatUsdDelta = (value: Decimal) => {
@@ -149,7 +149,7 @@ const formatUsdValue = (value: Decimal) => {
 
 const formatTokenAmount = (value: unknown) => {
   const amount = toDecimal(value);
-  return amount.toDecimalPlaces(9).toFixed(0);
+  return amount.toDecimalPlaces(9).toFixed();
 };
 
 const unique = (values: string[]) =>
@@ -337,6 +337,7 @@ function TruncatedAddress({ address }: { address: string }) {
         outline: "none",
         position: "relative",
       }}
+      tabIndex={0}
     >
       {label}
       {showTooltip && (
@@ -425,6 +426,7 @@ function InlineInfoTooltip({ message }: { message: string }) {
         outline: "none",
         position: "relative",
       }}
+      tabIndex={0}
     >
       <Info style={{ height: 13, width: 13 }} />
       {showTooltip && (
@@ -677,7 +679,8 @@ export function SwapIntentPreview({
   const quotedDestinationAmount = parseDecimal(normalizedIntentDest?.amount);
   const destinationBalanceAmount = parseDecimal(toToken?.balance);
   const displayOnlyDestinationCoverage =
-    requestedDestinationAmount?.gt(0) &&
+    requestedDestinationAmount &&
+    requestedDestinationAmount.gt(0) &&
     quotedDestinationAmount &&
     requestedDestinationAmount.gt(quotedDestinationAmount) &&
     destinationBalanceAmount &&
@@ -689,17 +692,21 @@ export function SwapIntentPreview({
       : undefined;
   const requestedDestinationUsd = parseDecimal(toAmountUsd);
   const destinationDisplayUsdRate =
-    requestedDestinationAmount?.gt(0) &&
+    requestedDestinationAmount &&
+    requestedDestinationAmount.gt(0) &&
     requestedDestinationUsd &&
     requestedDestinationUsd.gt(0)
       ? requestedDestinationUsd.div(requestedDestinationAmount)
-      : quotedDestinationAmount?.gt(0) && normalizedIntentDest?.value
+      : quotedDestinationAmount &&
+          quotedDestinationAmount.gt(0) &&
+          normalizedIntentDest?.value
         ? (parseDecimal(normalizedIntentDest.value) ?? new Decimal(0)).div(
             quotedDestinationAmount
           )
         : undefined;
   const displayOnlyDestinationCoverageUsd =
-    displayOnlyDestinationCoverage?.gt(0) &&
+    displayOnlyDestinationCoverage &&
+    displayOnlyDestinationCoverage.gt(0) &&
     destinationDisplayUsdRate &&
     destinationDisplayUsdRate.gt(0)
       ? displayOnlyDestinationCoverage.mul(destinationDisplayUsdRate)
@@ -768,7 +775,7 @@ export function SwapIntentPreview({
     : undefined;
   const explicitFeeNumber =
     bridgeTotalNumber ??
-    (bridgeComponentsTotalNumber?.gt(0)
+    (bridgeComponentsTotalNumber && bridgeComponentsTotalNumber.gt(0)
       ? bridgeComponentsTotalNumber
       : undefined) ??
     parseDecimal(totalFeeUsd) ??
@@ -797,7 +804,7 @@ export function SwapIntentPreview({
     hasFiatQuote && priceImpactUsd !== undefined
       ? priceImpactUsd.eq(0)
         ? new Decimal(0)
-        : priceImpactBaseUsd?.gt(0)
+        : priceImpactBaseUsd !== undefined && priceImpactBaseUsd.gt(0)
           ? priceImpactUsd.neg().div(priceImpactBaseUsd).mul(100)
           : undefined
       : undefined;
@@ -824,7 +831,7 @@ export function SwapIntentPreview({
           label: "Solver Fee",
           value: solverFeeNumber ?? new Decimal(0),
         },
-        ...(gasSuppliedNumber?.gt(0)
+        ...(gasSuppliedNumber && gasSuppliedNumber.gt(0)
           ? [{ label: "Gas Sponsorship", value: gasSuppliedNumber }]
           : []),
       ]
@@ -915,21 +922,24 @@ export function SwapIntentPreview({
             index,
           };
         });
-  const displayOnlyDestinationSourceRow = displayOnlyDestinationCoverage?.gt(0)
-    ? {
-        key: `destination-existing-${normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "chain"}-${normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress ?? "token"}`,
-        tokenLogo: normalizedIntentDest?.token.logo || toToken?.logo || "",
-        chainLogo: normalizedIntentDest?.chain.logo || toToken?.chainLogo || "",
-        symbol: destTokenSymbol,
-        chainName: normalizedIntentDest?.chain.name || toToken?.chainName || "",
-        tokenAmount: `${formatTokenAmount(displayOnlyDestinationCoverage)} ${destTokenSymbol}`,
-        usdAmount:
-          displayOnlyDestinationCoverageUsd !== undefined
-            ? formatUsdValue(displayOnlyDestinationCoverageUsd)
-            : pendingValue,
-        index: baseSourceDetailRows.length,
-      }
-    : undefined;
+  const displayOnlyDestinationSourceRow =
+    displayOnlyDestinationCoverage && displayOnlyDestinationCoverage.gt(0)
+      ? {
+          key: `destination-existing-${normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "chain"}-${normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress ?? "token"}`,
+          tokenLogo: normalizedIntentDest?.token.logo || toToken?.logo || "",
+          chainLogo:
+            normalizedIntentDest?.chain.logo || toToken?.chainLogo || "",
+          symbol: destTokenSymbol,
+          chainName:
+            normalizedIntentDest?.chain.name || toToken?.chainName || "",
+          tokenAmount: `${formatTokenAmount(displayOnlyDestinationCoverage)} ${destTokenSymbol}`,
+          usdAmount:
+            displayOnlyDestinationCoverageUsd !== undefined
+              ? formatUsdValue(displayOnlyDestinationCoverageUsd)
+              : pendingValue,
+          index: baseSourceDetailRows.length,
+        }
+      : undefined;
   const sourceDetailRows = displayOnlyDestinationSourceRow
     ? [...baseSourceDetailRows, displayOnlyDestinationSourceRow]
     : baseSourceDetailRows;
@@ -1147,198 +1157,217 @@ export function SwapIntentPreview({
           </div>
         </div>
 
-        <Row
-          subtitle={sourceLabel}
-          title={isDepositMode || isSendMode ? "Paying With" : "You Swap"}
-          value={sourceUsd}
-        >
-          <DetailToggle
-            expanded={showSourceDetails}
-            onClick={() => setShowSourceDetails((value) => !value)}
+        {singleSourceHeader ? (
+          <Row
+            secondaryValue={`${singleSourceHeader.amount} ${singleSourceHeader.symbol}`}
+            subtitle={
+              singleSourceHeader.chainName
+                ? `${singleSourceHeader.symbol} on ${singleSourceHeader.chainName}`
+                : singleSourceHeader.symbol
+            }
+            title={isDepositMode || isSendMode ? "Paying With" : "You Swap"}
+            value={sourceUsd}
           />
-        </Row>
+        ) : (
+          <Row
+            subtitle={sourceLabel}
+            title={isDepositMode || isSendMode ? "Paying With" : "You Swap"}
+            value={sourceUsd}
+          >
+            <DetailToggle
+              expanded={showSourceDetails}
+              onClick={() => setShowSourceDetails((value) => !value)}
+            />
+          </Row>
+        )}
 
-        <AnimatedDetails open={showSourceDetails}>
-          {sourceDetailRows.length > 0 ? (
-            <div
-              style={{
-                position: "relative",
-              }}
-            >
+        {!singleSourceHeader && (
+          <AnimatedDetails open={showSourceDetails}>
+            {sourceDetailRows.length > 0 ? (
               <div
-                ref={sourceDetailsScrollRef}
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0",
-                  maxHeight: shouldScrollSourceDetails ? "174px" : undefined,
-                  overflowY: shouldScrollSourceDetails ? "auto" : undefined,
-                  paddingRight: shouldScrollSourceDetails ? "8px" : undefined,
-                  scrollbarColor: shouldScrollSourceDetails
-                    ? "#C8C8C7 transparent"
-                    : undefined,
-                  scrollbarWidth: shouldScrollSourceDetails
-                    ? "thin"
-                    : undefined,
+                  position: "relative",
                 }}
               >
-                {sourceDetailRows.map((source) => (
-                  <div
-                    key={source.key}
-                    style={{
-                      alignItems: "center",
-                      display: "flex",
-                      gap: "10px",
-                      justifyContent: "space-between",
-                      minHeight: "58px",
-                      padding: "8px 0",
-                    }}
-                  >
+                <div
+                  ref={sourceDetailsScrollRef}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0",
+                    maxHeight: shouldScrollSourceDetails ? "174px" : undefined,
+                    overflowY: shouldScrollSourceDetails ? "auto" : undefined,
+                    paddingRight: shouldScrollSourceDetails ? "8px" : undefined,
+                    scrollbarColor: shouldScrollSourceDetails
+                      ? "#C8C8C7 transparent"
+                      : undefined,
+                    scrollbarWidth: shouldScrollSourceDetails
+                      ? "thin"
+                      : undefined,
+                  }}
+                >
+                  {sourceDetailRows.map((source) => (
                     <div
+                      key={source.key}
                       style={{
                         alignItems: "center",
                         display: "flex",
                         gap: "10px",
-                        minWidth: 0,
+                        justifyContent: "space-between",
+                        minHeight: "58px",
+                        padding: "8px 0",
                       }}
                     >
                       <div
                         style={{
-                          flexShrink: 0,
-                          height: "28px",
-                          position: "relative",
-                          width: "28px",
+                          alignItems: "center",
+                          display: "flex",
+                          gap: "10px",
+                          minWidth: 0,
                         }}
                       >
-                        <IntentLogo
-                          alt={source.symbol}
-                          fontSize={13}
-                          label={source.symbol}
-                          size={28}
-                          src={source.tokenLogo}
-                        />
-                        {source.chainLogo && (
+                        <div
+                          style={{
+                            flexShrink: 0,
+                            height: "28px",
+                            position: "relative",
+                            width: "28px",
+                          }}
+                        >
                           <IntentLogo
-                            alt={source.chainName}
-                            fontSize={6}
-                            label={source.chainName}
-                            outline="1px solid #FFFFFE"
-                            size={13}
-                            src={source.chainLogo}
-                            style={{
-                              bottom: -2,
-                              position: "absolute",
-                              right: -2,
-                            }}
+                            alt={source.symbol}
+                            fontSize={13}
+                            label={source.symbol}
+                            size={28}
+                            src={source.tokenLogo}
                           />
-                        )}
+                          {source.chainLogo && (
+                            <IntentLogo
+                              alt={source.chainName}
+                              fontSize={6}
+                              label={source.chainName}
+                              outline="1px solid #FFFFFE"
+                              size={13}
+                              src={source.chainLogo}
+                              style={{
+                                bottom: -2,
+                                position: "absolute",
+                                right: -2,
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "3px",
+                            minWidth: 0,
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: primary,
+                              fontFamily,
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              lineHeight: "17px",
+                            }}
+                          >
+                            {source.symbol}
+                          </span>
+                          <span
+                            style={{
+                              color: muted,
+                              fontFamily,
+                              fontSize: "12px",
+                              lineHeight: "16px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            on {source.chainName || "Unknown chain"}
+                          </span>
+                        </div>
                       </div>
                       <div
                         style={{
+                          alignItems: "flex-end",
                           display: "flex",
                           flexDirection: "column",
+                          flexShrink: 0,
                           gap: "3px",
-                          minWidth: 0,
+                          textAlign: "right",
                         }}
                       >
                         <span
                           style={{
                             color: primary,
                             fontFamily,
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            lineHeight: "17px",
+                            fontSize: "12px",
                           }}
                         >
-                          {source.symbol}
+                          {source.tokenAmount}
                         </span>
                         <span
-                          style={{
-                            color: muted,
-                            fontFamily,
-                            fontSize: "12px",
-                            lineHeight: "16px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
+                          style={{ color: muted, fontFamily, fontSize: "12px" }}
                         >
-                          on {source.chainName || "Unknown chain"}
+                          {source.usdAmount}
                         </span>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        alignItems: "flex-end",
-                        display: "flex",
-                        flexDirection: "column",
-                        flexShrink: 0,
-                        gap: "3px",
-                        textAlign: "right",
-                      }}
-                    >
-                      <span
-                        style={{ color: primary, fontFamily, fontSize: "12px" }}
-                      >
-                        {source.tokenAmount}
-                      </span>
-                      <span
-                        style={{ color: muted, fontFamily, fontSize: "12px" }}
-                      >
-                        {source.usdAmount}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {shouldScrollSourceDetails && (
+                  <button
+                    aria-label="Scroll source assets"
+                    onClick={() => {
+                      sourceDetailsScrollRef.current?.scrollBy({
+                        behavior: "smooth",
+                        top: 54,
+                      });
+                    }}
+                    style={{
+                      alignItems: "center",
+                      background: "#FFFFFE",
+                      border: `1px solid ${border}`,
+                      borderRadius: "999px",
+                      boxShadow: "0 2px 8px rgba(22,22,21,0.08)",
+                      bottom: "4px",
+                      cursor: "pointer",
+                      display: "flex",
+                      height: "20px",
+                      justifyContent: "center",
+                      left: "50%",
+                      padding: 0,
+                      position: "absolute",
+                      transform: "translateX(-50%)",
+                      width: "20px",
+                    }}
+                    type="button"
+                  >
+                    <ChevronDown
+                      style={{ color: muted, height: 12, width: 12 }}
+                    />
+                  </button>
+                )}
               </div>
-              {shouldScrollSourceDetails && (
-                <button
-                  aria-label="Scroll source assets"
-                  onClick={() => {
-                    sourceDetailsScrollRef.current?.scrollBy({
-                      behavior: "smooth",
-                      top: 54,
-                    });
-                  }}
-                  style={{
-                    alignItems: "center",
-                    background: "#FFFFFE",
-                    border: `1px solid ${border}`,
-                    borderRadius: "999px",
-                    boxShadow: "0 2px 8px rgba(22,22,21,0.08)",
-                    bottom: "4px",
-                    cursor: "pointer",
-                    display: "flex",
-                    height: "20px",
-                    justifyContent: "center",
-                    left: "50%",
-                    padding: 0,
-                    position: "absolute",
-                    transform: "translateX(-50%)",
-                    width: "20px",
-                  }}
-                  type="button"
-                >
-                  <ChevronDown
-                    style={{ color: muted, height: 12, width: 12 }}
-                  />
-                </button>
-              )}
-            </div>
-          ) : (
-            <div
-              style={{
-                alignItems: "center",
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
-                {pendingLabel}
-              </span>
-            </div>
-          )}
-        </AnimatedDetails>
+            ) : (
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+                  {pendingLabel}
+                </span>
+              </div>
+            )}
+          </AnimatedDetails>
+        )}
 
         <Row
           secondaryValue={destinationTokenDisplay}

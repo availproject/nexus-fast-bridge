@@ -86,6 +86,7 @@
           "a11y": {
             "useButtonType": "off",
             "noNoninteractiveElementInteractions": "off",
+            "noNoninteractiveTabindex": "off",
             "useAriaPropsSupportedByRole": "off",
             "noStaticElementInteractions": "off",
             "useKeyWithClickEvents": "off",
@@ -103,16 +104,22 @@
             "noExplicitAny": "off",
             "noBitwiseOperators": "off",
             "noEmptyBlockStatements": "off",
-            "useAwait": "off"
+            "useAwait": "off",
+            "useNumberToFixedDigitsArgument": "off",
+            "noGlobalIsNan": "off"
           },
           "style": {
             "noNestedTernary": "off",
             "noNonNullAssertion": "off",
-            "useFilenamingConvention": "off"
+            "useFilenamingConvention": "off",
+            "useConsistentTypeDefinitions": "off",
+            "useTemplate": "off",
+            "useAtIndex": "off"
           },
           "complexity": {
             "noExcessiveCognitiveComplexity": "off",
-            "noVoid": "off"
+            "noVoid": "off",
+            "useOptionalChain": "off"
           },
           "performance": {
             "useTopLevelRegex": "off"

@@ -31,7 +31,7 @@ const parseDecimal = (value: unknown) => {
 const formatToken = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
   const max = amount.abs().gte(1) ? 6 : 8;
-  return amount.toDecimalPlaces(max).toFixed(0);
+  return amount.toDecimalPlaces(max).toFixed();
 };
 
 const formatUsd = (value: unknown) => {
@@ -39,7 +39,7 @@ const formatUsd = (value: unknown) => {
   if (amount.gt(0) && amount.lt(0.01)) {
     return "<$0.01";
   }
-  return `$${amount.toDecimalPlaces(2).toFixed(0)}`;
+  return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 
 function TokenLogo({

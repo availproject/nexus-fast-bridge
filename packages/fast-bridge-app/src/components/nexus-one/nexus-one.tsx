@@ -5,12 +5,9 @@ import {
   CHAIN_METADATA,
   ERROR_CODES,
   type EthereumProvider,
-  NEXUS_EVENTS,
   type SwapStepType,
-  TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "@avail-project/nexus-core";
-import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import type React from "react";
 import {
@@ -21,23 +18,6 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  createPublicClient,
-  encodeFunctionData,
-  erc20Abi,
-  http,
-  isAddress,
-  zeroAddress,
-} from "viem";
-import { mainnet } from "viem/chains";
-import { normalize } from "viem/ens";
-import {
-  useAccount,
-  useConnect,
-  useConnectorClient,
-  usePublicClient,
-  useWalletClient,
-} from "wagmi";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
 import { useNexus } from "../nexus/nexus-provider";
 import { DepositIdleForm } from "./components/deposit-idle-form";
@@ -70,6 +50,75 @@ import type {
   SwapType,
 } from "./types";
 import { findCitreaReceiveToken } from "./utils/citrea-tokens";
+
+const NEXUS_EVENTS = {
+  STEPS_LIST: "nexus_steps_list",
+  STEP_COMPLETE: "nexus_step_complete",
+  SWAP_STEPS_LIST: "nexus_swap_steps_list",
+  SWAP_STEP_COMPLETE: "nexus_swap_step_complete",
+} as const;
+
+const TOKEN_CONTRACT_ADDRESSES = {
+  USDC: {
+    1: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    137: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    42161: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+    10: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    534352: "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+    43114: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+    56: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    999: "0xb88339CB7199b77E23DB6E890353E22632Ba630f",
+    220024: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    4114: "0xE045e6c36cF77FAA2CfB54466D71A3aEF7bbE839",
+    11155111: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    84532: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    421614: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    11155420: "0x5fd84259d66Cd46123540766Be93DFE6D43130D7",
+    80002: "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+    10143: "0xf817257fed379853cDe0fa4F97AB987181B1E5Ea",
+    5115: "0xb669dC8cC6D044307Ba45366C0c836eC3c7e31AA",
+  },
+  USDT: {
+    1: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+    42161: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+    8217: "0xd077a400968890eacc75cdc901f0356c943e4fdb",
+    10: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+    534352: "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
+    43114: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
+    56: "0x55d398326f99059fF775485246999027B3197955",
+    999: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+    4114: "0x9f3096Bac87e7F03DC09b0B416eB0DF837304dc4",
+    946007: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+    421614: "0xF954d4A5859b37De88a91bdbb8Ad309056FB04B1",
+    11155420: "0x6462693c2F21AC0E517f12641D404895030F7426",
+    10143: "0x1c56F176D6735888fbB6f8bD9ADAd8Ad7a023a0b",
+  },
+  USDM: {
+    946007: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",
+  },
+} as const;
+
+import Decimal from "decimal.js";
+import {
+  createPublicClient,
+  encodeFunctionData,
+  erc20Abi,
+  http,
+  isAddress,
+  parseUnits,
+  zeroAddress,
+} from "viem";
+import { mainnet } from "viem/chains";
+import { normalize } from "viem/ens";
+import {
+  useAccount,
+  useConnect,
+  useConnectorClient,
+  usePublicClient,
+  useWalletClient,
+} from "wagmi";
 
 // ---------------------------------------------------------------------------
 // Types for swap step machine
@@ -118,40 +167,40 @@ interface SwapHistoryEntry {
   toToken?: SwapTokenOption;
 }
 
-interface SwapQuoteIssue {
+type SwapQuoteIssue = {
+  type: "insufficientSources";
   message: string;
   missingUsd?: string;
-  type: "insufficientSources";
-}
+};
 
-interface CachedMaxSwapQuote {
+type CachedMaxSwapQuote = {
   decimals: number;
   maxTokenAmount: Decimal;
   maxUsdAmount?: Decimal;
   symbol: string;
-}
+};
 
-interface CachedIntentUsdRate {
+type CachedIntentUsdRate = {
   amount: string;
   rate: string;
   updatedAt: number;
   value: string;
-}
+};
 
-interface PredictiveQuote {
+type PredictiveQuote = {
   key: string;
   mode: "exactIn" | "exactOut";
   sources?: SwapTokenOption[];
   toAmount?: string;
   toUsd?: string;
-}
+};
 
-interface PredictiveQuoteBaseline {
+type PredictiveQuoteBaseline = {
   destinationUsdRate: string;
   exactInDestinationAmountPerSourceUsd?: string;
   exactOutSourceUsdPerDestinationUsd?: string;
   updatedAt: number;
-}
+};
 
 const QUOTE_REFRESH_INTERVAL_MS = 30_000;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 1000;
@@ -367,6 +416,7 @@ function QuoteRefreshCountdown({
         position: "relative",
         width: "22px",
       }}
+      tabIndex={0}
     >
       {showTooltip && (
         <div
@@ -448,7 +498,7 @@ const formatDecimalDisplay = (
 ) => {
   const amount = parseDecimalLoose(value) ?? new Decimal(0);
   const max = options.max ?? 2;
-  return amount.toDecimalPlaces(max).toFixed(0);
+  return amount.toDecimalPlaces(max).toFixed();
 };
 
 const formatUsdDisplay = (value: unknown) => {
@@ -622,6 +672,7 @@ function TruncatedAddress({
         outline: "none",
         position: "relative",
       }}
+      tabIndex={0}
     >
       {label}
       {showTooltip && (
@@ -706,9 +757,9 @@ const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
         Math.max(0, entry.toToken.decimals ?? 18),
         Decimal.ROUND_DOWN
       )
-      .toFixed(0),
+      .toFixed(),
     value: rate
-      ? displayAmount.mul(rate).toFixed(0)
+      ? displayAmount.mul(rate).toFixed()
       : entry.toToken.balanceInFiat,
   };
 };
@@ -1784,7 +1835,7 @@ export function NexusOne({
   const [hasMeasuredRootContent, setHasMeasuredRootContent] = useState(false);
   const [fromTokens, setFromTokens] = useState<SwapTokenOption[]>([]);
   const [sourceSelectionTouched, setSourceSelectionTouched] = useState(false);
-  const [_sourceSelectionRevision, setSourceSelectionRevision] = useState(0);
+  const [sourceSelectionRevision, setSourceSelectionRevision] = useState(0);
   const [, setExactOutQuoteSourceMode] = useState<"all" | "selected">("all");
   const exactOutQuoteSourceModeRef = useRef<"all" | "selected">("all");
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
@@ -1805,12 +1856,12 @@ export function NexusOne({
       return;
     }
     void fetchSwapBalance();
-  }, [fetchSwapBalance, nexusSDK]);
+  }, [activeMode, fetchSwapBalance, nexusSDK, swapStep]);
 
   useEffect(() => {
     setSourceSelectionTouched(false);
     setExactOutQuoteSourceModeValue("all");
-  }, [setExactOutQuoteSourceModeValue]);
+  }, [activeMode, setExactOutQuoteSourceModeValue]);
 
   useEffect(() => {
     const previousDefault = previousDefaultRecipientRef.current;
@@ -1886,9 +1937,9 @@ export function NexusOne({
   const [swapQuoteIssue, setSwapQuoteIssue] = useState<SwapQuoteIssue | null>(
     null
   );
-  const [_transferExplorerUrl, _setTransferExplorerUrl] = useState<
-    string | null
-  >(null);
+  const [transferExplorerUrl, setTransferExplorerUrl] = useState<string | null>(
+    null
+  );
   const swapStepRef = useRef<SwapStep>(swapStep);
   const syncingIntentSourcesRef = useRef(false);
   const lastSwapIntentRefreshAtRef = useRef(0);
@@ -2005,7 +2056,7 @@ export function NexusOne({
       }
       observer.disconnect();
     };
-  }, [syncRootContentHeight]);
+  }, [activeMode, swapStep, syncRootContentHeight]);
 
   useEffect(() => {
     currentSwapIdRef.current = currentSwapId;
@@ -2216,7 +2267,7 @@ export function NexusOne({
       ? intentDestinationUsdRateCacheRef.current[tokenKey]
       : undefined;
     const rate = parseFiatNumber(cached?.rate);
-    return rate?.gt(0) ? rate : undefined;
+    return rate && rate.gt(0) ? rate : undefined;
   };
 
   const cacheDestinationUsdRateFromIntent = (
@@ -2244,10 +2295,10 @@ export function NexusOne({
     }
 
     const cached: CachedIntentUsdRate = {
-      amount: amount.toFixed(0),
-      rate: rate.toDecimalPlaces(18).toFixed(0),
+      amount: amount.toFixed(),
+      rate: rate.toDecimalPlaces(18).toFixed(),
       updatedAt: Date.now(),
-      value: value.toFixed(0),
+      value: value.toFixed(),
     };
     const tokenKey = getTokenUsdRateCacheKeyFromParts(
       chainId,
@@ -2308,7 +2359,7 @@ export function NexusOne({
     const cached =
       intentSymbolUsdRateCacheRef.current[getSymbolUsdRateCacheKey(symbol)];
     const rate = parseFiatNumber(cached?.rate);
-    return rate?.gt(0) ? rate : new Decimal(0);
+    return rate && rate.gt(0) ? rate : new Decimal(0);
   };
   const getTotalBalancePercentUsdAmount = (pct: number) =>
     getSwapBalanceTotalUsd().mul(pct).div(100);
@@ -2323,7 +2374,7 @@ export function NexusOne({
     return usdAmount
       .div(rate)
       .toDecimalPlaces(Math.max(0, token.decimals ?? 18), Decimal.ROUND_DOWN)
-      .toFixed(0);
+      .toFixed();
   };
 
   const getMaxSwapQuoteCacheKey = (token?: SwapTokenOption) => {
@@ -2344,13 +2395,13 @@ export function NexusOne({
 
   const getCachedDestinationUsdRate = (token?: SwapTokenOption) => {
     const intentCachedRate = getCachedIntentUsdRate(token);
-    if (intentCachedRate?.gt(0)) {
+    if (intentCachedRate && intentCachedRate.gt(0)) {
       return intentCachedRate;
     }
 
     const cached = getCachedMaxSwapQuote(token);
     if (
-      !cached?.maxUsdAmount ||
+      !(cached && cached.maxUsdAmount) ||
       cached.maxUsdAmount.lte(0) ||
       cached.maxTokenAmount.lte(0)
     ) {
@@ -2468,7 +2519,7 @@ export function NexusOne({
         amount: maxQuote.maxUsdAmount
           .mul(ratio)
           .toDecimalPlaces(2, Decimal.ROUND_DOWN)
-          .toFixed(0),
+          .toFixed(),
         mode: "usd" as const,
       };
     }
@@ -2477,7 +2528,7 @@ export function NexusOne({
       amount: maxQuote.maxTokenAmount
         .mul(ratio)
         .toDecimalPlaces(Math.max(0, maxQuote.decimals), Decimal.ROUND_DOWN)
-        .toFixed(0),
+        .toFixed(),
       mode: "token" as const,
     };
   };
@@ -2492,7 +2543,7 @@ export function NexusOne({
       return new Decimal(0);
     }
     const quotedUsd = parseFiatNumber(token.userAmountUsd);
-    if (quotedUsd?.gte(0)) {
+    if (quotedUsd && quotedUsd.gte(0)) {
       return quotedUsd;
     }
     if (token.userAmountMode === "usd") {
@@ -2558,9 +2609,8 @@ export function NexusOne({
       return null;
     }
 
-    const externalAmount = producedAmount?.gt(0)
-      ? producedAmount
-      : new Decimal(0);
+    const externalAmount =
+      producedAmount && producedAmount.gt(0) ? producedAmount : new Decimal(0);
     const uncoveredAmount = Decimal.max(
       requestedAmount.minus(externalAmount),
       new Decimal(0)
@@ -2570,21 +2620,23 @@ export function NexusOne({
       return null;
     }
 
-    const requestedRate = requestedUsd?.gt(0)
-      ? requestedUsd.div(requestedAmount)
-      : undefined;
+    const requestedRate =
+      requestedUsd && requestedUsd.gt(0)
+        ? requestedUsd.div(requestedAmount)
+        : undefined;
     const producedRate =
-      producedUsd?.gt(0) && producedAmount && producedAmount.gt(0)
+      producedUsd && producedUsd.gt(0) && producedAmount && producedAmount.gt(0)
         ? producedUsd.div(producedAmount)
         : undefined;
     const fallbackRate = getTokenUsdRate(token);
-    const usdRate = requestedRate?.gt(0)
-      ? requestedRate
-      : producedRate?.gt(0)
-        ? producedRate
-        : fallbackRate.gt(0)
-          ? fallbackRate
-          : undefined;
+    const usdRate =
+      requestedRate && requestedRate.gt(0)
+        ? requestedRate
+        : producedRate && producedRate.gt(0)
+          ? producedRate
+          : fallbackRate.gt(0)
+            ? fallbackRate
+            : undefined;
 
     return {
       amount: coveredAmount,
@@ -2602,10 +2654,10 @@ export function NexusOne({
 
     const amount = coverage.amount
       .toDecimalPlaces(Math.max(0, token.decimals ?? 18), Decimal.ROUND_DOWN)
-      .toFixed(0);
+      .toFixed();
     const usd = coverage.usd?.toDecimalPlaces(6, Decimal.ROUND_DOWN).toFixed();
     const balanceUsd = coverage.usd
-      ? `$${coverage.usd.toDecimalPlaces(2, Decimal.ROUND_DOWN).toFixed(0)}`
+      ? `$${coverage.usd.toDecimalPlaces(2, Decimal.ROUND_DOWN).toFixed()}`
       : token.balanceInFiat || "$0.00";
 
     return {
@@ -2626,9 +2678,9 @@ export function NexusOne({
 
     intentSymbolUsdRateCacheRef.current[symbolKey] = {
       amount: "1",
-      rate: rate.toDecimalPlaces(18).toFixed(0),
+      rate: rate.toDecimalPlaces(18).toFixed(),
       updatedAt: Date.now(),
-      value: rate.toFixed(0),
+      value: rate.toFixed(),
     };
   };
 
@@ -2673,7 +2725,7 @@ export function NexusOne({
       PREDICTIVE_QUOTE_DISPLAY_DECIMALS,
       Math.max(0, token?.decimals ?? 18)
     );
-    return amount.toDecimalPlaces(decimals, Decimal.ROUND_DOWN).toFixed(0);
+    return amount.toDecimalPlaces(decimals, Decimal.ROUND_DOWN).toFixed();
   };
 
   const resolveUsdRateForToken = async (token?: SwapTokenOption) => {
@@ -2771,11 +2823,11 @@ export function NexusOne({
         const actualUsd = getUsdForTokenAmount(source, tokenAmount);
         allocated.push({
           ...source,
-          userAmount: tokenAmount.toFixed(0),
+          userAmount: tokenAmount.toFixed(),
           userAmountMode: "token",
           userAmountUsd: actualUsd
             .toDecimalPlaces(6, Decimal.ROUND_DOWN)
-            .toFixed(0),
+            .toFixed(),
         });
         remainingUsd = remainingUsd.minus(targetUsd);
       }
@@ -2806,11 +2858,11 @@ export function NexusOne({
       const actualUsd = getUsdForTokenAmount(source, tokenAmount);
       allocated.push({
         ...source,
-        userAmount: tokenAmount.toFixed(0),
+        userAmount: tokenAmount.toFixed(),
         userAmountMode: "token",
         userAmountUsd: actualUsd
           .toDecimalPlaces(6, Decimal.ROUND_DOWN)
-          .toFixed(0),
+          .toFixed(),
       });
       remainingTokenAmount = remainingTokenAmount.minus(tokenAmount);
     }
@@ -2951,7 +3003,7 @@ export function NexusOne({
           balance: `${breakdown.balance} ${symbol}`,
           balanceInFiat:
             fiatBalance !== undefined
-              ? `$${fiatBalance.toDecimalPlaces(2).toFixed(0)}`
+              ? `$${fiatBalance.toDecimalPlaces(2).toFixed()}`
               : "$0.00",
         });
       }
@@ -2981,7 +3033,7 @@ export function NexusOne({
       (token) => token.chainId && token.contractAddress
     );
     return {
-      fromSources: eligibleTokens.map((token) => ({
+      sources: eligibleTokens.map((token) => ({
         chainId: token.chainId!,
         tokenAddress: token.contractAddress as `0x${string}`,
       })),
@@ -3026,11 +3078,11 @@ export function NexusOne({
 
       sources.push({
         ...token,
-        userAmount: tokenAmount.toFixed(0),
+        userAmount: tokenAmount.toFixed(),
         userAmountMode: "token",
         userAmountUsd: targetUsd
           .toDecimalPlaces(6, Decimal.ROUND_DOWN)
-          .toFixed(0),
+          .toFixed(),
       });
       remainingUsd = remainingUsd.minus(targetUsd);
     }
@@ -3098,7 +3150,7 @@ export function NexusOne({
           }, new Decimal(0))
         : undefined;
 
-    if (selectedSourceTotal?.gt(0)) {
+    if (selectedSourceTotal && selectedSourceTotal.gt(0)) {
       return selectedSourceTotal;
     }
 
@@ -3173,11 +3225,12 @@ export function NexusOne({
     const availableUsd = getExactOutAvailableSourceUsd();
     const exactInSourceDeficitUsd = getExactInSourceDeficitUsd();
 
-    let missingUsd = exactInSourceDeficitUsd?.gt(0)
-      ? exactInSourceDeficitUsd
-      : requiredFromError && availableFromError
-        ? requiredFromError.minus(availableFromError)
-        : undefined;
+    let missingUsd =
+      exactInSourceDeficitUsd && exactInSourceDeficitUsd.gt(0)
+        ? exactInSourceDeficitUsd
+        : requiredFromError && availableFromError
+          ? requiredFromError.minus(availableFromError)
+          : undefined;
 
     if (
       requestedUsd &&
@@ -3186,7 +3239,7 @@ export function NexusOne({
       missingUsd = requestedUsd.minus(availableUsd);
     }
 
-    if (missingUsd?.gt(0)) {
+    if (missingUsd && missingUsd.gt(0)) {
       const formattedMissing =
         missingUsd.gt(0) && missingUsd.lt(0.01)
           ? "<$0.01"
@@ -3194,7 +3247,7 @@ export function NexusOne({
 
       return {
         type: "insufficientSources",
-        missingUsd: missingUsd.toDecimalPlaces(2).toFixed(0),
+        missingUsd: missingUsd.toDecimalPlaces(2).toFixed(),
         message: `Need ${formattedMissing} more across your assets`,
       };
     }
@@ -3210,10 +3263,10 @@ export function NexusOne({
     address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     address.toLowerCase() === "0x0000000000000000000000000000000000000000";
 
-  const _formatReadableTokenAmount = (rawAmount: bigint, decimals: number) =>
+  const formatReadableTokenAmount = (rawAmount: bigint, decimals: number) =>
     new Decimal(rawAmount.toString())
       .div(new Decimal(10).pow(decimals))
-      .toFixed(0);
+      .toFixed();
 
   const formatReadableTokenBalanceAmount = (
     rawAmount: bigint,
@@ -3222,9 +3275,9 @@ export function NexusOne({
     new Decimal(rawAmount.toString())
       .div(new Decimal(10).pow(decimals))
       .toDecimalPlaces(6)
-      .toFixed(0);
+      .toFixed();
 
-  const _trimDecimalString = (value: string) =>
+  const trimDecimalString = (value: string) =>
     value.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 
   const receiveMaxSafetyMultiplier = new Decimal("0.9");
@@ -3275,7 +3328,9 @@ export function NexusOne({
   const resetProgressEvents = () => {
     progressEventsRef.current = [];
     setProgressEvents((current) => (current.length === 0 ? current : []));
-    setFailedProgressStep((current) => (current === null ? current : null));
+    setFailedProgressStep((current: SwapStepType | BridgeStepType | null) =>
+      current === null ? current : null
+    );
   };
 
   const appendProgressEvent = (
@@ -3428,7 +3483,10 @@ export function NexusOne({
     }
     patchSwapHistoryEntry(entry.id, { status: "refund-initiated" });
     try {
-      await nexusSDK.refundIntent(entry.intentId);
+      console.warn(
+        "refundIntent is not supported in v2. Intent ID:",
+        entry.intentId
+      );
       void fetchSwapBalance();
     } catch (error: any) {
       patchSwapHistoryEntry(entry.id, {
@@ -3452,9 +3510,10 @@ export function NexusOne({
       return;
     }
 
-    const destinationUsdRate = destinationValue?.gt(0)
-      ? destinationValue.div(destinationAmount)
-      : getUsdRateForSymbol(intent.destination?.token?.symbol);
+    const destinationUsdRate =
+      destinationValue && destinationValue.gt(0)
+        ? destinationValue.div(destinationAmount)
+        : getUsdRateForSymbol(intent.destination?.token?.symbol);
     if (destinationUsdRate.lte(0)) {
       return;
     }
@@ -3467,7 +3526,7 @@ export function NexusOne({
     }
 
     const baseline: PredictiveQuoteBaseline = {
-      destinationUsdRate: destinationUsdRate.toDecimalPlaces(18).toFixed(0),
+      destinationUsdRate: destinationUsdRate.toDecimalPlaces(18).toFixed(),
       updatedAt: Date.now(),
     };
 
@@ -3475,12 +3534,13 @@ export function NexusOne({
       baseline.exactInDestinationAmountPerSourceUsd = destinationAmount
         .div(sourceUsd)
         .toDecimalPlaces(18)
-        .toFixed(0);
+        .toFixed();
     }
 
-    const resolvedDestinationValue = destinationValue?.gt(0)
-      ? destinationValue
-      : destinationAmount.mul(destinationUsdRate);
+    const resolvedDestinationValue =
+      destinationValue && destinationValue.gt(0)
+        ? destinationValue
+        : destinationAmount.mul(destinationUsdRate);
     if (
       (activeMode === "deposit" || activeMode === "send") &&
       resolvedDestinationValue.gt(0) &&
@@ -3489,7 +3549,7 @@ export function NexusOne({
       baseline.exactOutSourceUsdPerDestinationUsd = sourceUsd
         .div(resolvedDestinationValue)
         .toDecimalPlaces(18)
-        .toFixed(0);
+        .toFixed();
     }
 
     predictiveQuoteCacheRef.current[key] = baseline;
@@ -3540,13 +3600,13 @@ export function NexusOne({
           typeof bridgeFees === "string"
             ? parseFiatNumber(bridgeFees)
             : (parseFiatNumber(bridgeFeeData?.total) ??
-              (bridgeComponentsTotal?.gt(0)
+              (bridgeComponentsTotal && bridgeComponentsTotal.gt(0)
                 ? bridgeComponentsTotal
                 : undefined));
 
         if (bridgeTotal !== undefined) {
           setIntentFeeUsd(
-            bridgeTotal.gt(0) ? bridgeTotal.toDecimalPlaces(6).toFixed(0) : "0"
+            bridgeTotal.gt(0) ? bridgeTotal.toDecimalPlaces(6).toFixed() : "0"
           );
         } else {
           setIntentFeeUsd(undefined);
@@ -3556,36 +3616,35 @@ export function NexusOne({
         setIntentFeeUsd(undefined);
       }
     },
-    [
-      activeMode,
-      swapType,
-      buildIntentSourceToken,
-      cacheDestinationUsdRateFromIntent,
-      cachePredictiveBaselineFromIntent,
-      parseFiatNumber,
-    ]
+    [activeMode, fromTokens, swapType, swapBalance, toToken]
   );
 
   // Register swap intent hook immediately before executing a swap to prevent race conditions across multiple components
-  const registerIntentHook = (runId: number) => {
-    if (!nexusSDK) {
+  const handleSwapIntentCallback = useCallback((data: any, runId: number) => {
+    console.log("onIntentHookCallback", data, runId);
+    const { intent, allow, deny, refresh } = data;
+    if (swapRunIdRef.current !== runId) {
+      deny();
       return;
     }
-    nexusSDK.setOnSwapIntentHook(async ({ intent, allow, deny, refresh }) => {
-      if (swapRunIdRef.current !== runId) {
-        deny();
-        return;
-      }
-      // Store callbacks so accept/reject buttons can call them
-      swapIntentRef.current = { intent, allow, deny, refresh, runId };
-      // Populate intent data for preview
-      applySwapIntent(intent);
-      setIntentLoading(false);
-      setQuoteRefreshing(false);
-      setReceiveMaxCalculating(false);
-      setPreviewQuoteRefreshing(false);
-    });
-  };
+    // Store callbacks so accept/reject buttons can call them
+    swapIntentRef.current = { intent, allow, deny, refresh, runId };
+    // Populate intent data for preview
+    applySwapIntent(intent);
+    setIntentLoading(false);
+    setQuoteRefreshing(false);
+    setReceiveMaxCalculating(false);
+    setPreviewQuoteRefreshing(false);
+  }, []);
+
+  const registerIntentHook = useCallback(
+    (runId: number) => {
+      nexusSDK?.setOnSwapIntentHook((data) =>
+        handleSwapIntentCallback(data, runId)
+      );
+    },
+    [handleSwapIntentCallback, nexusSDK]
+  );
 
   // Deposit-specific
   const [selectedOpportunity, setSelectedOpportunity] = useState<
@@ -3675,7 +3734,7 @@ export function NexusOne({
           return null;
         }
 
-        return `${balance.toDecimalPlaces(6).toFixed(0)} ${token.symbol}`;
+        return `${balance.toDecimalPlaces(6).toFixed()} ${token.symbol}`;
       }
     }
 
@@ -3764,7 +3823,7 @@ export function NexusOne({
         chainLogo: chain?.logo ?? chainMeta?.logo ?? citreaToken?.chainLogo,
       } satisfies SwapTokenOption;
     },
-    [supportedChainsAndTokens, swapBalance, isNativeTokenAddress]
+    [supportedChainsAndTokens, swapBalance]
   );
 
   useEffect(() => {
@@ -3821,8 +3880,6 @@ export function NexusOne({
     config.prefill?.source?.chain,
     config.prefill?.source?.token,
     resolvePrefillToken,
-    config.prefill?.destination,
-    config.prefill?.source,
   ]);
 
   useEffect(() => {
@@ -3861,7 +3918,6 @@ export function NexusOne({
     config.prefill?.destination?.token,
     config.prefill?.token,
     resolvePrefillToken,
-    config.prefill?.destination,
   ]);
 
   useEffect(() => {
@@ -3979,17 +4035,12 @@ export function NexusOne({
     selectedOpportunity?.tokenAddress,
     selectedOpportunity?.tokenLogo,
     selectedOpportunity?.tokenSymbol,
+    swapBalance,
     toToken?.chainId,
     toToken?.chainName,
     toToken?.contractAddress,
     toToken?.decimals,
     toToken?.symbol,
-    selectedOpportunity,
-    getDestinationBalanceFromSwapBalances,
-    isNativeTokenAddress,
-    toToken,
-    formatReadableTokenBalanceAmount,
-    toTokenFromOpportunity,
   ]);
 
   useEffect(() => {
@@ -4009,7 +4060,7 @@ export function NexusOne({
     activeMode,
     config.opportunities,
     selectedOpportunity,
-    toTokenFromOpportunity,
+    supportedChainsAndTokens,
   ]);
 
   useEffect(() => {
@@ -4021,7 +4072,7 @@ export function NexusOne({
       balance: current?.balance ?? "0",
       balanceInFiat: current?.balanceInFiat ?? "$0.00",
     }));
-  }, [activeMode, selectedOpportunity, toTokenFromOpportunity]);
+  }, [activeMode, selectedOpportunity, supportedChainsAndTokens]);
 
   useEffect(() => {
     if (activeMode !== "deposit") {
@@ -4058,7 +4109,7 @@ export function NexusOne({
     }
 
     let cancelled = false;
-    void resolveTokenUsdRate(toToken.symbol).catch((error: unknown) => {
+    void resolveTokenUsdRate(toToken.symbol).catch((error) => {
       if (!cancelled) {
         console.warn("Unable to resolve Nexus One token USD rate", {
           symbol: toToken.symbol,
@@ -4070,7 +4121,7 @@ export function NexusOne({
     return () => {
       cancelled = true;
     };
-  }, [getFiatValue, resolveTokenUsdRate, toToken?.symbol]);
+  }, [activeMode, getFiatValue, resolveTokenUsdRate, toToken?.symbol]);
 
   // Balance helpers
   const activeBalanceArray = swapBalance;
@@ -4078,7 +4129,7 @@ export function NexusOne({
   const currentAsset =
     activeBalanceArray?.find((a) => a.symbol === selectedToken) ||
     activeBalanceArray?.[0];
-  const _maxBalance = currentAsset?.balance
+  const maxBalance = currentAsset?.balance
     ? String(currentAsset.balance)
     : undefined;
   const usdValue = getFiatValue(
@@ -4118,7 +4169,7 @@ export function NexusOne({
       : depositTokenAmountForQuote
         ? depositTokenAmountForQuote.mul(getDepositTokenUsdRate())
         : new Decimal(0);
-  const depositUsdDisplay = depositUsdDecimal.toDecimalPlaces(2).toFixed(0);
+  const depositUsdDisplay = depositUsdDecimal.toDecimalPlaces(2).toFixed();
   const depositTokenDisplay =
     depositTokenAmountForQuote
       ?.toDecimalPlaces(toToken?.decimals ?? 18)
@@ -4181,9 +4232,10 @@ export function NexusOne({
       const cachedDestinationRate = parseFiatNumber(
         baseline?.destinationUsdRate
       );
-      const destinationRate = cachedDestinationRate?.gt(0)
-        ? cachedDestinationRate
-        : await resolveUsdRateForToken(toToken);
+      const destinationRate =
+        cachedDestinationRate && cachedDestinationRate.gt(0)
+          ? cachedDestinationRate
+          : await resolveUsdRateForToken(toToken);
 
       if (cancelled || runId !== predictiveQuoteRunRef.current) {
         return;
@@ -4231,17 +4283,19 @@ export function NexusOne({
       const cachedAmountPerSourceUsd = parseFiatNumber(
         baseline?.exactInDestinationAmountPerSourceUsd
       );
-      const predictedDestinationAmount = cachedAmountPerSourceUsd?.gt(0)
-        ? sourceUsd.mul(cachedAmountPerSourceUsd)
-        : sourceUsd
-            .mul(BASIS_POINTS - PREDICTIVE_EXACT_IN_DISCOUNT_BPS)
-            .div(BASIS_POINTS)
-            .div(destinationRate);
-      const predictedDestinationUsd = cachedAmountPerSourceUsd?.gt(0)
-        ? predictedDestinationAmount.mul(destinationRate)
-        : sourceUsd
-            .mul(BASIS_POINTS - PREDICTIVE_EXACT_IN_DISCOUNT_BPS)
-            .div(BASIS_POINTS);
+      const predictedDestinationAmount =
+        cachedAmountPerSourceUsd && cachedAmountPerSourceUsd.gt(0)
+          ? sourceUsd.mul(cachedAmountPerSourceUsd)
+          : sourceUsd
+              .mul(BASIS_POINTS - PREDICTIVE_EXACT_IN_DISCOUNT_BPS)
+              .div(BASIS_POINTS)
+              .div(destinationRate);
+      const predictedDestinationUsd =
+        cachedAmountPerSourceUsd && cachedAmountPerSourceUsd.gt(0)
+          ? predictedDestinationAmount.mul(destinationRate)
+          : sourceUsd
+              .mul(BASIS_POINTS - PREDICTIVE_EXACT_IN_DISCOUNT_BPS)
+              .div(BASIS_POINTS);
 
       if (
         cancelled ||
@@ -4258,7 +4312,7 @@ export function NexusOne({
           predictedDestinationAmount,
           toToken
         ),
-        toUsd: predictedDestinationUsd.toDecimalPlaces(6).toFixed(0),
+        toUsd: predictedDestinationUsd.toDecimalPlaces(6).toFixed(),
       });
     })();
 
@@ -4267,18 +4321,14 @@ export function NexusOne({
     };
   }, [
     activeMode,
+    amount,
+    fromTokens,
     swapStep,
     swapType,
     toToken?.chainId,
     toToken?.contractAddress,
     toToken?.decimals,
     toToken?.symbol,
-    getPredictiveQuoteCacheKey,
-    parseFiatNumber,
-    resolveUsdRateForToken,
-    toToken,
-    getPredictiveDisplayAmount,
-    getPredictiveExactInSourceTokens,
   ]);
 
   useEffect(() => {
@@ -4316,9 +4366,10 @@ export function NexusOne({
       const cachedDestinationRate = parseFiatNumber(
         baseline?.destinationUsdRate
       );
-      const destinationRate = cachedDestinationRate?.gt(0)
-        ? cachedDestinationRate
-        : await resolveUsdRateForToken(toToken);
+      const destinationRate =
+        cachedDestinationRate && cachedDestinationRate.gt(0)
+          ? cachedDestinationRate
+          : await resolveUsdRateForToken(toToken);
 
       if (cancelled || runId !== predictiveQuoteRunRef.current) {
         return;
@@ -4352,7 +4403,7 @@ export function NexusOne({
       );
       const requiredSourceUsd = destinationUsdNeedingSources.lte(0)
         ? new Decimal(0)
-        : cachedSourceUsdRatio?.gt(0)
+        : cachedSourceUsdRatio && cachedSourceUsdRatio.gt(0)
           ? destinationUsdNeedingSources.mul(cachedSourceUsdRatio)
           : destinationUsdNeedingSources
               .mul(BASIS_POINTS + PREDICTIVE_EXACT_OUT_BUFFER_BPS)
@@ -4377,7 +4428,7 @@ export function NexusOne({
         mode: "exactOut",
         sources,
         toAmount: getPredictiveDisplayAmount(destinationAmount, toToken),
-        toUsd: destinationUsd.toDecimalPlaces(6).toFixed(0),
+        toUsd: destinationUsd.toDecimalPlaces(6).toFixed(),
       });
     })();
 
@@ -4388,8 +4439,12 @@ export function NexusOne({
     activeMode,
     amount,
     depositAmountMode,
+    destinationBalance,
+    fromTokens,
     nexusSDK,
     selectedOpportunity,
+    sourceSelectionRevision,
+    swapBalance,
     swapStep,
     swapType,
     toToken?.balance,
@@ -4398,13 +4453,6 @@ export function NexusOne({
     toToken?.contractAddress,
     toToken?.decimals,
     toToken?.symbol,
-    getExactOutDestinationBalanceCoverage,
-    getPredictiveDisplayAmount,
-    getPredictiveQuoteCacheKey,
-    parseFiatNumber,
-    resolveUsdRateForToken,
-    toToken,
-    buildPredictiveExactOutSources,
   ]);
 
   const defaultDepositSourceTokens = useMemo<SwapTokenOption[]>(() => {
@@ -4417,7 +4465,7 @@ export function NexusOne({
         ...token,
         userAmount: "",
       }));
-  }, [activeMode, swapBalance, hasMinimumSourceUsdBalance]);
+  }, [activeMode, swapBalance]);
   const lockedDestinationSourceTokens = useMemo<SwapTokenOption[]>(() => {
     if (
       (activeMode !== "deposit" && activeMode !== "send") ||
@@ -4479,7 +4527,7 @@ export function NexusOne({
             balance: `${breakdown.balance} ${symbol}`,
             balanceInFiat:
               fiatBalance !== undefined
-                ? `$${fiatBalance.toDecimalPlaces(2).toFixed(0)}`
+                ? `$${fiatBalance.toDecimalPlaces(2).toFixed()}`
                 : "$0.00",
           },
         ];
@@ -4489,6 +4537,7 @@ export function NexusOne({
     return [];
   }, [
     activeMode,
+    requiredDestinationTokenAmount?.toFixed(),
     swapBalance,
     toToken?.chainId,
     toToken?.chainLogo,
@@ -4497,10 +4546,6 @@ export function NexusOne({
     toToken?.decimals,
     toToken?.logo,
     toToken?.symbol,
-    isNativeTokenAddress,
-    minimumSourceUsd,
-    parseFiatNumber,
-    requiredDestinationTokenAmount,
   ]);
 
   useEffect(() => {
@@ -4587,10 +4632,10 @@ export function NexusOne({
   }, [
     activeMode,
     defaultDepositSourceTokens,
+    depositTokenAmountForQuote?.toFixed(),
     lockedDestinationSourceTokens,
     sourceSelectionTouched,
     toToken,
-    depositTokenAmountForQuote,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -4887,7 +4932,6 @@ export function NexusOne({
     swapRunIdRef.current += 1;
     const runId = swapRunIdRef.current;
 
-    // Claim ownership of global singleton hook before executing SDK swap
     registerIntentHook(runId);
 
     const getSwapStepListFromEvent = (event: { args: any }) => {
@@ -5023,7 +5067,7 @@ export function NexusOne({
           setReceiveMaxCalculating(false);
           return;
         }
-        const amountBigInt = nexusSDK.utils.parseUnits(
+        const amountBigInt = parseUnits(
           exactOutAmountString,
           toToken.decimals || 18
         );
@@ -5075,57 +5119,87 @@ export function NexusOne({
           }
         }
 
+        if (executeConfig && executeConfig.tokenApproval) {
+          executeConfig = {
+            ...executeConfig,
+            tokenApproval: {
+              toTokenAddress:
+                executeConfig.tokenApproval.token ||
+                executeConfig.tokenApproval.toTokenAddress ||
+                toToken.contractAddress,
+              amount: executeConfig.tokenApproval.amount,
+              spender: executeConfig.tokenApproval.spender,
+            },
+          };
+        }
+
         if (executeConfig) {
           const onEvent = (event: any) => {
             if (swapRunIdRef.current !== runId) {
               return;
             }
-            handleSwapEvent(event);
+            if (
+              event.type === "plan_preview" ||
+              event.type === "plan_confirmed"
+            ) {
+              const list = event.plan.steps.map((step: any) => ({
+                type: step.type.toUpperCase(),
+                typeID: step.type.toUpperCase(),
+                completed: false,
+                ...step,
+              }));
+              handleSwapEvent({
+                name: NEXUS_EVENTS.SWAP_STEPS_LIST,
+                args: list,
+              });
+            }
+            if (event.type === "plan_progress") {
+              const completed =
+                event.state === "completed" ||
+                event.state === "confirmed" ||
+                event.state === "submitted";
+              if (completed) {
+                const step = {
+                  type: event.stepType.toUpperCase(),
+                  typeID: event.stepType.toUpperCase(),
+                  completed: true,
+                  ...event.step,
+                };
+                handleSwapEvent({
+                  name: NEXUS_EVENTS.SWAP_STEP_COMPLETE,
+                  args: step,
+                });
+              }
+            }
           };
-          const sdkWithOptionalTransfer = nexusSDK as any;
-          const result =
-            activeMode === "send" &&
-            typeof sdkWithOptionalTransfer.swapAndTransfer === "function"
-              ? await sdkWithOptionalTransfer.swapAndTransfer(
-                  {
-                    toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
-                    toAmount: amountBigInt,
-                    recipient: resolvedRecipientAddress as `0x${string}`,
-                    ...fromSourcesPayload,
-                  },
-                  { onEvent }
-                )
-              : await nexusSDK.swapAndExecute(
-                  {
-                    toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
-                    toAmount: amountBigInt,
-                    execute: executeConfig,
-                    ...fromSourcesPayload,
-                  },
-                  { onEvent }
-                );
 
-          const swapResult = result?.swapResult ?? result?.result ?? null;
-          const swapSkipped = Boolean((result as any)?.swapSkipped);
-          if (!(swapResult || swapSkipped) && activeMode !== "send") {
+          const result = await nexusSDK.swapAndExecute(
+            {
+              toChainId: toToken.chainId!,
+              toTokenAddress: toToken.contractAddress as `0x${string}`,
+              toAmount: amountBigInt,
+              execute: executeConfig,
+              ...fromSourcesPayload,
+            },
+            {
+              onEvent,
+            }
+          );
+
+          const swapResult = result?.swapResult ?? null;
+          const swapSkipped = Boolean(result?.swapSkipped);
+          if (!(swapResult || swapSkipped)) {
             throw new Error("Swap failed");
           }
-          const executeTxHash =
-            result?.executeResponse?.txHash ||
-            result?.transactionHash ||
-            result?.txHash ||
-            null;
-          const intentExplorerUrl =
-            swapResult?.explorerURL || result?.intentExplorerUrl || null;
+          const executeTxHash = result?.executeResponse?.txHash || null;
+          const intentExplorerUrl = swapResult?.explorerURL || null;
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
-          const finalExplorerUrl =
-            result?.explorerUrl ||
-            result?.executeExplorerUrl ||
-            getExplorerTxUrl(toToken.chainId, executeTxHash);
+          const finalExplorerUrl = getExplorerTxUrl(
+            toToken.chainId!,
+            executeTxHash
+          );
           if (finalExplorerUrl) {
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
@@ -5147,14 +5221,44 @@ export function NexusOne({
                 if (swapRunIdRef.current !== runId) {
                   return;
                 }
-                handleSwapEvent(event);
+                if (
+                  event.type === "plan_preview" ||
+                  event.type === "plan_confirmed"
+                ) {
+                  const list = event.plan.steps.map((step: any) => ({
+                    ...step,
+                    type: step.type.toUpperCase(),
+                    typeID: step.type.toUpperCase(),
+                    completed: false,
+                  }));
+                  handleSwapEvent({
+                    name: NEXUS_EVENTS.SWAP_STEPS_LIST,
+                    args: list,
+                  });
+                }
+                if (event.type === "plan_progress") {
+                  const completed =
+                    event.state === "completed" ||
+                    event.state === "confirmed" ||
+                    event.state === "submitted";
+                  if (completed) {
+                    const step = {
+                      ...event.step,
+                      type: event.stepType.toUpperCase(),
+                      typeID: event.stepType.toUpperCase(),
+                      completed: true,
+                    };
+                    handleSwapEvent({
+                      name: NEXUS_EVENTS.SWAP_STEP_COMPLETE,
+                      args: step,
+                    });
+                  }
+                }
               },
             }
           );
-          if (!result?.success) {
-            throw new Error(result?.error || "Swap failed");
-          }
-          const intentExplorerUrl = result.result.explorerURL || null;
+          const intentExplorerUrl =
+            (result.success ? result.result.explorerURL : null) || null;
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -5215,15 +5319,12 @@ export function NexusOne({
               Math.max(0, token.decimals || 18),
               Decimal.ROUND_DOWN
             )
-            .toFixed(0);
+            .toFixed();
 
           fromPayload.push({
             chainId: token.chainId!,
             tokenAddress: token.contractAddress as `0x${string}`,
-            amount: nexusSDK.utils.parseUnits(
-              safeTokenAmountStr,
-              token.decimals || 18
-            ),
+            amount: parseUnits(safeTokenAmountStr, token.decimals || 18),
           });
         }
 
@@ -5244,14 +5345,44 @@ export function NexusOne({
               if (swapRunIdRef.current !== runId) {
                 return;
               }
-              handleSwapEvent(event);
+              if (
+                event.type === "plan_preview" ||
+                event.type === "plan_confirmed"
+              ) {
+                const list = event.plan.steps.map((step: any) => ({
+                  ...step,
+                  type: step.type.toUpperCase(),
+                  typeID: step.type.toUpperCase(),
+                  completed: false,
+                }));
+                handleSwapEvent({
+                  name: NEXUS_EVENTS.SWAP_STEPS_LIST,
+                  args: list,
+                });
+              }
+              if (event.type === "plan_progress") {
+                const completed =
+                  event.state === "completed" ||
+                  event.state === "confirmed" ||
+                  event.state === "submitted";
+                if (completed) {
+                  const step = {
+                    ...event.step,
+                    type: event.stepType.toUpperCase(),
+                    typeID: event.stepType.toUpperCase(),
+                    completed: true,
+                  };
+                  handleSwapEvent({
+                    name: NEXUS_EVENTS.SWAP_STEP_COMPLETE,
+                    args: step,
+                  });
+                }
+              }
             },
           }
         );
-        if (!result?.success) {
-          throw new Error(result?.error || "Swap failed");
-        }
-        const intentExplorerUrl = result.result.explorerURL || null;
+        const intentExplorerUrl =
+          (result.success ? result.result.explorerURL : null) || null;
         const intentId =
           extractIntentIdFromUrl(intentExplorerUrl) ??
           currentSwapEntry?.intentId;
@@ -5384,16 +5515,7 @@ export function NexusOne({
         clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
       }
     };
-  }, [
-    activeMode,
-    fromTokens,
-    nexusSDK,
-    swapStep,
-    toToken,
-    clearPendingSwapIntent,
-    handleEnterPreview,
-    hasReadyExactInSwapInput,
-  ]);
+  }, [activeMode, amount, fromTokens, nexusSDK, swapStep, toToken]);
 
   useEffect(() => {
     if (activeMode !== "deposit" || swapStep !== "idle" || !nexusSDK) {
@@ -5437,15 +5559,12 @@ export function NexusOne({
   }, [
     activeMode,
     amount,
+    depositAmountMode,
     nexusSDK,
+    sourceSelectionRevision,
     selectedOpportunity,
     swapStep,
     toToken,
-    clearPendingSwapIntent,
-    clearSelectedSources,
-    depositTokenAmountForQuote,
-    handleEnterPreview,
-    parseFiatNumber,
   ]);
 
   useEffect(() => {
@@ -5486,12 +5605,9 @@ export function NexusOne({
     activeMode,
     amount,
     nexusSDK,
+    sourceSelectionRevision,
     swapStep,
     toToken,
-    clearPendingSwapIntent,
-    clearSelectedSources,
-    handleEnterPreview,
-    parseFiatNumber,
   ]);
 
   const refreshActiveSwapIntent = useCallback(async () => {
@@ -5841,7 +5957,7 @@ export function NexusOne({
         depositAmountMode === "token"
           ? parsedAmount.mul(rate).toDecimalPlaces(2)
           : parsedAmount.div(rate).toDecimalPlaces(toToken?.decimals ?? 18);
-      setAmount(converted.toFixed(0));
+      setAmount(converted.toFixed());
     }
     clearPendingSwapIntent();
     setDepositAmountMode((current) => (current === "token" ? "usd" : "token"));
@@ -5863,7 +5979,7 @@ export function NexusOne({
         depositAmountMode === "usd" && getDepositTokenUsdRate().lte(0);
       const nextAmount =
         depositAmountMode === "usd"
-          ? usdAmount.toDecimalPlaces(2, Decimal.ROUND_DOWN).toFixed(0)
+          ? usdAmount.toDecimalPlaces(2, Decimal.ROUND_DOWN).toFixed()
           : formatTokenAmountFromUsd(usdAmount, toToken);
 
       if (nextAmount && !shouldUseMaxQuoteFallback) {
@@ -6219,14 +6335,16 @@ export function NexusOne({
     previewExactOutDestinationAmount?.gt(0)
       ? previewExactOutDestinationAmount
           .toDecimalPlaces(toToken?.decimals ?? 18, Decimal.ROUND_DOWN)
-          .toFixed(0)
+          .toFixed()
       : intentToAmount;
-  const previewFromAmountUsd = previewSourceUsdNumber?.gt(0)
-    ? previewSourceUsdNumber.toDecimalPlaces(6).toFixed(0)
-    : undefined;
-  const previewToAmountUsd = previewDestinationUsdNumber?.gt(0)
-    ? previewDestinationUsdNumber.toDecimalPlaces(6).toFixed(0)
-    : undefined;
+  const previewFromAmountUsd =
+    previewSourceUsdNumber && previewSourceUsdNumber.gt(0)
+      ? previewSourceUsdNumber.toDecimalPlaces(6).toFixed()
+      : undefined;
+  const previewToAmountUsd =
+    previewDestinationUsdNumber && previewDestinationUsdNumber.gt(0)
+      ? previewDestinationUsdNumber.toDecimalPlaces(6).toFixed()
+      : undefined;
   const predictiveExactInQuote =
     predictiveQuote?.mode === "exactIn" &&
     predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
@@ -6308,7 +6426,7 @@ export function NexusOne({
     isExactOutRouteLoading && !shouldShowPredictiveExactOutDisplay;
   const totalSwapBalanceUsd = getSwapBalanceTotalUsd()
     .toDecimalPlaces(2)
-    .toFixed(0);
+    .toFixed();
   const sendAmountUsd =
     amount && toToken
       ? getTokenUsdValue(
@@ -7836,10 +7954,8 @@ export function NexusOne({
                     }
                     setSwapType("exactOut");
                     setToToken(token);
+                    onDestinationTokenChange?.(token);
                     closeDrawerToIdle();
-                    if (onDestinationTokenChange) {
-                      onDestinationTokenChange(token);
-                    }
                     return;
                   }
                   if (tokenChanged) {
@@ -7849,10 +7965,8 @@ export function NexusOne({
                     setSwapType("exactIn");
                   }
                   setToToken(token);
+                  onDestinationTokenChange?.(token);
                   closeDrawerToIdle();
-                  if (onDestinationTokenChange) {
-                    onDestinationTokenChange(token);
-                  }
                 }}
               />
             </div>

@@ -55,7 +55,7 @@ const parseDecimal = (value: unknown) => {
 const formatToken = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
   const max = amount.abs().gte(1) ? 6 : 8;
-  return amount.toDecimalPlaces(max).toFixed(0);
+  return amount.toDecimalPlaces(max).toFixed();
 };
 
 const formatUsd = (value: unknown) => {
@@ -63,7 +63,7 @@ const formatUsd = (value: unknown) => {
   if (amount.gt(0) && amount.lt(0.01)) {
     return "<$0.01";
   }
-  return `$${amount.toDecimalPlaces(2).toFixed(0)}`;
+  return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 
 const MAX_AMOUNT_DISPLAY_DECIMALS = 8;
@@ -79,7 +79,7 @@ const formatAmountInputDisplay = (value: string) => {
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
-      .toFixed(0);
+      .toFixed();
   } catch {
     return value;
   }
@@ -89,7 +89,7 @@ const sanitizeAmountInput = (raw: string, maxDecimals: number) => {
   let next = raw.replaceAll(/[^0-9.]/g, "");
   const parts = next.split(".");
   if (parts.length > 2) {
-    next = `${parts[0]}.${parts.slice(1).join("")}`;
+    next = parts[0] + "." + parts.slice(1).join("");
   }
   const [integerPart, decimalPart] = next.split(".");
   if (decimalPart !== undefined) {
@@ -216,7 +216,7 @@ function SkeletonRow() {
   );
 }
 
-function _PayWithSources({
+function PayWithSources({
   fromTokens,
   onOpenSourcePicker,
   routeStatus,

@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import type { SwapTokenOption } from "./components/swap-asset-selector";
 
 export type NexusOneMode = "swap" | "send" | "deposit";
 

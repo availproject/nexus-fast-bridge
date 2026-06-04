@@ -11,19 +11,19 @@ import type { SwapIntentData } from "./swap-intent-preview";
 
 type ProgressSdkStep = SwapStepType | BridgeStepType;
 
-interface ProgressStep {
-  completed: boolean;
+type ProgressStep = {
   id: number;
-  step: ProgressSdkStep;
-}
-
-export interface NexusOneProgressEvent {
   completed: boolean;
+  step: ProgressSdkStep;
+};
+
+export type NexusOneProgressEvent = {
   id: string;
   name: string;
+  completed: boolean;
   step?: ProgressSdkStep;
   steps?: ProgressSdkStep[];
-}
+};
 
 interface NexusOneProgressScreenProps {
   failedStep?: ProgressSdkStep | null;
@@ -66,7 +66,7 @@ const parseDecimal = (value: unknown) => {
 };
 
 const formatDecimal = (value: unknown, decimals = 2) =>
-  (parseDecimal(value) ?? new Decimal(0)).toDecimalPlaces(decimals).toFixed(0);
+  (parseDecimal(value) ?? new Decimal(0)).toDecimalPlaces(decimals).toFixed();
 
 const formatUsd = (value: unknown) => `$${formatDecimal(value, 2)}`;
 
@@ -96,12 +96,12 @@ type ProgressStatusState =
   | "completed"
   | "error";
 
-interface ProgressStatusRow {
-  description?: string;
+type ProgressStatusRow = {
   id: ProgressStatusId;
   label: string;
+  description?: string;
   state: ProgressStatusState;
-}
+};
 
 const STATUS_ORDER: ProgressStatusId[] = [
   "approveTokens",
@@ -678,7 +678,7 @@ export function NexusOneProgressScreen({
     ) ??
     statusRows.find((row) => row.state === "error") ??
     statusRows.find((row) => row.state === "default") ??
-    statusRows.at(-1);
+    statusRows[statusRows.length - 1];
   const visibleRows = stepsExpanded ? statusRows : activeRow ? [activeRow] : [];
   const canExpand = statusRows.length > 1;
   const getRowHeight = (row: ProgressStatusRow) => (row.description ? 58 : 48);

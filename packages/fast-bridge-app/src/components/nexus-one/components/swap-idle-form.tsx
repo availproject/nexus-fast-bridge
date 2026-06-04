@@ -580,7 +580,7 @@ const formatAmountInputDisplay = (value: string) => {
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
-      .toFixed(0);
+      .toFixed();
   } catch {
     return value;
   }
@@ -608,7 +608,7 @@ export function SwapIdleForm({
   allowOverBalanceAmounts = false,
   onUpdateTokens,
 }: SwapIdleFormProps) {
-  const [focusedPanel, _setFocusedPanel] = useState<"send" | "receive" | null>(
+  const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
     null
   );
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
@@ -649,7 +649,7 @@ export function SwapIdleForm({
     let next = raw.replaceAll(/[^0-9.]/g, "");
     const parts = next.split(".");
     if (parts.length > 2) {
-      next = `${parts[0]}.${parts.slice(1).join("")}`;
+      next = parts[0] + "." + parts.slice(1).join("");
     }
     const [integerPart, decimalPart] = next.split(".");
     if (decimalPart !== undefined) {
@@ -665,7 +665,7 @@ export function SwapIdleForm({
         next = "0";
       }
       if (next.startsWith(".")) {
-        next = `0${next}`;
+        next = "0" + next;
       }
     }
     return next;
@@ -676,7 +676,7 @@ export function SwapIdleForm({
       return;
     }
     const token = fromTokens[index];
-    if (!token?.userAmount) {
+    if (!(token && token.userAmount)) {
       return;
     }
     if (token.userAmount.includes(".")) {
@@ -775,11 +775,11 @@ export function SwapIdleForm({
   };
 
   const getSourceUsdValue = React.useCallback((token: SwapTokenOption) => {
-    if (!token?.userAmount) {
+    if (!(token && token.userAmount)) {
       return 0;
     }
     const quotedUsd = parseDecimal(token.userAmountUsd);
-    if (quotedUsd?.gte(0)) {
+    if (quotedUsd && quotedUsd.gte(0)) {
       return quotedUsd.toNumber();
     }
     const tokenBalance =
@@ -817,7 +817,7 @@ export function SwapIdleForm({
 
   useEffect(() => {
     requestAnimationFrame(updateSourceListScrollState);
-  }, [updateSourceListScrollState]);
+  }, [fromTokens.length, updateSourceListScrollState]);
 
   const sourceRowsToRender: Array<{
     token: SwapTokenOption | null;
@@ -899,13 +899,13 @@ export function SwapIdleForm({
       if (pct === 100) {
         finalVal = fiatBalance
           .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
-          .toFixed(0);
+          .toFixed();
       } else {
         finalVal = fiatBalance
           .mul(pct)
           .div(100)
           .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
-          .toFixed(0);
+          .toFixed();
       }
     } else {
       const balanceStr = String(token.balance || "0");
@@ -917,13 +917,13 @@ export function SwapIdleForm({
       if (pct === 100) {
         finalVal = tokenBalance
           .toDecimalPlaces(tokenDecimals, Decimal.ROUND_DOWN)
-          .toFixed(0);
+          .toFixed();
       } else {
         finalVal = tokenBalance
           .mul(pct)
           .div(100)
           .toDecimalPlaces(tokenDecimals, Decimal.ROUND_DOWN)
-          .toFixed(0);
+          .toFixed();
       }
     }
 
@@ -943,7 +943,7 @@ export function SwapIdleForm({
       return;
     }
     const bal = Number.parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
-    if (Number.isNaN(bal)) {
+    if (isNaN(bal)) {
       return;
     }
     const val = bal * (pct / 100);
@@ -1404,7 +1404,7 @@ export function SwapIdleForm({
                           ? (userAmtNum / price).toFixed(6)
                           : "0.000000"
                         : quotedUsd
-                          ? quotedUsd.toDecimalPlaces(2).toFixed(0)
+                          ? quotedUsd.toDecimalPlaces(2).toFixed()
                           : (userAmtNum * price).toFixed(2);
                       const approxPrefix = isUsdMode ? "≈" : "≈ $";
                       const approxSuffix = isUsdMode ? ` ${token.symbol}` : "";
