@@ -6,6 +6,10 @@ import { defineConfig } from "vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const bufferShimPath = path.resolve(
+  __dirname,
+  "./packages/fast-bridge-app/src/shims/buffer.cjs"
+);
 
 export default defineConfig({
   base: "/",
@@ -14,6 +18,14 @@ export default defineConfig({
     tailwindcss(),
     nodePolyfills({
       exclude: ["fs"],
+      globals: {
+        Buffer: false,
+        global: true,
+        process: true,
+      },
+      overrides: {
+        buffer: bufferShimPath,
+      },
       protocolImports: true,
     }),
   ],
@@ -24,9 +36,10 @@ export default defineConfig({
         __dirname,
         "./node_modules/@avail-project/nexus-core"
       ),
-      buffer: path.resolve(
+      buffer: bufferShimPath,
+      "safe-buffer": path.resolve(
         __dirname,
-        "./packages/fast-bridge-app/src/shims/buffer"
+        "./packages/fast-bridge-app/src/shims/safe-buffer"
       ),
       global: "vite-plugin-node-polyfills/shims/global",
       process: "vite-plugin-node-polyfills/shims/process",

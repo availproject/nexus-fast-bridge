@@ -1,14 +1,13 @@
 import {
-  Buffer as NodeBuffer,
-  SlowBuffer as NodeSlowBuffer,
-} from "node:buffer";
-
-export const Buffer = NodeBuffer;
-export const SlowBuffer = NodeSlowBuffer;
+  Buffer as BufferShim,
+  SlowBuffer as SlowBufferShim,
+} from "vite-plugin-node-polyfills/shims/buffer";
 
 const safeBuffer = {
-  Buffer,
-  SlowBuffer,
+  Buffer: BufferShim,
+  SlowBuffer: SlowBufferShim,
 };
 
+export const Buffer = BufferShim;
+export const SlowBuffer = SlowBufferShim;
 export default safeBuffer;

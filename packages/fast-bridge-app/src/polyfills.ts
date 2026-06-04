@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer";
+import { Buffer } from "vite-plugin-node-polyfills/shims/buffer";
 
 interface BrowserPolyfillGlobals {
   Buffer?: typeof Buffer;
