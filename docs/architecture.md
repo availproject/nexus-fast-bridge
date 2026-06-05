@@ -1,132 +1,107 @@
 # Fast Bridge Architecture
 
-This document explains how the monorepo is structured, how runtime configuration is injected, and which invariants keep multi-chain development maintainable.
+This repository is currently a single Vite SPA. Chain-specific pages are runtime routes, not separate source apps.
 
 ## Goals
 
-- Keep shared bridge logic in one place.
-- Keep chain apps as thin runtime wrappers.
-- Support chain-specific behavior without reintroducing copy-paste.
-- Make adding new chains predictable and scriptable.
+- Keep shared bridge and swap logic in one place.
+- Keep chain wrappers out of the source model.
+- Express chain differences through runtime config and feature flags.
+- Make route-driven chain behavior predictable and easy to validate.
 
 ## Repository Layout
 
-- `packages/fast-bridge-app`
-Shared React app logic, components, hooks, and styles for all chains.
+- `packages/fast-bridge-app/src`
+  Shared React app, components, hooks, providers, styles, and route-aware runtime code.
 
-- `apps/<slug>`
-Thin chain wrappers. Each app mostly provides:
-  - `get-config.ts` (env-driven app config)
-  - `src/runtime.ts` (`appConfig` + `chainFeatures` exports)
-  - `src/main.tsx` (boots shared app)
-  - chain-specific `public/` assets and `.env.<slug>`
+- `packages/fast-bridge-app/src/config/chain-settings.ts`
+  Source of truth for chain slugs, `appConfig`, `chainFeatures`, route metadata, Nexus chain IDs, and token defaults.
 
-- `apps/root`
-Landing app that lists chains from `chains.config.json` and serves built bundles copied into `apps/root/public/<slug>`.
+- `packages/fast-bridge-app/src/providers/runtime-context.tsx`
+  Resolves the active route slug, exposes `appConfig`, `chainFeatures`, `chainSlug`, and `setChain()` through `useRuntime()`.
 
-- `chains.config.json`
-Registry of chains for scaffold/dev/build/root listing.
+- `packages/fast-bridge-app/src/config/rpcs.json`
+  Optional RPC configuration location when a chain uses shared RPC data outside the registry.
 
 - `scripts/*`
-Automation for env preparation, chain sync, chain scaffolding, dev orchestration, and bundle collection.
+  Build and route HTML generation helpers for the single SPA.
 
-## Runtime Injection Model
+Existing `apps/**` folders are not the active source pattern for new work. Treat them as legacy/generated artifacts unless a task explicitly targets them.
 
-Every chain app resolves shared imports with aliases in `apps/<slug>/vite.config.ts`
-(and matching TS path aliases in `apps/<slug>/tsconfig.app.json` where applicable):
+## Runtime Model
 
-- `@/*` -> `../../packages/fast-bridge-app/src/*`
-- `@fastbridge/runtime` -> `./src/runtime.ts`
-- `@avail-project/nexus-core` -> `./node_modules/@avail-project/nexus-core`
+`RuntimeProvider` reads the route parameter, validates it against `CHAIN_REGISTRY`, and redirects invalid routes to the last selected chain or `DEFAULT_CHAIN_SLUG`.
 
-That means shared code can do:
+Shared code should read runtime values with:
 
-```ts
-import { appConfig, chainFeatures } from "@fastbridge/runtime";
+```tsx
+import { useRuntime } from "@/providers/runtime-context";
+
+const { appConfig, chainFeatures, chainSlug, setChain } = useRuntime();
 ```
 
-and receive chain-specific values from the current app wrapper.
-
-The `@avail-project/nexus-core` alias is intentional. It forces all Nexus imports
-from shared code to resolve to the current chain app's installed Nexus version,
-so each app can pin its own SDK commit independently.
+Shared components must not import static chain data directly when behavior depends on the active route.
 
 ## Configuration Layers
 
-### 1) Chain Registry (`chains.config.json`)
+### 1) Chain Registry
+
+Location:
+- `packages/fast-bridge-app/src/config/chain-settings.ts`
 
 Used for:
-- Root landing chain cards.
-- `dev:all` dynamic package filtering.
-- Scaffolding and sync scripts.
+- Route slugs.
+- Chain identity and metadata.
+- RPC and explorer URLs.
+- Nexus network and destination chain IDs.
+- Primary token defaults.
+- Chain-specific feature flags.
 
-### 2) Env-driven App Config (`apps/<slug>/get-config.ts`)
+### 2) Feature Contract
 
-Defines chain identity and brand values (IDs, RPCs, metadata, colors, logos, SEO metadata). Runtime source is `.env.<slug>` locally or `<SLUG>_` prefixed env vars in deployment.
-
-### 3) Behavior Flags (`apps/<slug>/src/runtime.ts`)
-
-`chainFeatures` controls behavior differences without forking shared logic (examples: promo banners, token logo overrides, post-bridge wallet actions, and chain-specific page/support content).
-
-Source of truth for feature contract:
+Location:
 - `packages/fast-bridge-app/src/types/runtime.ts`
 
-## Build and Env Flow
+`ChainFeatures` defines optional behavior differences. `defaultChainFeatures` must include safe fallbacks for new flags.
 
-### Local and CI chain env preparation
+### 3) Shared Consumers
 
-- `scripts/prepare-env.mjs <slug>`
-  - If `apps/<slug>/.env.<slug>` exists, copy to `.env.production` and `.env.local`.
-  - Else read `<SLUG>_` prefixed process env vars and write stripped `VITE_*` keys.
+Location:
+- `packages/fast-bridge-app/src/**`
 
-### Multi-chain dependency/env sync
+Shared consumers must use `useRuntime()` and feature flags instead of hardcoded slug branches when a reusable flag is practical.
 
-- `scripts/sync-chains.mjs`
-  - Ensures `apps/root/package.json` has all `@fastbridge/<slug>` workspace devDependencies.
-  - Updates `turbo.json` `globalEnv` from `.env.<slug>` keys (prefixed).
+## Bridge UI Flow
 
-### Scaffold
+The app shell renders `FastBridgeShowcase`, which hosts the active bridge/swap element. The current integration uses NexusOne in `swap` mode and derives its receive-side prefill from the active route:
 
-- `scripts/chains-add.mjs`
-  - Clones a template app (default: `monad`).
-  - Renames package and scripts.
-  - Adds chain entry to `chains.config.json`.
-  - Runs `chains:sync` automatically.
+- `/megaeth` selects USDM on MegaETH.
+- `/citrea` selects ctUSD on Citrea.
+- Other routes prefer USDC when Nexus supports USDC on that chain.
 
-### Build output composition
-
-- `apps/root` build runs `scripts/collect-chains.mjs` before Vite build.
-- `collect-chains` copies each chain `dist` into `apps/root/public/<slug>`.
-
-### Deployment env export
-
-- `scripts/build-vercel-env.mjs` aggregates `.env.<slug>` files into `<SLUG>_KEY=VALUE` lines for deployment systems.
+When a user manually changes the receive asset to another supported chain, the showcase maps the selected receive asset's `chainId` back to a route slug with `getChainSlugById()` and calls `setChain(slug)`.
 
 ## Key Invariants
 
 - Shared logic belongs in `packages/fast-bridge-app/src/**`.
-- Chain wrappers should stay thin. Prefer runtime flags over app forks.
-- Bridge intent lifecycle is input-driven: when amount/token/recipient/chain changes after an intent exists, shared flow must invalidate the current intent and return status to `idle` so a fresh intent can be created. Do not leave the flow in `executing` after invalidation.
-- Runtime-imported image URLs can be root-relative (`/x.svg`) but should be normalized with `withBasePath(...)` in shared code paths.
-- Tailwind must scan shared and wrapper sources:
-  - `packages/fast-bridge-app/src/index.css` uses `@source` directives.
-  - If files move, update these patterns.
-- If `.env.<slug>` keys change, run `pnpm chains:sync`.
+- Chain configuration belongs in `CHAIN_REGISTRY`.
+- Do not use environment variables for chain-specific features.
+- Do not rely on Turborepo multi-build wrappers for new source work.
+- Route changes should preserve user-selected receive assets when the selection itself caused the route change.
+- Registry-imported UI may need local import path fixes, but shared provider/config behavior should stay centralized.
 
-## Request/Build Flow Diagram
+## Request Flow Diagram
 
 ```mermaid
 flowchart LR
-  A["apps/<slug>/src/main.tsx"] --> B["packages/fast-bridge-app/src/bootstrap.tsx"]
-  B --> C["shared components/hooks"]
-  C --> D["import @fastbridge/runtime"]
-  D --> E["apps/<slug>/src/runtime.ts"]
-  E --> F["apps/<slug>/get-config.ts + .env.<slug>"]
-
-  G["pnpm build:all"] --> H["chain app dist outputs"]
-  H --> I["scripts/collect-chains.mjs"]
-  I --> J["apps/root/public/<slug>"]
-  J --> K["apps/root/dist"]
+  A["Route: /:chain"] --> B["RuntimeProvider"]
+  B --> C["CHAIN_REGISTRY"]
+  C --> D["useRuntime()"]
+  D --> E["FastBridgeShowcase"]
+  E --> F["NexusOne swap mode"]
+  F --> G["User selects receive asset"]
+  G --> H["getChainSlugById(chainId)"]
+  H --> I["setChain(slug)"]
 ```
 
 ## Where to Go Next

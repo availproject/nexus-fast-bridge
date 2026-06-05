@@ -27,11 +27,21 @@ export default defineConfig({
       buffer: "vite-plugin-node-polyfills/shims/buffer",
       global: "vite-plugin-node-polyfills/shims/global",
       process: "vite-plugin-node-polyfills/shims/process",
+      "viem/actions": path.resolve(
+        __dirname,
+        "./packages/fast-bridge-app/src/lib/viem-actions-compat.ts"
+      ),
     },
   },
   envPrefix: ["VITE_"],
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "es2022",
+    },
+  },
   build: {
     outDir: "apps/root/dist",
     emptyOutDir: true,
+    target: "es2022",
   },
 });

@@ -1,91 +1,63 @@
 # Adding a New Chain
 
-This guide is the canonical process for creating and shipping a new chain app.
+This guide is the current process for adding a chain route to the single Fast Bridge SPA.
 
-## Fast Path (Recommended)
+## Registry Path
 
-```bash
-pnpm chain:add <slug> --name "Chain Name"
-```
+Add the chain in `packages/fast-bridge-app/src/config/chain-settings.ts`.
 
-Example:
+1. Create a new `CHAIN_REGISTRY` entry keyed by the route slug.
+2. Fill `appConfig`:
+   - chain ID, name, native currency, RPC URL, explorer URL
+   - chain logo/icon/background assets
+   - title, description, SEO metadata
+   - Nexus network, supported chain ID, and primary token
+3. Fill `chainFeatures`:
+   - `slug`
+   - `analyticsFastBridgeKey`
+   - token support and max amount settings
+   - any route-specific UI or behavior flags
+4. Add or reference the RPC in `packages/fast-bridge-app/src/config/rpcs.json` only if the route uses that shared RPC file.
+5. Run validation and smoke test the route.
 
-```bash
-pnpm chain:add sonic --name "Sonic"
-```
+## Choosing Tokens
 
-### Useful options
+Set route defaults in `appConfig.nexusPrimaryToken` and token lists in `chainFeatures.supportedTokens`.
 
-- `--description "..."`
-- `--base-path "/sonic/"`
-- `--primary "#hex"`
-- `--secondary "#hex"`
-- `--logo-url "https://..."`
-- `--icon-url "https://..."`
-- `--template monad`
+When a behavior needs more than a token list, add a `ChainFeatures` field instead of branching directly on the slug in shared code.
 
-## What the Scaffold Command Does
+## Adding Chain-Specific Behavior
 
-- Clones `apps/<template>` to `apps/<slug>`.
-- Updates app package name to `@fastbridge/<slug>`.
-- Sets `dev`/`build` scripts to call `prepare-env` with your slug.
-- Sets Vite default base path in `apps/<slug>/vite.config.ts`.
-- Applies default text branding updates in `apps/<slug>/get-config.ts`.
-- Creates/renames env file to `apps/<slug>/.env.<slug>`.
-- Appends and sorts entry in `chains.config.json`.
-- Runs `pnpm chains:sync`.
-
-## Post-Scaffold Checklist
-
-1. Update env values in `apps/<slug>/.env.<slug>`.
-Important keys include chain IDs, RPC URLs, explorer URL, colors, token defaults, and metadata.
-
-2. Tune behavior flags in `apps/<slug>/src/runtime.ts`.
-Use this for chain-specific UX/logic differences.
-
-3. Set the Nexus SDK version in `apps/<slug>/package.json`.
-Each chain app owns `@avail-project/nexus-core` and can pin a different commit/version.
-
-4. Add or update chain assets in `apps/<slug>/public`.
-
-5. Smoke test locally:
-
-```bash
-pnpm --filter @fastbridge/<slug> dev
-pnpm --filter @fastbridge/<slug> build
-pnpm dev:all
-```
-
-6. Export deployment env:
-
-```bash
-pnpm vercel:env
-```
-
-Then sync the generated `<SLUG>_...` vars into your deployment provider.
-
-## Manual Path (When Not Using `chain:add`)
-
-If you edit chain list or app folders manually, always run:
-
-```bash
-pnpm chains:sync
-```
-
-This updates:
-- `apps/root/package.json` workspace devDependencies for all chain apps.
-- `turbo.json` `globalEnv` based on `.env.<slug>` keys.
+1. Extend `ChainFeatures` in `packages/fast-bridge-app/src/types/runtime.ts`.
+2. Add a fallback in `defaultChainFeatures`.
+3. Consume the flag from `useRuntime()` inside shared code.
+4. Set the exact value in each relevant `CHAIN_REGISTRY` entry.
 
 ## Validation Before Merge
 
-- `chains.config.json` has correct `slug`, `basePath`, `appDir`.
-- `apps/<slug>/vite.config.ts` base path matches chain `basePath`.
-- `apps/<slug>/src/runtime.ts` exports valid `appConfig` and `chainFeatures`.
-- Root landing shows chain card correctly (`apps/root/src/chains.ts` reads `chains.config.json`).
-- `pnpm build:all` succeeds and chain bundle appears in `apps/root/public/<slug>`.
+```bash
+pnpm check
+pnpm build
+pnpm dev
+```
+
+Then smoke test the route in the browser:
+
+```text
+http://localhost:5173/<slug>
+```
+
+Check at least:
+
+- The route resolves and metadata/theme updates.
+- The bridge/swap UI selects the expected destination chain and token.
+- Changing the receive chain updates the URL slug when that behavior applies.
+- Existing routes still load with their expected defaults.
 
 ## Common Pitfalls
 
-- Missing prefixed env vars in CI/deploy causes fallback defaults in `get-config.ts`.
-- Inconsistent `basePath` causes asset loading issues.
-- Adding new env keys without running `pnpm chains:sync` causes stale turbo env tracking.
+- Adding chain-specific behavior outside `CHAIN_REGISTRY` or `ChainFeatures`.
+- Using environment variables for route behavior.
+- Importing static config instead of `useRuntime()`.
+- Forgetting to add fallback defaults in `defaultChainFeatures`.
+- Assuming old `apps/<slug>` source wrappers are part of the active workflow.

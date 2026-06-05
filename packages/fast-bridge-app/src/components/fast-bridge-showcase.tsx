@@ -1,16 +1,80 @@
 "use client";
-import { useAppKit } from "@reown/appkit/react";
-import { useEffect, useState } from "react";
+import { TOKEN_CONTRACT_ADDRESSES } from "@avail-project/nexus-core";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Address } from "viem";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
+import { getChainSlugById } from "@/config/chain-settings";
 import { readBridgeParams } from "../lib/url-params";
-import FastBridge from "./fast-bridge/fast-bridge";
+import { useRuntime } from "../providers/runtime-context";
+import NexusOne from "./nexus-one/nexus-one";
+import type { NexusOneConfig } from "./nexus-one/types";
+import { findCitreaReceiveToken } from "./nexus-one/utils/citrea-tokens";
 import { PreviewPanel } from "./wallet-connect";
+
+const DESTINATION_TOKEN_BY_CHAIN_SLUG: Record<string, string> = {
+  citrea: "ctUSD",
+  megaeth: "USDM",
+};
+
+interface ReceiveAsset {
+  chainId?: number;
+  contractAddress: string;
+  symbol: string;
+}
+
+type DestinationPair = NonNullable<
+  NonNullable<NexusOneConfig["prefill"]>["destination"]
+>;
+
+const tokenAddresses = TOKEN_CONTRACT_ADDRESSES as Record<
+  string,
+  Partial<Record<number, Address>>
+>;
+
+function getReceiveTokenAddress(
+  chainId: number,
+  symbol: string
+): Address | undefined {
+  if (symbol.toLowerCase() === "ctusd") {
+    return findCitreaReceiveToken({ chainId, symbol })?.contractAddress as
+      | Address
+      | undefined;
+  }
+
+  return tokenAddresses[symbol.toUpperCase()]?.[chainId];
+}
+
+function getPreferredDestinationPair(
+  chainSlug: string,
+  chainId: number,
+  fallbackSymbol: string
+): DestinationPair | undefined {
+  const preferredSymbols = Array.from(
+    new Set([
+      DESTINATION_TOKEN_BY_CHAIN_SLUG[chainSlug] ?? "USDC",
+      fallbackSymbol,
+      "USDC",
+      "USDT",
+      "USDM",
+    ])
+  );
+
+  for (const symbol of preferredSymbols) {
+    const token = getReceiveTokenAddress(chainId, symbol);
+    if (token) {
+      return { chain: chainId, token };
+    }
+  }
+}
 
 const FastBridgeShowcase = () => {
   const { address, isConnected, chainId } = useAccount();
   const chains = useChains();
   const { switchChain } = useSwitchChain();
+  const { appConfig, chainSlug, setChain } = useRuntime();
   const [params, setParams] = useState(readBridgeParams());
+  const [receiveAssetOverride, setReceiveAssetOverride] =
+    useState<ReceiveAsset | null>(null);
 
   useEffect(() => {
     // Only fetch once on mount
@@ -27,26 +91,58 @@ const FastBridgeShowcase = () => {
     }
   }, [isConnected, chainId, chains, switchChain]);
 
-  const { open } = useAppKit();
+  const receiveDestination = useMemo(() => {
+    if (receiveAssetOverride?.chainId === appConfig.chainId) {
+      return undefined;
+    }
+
+    return getPreferredDestinationPair(
+      chainSlug,
+      appConfig.chainId,
+      appConfig.nexusPrimaryToken
+    );
+  }, [
+    appConfig.chainId,
+    appConfig.nexusPrimaryToken,
+    chainSlug,
+    receiveAssetOverride,
+  ]);
+
+  const nexusConfig = useMemo<NexusOneConfig>(() => {
+    const prefill: NexusOneConfig["prefill"] = {};
+    if (receiveDestination) {
+      prefill.destination = receiveDestination;
+    }
+    if (params.amount) {
+      prefill.amount = params.amount;
+    }
+    if (params.recipient) {
+      prefill.recipient = params.recipient;
+    }
+
+    return {
+      mode: "swap",
+      prefill,
+    };
+  }, [params.amount, params.recipient, receiveDestination]);
+
+  const handleReceiveAssetChange = useCallback(
+    (asset: ReceiveAsset) => {
+      setReceiveAssetOverride(asset);
+      const slug = asset.chainId ? getChainSlugById(asset.chainId) : undefined;
+      if (slug && slug !== chainSlug) {
+        setChain(slug);
+      }
+    },
+    [chainSlug, setChain]
+  );
 
   return (
     <PreviewPanel>
-      <FastBridge
+      <NexusOne
+        config={nexusConfig}
         connectedAddress={address}
-        isWalletConnected={isConnected}
-        onConnectWallet={() => {
-          open({ view: "Connect" });
-        }}
-        prefill={{
-          token: params.token as
-            | import("@avail-project/nexus-core").SUPPORTED_TOKENS
-            | undefined,
-          chainId: params.to as
-            | import("@avail-project/nexus-core").SUPPORTED_CHAINS_IDS
-            | undefined,
-          amount: params.amount,
-          recipient: params.recipient,
-        }}
+        onReceiveAssetChange={handleReceiveAssetChange}
       />
     </PreviewPanel>
   );

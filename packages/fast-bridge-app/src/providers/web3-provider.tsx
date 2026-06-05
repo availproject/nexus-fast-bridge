@@ -12,7 +12,6 @@ import {
   type Chain,
   kaia,
   mainnet,
-  monad,
   optimism,
   polygon,
   scroll,
@@ -36,6 +35,23 @@ const megaeth: Chain = {
   },
   blockExplorers: {
     default: { name: "Explorer", url: "https://megaeth.blockscout.com" },
+  },
+  testnet: false,
+};
+
+const monad: Chain = {
+  id: 143,
+  name: "Monad",
+  nativeCurrency: {
+    name: "Monad",
+    symbol: "MON",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.monad || "https://rpcs.avail.so/monad"] },
+  },
+  blockExplorers: {
+    default: { name: "Monad Vision", url: "https://monadvision.com" },
   },
   testnet: false,
 };
