@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useStableCallback } from "./use-stable-callback";
 
-// biome-ignore lint/suspicious/noExplicitAny: generic callback definition requires any
-type UnknownFn = (...args: any[]) => any;
+type AnyFn = (...args: never[]) => unknown;
 
-export interface Debounced<T extends UnknownFn> {
+export interface Debounced<T extends AnyFn> {
   cancel: () => void;
   flush: () => void;
   (...args: Parameters<T>): void;
@@ -14,7 +13,7 @@ export interface Debounced<T extends UnknownFn> {
  * Returns a debounced function that delays invoking `fn` until after `delay`
  * milliseconds have elapsed since the last call.
  */
-export function useDebouncedCallback<T extends UnknownFn>(
+export function useDebouncedCallback<T extends AnyFn>(
   fn: T,
   delay: number
 ): Debounced<T> {
@@ -33,13 +32,12 @@ export function useDebouncedCallback<T extends UnknownFn>(
     if (timerRef.current && lastArgsRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
-
-      latest(...lastArgsRef.current);
+      const latestArgs = lastArgsRef.current;
+      latest(...latestArgs);
       lastArgsRef.current = null;
     }
   }, [latest]);
 
-  // cancel when delay changes/unmounts
   useEffect(() => cancel, [cancel]);
 
   return useMemo(() => {
@@ -47,12 +45,11 @@ export function useDebouncedCallback<T extends UnknownFn>(
       lastArgsRef.current = args;
       cancel();
       timerRef.current = setTimeout(() => {
-        const pendingArgs = lastArgsRef.current;
-        if (!pendingArgs) {
-          timerRef.current = null;
+        const latestArgs = lastArgsRef.current;
+        if (!latestArgs) {
           return;
         }
-        latest(...pendingArgs);
+        latest(...latestArgs);
         lastArgsRef.current = null;
         timerRef.current = null;
       }, delay);

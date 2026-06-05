@@ -1,14 +1,9 @@
-import {
-  type NexusNetwork,
-  type NexusSDK,
-  SUPPORTED_CHAINS,
-  type SUPPORTED_CHAINS_IDS,
-  type SUPPORTED_TOKENS,
-} from "@avail-project/nexus-core";
+import type { NexusClient, NexusNetwork } from "@avail-project/nexus-sdk-v2";
+import { formatUnits } from "@avail-project/nexus-sdk-v2/utils";
 import type { Address } from "viem";
+import { SUPPORTED_CHAINS } from "./constant";
 
 const MAX_AMOUNT_REGEX = /^\d*\.?\d+$/;
-const TRAILING_ZEROES_REGEX = /0+$/;
 
 export const MAX_AMOUNT_DEBOUNCE_MS = 300;
 
@@ -38,9 +33,9 @@ export const clampAmountToMax = ({
 }: {
   amount: string;
   maxAmount?: string;
-  nexusSDK: NexusSDK;
-  token: SUPPORTED_TOKENS;
-  chainId: SUPPORTED_CHAINS_IDS;
+  nexusSDK: NexusClient;
+  token: string;
+  chainId: number;
 }): string => {
   if (!maxAmount) {
     return amount;
@@ -65,19 +60,17 @@ export const clampAmountToMax = ({
 export const formatAmountForDisplay = (
   amount: bigint,
   decimals: number | undefined,
-  nexusSDK: NexusSDK
+  _nexusSDK: NexusClient
 ): string => {
   if (typeof decimals !== "number") {
     return amount.toString();
   }
-  const formatted = nexusSDK.utils.formatUnits(amount, decimals);
+  const formatted = formatUnits(amount, decimals);
   if (!formatted.includes(".")) {
     return formatted;
   }
   const [whole, fraction] = formatted.split(".");
-  const trimmedFraction = fraction
-    .slice(0, 6)
-    .replace(TRAILING_ZEROES_REGEX, "");
+  const trimmedFraction = fraction.slice(0, 6).replace(/0+$/, "");
   if (!trimmedFraction && whole === "0" && amount > BigInt(0)) {
     return "0.000001";
   }
@@ -102,11 +95,11 @@ export const buildInitialInputs = ({
 }) => {
   return {
     chain:
-      (prefill?.chainId as SUPPORTED_CHAINS_IDS) ??
+      prefill?.chainId ??
       (network === "testnet"
         ? SUPPORTED_CHAINS.SEPOLIA
         : SUPPORTED_CHAINS.ETHEREUM),
-    token: (prefill?.token as SUPPORTED_TOKENS) ?? "USDC",
+    token: prefill?.token ?? "USDC",
     amount: prefill?.amount ?? undefined,
     recipient:
       (prefill?.recipient as `0x${string}`) ??
@@ -121,8 +114,8 @@ export const getCoverageDecimals = ({
   fallback,
 }: {
   type: "bridge" | "transfer";
-  token?: SUPPORTED_TOKENS;
-  chainId?: SUPPORTED_CHAINS_IDS;
+  token?: string;
+  chainId?: number;
   fallback: number | undefined;
 }) => {
   if (token === "USDM") {

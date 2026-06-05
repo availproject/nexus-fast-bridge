@@ -1,14 +1,9 @@
 "use client";
-import {
-  CHAIN_METADATA,
-  formatTokenBalance,
-  type SUPPORTED_CHAINS_IDS,
-  type UserAsset,
-} from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
-import { SHORT_CHAIN_NAME } from "../../common";
-import { useNexus } from "../../nexus/nexus-provider";
+import { CHAIN_METADATA, SHORT_CHAIN_NAME } from "../../common";
+import { type UserAsset, useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { DialogClose } from "../../ui/dialog";
 import {
@@ -23,7 +18,7 @@ import type { SourceTokenInfo } from "../hooks/useSwaps";
 import { TokenIcon } from "./token-icon";
 
 interface SourceAssetSelectProps {
-  onSelect: (chainId: SUPPORTED_CHAINS_IDS, token: SourceTokenInfo) => void;
+  onSelect: (chainId: number, token: SourceTokenInfo) => void;
   swapBalance: UserAsset[] | null;
 }
 
@@ -66,7 +61,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
           breakdownIcon ||
           TOKEN_IMAGES[tokenSymbol] ||
           TOKEN_IMAGES[normalizedTokenSymbol] ||
-          asset.icon ||
+          asset.logo ||
           "";
 
         tokens.push({
@@ -100,7 +95,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
       return [];
     }
     const chainIdsWithTokens = new Set(allTokens.map((t) => t.chainId));
-    return swapSupportedChainsAndTokens.filter((c: any) =>
+    return swapSupportedChainsAndTokens.filter((c) =>
       chainIdsWithTokens.has(c.id)
     );
   }, [swapSupportedChainsAndTokens, allTokens]);
@@ -133,26 +128,26 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
     if (!chainId) {
       return;
     }
-    onSelect(chainId as SUPPORTED_CHAINS_IDS, tok);
+    onSelect(chainId, tok);
   };
 
   if (!swapBalance) {
     return (
       <div className="flex flex-col items-center justify-center gap-y-3">
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Fetching swappable assets
         </p>
-        <Loader2 className="size-5 animate-spin" />
+        <Loader2 className="animate-spin size-5" />
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col gap-y-3">
+    <div className="w-full flex flex-col gap-y-3">
       <Select
         onValueChange={(value) => {
           const matchedChain = chainsWithTokens.find(
-            (chain: any) => chain.name === value
+            (chain) => chain.name === value
           );
           if (matchedChain) {
             setTempChain(matchedChain);
@@ -160,18 +155,18 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
         }}
         value={tempChain?.name}
       >
-        <div className="flex w-full bg-input/30 px-2 py-1.5">
-          <div className="flex w-full items-center justify-between gap-x-2">
+        <div className="flex bg-input/30 w-full px-2 py-1.5">
+          <div className="flex items-center gap-x-2 w-full justify-between">
             <Search className="size-5 opacity-65" />
             <input
-              className="w-full bg-transparent font-medium text-base text-foreground proportional-nums placeholder-muted-foreground outline-none transition-all duration-150 disabled:opacity-80"
+              className="bg-transparent w-full text-foreground text-base font-medium outline-none transition-all duration-150 placeholder-muted-foreground proportional-nums disabled:opacity-80"
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tokens..."
               value={searchQuery}
             />
             {searchQuery && (
               <button
-                className="rounded-full p-0.5 transition-colors hover:bg-muted"
+                className="p-0.5 hover:bg-muted rounded-full transition-colors"
                 onClick={() => setSearchQuery("")}
                 type="button"
               >
@@ -179,17 +174,17 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
               </button>
             )}
           </div>
-          <SelectTrigger className="cursor-pointer rounded-full border-none bg-transparent!">
+          <SelectTrigger className="rounded-full border-none cursor-pointer bg-transparent!">
             {tempChain ? (
               <img
                 alt={tempChain?.name}
-                className="size-6 rounded-full"
+                className="rounded-full size-6"
                 height={24}
                 src={tempChain?.logo}
                 width={24}
               />
             ) : (
-              <div className="flex size-8 items-center justify-center rounded-full border border-border">
+              <div className="size-8 rounded-full flex items-center justify-center border border-border">
                 <Link2 className="size-4" />
               </div>
             )}
@@ -197,12 +192,12 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
         </div>
         <SelectContent>
           <SelectGroup>
-            {chainsWithTokens.map((c: any) => (
+            {chainsWithTokens.map((c) => (
               <SelectItem key={c.id} value={c.name}>
                 <div className="flex items-center justify-between gap-x-2">
                   <img
                     alt={c.name}
-                    className="size-5 rounded-full"
+                    className="rounded-full size-5"
                     height={20}
                     src={c.logo}
                     width={20}
@@ -219,22 +214,22 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
           ? `Tokens on ${SHORT_CHAIN_NAME[tempChain.id]}`
           : "All Tokens"}
       </p>
-      <div className="no-scrollbar max-h-80 overflow-y-auto rounded-md">
-        <div className="no-scrollbar flex w-full flex-col items-center gap-y-4 sm:items-start">
+      <div className="rounded-md max-h-80 overflow-y-auto no-scrollbar">
+        <div className="flex flex-col items-center sm:items-start gap-y-4 w-full no-scrollbar">
           {displayedTokens.length > 0 ? (
             displayedTokens.map((t) => (
               <DialogClose asChild key={`${t.contractAddress}-${t.chainId}`}>
                 <Button
-                  className="flex h-max w-full items-center justify-between gap-x-2 rounded p-2"
+                  className="flex items-center justify-between gap-x-2 p-2 rounded w-full h-max"
                   onClick={() => handlePick(t)}
                   variant={"ghost"}
                 >
-                  <div className="flex items-center gap-x-4">
+                  <div className="flex  items-center gap-x-4">
                     {t.symbol ? (
                       <div className="relative">
                         <TokenIcon
                           chainLogo={CHAIN_METADATA[t.chainId ?? 1]?.logo}
-                          className="rounded-full border border-border"
+                          className="border border-border rounded-full"
                           symbol={t.symbol}
                           tokenLogo={t.logo}
                         />
@@ -243,7 +238,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
                   </div>
                   <div className="flex flex-col items-end">
                     <p className="text-base text-foreground">{t.balance}</p>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-sm text-muted-foreground">
                       {t.balanceInFiat}
                     </p>
                   </div>
@@ -251,7 +246,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
               </DialogClose>
             ))
           ) : (
-            <p className="text-muted-foreground text-xs">No Tokens Found</p>
+            <p className="text-xs text-muted-foreground">No Tokens Found</p>
           )}
         </div>
       </div>

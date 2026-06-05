@@ -1,9 +1,38 @@
-import type { RFF } from "@avail-project/nexus-core";
 import { useCallback, useEffect, useState } from "react";
 import { useNexus } from "../../nexus/nexus-provider";
 import { INTENT_HISTORY_REFRESH_EVENT } from "../history-events";
 
 const ITEMS_PER_PAGE = 10;
+
+export interface RFF {
+  deposited?: boolean;
+  destinationChain?: {
+    logo?: string;
+    name?: string;
+  };
+  destinations: {
+    amount?: string;
+    token: {
+      symbol: string;
+    };
+  }[];
+  expiry: number;
+  explorerUrl?: string;
+  fulfilled?: boolean;
+  id: number | string;
+  refunded?: boolean;
+  sources?: {
+    chain?: {
+      id?: number | string;
+      logo?: string;
+      name?: string;
+    };
+  }[];
+}
+
+type IntentHistoryClient = {
+  getMyIntents?: () => Promise<RFF[] | null | undefined>;
+};
 
 function formatExpiryDate(timestamp: number) {
   const date = new Date(timestamp * 1000);
@@ -34,7 +63,17 @@ const useViewHistory = () => {
       return;
     }
     try {
-      const nextHistory = (await nexusSDK.getMyIntents()) ?? [];
+      const historyClient = nexusSDK as IntentHistoryClient;
+      if (typeof historyClient.getMyIntents !== "function") {
+        setLoadError(null);
+        setHistory([]);
+        setDisplayedHistory([]);
+        setPage(0);
+        setHasMore(false);
+        return;
+      }
+
+      const nextHistory = (await historyClient.getMyIntents()) ?? [];
       setLoadError(null);
       setHistory(nextHistory);
       const firstPage = nextHistory.slice(0, ITEMS_PER_PAGE);
@@ -107,7 +146,7 @@ const useViewHistory = () => {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
           loadMore();
         }
       },

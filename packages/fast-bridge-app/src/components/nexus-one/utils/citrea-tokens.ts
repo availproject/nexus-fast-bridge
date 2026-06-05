@@ -1,4 +1,4 @@
-import { CHAIN_METADATA } from "../../common/utils/constant";
+import { CHAIN_METADATA } from "../../common";
 import type { SwapTokenOption } from "../components/swap-asset-selector";
 
 export const CITREA_CHAIN_ID = 4114;

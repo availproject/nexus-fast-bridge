@@ -76,9 +76,9 @@ function SwapWidget({
       setInputs(switched);
       return;
     }
-    const isValidSource = swapBalance?.some((asset: any) =>
+    const isValidSource = swapBalance?.some((asset) =>
       (asset.breakdown ?? []).some(
-        (entry: any) =>
+        (entry) =>
           entry.chain?.id === inputs.toChainID &&
           entry.contractAddress.toLowerCase() ===
             inputs.toToken?.tokenAddress?.toLowerCase()
@@ -127,7 +127,7 @@ function SwapWidget({
 
   const buttonIcons = useMemo(() => {
     if (status === "simulating") {
-      return <Loader2 className="size5 animate-spin" />;
+      return <Loader2 className="animate-spin size5" />;
     }
     return swapMode === "exactIn" ? (
       <ArrowDownUp className="size-5" />
@@ -138,10 +138,10 @@ function SwapWidget({
 
   return (
     <>
-      <div className="w-full max-w-md rounded-2xl border border-border bg-background/40 px-2.5 py-2 sm:p-6">
-        <div className="relative flex w-full flex-col items-center">
+      <div className="w-full max-w-md bg-background/40 rounded-2xl px-2.5 py-2 sm:p-6 border border-border">
+        <div className="flex flex-col items-center w-full relative">
           <div
-            className="flex w-full flex-col gap-y-3 rounded-2xl"
+            className="flex flex-col gap-y-3 w-full rounded-2xl"
             ref={sourceContainer}
           >
             <SourceContainer
@@ -162,7 +162,7 @@ function SwapWidget({
 
           {/* Swap arrow / mode toggle */}
           <Button
-            className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
             disabled={status === "simulating" || status === "swapping"}
             onClick={handleInputSwitch}
             size={"icon-lg"}
@@ -175,7 +175,7 @@ function SwapWidget({
 
           {/* Buy section */}
           <div
-            className="flex w-full flex-col gap-y-3 rounded-2xl"
+            className="flex flex-col gap-y-3 w-full rounded-2xl"
             ref={destinationContainer}
           >
             <DestinationContainer

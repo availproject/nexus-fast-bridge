@@ -121,6 +121,9 @@
             "noVoid": "off",
             "useOptionalChain": "off"
           },
+          "nursery": {
+            "useSortedClasses": "off"
+          },
           "performance": {
             "useTopLevelRegex": "off"
           }

@@ -18,14 +18,14 @@ export function StatusAlert({
   };
 
   const icons = {
-    error: <AlertCircle className="mt-0.5 mr-2.5 h-4 w-4 flex-none" />,
-    info: <Info className="mt-0.5 mr-2.5 h-4 w-4 flex-none" />,
-    warning: <Info className="mt-0.5 mr-2.5 h-4 w-4 flex-none" />,
+    error: <AlertCircle className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
+    info: <Info className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
+    warning: <Info className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
   };
 
   return (
     <div
-      className={`flex w-full items-start rounded-lg p-3 font-normal text-sm leading-5 ${styles[type]} ${className}`}
+      className={`rounded-lg p-3 text-sm flex items-start w-full leading-5 font-normal ${styles[type]} ${className}`}
     >
       {icons[type]}
       <div className="flex-1">{message}</div>

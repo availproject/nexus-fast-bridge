@@ -1,13 +1,14 @@
-import {
-  CHAIN_METADATA,
-  type OnSwapIntentHookData,
-  type UserAsset,
-} from "@avail-project/nexus-core";
+import type { OnSwapIntentHookData } from "@avail-project/nexus-sdk-v2";
 import { ChevronDown } from "lucide-react";
 import type React from "react";
 import type { RefObject } from "react";
 import { cn } from "@/lib/utils";
-import { computeAmountFromFraction, usdFormatter } from "../../common";
+import {
+  CHAIN_METADATA,
+  computeAmountFromFraction,
+  usdFormatter,
+} from "../../common";
+import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
   Dialog,
@@ -97,37 +98,73 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
 
   // Render exact-out read-only view
   if (isExactOut) {
+    const intentSources = swapIntent?.current?.intent?.sources ?? [];
     return (
-      <div className="flex h-[134px] w-full flex-col items-center gap-y-4 rounded-xl bg-background">
-        <div className="flex w-full items-center justify-between">
-          <Label className="font-medium text-foreground text-lg">Sell</Label>
+      <div className="bg-background rounded-xl flex flex-col items-center w-full gap-y-4 h-[134px]">
+        <div className="w-full flex items-center justify-between">
+          <Label className="text-lg font-medium text-foreground">Sell</Label>
         </div>
-        <div className="flex w-full items-center justify-center py-4">
-          <p className="text-center text-muted-foreground text-sm">
-            Enter destination token, chain and amount.
-            <br />
-            We&apos;ll calculate the best sources for you.
-          </p>
-        </div>
+        {intentSources.length > 0 ? (
+          <div className="flex flex-col gap-y-2 w-full overflow-hidden">
+            {intentSources.slice(0, 2).map((source) => (
+              <div
+                className="flex items-center justify-between gap-x-3 w-full"
+                key={`${source.chain.id}-${source.token.contractAddress}`}
+              >
+                <span className="text-2xl font-medium truncate">
+                  {formatBalance(
+                    source.amount,
+                    source.token.symbol,
+                    source.token.decimals
+                  )}
+                </span>
+                <div className="flex items-center gap-x-2 shrink-0">
+                  <TokenIcon
+                    chainLogo={source.chain.logo}
+                    size="sm"
+                    symbol={source.token.symbol}
+                  />
+                  <span className="text-sm font-medium">
+                    {source.token.symbol}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {intentSources.length > 2 && (
+              <p className="text-xs text-muted-foreground">
+                +{intentSources.length - 2} more source
+                {intentSources.length - 2 === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center w-full py-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Enter destination token, chain and amount.
+              <br />
+              We&apos;ll calculate the best sources for you.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-y-4 rounded-xl bg-background">
-      <div className="flex w-full items-center justify-between">
-        <Label className="font-medium text-foreground text-lg">Sell</Label>
+    <div className="bg-background rounded-xl flex flex-col items-center w-full gap-y-4">
+      <div className="w-full flex items-center justify-between">
+        <Label className="text-lg font-medium text-foreground">Sell</Label>
         <div
           className={cn(
-            "flex w-full justify-end gap-x-2 transition-all duration-150 ease-out",
+            "flex transition-all duration-150 ease-out w-full justify-end gap-x-2",
             sourceHovered
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-1 opacity-0"
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-1"
           )}
         >
           {RANGE_OPTIONS.map((option) => (
             <Button
-              className="rounded-full px-5 py-1.5 hover:-translate-y-1 hover:object-scale-down"
+              className="px-5 py-1.5 rounded-full hover:-translate-y-1 hover:object-scale-down"
               disabled={!(inputs.fromChainID && inputs.fromToken)}
               key={option.label}
               onClick={() => {
@@ -146,12 +183,12 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
               size={"icon-sm"}
               variant={"secondary"}
             >
-              <p className="font-medium text-xs">{option.label}</p>
+              <p className="text-xs font-medium">{option.label}</p>
             </Button>
           ))}
         </div>
       </div>
-      <div className="flex w-full items-center justify-between gap-x-4">
+      <div className="flex items-center justify-between gap-x-4 w-full">
         <AmountInput
           amount={displayedAmount}
           disabled={isDisabled}
@@ -175,7 +212,7 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
           <DialogTrigger asChild>
             <div
               className={cn(
-                "flex min-w-max cursor-pointer items-center gap-x-3 rounded-full border border-border bg-card/50 p-1 transition-colors hover:bg-card-foreground/10",
+                "flex items-center gap-x-3 bg-card/50 hover:bg-card-foreground/10 border border-border min-w-max rounded-full p-1 cursor-pointer transition-colors",
                 isDisabled ? "pointer-events-none select-none opacity-50" : ""
               )}
             >
@@ -206,9 +243,9 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex w-full items-center justify-between gap-x-4">
+      <div className="flex items-center justify-between gap-x-4 w-full">
         {inputs.fromAmount && inputs?.fromToken ? (
-          <span className="text-accent-foreground text-sm">
+          <span className="text-sm text-accent-foreground">
             {usdFormatter.format(
               getFiatValue(
                 Number.parseFloat(inputs.fromAmount),
@@ -220,7 +257,7 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
           <span className="h-5" />
         )}
 
-        <span className="text-muted-foreground text-sm">
+        <span className="text-sm text-muted-foreground">
           {formatBalance(
             availableBalance?.balance ?? "0",
             inputs?.fromToken?.symbol,

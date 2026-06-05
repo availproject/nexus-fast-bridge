@@ -11,10 +11,9 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { CHAIN_METADATA } from "../../common/utils/constant";
+import { CHAIN_METADATA } from "../../common";
 import { useNexus } from "../../nexus/nexus-provider";
 import {
-  CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
   getCitreaChainMeta,
   getCitreaReceiveTokenOptions,
@@ -22,7 +21,6 @@ import {
 import {
   getTokenSearchRank,
   RadioDot,
-  SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
   sortChainIdsBySwapDisplayOrder,
 } from "./swap-asset-selector";
@@ -32,7 +30,6 @@ interface ReceiveAssetSelectorProps {
   onSelect: (token: SwapTokenOption) => void;
 }
 
-const SUPPORTED_RECEIVE_CHAIN_IDS = new Set<number>(SWAP_CHAIN_DISPLAY_ORDER);
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
@@ -282,6 +279,10 @@ export function ReceiveAssetSelector({
   const [dynamicStableSymbols, setDynamicStableSymbols] =
     useState<Set<string>>(STABLE_SYMBOLS);
 
+  const supportedReceiveChainIds = useMemo(() => {
+    return new Set((supportedChainsAndTokens ?? []).map((chain) => chain.id));
+  }, [supportedChainsAndTokens]);
+
   useEffect(() => {
     setPortalRoot(
       selectorRef.current?.closest(
@@ -432,32 +433,37 @@ export function ReceiveAssetSelector({
         map.set(c.id, { name: c.name, logo: c.logo });
       }
     }
-    if (!map.has(CITREA_CHAIN_ID)) {
-      map.set(CITREA_CHAIN_ID, getCitreaChainMeta());
+    for (const token of getCitreaReceiveTokenOptions()) {
+      if (token.chainId && supportedReceiveChainIds.has(token.chainId)) {
+        map.set(token.chainId, getCitreaChainMeta());
+      }
     }
     return map;
-  }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);
+  }, [
+    supportedChainsAndTokens,
+    swapSupportedChainsAndTokens,
+    supportedReceiveChainIds,
+  ]);
 
   const chainFilterIds = useMemo(() => {
-    const supportedIds = swapSupportedChainsAndTokens
-      ?.map((chain) => chain.id)
-      .filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id));
-
-    const nextIds = new Set(
-      supportedIds?.length
-        ? supportedIds
-        : Array.from(SUPPORTED_RECEIVE_CHAIN_IDS)
-    );
-    nextIds.add(CITREA_CHAIN_ID);
-
-    return sortChainIdsBySwapDisplayOrder(
-      Array.from(nextIds).filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id))
-    );
-  }, [swapSupportedChainsAndTokens]);
+    return sortChainIdsBySwapDisplayOrder(Array.from(supportedReceiveChainIds));
+  }, [supportedReceiveChainIds]);
 
   useEffect(() => {
     let active = true;
     const fetchTokens = async () => {
+      if (!supportedChainsAndTokens) {
+        setApiTokens([]);
+        setIsLoading(true);
+        return;
+      }
+
+      if (supportedReceiveChainIds.size === 0) {
+        setApiTokens([]);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         preloadReceiveTokens();
@@ -481,7 +487,7 @@ export function ReceiveAssetSelector({
         const chains = data.tokens || {};
         for (const chainIdStr of Object.keys(chains)) {
           const chainId = Number.parseInt(chainIdStr, 10);
-          if (!SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)) {
+          if (!supportedReceiveChainIds.has(chainId)) {
             continue;
           }
           const meta = chainMetaMap.get(chainId) || {
@@ -503,8 +509,12 @@ export function ReceiveAssetSelector({
             });
           }
         }
+        const citreaTokens = getCitreaReceiveTokenOptions().filter(
+          (token) =>
+            token.chainId && supportedReceiveChainIds.has(token.chainId)
+        );
         const tokensByKey = new Map<string, SwapTokenOption>();
-        for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
+        for (const token of [...allParsed, ...citreaTokens]) {
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -525,7 +535,7 @@ export function ReceiveAssetSelector({
     return () => {
       active = false;
     };
-  }, [chainMetaMap]);
+  }, [chainMetaMap, supportedChainsAndTokens, supportedReceiveChainIds]);
 
   const isNativeToken = (t: SwapTokenOption) =>
     t.contractAddress.toLowerCase() ===
@@ -1139,7 +1149,7 @@ export function ReceiveAssetSelector({
                 className={
                   isChainSelectorClosing
                     ? undefined
-                    : "slide-in-from-bottom-full animate-in duration-300"
+                    : "animate-in slide-in-from-bottom-full duration-300"
                 }
                 data-nexus-one-sheet
                 style={{
@@ -1428,7 +1438,7 @@ export function ReceiveAssetSelector({
 
           return createPortal(
             <div
-              className="w-[280px] rounded-xl border border-[#E8E8E7] bg-white p-4 text-left shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+              className="w-[280px] bg-white border border-[#E8E8E7] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-4 text-left"
               onClick={(e) => e.stopPropagation()}
               style={{
                 position: "fixed",

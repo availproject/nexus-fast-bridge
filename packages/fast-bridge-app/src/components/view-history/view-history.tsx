@@ -1,6 +1,5 @@
 "use client";
 
-import type { RFF } from "@avail-project/nexus-core";
 import { Clock, LoaderPinwheel, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useRuntime } from "@/providers/runtime-context";
 import type { ChainFeatures } from "@/types/runtime";
 import { TOKEN_IMAGES } from "../common/utils/constant";
-import useViewHistory from "./hooks/use-view-history";
+import useViewHistory, { type RFF } from "./hooks/use-view-history";
 
 const getDestinationTokenImage = (
   tokenSymbol: string,

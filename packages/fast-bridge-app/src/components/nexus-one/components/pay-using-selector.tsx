@@ -21,13 +21,13 @@ export function PayUsingSelector({
     <>
       <div className="flex items-center gap-x-3">
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+          className="flex items-center justify-center w-8 h-8 rounded-full shrink-0"
           style={{
             background:
               "var(--background-tertiary, var(--background-tertiary, #F0F0EF))",
           }}
         >
-          <Settings className="h-4 w-4 text-gray-500" />
+          <Settings className="w-4 h-4 text-gray-500" />
         </div>
         <div className="flex flex-col gap-y-0.5 text-left">
           <span
@@ -57,7 +57,7 @@ export function PayUsingSelector({
       {/* Edit button */}
       {!isInteractiveRow && (
         <button
-          className="flex items-center gap-x-1.5 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-x-1.5 px-2.5 py-1.5 rounded-lg hover:bg-black/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
@@ -71,7 +71,7 @@ export function PayUsingSelector({
               "var(--interactive-button-primary-background, var(--foreground-brand, #006BF4))",
           }}
         >
-          <Pencil className="h-3 w-3" />
+          <Pencil className="w-3 h-3" />
           Edit
         </button>
       )}
@@ -82,7 +82,7 @@ export function PayUsingSelector({
     <div className="w-full">
       {isInteractiveRow ? (
         <button
-          className="flex w-full items-center justify-between px-4 py-3 transition-all hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full flex items-center justify-between px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-black/5"
           disabled={disabled}
           onClick={onClick}
           style={{
@@ -96,7 +96,7 @@ export function PayUsingSelector({
         </button>
       ) : (
         <div
-          className="flex w-full items-center justify-between px-4 py-3"
+          className="w-full flex items-center justify-between px-4 py-3"
           style={{
             background: "var(--background-secondary, #F5F5F4)",
             borderRadius: "12px",

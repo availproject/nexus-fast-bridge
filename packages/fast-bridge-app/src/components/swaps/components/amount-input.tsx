@@ -17,9 +17,9 @@ const AmountInput: FC<AmountInputProps> = ({
   const mirrorRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="relative flex w-full items-start gap-2 font-medium text-4xl transition-all duration-150 ease-out">
+    <div className="relative flex items-start gap-2 text-4xl font-medium transition-all duration-150 ease-out w-full">
       <div
-        className="pointer-events-none invisible absolute whitespace-pre font-medium text-4xl"
+        className="absolute invisible pointer-events-none text-4xl font-medium whitespace-pre"
         ref={mirrorRef}
         style={{
           fontVariantNumeric: "proportional-nums",
@@ -30,7 +30,7 @@ const AmountInput: FC<AmountInputProps> = ({
 
       <input
         autoFocus
-        className="w-full bg-transparent font-medium text-4xl text-foreground proportional-nums placeholder-muted-foreground outline-none transition-all duration-150 disabled:opacity-50"
+        className="bg-transparent w-full text-foreground text-4xl font-medium outline-none transition-all duration-150 placeholder-muted-foreground proportional-nums disabled:opacity-50"
         disabled={disabled}
         inputMode="decimal"
         maxLength={18}
@@ -43,7 +43,7 @@ const AmountInput: FC<AmountInputProps> = ({
         type="text"
         value={amount}
       />
-      <div className="pointer-events-none absolute -inset-1 -z-10 opacity-0 blur-sm" />
+      <div className="absolute -inset-1 -z-10 blur-sm pointer-events-none opacity-0" />
     </div>
   );
 };

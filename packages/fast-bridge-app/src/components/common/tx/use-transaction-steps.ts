@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   computeAllCompleted,
   mergeStepComplete,
@@ -20,12 +20,12 @@ export function useTransactionSteps<
   T extends { typeID?: string; type?: string },
 >(options: UseTransactionStepsOptions<T> = {}) {
   const { expected } = options;
-  const [steps, setSteps] = useState<GenericStep<T>[]>(() =>
+  const [steps, setSteps] = useState<Array<GenericStep<T>>>(() =>
     expected ? seedSteps(expected) : []
   );
   const lastSignatureRef = useRef<string>("");
 
-  const onStepsList = useCallback((list: T[]) => {
+  const onStepsList = (list: T[]) => {
     const signature = list.map((step) => getStepKey(step)).join("|");
     if (lastSignatureRef.current === signature) {
       setSteps((prev) => mergeStepsList(prev, list));
@@ -33,20 +33,20 @@ export function useTransactionSteps<
     }
     lastSignatureRef.current = signature;
     setSteps((prev) => mergeStepsList(prev, list));
-  }, []);
+  };
 
-  const onStepComplete = useCallback((step: T) => {
+  const onStepComplete = (step: T) => {
     setSteps((prev) => mergeStepComplete(prev, step));
-  }, []);
+  };
 
-  const seed = useCallback((expectedSteps: T[]) => {
+  const seed = (expectedSteps: T[]) => {
     setSteps(seedSteps(expectedSteps));
-  }, []);
+  };
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setSteps(expected ? seedSteps(expected) : []);
     lastSignatureRef.current = "";
-  }, [expected]);
+  };
 
   const allCompleted = useMemo(() => computeAllCompleted(steps), [steps]);
 

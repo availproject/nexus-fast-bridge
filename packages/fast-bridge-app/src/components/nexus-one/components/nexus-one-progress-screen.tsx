@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
-import type { BridgeStepType, SwapStepType } from "../sdk-types";
+import type { BridgeStepType, SwapStepType } from "../../common";
 import type { DepositOpportunity, NexusOneMode } from "../types";
 import type { SwapTokenOption } from "./swap-asset-selector";
 import type { SwapIntentData } from "./swap-intent-preview";

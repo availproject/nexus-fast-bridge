@@ -1,5 +1,5 @@
-import type { BridgeStepType, SwapStepType } from "@avail-project/nexus-core";
 import { type FC, useMemo } from "react";
+import type { BridgeStepType, SwapStepType } from "../../common";
 import { StepFlow } from "./step-flow";
 
 export type DisplayStep = {
@@ -156,7 +156,7 @@ const TransactionProgress: FC<TransactionProgressProps> = ({
   ]);
 
   return (
-    <div className="flex w-full flex-col items-start">
+    <div className="w-full flex flex-col items-start">
       <StepFlow
         allCompleted={allCompleted}
         currentIndex={currentIndex}

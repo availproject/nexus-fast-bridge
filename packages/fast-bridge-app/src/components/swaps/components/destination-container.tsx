@@ -1,13 +1,9 @@
-import {
-  CHAIN_METADATA,
-  type OnSwapIntentHookData,
-  type SUPPORTED_CHAINS_IDS,
-  type UserAsset,
-} from "@avail-project/nexus-core";
+import type { OnSwapIntentHookData } from "@avail-project/nexus-sdk-v2";
 import { ChevronDown } from "lucide-react";
 import React, { type RefObject, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { usdFormatter } from "../../common";
+import { CHAIN_METADATA, usdFormatter } from "../../common";
+import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
   Dialog,
@@ -99,21 +95,21 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
   );
 
   return (
-    <div className="flex w-full flex-col items-center gap-y-4 rounded-xl bg-background">
-      <div className="flex w-full items-center justify-between">
-        <Label className="font-medium text-foreground text-lg">Buy</Label>
+    <div className="bg-background rounded-xl flex flex-col items-center w-full gap-y-4">
+      <div className="w-full flex items-center justify-between">
+        <Label className="text-lg font-medium text-foreground">Buy</Label>
         {!(inputs?.toToken && inputs?.toChainID) && (
           <div
             className={cn(
-              "flex w-full justify-end gap-x-2 transition-all duration-150 ease-out",
+              "flex transition-all duration-150 ease-out w-full justify-end gap-x-2",
               destinationHovered
-                ? "translate-y-0 opacity-100"
-                : "-translate-y-1 opacity-0"
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-1"
             )}
           >
             {quickPickTokens.map(({ token, breakdown }) => (
               <Button
-                className="rounded-full bg-transparent hover:-translate-y-1 hover:object-scale-down"
+                className="bg-transparent rounded-full hover:-translate-y-1 hover:object-scale-down"
                 key={`${breakdown.symbol}-${breakdown.chain.id}-${breakdown.contractAddress}`}
                 onClick={() => {
                   const normalizedSymbol = breakdown.symbol.toUpperCase();
@@ -124,7 +120,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
                     breakdownIcon ||
                     TOKEN_IMAGES[breakdown.symbol] ||
                     TOKEN_IMAGES[normalizedSymbol] ||
-                    token.icon ||
+                    token.logo ||
                     "";
                   setInputs({
                     ...inputs,
@@ -135,7 +131,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
                       name: breakdown.symbol,
                       symbol: breakdown.symbol,
                     },
-                    toChainID: breakdown.chain.id as SUPPORTED_CHAINS_IDS,
+                    toChainID: breakdown.chain.id,
                   });
                 }}
                 size={"icon-sm"}
@@ -149,7 +145,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
                     (breakdown as AssetBreakdownWithOptionalIcon).icon ||
                     TOKEN_IMAGES[breakdown.symbol] ||
                     TOKEN_IMAGES[breakdown.symbol.toUpperCase()] ||
-                    token.icon ||
+                    token.logo ||
                     ""
                   }
                 />
@@ -158,7 +154,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
           </div>
         )}
       </div>
-      <div className="flex w-full items-center justify-between gap-x-4">
+      <div className="flex items-center justify-between gap-x-4 w-full">
         <AmountInput
           amount={displayedAmount}
           disabled={status === "simulating" || status === "swapping"}
@@ -169,7 +165,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
         />
         <Dialog>
           <DialogTrigger asChild>
-            <div className="flex min-w-max cursor-pointer items-center gap-x-3 rounded-full border border-border bg-card/50 p-1 transition-colors hover:bg-card-foreground/10">
+            <div className="flex items-center gap-x-3 bg-card/50 hover:bg-card-foreground/10 border border-border min-w-max rounded-full p-1 cursor-pointer transition-colors">
               <TokenIcon
                 chainLogo={
                   inputs?.toChainID
@@ -197,9 +193,9 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex w-full items-center justify-between gap-x-4">
+      <div className="flex items-center justify-between gap-x-4 w-full">
         {swapIntent?.current?.intent?.destination?.amount && inputs?.toToken ? (
-          <span className="text-accent-foreground text-sm">
+          <span className="text-sm text-accent-foreground">
             {usdFormatter.format(
               getFiatValue(
                 Number.parseFloat(
@@ -213,7 +209,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
           <span className="h-5" />
         )}
         {inputs?.toToken ? (
-          <span className="text-muted-foreground text-sm">
+          <span className="text-sm text-muted-foreground">
             {formatBalance(
               destinationBalance?.balance,
               inputs?.toToken?.symbol,

@@ -1,4 +1,9 @@
-import { Atom, CircleCheck, SquareArrowOutUpRight } from "lucide-react";
+import {
+  Atom,
+  CircleCheck,
+  CircleX,
+  SquareArrowOutUpRight,
+} from "lucide-react";
 import { type FC, Fragment, memo } from "react";
 import { cn } from "@/lib/utils";
 import { StackedTokenIcons } from "./stacked-token-icons";
@@ -41,6 +46,7 @@ interface StepItemProps {
   index: number;
   isCompleted: boolean;
   isCurrent: boolean;
+  isFailed: boolean;
   logos: {
     token: string;
     chain: string;
@@ -56,6 +62,7 @@ const StepItem: FC<StepItemProps> = memo(
     step,
     isCompleted,
     isCurrent,
+    isFailed,
     logos,
     symbol,
     totalSteps,
@@ -92,7 +99,7 @@ const StepItem: FC<StepItemProps> = memo(
       return (
         <TokenIcon
           chainLogo={logos.chain}
-          className="h-full w-full object-cover"
+          className="w-full h-full object-cover"
           size="sm"
           symbol={symbol}
           tokenLogo={logos.token}
@@ -103,29 +110,26 @@ const StepItem: FC<StepItemProps> = memo(
     return (
       <div
         className={cn(
-          "flex w-full items-center gap-x-4 rounded-lg py-1 transition-opacity duration-300",
+          "flex gap-x-4 items-center rounded-lg w-full py-1 transition-opacity duration-300",
           getOpacity()
         )}
       >
         {/* Left Indicator */}
-        {isCurrent ? (
-          <div className="relative rounded-full">
-            <div
-              className={cn(
-                "flex animate-pulse items-center justify-center rounded-full ring-2 ring-chart-1 ring-offset-2 ring-offset-background transition-all duration-300",
-                hasMultipleSources ? "min-w-max px-1" : "size-6"
-              )}
-            >
-              {renderIcon()}
-            </div>
+        {isFailed ? (
+          <div className="w-6 h-6 min-w-6 min-h-6 shrink-0 flex items-center justify-center rounded-full bg-red-500/10 text-red-500">
+            <span className="w-2 h-2 min-w-[8px] min-h-[8px] rounded-full bg-red-500" />
+          </div>
+        ) : isCurrent ? (
+          <div className="w-6 h-6 min-w-6 min-h-6 shrink-0 flex items-center justify-center rounded-full bg-chart-1/20 animate-pulse">
+            <span className="w-2.5 h-2.5 min-w-[10px] min-h-[10px] rounded-full bg-chart-1" />
           </div>
         ) : isCompleted ? (
-          <div className="flex size-6 items-center justify-center rounded-full bg-chart-1/10">
-            <span className="size-2 rounded-full bg-chart-1" />
+          <div className="w-6 h-6 min-w-6 min-h-6 shrink-0 flex items-center justify-center rounded-full bg-chart-1/10">
+            <span className="w-2 h-2 min-w-[8px] min-h-[8px] rounded-full bg-chart-1" />
           </div>
         ) : (
-          <div className="flex size-6 items-center justify-center rounded-full">
-            <span className="size-2 rounded-full bg-muted-foreground/50" />
+          <div className="w-6 h-6 min-w-6 min-h-6 shrink-0 flex items-center justify-center rounded-full">
+            <span className="w-2 h-2 min-w-[8px] min-h-[8px] rounded-full bg-muted-foreground/50" />
           </div>
         )}
 
@@ -135,18 +139,20 @@ const StepItem: FC<StepItemProps> = memo(
             <h3
               className={cn(
                 "font-medium text-sm transition-colors duration-300",
-                isCompleted || isCurrent
-                  ? "text-foreground"
-                  : "text-muted-foreground"
+                isFailed
+                  ? "text-red-500"
+                  : isCompleted || isCurrent
+                    ? "text-foreground"
+                    : "text-muted-foreground"
               )}
             >
               {step.label}
             </h3>
             {explorerUrl &&
-              isCompleted &&
-              (isSecondLast || index === totalSteps - 1) && (
+              (isCompleted || isFailed) &&
+              (isSecondLast || index === totalSteps - 1 || isFailed) && (
                 <a
-                  className="inline-flex items-center gap-x-1 text-muted-foreground text-xs transition-colors hover:text-foreground"
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-x-1 transition-colors"
                   href={explorerUrl}
                   rel="noreferrer"
                   target="_blank"
@@ -157,12 +163,15 @@ const StepItem: FC<StepItemProps> = memo(
           </div>
 
           {/* Right Actions */}
-          {isCurrent && !isCompleted && (
-            <p className="text-muted-foreground text-xs">
+          {isCurrent && !isCompleted && !isFailed && (
+            <p className="text-xs text-muted-foreground">
               Step {index + 1} of {totalSteps}
             </p>
           )}
-          {isCompleted && <CircleCheck className="size-5 text-chart-1" />}
+          {isCompleted && !isFailed && (
+            <CircleCheck className="size-5 shrink-0 text-chart-1" />
+          )}
+          {isFailed && <CircleX className="size-5 shrink-0 text-red-500" />}
         </div>
       </div>
     );
@@ -186,17 +195,20 @@ export const StepFlow: FC<StepFlowProps> = memo(
     sources,
   }) => {
     return (
-      <div className="flex w-full flex-col gap-y-0">
+      <div className="flex flex-col gap-y-0 w-full">
         {steps.map((step, index) => {
           const isCompleted = !!step.completed;
+          const isFailed = !!step.failed;
           const isCurrent =
             currentIndex === -1 ? false : index === currentIndex;
           const isLast = index === steps.length - 1;
-          const url = isLast
-            ? explorerUrls.destinationExplorerUrl
-            : index === steps.length - 2
-              ? explorerUrls.sourceExplorerUrl
-              : null;
+          const url =
+            step.explorerUrl ??
+            (isLast
+              ? explorerUrls.destinationExplorerUrl
+              : index === steps.length - 2
+                ? explorerUrls.sourceExplorerUrl
+                : null);
 
           // For source steps (not the last step), pass multiple sources info
           const isSourceStep = !isLast;
@@ -211,6 +223,7 @@ export const StepFlow: FC<StepFlowProps> = memo(
                 index={index}
                 isCompleted={isCompleted}
                 isCurrent={isCurrent}
+                isFailed={isFailed}
                 logos={isLast ? destinationLogos : sourceLogos}
                 sources={showMultipleSources ? sources : undefined}
                 step={step}
@@ -219,10 +232,10 @@ export const StepFlow: FC<StepFlowProps> = memo(
               />
 
               {!isLast && (
-                <div className="ml-[11px] flex w-max">
+                <div className="flex w-max ml-[11px]">
                   <div
                     className={cn(
-                      "h-5 w-0.5 border border-dashed transition-colors duration-300",
+                      "w-0.5 h-5 border border-dashed transition-colors duration-300",
                       isCompleted ? "border-chart-1/50" : "border-border"
                     )}
                   />

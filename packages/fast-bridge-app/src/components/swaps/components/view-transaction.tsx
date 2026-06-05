@@ -1,14 +1,12 @@
-import {
-  formatTokenBalance,
-  type OnSwapIntentHookData,
-  type SwapStepType,
-} from "@avail-project/nexus-core";
+import type { OnSwapIntentHookData } from "@avail-project/nexus-sdk-v2";
+import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { ChevronDown, ChevronUp, Info, MoveDown, XIcon } from "lucide-react";
 import { type FC, type RefObject, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   formatUsdForDisplay,
   type GenericStep,
+  type SwapStepType,
   usdFormatter,
 } from "../../common";
 import {
@@ -130,15 +128,15 @@ const TokenBreakdown = ({
   decimals,
 }: TokenBreakdownProps) => {
   return (
-    <div className="flex w-full items-center justify-between">
+    <div className="flex items-center w-full justify-between">
       <div className="flex flex-col items-start gap-y-1">
-        <p className="font-medium text-xl">
+        <p className="text-xl font-medium ">
           {formatTokenBalance(amount, {
             symbol,
             decimals,
           })}
         </p>
-        <p className="font-medium text-base text-muted-foreground">
+        <p className="text-base text-muted-foreground font-medium ">
           {usdFormatter.format(getFiatValue(amount, symbol))}
         </p>
       </div>
@@ -180,12 +178,12 @@ const MultiSourceBreakdown = ({
   }, [sources]);
 
   return (
-    <div className="flex w-full items-center justify-between">
+    <div className="flex items-center w-full justify-between">
       <div className="flex flex-col items-start gap-y-1">
-        <p className="font-medium text-xl">
+        <p className="text-xl font-medium">
           {sources.length} source{sources.length > 1 ? "s" : ""}
         </p>
-        <p className="font-medium text-base text-muted-foreground">
+        <p className="text-base text-muted-foreground font-medium">
           {usdFormatter.format(totalUsdValue)}
         </p>
       </div>
@@ -473,15 +471,15 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
       }}
     >
       <DialogContent className="max-w-md!" showCloseButton={false}>
-        <DialogHeader className="w-full flex-row items-center justify-between">
-          <p className="font-medium text-muted-foreground text-sm">
+        <DialogHeader className="flex-row items-center justify-between w-full">
+          <p className="text-sm font-medium text-muted-foreground">
             You&apos;re Swapping
           </p>
           <DialogClose>
             <XIcon className="size-5 text-muted-foreground" />
           </DialogClose>
         </DialogHeader>
-        <div className="flex w-full flex-col items-start gap-y-4">
+        <div className="flex flex-col items-start w-full gap-y-4">
           {/* Source section - handle empty, single, and multiple sources */}
           {hasSources ? (
             hasMultipleSources ? (
@@ -500,13 +498,13 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
               />
             )
           ) : (
-            <div className="flex w-full items-center justify-between">
+            <div className="flex items-center w-full justify-between">
               <p className="text-base text-muted-foreground">
                 Calculating sources...
               </p>
             </div>
           )}
-          <MoveDown className="-ml-1.5 size-5 text-muted-foreground" />
+          <MoveDown className="size-5 -ml-1.5 text-muted-foreground" />
           <TokenBreakdown
             amount={Number.parseFloat(transactionIntent?.destination?.amount)}
             chainLogo={transactionIntent?.destination?.chain.logo}
@@ -523,14 +521,14 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
             {showFeeBreakdown && (
               <div className="w-full rounded-lg border bg-muted/30 px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">Total fees</p>
-                  <p className="font-medium text-sm">
+                  <p className="text-sm font-medium">Total fees</p>
+                  <p className="text-sm font-medium">
                     {formatUsdForDisplay(feeBreakdown.totalFeeUsd)}
                   </p>
                 </div>
                 <div className="mt-1 flex items-center justify-end">
                   <button
-                    className="inline-flex items-center gap-1 text-muted-foreground text-xs underline underline-offset-2"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2"
                     onClick={() => setShowFeeDetails(!showFeeDetails)}
                     type="button"
                   >
@@ -543,7 +541,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                   </button>
                 </div>
                 {showFeeDetails && (
-                  <div className="mt-3 space-y-2 border-border border-t pt-3">
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
                     {feeDetailRows.map((row) => (
                       <div
                         className="flex items-center justify-between text-sm"
@@ -564,7 +562,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
               <div className="w-full rounded-lg border bg-muted/30 px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="inline-flex items-center gap-1">
-                    <p className="font-medium text-sm">Max price impact</p>
+                    <p className="text-sm font-medium">Max price impact</p>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
@@ -582,18 +580,18 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <p className="text-right font-medium text-sm">
+                  <p className="text-sm font-medium text-right">
                     {formatSignedUsd(feeBreakdown.maxPriceImpactUsd)} (
                     {formatImpactPercent(feeBreakdown.maxPriceImpactPercent)})
                   </p>
                 </div>
                 <div className="mt-1 flex items-center justify-between">
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-xs text-muted-foreground">
                     Includes a buffer to ensure swaps succeed. Excess funds are
                     refunded after deducting fees and impact.
                   </p>
                   <button
-                    className="inline-flex items-center gap-1 text-muted-foreground text-xs underline underline-offset-2"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2"
                     onClick={() =>
                       setShowPriceImpactDetails(!showPriceImpactDetails)
                     }
@@ -608,7 +606,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                   </button>
                 </div>
                 {showPriceImpactDetails && (
-                  <div className="mt-3 space-y-2 border-border border-t pt-3">
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
                     <div className="flex items-center justify-between text-sm">
                       <p className="text-muted-foreground">Swap impact</p>
                       <p className="text-muted-foreground">
@@ -637,15 +635,15 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
               <AccordionItem value="source-selection">
                 <AccordionTrigger className="py-0" hideChevron={false}>
                   <div className="flex w-full items-center justify-between">
-                    <p className="font-medium text-sm">Choose sources</p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-sm font-medium">Choose sources</p>
+                    <p className="text-xs text-muted-foreground">
                       {exactOutSelectedKeys.length} selected
                     </p>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="mt-3 w-full rounded-lg bg-muted px-4 py-3 pb-0">
+                <AccordionContent className="mt-3 bg-muted pb-0 px-4 py-3 rounded-lg w-full">
                   {isExactOutSourceSelectionInsufficient && (
-                    <div className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-950 text-sm dark:text-amber-200">
+                    <div className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-200">
                       Insufficient selected sources balance. Selected{" "}
                       <span className="font-medium">
                         {usdFormatter.format(exactOutSelectedTotalUsd)}
@@ -658,7 +656,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                       {transactionIntent?.destination?.token.symbol}).
                     </div>
                   )}
-                  <p className="mb-3 text-muted-foreground text-xs">
+                  <p className="mb-3 text-xs text-muted-foreground">
                     {updatingExactOutSources
                       ? "Updating sources…"
                       : isExactOutSourceSelectionDirty
@@ -684,7 +682,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                           className={cn(
                             "flex w-full select-none items-center justify-between gap-x-3",
                             isLastSelected || updatingExactOutSources
-                              ? "cursor-not-allowed opacity-80"
+                              ? "opacity-80 cursor-not-allowed"
                               : "cursor-pointer"
                           )}
                           key={opt.key}
@@ -728,21 +726,21 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                               tokenLogo={tokenLogo}
                             />
                             <div className="flex flex-col leading-tight">
-                              <p className="font-medium text-sm">
+                              <p className="text-sm font-medium">
                                 {opt.tokenSymbol}
                               </p>
-                              <p className="text-muted-foreground text-xs">
+                              <p className="text-xs text-muted-foreground">
                                 {opt.chainName}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex min-w-fit flex-col items-end leading-tight">
-                            <p className="font-medium text-sm">
+                          <div className="flex flex-col items-end leading-tight min-w-fit">
+                            <p className="text-sm font-medium">
                               {formattedBalance}
                             </p>
                             {isUsed && (
-                              <p className="text-muted-foreground text-xs">
+                              <p className="text-xs text-muted-foreground">
                                 Currently used
                               </p>
                             )}
@@ -772,7 +770,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                           className={cn(
                             "flex w-full select-none items-center justify-between gap-x-3",
                             isLastSelected || updatingExactOutSources
-                              ? "cursor-not-allowed opacity-80"
+                              ? "opacity-80 cursor-not-allowed"
                               : "cursor-pointer"
                           )}
                           key={opt.key}
@@ -816,21 +814,21 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                               tokenLogo={tokenLogo}
                             />
                             <div className="flex flex-col leading-tight">
-                              <p className="font-medium text-sm">
+                              <p className="text-sm font-medium">
                                 {opt.tokenSymbol}
                               </p>
-                              <p className="text-muted-foreground text-xs">
+                              <p className="text-xs text-muted-foreground">
                                 {opt.chainName}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex min-w-fit flex-col items-end leading-tight">
-                            <p className="font-medium text-sm">
+                          <div className="flex flex-col items-end leading-tight min-w-fit">
+                            <p className="text-sm font-medium">
                               {formattedBalance}
                             </p>
                             {isUsed && (
-                              <p className="text-muted-foreground text-xs">
+                              <p className="text-xs text-muted-foreground">
                                 Currently used
                               </p>
                             )}
@@ -839,7 +837,7 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
                       );
                     })}
                   </div>
-                  <p className="mt-3 text-muted-foreground text-xs">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Select at least 1 source.
                   </p>
                 </AccordionContent>

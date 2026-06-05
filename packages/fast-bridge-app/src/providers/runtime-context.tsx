@@ -76,6 +76,29 @@ const RuntimeContext = createContext<RuntimeContextValue | undefined>(
   undefined
 );
 
+interface ViewTransitionLike {
+  finished?: Promise<unknown>;
+  ready?: Promise<unknown>;
+  updateCallbackDone?: Promise<unknown>;
+}
+
+function ignoreSkippedViewTransition(error: unknown): void {
+  if (
+    typeof DOMException !== "undefined" &&
+    error instanceof DOMException &&
+    error.name === "AbortError"
+  ) {
+    return;
+  }
+  console.warn("View transition failed:", error);
+}
+
+function handleViewTransitionPromises(transition: ViewTransitionLike): void {
+  transition.ready?.catch(ignoreSkippedViewTransition);
+  transition.finished?.catch(ignoreSkippedViewTransition);
+  transition.updateCallbackDone?.catch(ignoreSkippedViewTransition);
+}
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -164,6 +187,9 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       if (!isValidChainSlug(slug)) {
         return;
       }
+      if (slug === activeSlug) {
+        return;
+      }
       // Use View Transitions API for smooth theme swap, with fallback
       const doNavigate = () => {
         navigate(`/${slug}`);
@@ -173,16 +199,17 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
         typeof document !== "undefined" &&
         "startViewTransition" in document
       ) {
-        (
-          document as Document & {
-            startViewTransition: (cb: () => void) => void;
-          }
-        ).startViewTransition(doNavigate);
+        const transitionDocument = document as Document & {
+          startViewTransition: (cb: () => void) => ViewTransitionLike;
+        };
+        handleViewTransitionPromises(
+          transitionDocument.startViewTransition(doNavigate)
+        );
       } else {
         doNavigate();
       }
     },
-    [navigate]
+    [activeSlug, navigate]
   );
 
   const brandButton = useMemo(

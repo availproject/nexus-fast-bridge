@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
 import { CHAIN_REGISTRY } from "@/config/chain-settings";
@@ -14,7 +14,7 @@ const FastBridgeShowcase = () => {
   const { address, isConnected, chainId } = useAccount();
   const chains = useChains();
   const { switchChain } = useSwitchChain();
-  const { setChain } = useRuntime();
+  const { chainSlug, setChain } = useRuntime();
   const location = useLocation();
   const [params, setParams] = useState(readBridgeParams());
 
@@ -33,28 +33,41 @@ const FastBridgeShowcase = () => {
     }
   }, [isConnected, chainId, chains, switchChain]);
 
-  const handleDestinationTokenChange = (token: SwapTokenOption) => {
-    if (!token.chainId) {
-      return;
-    }
-    const targetSlug = Object.values(CHAIN_REGISTRY).find(
-      (c) => c.appConfig.chainId === token.chainId
-    )?.slug;
+  const handleDestinationTokenChange = useCallback(
+    (token: SwapTokenOption) => {
+      if (!token.chainId) {
+        return;
+      }
+      const targetSlug = Object.values(CHAIN_REGISTRY).find(
+        (c) => c.appConfig.chainId === token.chainId
+      )?.slug;
 
-    if (targetSlug) {
-      // Update the route slug
-      setChain(targetSlug);
+      if (!targetSlug) {
+        return;
+      }
 
-      // Update URL query parameters
+      const nextToken = token.symbol.toUpperCase() as typeof params.token;
+      const isSameDestination =
+        params.to === token.chainId && params.token === nextToken;
+
+      if (targetSlug !== chainSlug) {
+        setChain(targetSlug);
+      }
+
+      if (isSameDestination) {
+        return;
+      }
+
       const newParams = {
         ...params,
-        to: token.chainId,
-        token: token.symbol.toUpperCase(),
+        to: token.chainId as typeof params.to,
+        token: nextToken,
       } as typeof params;
       writeBridgeParams(newParams);
       setParams(newParams);
-    }
-  };
+    },
+    [chainSlug, params, setChain]
+  );
 
   const tokenAddress =
     params.token && params.to

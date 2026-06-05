@@ -40,7 +40,7 @@ export const TokenIcon = ({
       ) : (
         <span
           className={cn(
-            "flex items-center justify-center rounded-full bg-ring/80 font-semibold text-muted-foreground uppercase",
+            "rounded-full bg-ring/80 text-muted-foreground flex items-center justify-center font-semibold uppercase",
             {
               "h-6 w-6 text-xs": size === "sm",
               "h-8 w-8 text-sm": size === "md",
@@ -52,7 +52,7 @@ export const TokenIcon = ({
         </span>
       )}
       {chainLogo ? (
-        <span className="absolute -right-0.5 -bottom-0.5 rounded-full border border-background bg-background">
+        <span className="absolute -bottom-0.5 -right-0.5 rounded-full border border-background bg-background">
           <img
             alt="chain logo"
             className="rounded-full object-cover"
@@ -64,7 +64,7 @@ export const TokenIcon = ({
       ) : (
         <span
           className={cn(
-            "absolute -right-0.5 -bottom-0.5 flex size-6 items-center justify-center rounded-full bg-ring font-semibold text-muted-foreground uppercase"
+            "absolute -bottom-0.5 -right-0.5 rounded-full bg-ring text-muted-foreground flex items-center justify-center font-semibold uppercase size-6"
           )}
         >
           {" "}

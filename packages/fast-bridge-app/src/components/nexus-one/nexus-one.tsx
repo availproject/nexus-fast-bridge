@@ -15,6 +15,10 @@ import {
   useState,
 } from "react";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
+import type {
+  BridgeStepType,
+  SwapStepType,
+} from "../common/types/transaction-flow";
 import { CHAIN_METADATA, TOKEN_METADATA } from "../common/utils/constant";
 import { useNexus } from "../nexus/nexus-provider";
 import { DepositIdleForm } from "./components/deposit-idle-form";
@@ -40,7 +44,6 @@ import {
   type SwapIntentData,
   SwapIntentPreview,
 } from "./components/swap-intent-preview";
-import type { BridgeStepType, SwapStepType } from "./sdk-types";
 import type {
   DepositOpportunity,
   NexusOneMode,
@@ -1735,10 +1738,10 @@ export function NexusOne({
   embed = true,
   connectedAddress,
   onComplete,
+  onDestinationTokenChange,
   onStart,
   onError,
   onClose,
-  onDestinationTokenChange,
 }: NexusOneProps) {
   const {
     nexusSDK,
@@ -1840,6 +1843,22 @@ export function NexusOne({
     undefined
   );
   const appliedTokenPrefillRef = useRef<string | null>(null);
+  const notifiedDestinationTokenKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!toToken) {
+      notifiedDestinationTokenKeyRef.current = null;
+      return;
+    }
+
+    const tokenKey = getTokenSelectionKey(toToken);
+    if (!tokenKey || notifiedDestinationTokenKeyRef.current === tokenKey) {
+      return;
+    }
+
+    notifiedDestinationTokenKeyRef.current = tokenKey;
+    onDestinationTokenChange?.(toToken);
+  }, [onDestinationTokenChange, toToken]);
 
   const setExactOutQuoteSourceModeValue = useCallback(
     (mode: "all" | "selected") => {
@@ -2473,10 +2492,7 @@ export function NexusOne({
 
     if (!maxUsdAmount || maxUsdAmount.lte(0)) {
       const sourcesUsd = await (max.sources ?? []).reduce(
-        async (
-          sumPromise: Promise<Decimal>,
-          source: { amount: string; symbol: string }
-        ) => {
+        async (sumPromise, source) => {
           const sum = await sumPromise;
           const amount = parseFiatNumber(source.amount) ?? new Decimal(0);
           if (amount.lte(0)) {
@@ -2998,7 +3014,7 @@ export function NexusOne({
           chainName: chainMeta?.name ?? breakdown.chain?.name,
           contractAddress,
           decimals: breakdown.decimals ?? asset.decimals ?? 18,
-          logo: asset.icon ?? "",
+          logo: asset.logo ?? "",
           name: symbol,
           symbol,
           balance: `${breakdown.balance} ${symbol}`,
@@ -3329,9 +3345,7 @@ export function NexusOne({
   const resetProgressEvents = () => {
     progressEventsRef.current = [];
     setProgressEvents((current) => (current.length === 0 ? current : []));
-    setFailedProgressStep((current: SwapStepType | BridgeStepType | null) =>
-      current === null ? current : null
-    );
+    setFailedProgressStep((current) => (current === null ? current : null));
   };
 
   const appendProgressEvent = (
@@ -3638,13 +3652,6 @@ export function NexusOne({
     setPreviewQuoteRefreshing(false);
   }, []);
 
-  const getSwapIntentHook = useCallback(
-    (runId: number) => (data: any) => {
-      handleSwapIntentCallback(data, runId);
-    },
-    [handleSwapIntentCallback]
-  );
-
   // Deposit-specific
   const [selectedOpportunity, setSelectedOpportunity] = useState<
     DepositOpportunity | undefined
@@ -3695,7 +3702,7 @@ export function NexusOne({
         opp.tokenLogo ||
         matchedToken?.logo ||
         citreaToken?.logo ||
-        tokenMeta?.icon,
+        tokenMeta?.logo,
       chainName: CHAIN_METADATA[opp.chainId]?.name ?? citreaToken?.chainName,
       chainLogo: CHAIN_METADATA[opp.chainId]?.logo ?? citreaToken?.chainLogo,
     };
@@ -3817,7 +3824,7 @@ export function NexusOne({
           tokenMeta?.decimals ??
           (isNativePrefill ? chainMeta?.nativeCurrency?.decimals : undefined) ??
           18,
-        logo: matchedToken?.logo || citreaToken?.logo || tokenMeta?.icon,
+        logo: matchedToken?.logo || citreaToken?.logo || tokenMeta?.logo,
         chainName: chain?.name ?? chainMeta?.name ?? citreaToken?.chainName,
         chainLogo: chain?.logo ?? chainMeta?.logo ?? citreaToken?.chainLogo,
       } satisfies SwapTokenOption;
@@ -4520,7 +4527,7 @@ export function NexusOne({
               breakdown.contractAddress ?? toToken.contractAddress,
             decimals:
               breakdown.decimals ?? asset.decimals ?? toToken.decimals ?? 18,
-            logo: asset.icon ?? toToken.logo,
+            logo: asset.logo ?? toToken.logo,
             name: symbol,
             symbol,
             balance: `${breakdown.balance} ${symbol}`,
@@ -4783,7 +4790,7 @@ export function NexusOne({
     closeDrawerToIdle();
   };
 
-  /** Start swap flow. SDK intent hooks populate preview data. */
+  /** Start swap flow — SDK will trigger setOnSwapIntentHook for preview */
   const handleEnterPreview = async (options: { background?: boolean } = {}) => {
     const { background = false } = options;
     const isExactOutFlow = activeMode === "deposit" || activeMode === "send";
@@ -4930,8 +4937,6 @@ export function NexusOne({
 
     swapRunIdRef.current += 1;
     const runId = swapRunIdRef.current;
-
-    const onSwapIntent = getSwapIntentHook(runId);
 
     const getSwapStepListFromEvent = (event: { args: any }) => {
       const args = (event as any).args;
@@ -5182,7 +5187,25 @@ export function NexusOne({
             },
             {
               onEvent,
-              onIntent: onSwapIntent,
+              onIntent: (data: any) => {
+                console.log("onIntentHook", data);
+                if (swapRunIdRef.current !== runId) {
+                  data.deny();
+                  return;
+                }
+                swapIntentRef.current = {
+                  intent: data.intent,
+                  allow: data.allow,
+                  deny: data.deny,
+                  refresh: data.refresh,
+                  runId,
+                };
+                applySwapIntent(data.intent);
+                setIntentLoading(false);
+                setQuoteRefreshing(false);
+                setReceiveMaxCalculating(false);
+                setPreviewQuoteRefreshing(false);
+              },
             }
           );
 
@@ -5196,10 +5219,9 @@ export function NexusOne({
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
-          const finalExplorerUrl = getExplorerTxUrl(
-            toToken.chainId!,
-            executeTxHash
-          );
+          const finalExplorerUrl =
+            result?.execute?.txExplorerUrl ||
+            getExplorerTxUrl(toToken.chainId!, executeTxHash);
           if (finalExplorerUrl) {
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
@@ -5218,7 +5240,7 @@ export function NexusOne({
             },
             {
               hooks: {
-                onIntent: onSwapIntent,
+                onIntent: (data) => handleSwapIntentCallback(data, runId),
               },
               onEvent: (event: any) => {
                 if (swapRunIdRef.current !== runId) {
@@ -5277,10 +5299,10 @@ export function NexusOne({
           setSwapStep("success");
         }
       } else {
-        const sourcesPayload: {
-          amountRaw: bigint;
+        const fromPayload: {
           chainId: number;
           tokenAddress: `0x${string}`;
+          amountRaw: bigint;
         }[] = [];
 
         const exactInSourceTokens = getReadyExactInSourceTokens(fromTokens);
@@ -5323,14 +5345,14 @@ export function NexusOne({
             )
             .toFixed();
 
-          sourcesPayload.push({
-            amountRaw: parseUnits(safeTokenAmountStr, token.decimals || 18),
+          fromPayload.push({
             chainId: token.chainId!,
             tokenAddress: token.contractAddress as `0x${string}`,
+            amountRaw: parseUnits(safeTokenAmountStr, token.decimals || 18),
           });
         }
 
-        if (sourcesPayload.length === 0) {
+        if (fromPayload.length === 0) {
           throw new Error("No source amount available for swap.");
         }
 
@@ -5338,13 +5360,13 @@ export function NexusOne({
         // Start exact-in swap — the intent hook will fire and populate preview
         const result = await nexusSDK.swapWithExactIn(
           {
-            sources: sourcesPayload,
+            sources: fromPayload,
             toChainId: toToken.chainId!,
             toTokenAddress: toToken.contractAddress as `0x${string}`,
           },
           {
             hooks: {
-              onIntent: onSwapIntent,
+              onIntent: (data) => handleSwapIntentCallback(data, runId),
             },
             onEvent: (event: any) => {
               if (swapRunIdRef.current !== runId) {
@@ -6549,7 +6571,7 @@ export function NexusOne({
                   marginRight: "4px",
                 }}
               >
-                <ArrowLeft className="h-5 w-5" style={{ color: "#161615" }} />
+                <ArrowLeft className="w-5 h-5" style={{ color: "#161615" }} />
               </button>
             )}
             <div
@@ -6589,9 +6611,9 @@ export function NexusOne({
               activeMode === "deposit" &&
               swapStep === "idle" &&
               selectedOpportunity && (
-                <div className="pointer-events-auto relative ml-2 flex items-center">
+                <div className="relative pointer-events-auto flex items-center ml-2">
                   <button
-                    className="flex items-center gap-1 rounded-[4px] py-1 pr-1.5 pl-2 transition-colors hover:bg-black/5"
+                    className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-[4px] hover:bg-black/5 transition-colors"
                     onClick={() => {
                       clearPendingSwapIntent();
                       setSelectedOpportunity(undefined);
@@ -6611,7 +6633,7 @@ export function NexusOne({
                     }}
                   >
                     {selectedOpportunity.title || selectedOpportunity.protocol}
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className="w-3 h-3" />
                   </button>
                 </div>
               )}
@@ -6818,7 +6840,7 @@ export function NexusOne({
 
                 {(swapStep === "success" || swapStep === "failed") &&
                   currentSwapEntry && (
-                    <div className="fade-in slide-in-from-bottom-4 w-full animate-in duration-500">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
                       <SwapReceiptPanel
                         entry={currentSwapEntry}
                         onDone={handleReset}
@@ -7355,7 +7377,7 @@ export function NexusOne({
               className={
                 isRecipientDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7599,7 +7621,7 @@ export function NexusOne({
               className={
                 isSwapAssetDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7918,7 +7940,7 @@ export function NexusOne({
               className={
                 isReceiveAssetDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7958,7 +7980,6 @@ export function NexusOne({
                     }
                     setSwapType("exactOut");
                     setToToken(token);
-                    onDestinationTokenChange?.(token);
                     closeDrawerToIdle();
                     return;
                   }
@@ -7969,7 +7990,6 @@ export function NexusOne({
                     setSwapType("exactIn");
                   }
                   setToToken(token);
-                  onDestinationTokenChange?.(token);
                   closeDrawerToIdle();
                 }}
               />

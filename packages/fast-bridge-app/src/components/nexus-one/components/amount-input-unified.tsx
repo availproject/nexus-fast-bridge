@@ -77,7 +77,7 @@ export function AmountInputUnified({
 
   return (
     <div
-      className="flex min-h-[168px] w-full flex-col bg-white"
+      className="w-full flex flex-col bg-white min-h-[168px]"
       style={{
         borderRadius: "12px",
         border: "1px solid var(--border-default, #E8E8E7)",
@@ -86,13 +86,13 @@ export function AmountInputUnified({
       }}
     >
       {header && (
-        <div className="w-full border-[#E8E8E7] border-b px-4 py-3">
+        <div className="w-full border-b border-[#E8E8E7] px-4 py-3">
           {header}
         </div>
       )}
-      <div className="relative flex w-full flex-1 flex-col items-center justify-center p-4">
+      <div className="flex-1 w-full flex flex-col items-center justify-center p-4 relative">
         {/* Central Input row: large amount + MAX button inline */}
-        <div className="mb-1.5 flex w-full items-center justify-center gap-x-2">
+        <div className="flex items-center justify-center w-full gap-x-2 mb-1.5">
           <div
             className="flex items-center justify-center text-center"
             style={{
@@ -102,14 +102,14 @@ export function AmountInputUnified({
             }}
           >
             {tokenIcon ? (
-              <div className="mr-3 flex items-center justify-center">
+              <div className="flex items-center justify-center mr-3">
                 {tokenIcon}
               </div>
             ) : (
-              <span className="mr-1.5 text-gray-800 leading-none">$</span>
+              <span className="leading-none text-gray-800 mr-1.5">$</span>
             )}
             <input
-              className="min-w-0 truncate border-none bg-transparent p-0 text-start tabular-nums outline-none placeholder:text-gray-300 focus:ring-0"
+              className="min-w-0 text-start bg-transparent border-none outline-none p-0 focus:ring-0 placeholder:text-gray-300 truncate tabular-nums"
               disabled={disabled}
               inputMode="decimal"
               onBlur={() => onCommit?.(amount)}
@@ -148,7 +148,7 @@ export function AmountInputUnified({
           </div>
           {/* MAX button — inline beside the input */}
           <button
-            className="shrink-0 transition-opacity focus:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+            className="shrink-0 focus:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             disabled={disabled || !maxAvailableAmount}
             onClick={handleMax}
             style={{
@@ -171,7 +171,7 @@ export function AmountInputUnified({
 
         {/* Balance display — below amount + MAX row */}
         {(totalBalanceValue || maxAvailableAmount) && (
-          <div className="absolute bottom-4 left-0 flex w-full justify-center">
+          <div className="absolute bottom-4 left-0 w-full flex justify-center">
             <p
               style={{
                 color: "var(--widget-card-foreground-muted, #848483)",

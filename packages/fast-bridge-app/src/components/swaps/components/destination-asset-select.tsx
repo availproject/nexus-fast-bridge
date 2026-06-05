@@ -1,13 +1,9 @@
 "use client";
-import {
-  CHAIN_METADATA,
-  formatTokenBalance,
-  type SUPPORTED_CHAINS_IDS,
-  type UserAsset,
-} from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Link2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
-import { SHORT_CHAIN_NAME, usdFormatter } from "../../common";
+import { CHAIN_METADATA, SHORT_CHAIN_NAME, usdFormatter } from "../../common";
+import { type UserAsset, useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { DialogClose } from "../../ui/dialog";
 import {
@@ -22,10 +18,7 @@ import type { DestinationTokenInfo } from "../hooks/useSwaps";
 import { TokenIcon } from "./token-icon";
 
 interface DestinationAssetSelectProps {
-  onSelect: (
-    chainId: SUPPORTED_CHAINS_IDS,
-    token: DestinationTokenInfo
-  ) => void;
+  onSelect: (chainId: number, token: DestinationTokenInfo) => void;
   swapBalance: UserAsset[] | null;
 }
 
@@ -33,8 +26,11 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
   swapBalance,
   onSelect,
 }) => {
+  const { nexusSDK } = useNexus();
   const [tempChain, setTempChain] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const selectedChainMetadata =
+    tempChain === null ? undefined : CHAIN_METADATA[tempChain];
 
   // Get all tokens from all chains with their chain info
   const allTokens: DestinationTokenInfo[] = useMemo(() => {
@@ -99,12 +95,12 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
     if (!chainId) {
       return;
     }
-    onSelect(chainId as SUPPORTED_CHAINS_IDS, tok);
+    onSelect(chainId, tok);
   };
 
   return (
     <div className="w-full">
-      <div className="flex w-full flex-col gap-y-3">
+      <div className="w-full flex flex-col gap-y-3">
         <Select
           onValueChange={(value) => {
             const matchedChain = chainsWithTokens.find(
@@ -114,20 +110,20 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
               setTempChain(matchedChain);
             }
           }}
-          value={tempChain ? CHAIN_METADATA[tempChain].name : ""}
+          value={tempChain ? String(tempChain) : ""}
         >
-          <div className="flex w-full bg-input/30 px-2 py-1.5">
-            <div className="flex w-full items-center justify-between gap-x-2">
+          <div className="flex bg-input/30 w-full px-2 py-1.5">
+            <div className="flex items-center gap-x-2 w-full justify-between">
               <Search className="size-5 opacity-65" />
               <input
-                className="w-full bg-transparent font-medium text-base text-foreground proportional-nums placeholder-muted-foreground outline-none transition-all duration-150 disabled:opacity-80"
+                className="bg-transparent w-full text-foreground text-base font-medium outline-none transition-all duration-150 placeholder-muted-foreground proportional-nums disabled:opacity-80"
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search tokens..."
                 value={searchQuery}
               />
               {searchQuery && (
                 <button
-                  className="rounded-full p-0.5 transition-colors hover:bg-muted"
+                  className="p-0.5 hover:bg-muted rounded-full transition-colors"
                   onClick={() => setSearchQuery("")}
                   type="button"
                 >
@@ -135,17 +131,17 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
                 </button>
               )}
             </div>
-            <SelectTrigger className="cursor-pointer rounded-full border-none bg-transparent!">
-              {tempChain ? (
+            <SelectTrigger className="rounded-full border-none cursor-pointer bg-transparent!">
+              {tempChain && selectedChainMetadata ? (
                 <img
-                  alt={CHAIN_METADATA[tempChain].name}
-                  className="size-6 rounded-full"
+                  alt={selectedChainMetadata.name}
+                  className="rounded-full size-6"
                   height={24}
-                  src={CHAIN_METADATA[tempChain].logo}
+                  src={selectedChainMetadata.logo}
                   width={24}
                 />
               ) : (
-                <div className="flex size-8 items-center justify-center rounded-full border border-border">
+                <div className="size-8 rounded-full flex items-center justify-center border border-border">
                   <Link2 className="size-4" />
                 </div>
               )}
@@ -156,14 +152,18 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
               {chainsWithTokens.map((c) => (
                 <SelectItem key={c} value={String(c)}>
                   <div className="flex items-center justify-between gap-x-2">
-                    <img
-                      alt={CHAIN_METADATA[c].name}
-                      className="size-5 rounded-full"
-                      height={20}
-                      src={CHAIN_METADATA[c].logo}
-                      width={20}
-                    />
-                    <span className="text-sm">{CHAIN_METADATA[c].name}</span>
+                    {CHAIN_METADATA[c] ? (
+                      <img
+                        alt={CHAIN_METADATA[c].name}
+                        className="rounded-full size-5"
+                        height={20}
+                        src={CHAIN_METADATA[c].logo}
+                        width={20}
+                      />
+                    ) : null}
+                    <span className="text-sm">
+                      {CHAIN_METADATA[c]?.name ?? SHORT_CHAIN_NAME[c] ?? c}
+                    </span>
                   </div>
                 </SelectItem>
               ))}
@@ -172,16 +172,16 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
         </Select>
         <p className="text-sm">
           {tempChain
-            ? `Tokens on ${SHORT_CHAIN_NAME[tempChain]}`
+            ? `Tokens on ${SHORT_CHAIN_NAME[tempChain] ?? tempChain}`
             : "All Tokens"}
         </p>
-        <div className="no-scrollbar max-h-80 overflow-y-auto rounded-md px-2">
-          <div className="no-scrollbar flex w-full flex-col items-center gap-y-4 sm:items-start">
+        <div className="rounded-md px-2 max-h-80 overflow-y-auto no-scrollbar">
+          <div className="flex flex-col items-center sm:items-start gap-y-4 w-full no-scrollbar">
             {displayedTokens.length > 0 ? (
               displayedTokens.map((t) => (
                 <DialogClose asChild key={`${t.tokenAddress}-${t.chainId}`}>
                   <Button
-                    className="flex h-max w-full items-center justify-between gap-x-2 rounded p-2"
+                    className="flex items-center justify-between gap-x-2 p-2 rounded w-full h-max"
                     onClick={() => handlePick(t)}
                     variant={"ghost"}
                   >
@@ -190,7 +190,7 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
                         <div className="relative">
                           <TokenIcon
                             chainLogo={CHAIN_METADATA[t.chainId ?? 1]?.logo}
-                            className="rounded-full border border-border"
+                            className="border border-border rounded-full"
                             symbol={t.symbol}
                             tokenLogo={t.logo}
                           />
@@ -199,7 +199,7 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
                     </div>
                     <div className="flex flex-col items-end">
                       <p className="text-base text-foreground">{t.balance}</p>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="text-sm text-muted-foreground">
                         {t.balanceInFiat}
                       </p>
                     </div>
@@ -207,7 +207,7 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
                 </DialogClose>
               ))
             ) : (
-              <p className="text-muted-foreground text-xs">No Tokens Found</p>
+              <p className="text-xs text-muted-foreground">No Tokens Found</p>
             )}
           </div>
         </div>

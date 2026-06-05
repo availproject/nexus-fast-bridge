@@ -1,11 +1,6 @@
 "use client";
 import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-sdk-v2";
 import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
-import { CHAIN_METADATA } from "../../common/utils/constant";
-import type { UserAsset } from "../../nexus/nexus-provider";
-
-type SupportedChainsResult = SupportedChainsAndTokensResult;
-
 import Decimal from "decimal.js";
 import {
   Check,
@@ -28,6 +23,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { CHAIN_METADATA } from "../../common";
+import type { UserAsset } from "../../nexus/nexus-provider";
 
 const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
@@ -72,10 +69,7 @@ interface SwapAssetSelectorProps {
   selectedTokens?: SwapTokenOption[];
   staticOptions?: SwapTokenOption[];
   swapBalance: UserAsset[] | null;
-  swapSupportedChains?:
-    | SupportedChainsAndTokensResult
-    | SupportedChainsResult
-    | null;
+  swapSupportedChains?: SupportedChainsAndTokensResult | null;
   title: string;
 }
 
@@ -93,7 +87,7 @@ export function deriveTokenOptions(
         contractAddress: bd.contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
-        logo: asset.icon ?? "",
+        logo: asset.logo ?? "",
         decimals: bd.decimals ?? asset.decimals ?? 18,
         balance:
           formatTokenBalance(bd.balance, {
@@ -2816,7 +2810,7 @@ export function SwapAssetSelector({
                 className={
                   isChainSelectorClosing
                     ? undefined
-                    : "slide-in-from-bottom-full animate-in duration-300"
+                    : "animate-in slide-in-from-bottom-full duration-300"
                 }
                 data-nexus-one-sheet
                 style={{

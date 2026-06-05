@@ -3,10 +3,9 @@
 import Decimal from "decimal.js";
 import { ChevronDown, Info, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
-import { CHAIN_METADATA } from "../../common/utils/constant";
+import { CHAIN_METADATA, type SwapStepType } from "../../common";
 import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
-import type { SwapStepType } from "../sdk-types";
 import type { DepositOpportunity, NexusOneMode } from "../types";
 import type { SwapTokenOption } from "./swap-asset-selector";
 
@@ -1541,7 +1540,7 @@ export function SwapIntentPreview({
             }}
             sourceSymbol={primarySourceForProgress.symbol}
             sources={progressSources.length > 1 ? progressSources : undefined}
-            steps={steps as any}
+            steps={steps}
           />
         </div>
       )}

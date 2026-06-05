@@ -65,7 +65,7 @@ export const StackedTokenIcons = ({
             {source.tokenLogo ? (
               <img
                 alt={source.symbol ?? "token"}
-                className="rounded-full border-2 border-background object-cover"
+                className="rounded-full object-cover border-2 border-background"
                 height={dimension}
                 src={source.tokenLogo}
                 width={dimension}
@@ -73,7 +73,7 @@ export const StackedTokenIcons = ({
             ) : (
               <span
                 className={cn(
-                  "flex items-center justify-center rounded-full border-2 border-background bg-ring/80 font-semibold text-muted-foreground uppercase",
+                  "rounded-full bg-ring/80 text-muted-foreground flex items-center justify-center font-semibold uppercase border-2 border-background",
                   {
                     "h-6 w-6 text-xs": size === "sm",
                     "h-8 w-8 text-sm": size === "md",
@@ -85,7 +85,7 @@ export const StackedTokenIcons = ({
               </span>
             )}
             {source.chainLogo && (
-              <span className="absolute -right-0.5 -bottom-0.5 rounded-full border border-background bg-background">
+              <span className="absolute -bottom-0.5 -right-0.5 rounded-full border border-background bg-background">
                 <img
                   alt="chain logo"
                   className="rounded-full object-cover"
@@ -108,7 +108,7 @@ export const StackedTokenIcons = ({
         >
           <span
             className={cn(
-              "flex items-center justify-center rounded-full border-2 border-background bg-muted font-medium text-muted-foreground",
+              "rounded-full bg-muted text-muted-foreground flex items-center justify-center font-medium border-2 border-background",
               {
                 "h-6 w-6 text-[10px]": size === "sm",
                 "h-8 w-8 text-xs": size === "md",
