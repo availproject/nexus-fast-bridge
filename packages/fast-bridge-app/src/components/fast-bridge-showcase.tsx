@@ -80,14 +80,9 @@ const FastBridgeShowcase = () => {
   const chains = useChains();
   const { switchChain } = useSwitchChain();
   const { appConfig, chainSlug, setChain } = useRuntime();
-  const [params, setParams] = useState(readBridgeParams());
+  const [params] = useState(() => readBridgeParams());
   const [receiveAssetOverride, setReceiveAssetOverride] =
     useState<ReceiveAsset | null>(null);
-
-  useEffect(() => {
-    // Only fetch once on mount
-    setParams(readBridgeParams());
-  }, []);
 
   useEffect(() => {
     if (isConnected && chainId && switchChain) {
@@ -99,8 +94,13 @@ const FastBridgeShowcase = () => {
     }
   }, [isConnected, chainId, chains, switchChain]);
 
+  const receiveAssetOverrideKey = useMemo(
+    () => getReceiveAssetKey(receiveAssetOverride),
+    [receiveAssetOverride]
+  );
+
   const receiveDestination = useMemo(() => {
-    if (receiveAssetOverride?.chainId === appConfig.chainId) {
+    if (receiveAssetOverrideKey) {
       return undefined;
     }
 
@@ -113,7 +113,7 @@ const FastBridgeShowcase = () => {
     appConfig.chainId,
     appConfig.nexusPrimaryToken,
     chainSlug,
-    receiveAssetOverride,
+    receiveAssetOverrideKey,
   ]);
 
   const nexusConfig = useMemo<NexusOneConfig>(() => {

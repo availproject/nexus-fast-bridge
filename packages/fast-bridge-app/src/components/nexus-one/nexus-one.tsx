@@ -3997,13 +3997,29 @@ export function NexusOne({
     if (destinationPrefill && !destinationToken) return;
 
     if (sourceToken) {
-      setFromTokens([
-        { ...sourceToken, userAmount: config.prefill?.amount ?? "" },
-      ]);
+      setFromTokens((current) => {
+        const nextSourceToken = {
+          ...sourceToken,
+          userAmount: config.prefill?.amount ?? "",
+        };
+        const currentSourceToken = current[0];
+        if (
+          current.length === 1 &&
+          isSameTokenSelection(currentSourceToken, nextSourceToken) &&
+          currentSourceToken.userAmount === nextSourceToken.userAmount
+        ) {
+          return current;
+        }
+        return [nextSourceToken];
+      });
       setSourceSelectionTouched(true);
     }
     if (destinationToken) {
-      setToToken(destinationToken);
+      setToToken((current) =>
+        isSameTokenSelection(current, destinationToken)
+          ? current
+          : destinationToken
+      );
     }
     setSwapType("exactIn");
     appliedTokenPrefillRef.current = prefillKey;
