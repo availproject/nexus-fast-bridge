@@ -40,8 +40,8 @@ interface NexusContextType {
   bridgableBalance: UserAsset[] | null;
   deinitializeNexus: () => Promise<void>;
   exchangeRate: Record<string, number> | null;
-  fetchBridgableBalance: () => Promise<void>;
-  fetchSwapBalance: () => Promise<void>;
+  fetchBridgableBalance: (options?: BalanceFetchOptions) => Promise<void>;
+  fetchSwapBalance: (options?: BalanceFetchOptions) => Promise<void>;
   getFiatValue: (amount: number, token: string) => number;
   handleInit: (provider: EthereumProvider) => Promise<void>;
   initializeNexus: (provider: EthereumProvider) => Promise<void>;
@@ -56,6 +56,10 @@ interface NexusContextType {
   swapBalance: UserAsset[] | null;
   swapIntent: RefObject<OnSwapIntentHookData | null>;
   swapSupportedChainsAndTokens: SupportedChainsResult | null;
+}
+
+interface BalanceFetchOptions {
+  force?: boolean;
 }
 
 export const NexusContext = createContext<NexusContextType | undefined>(
@@ -132,6 +136,8 @@ const NexusProvider = ({
   );
   const [swapBalance, setSwapBalance] = useState<UserAsset[] | null>(null);
   const exchangeRate = useRef<Record<string, number> | null>(null);
+  const bridgableBalanceRequestRef = useRef<Promise<void> | null>(null);
+  const swapBalanceRequestRef = useRef<Promise<void> | null>(null);
   const usdRateCache = useRef<Record<string, number>>({});
   const usdRateRequests = useRef<Record<string, Promise<number | null>>>({});
 
@@ -293,23 +299,26 @@ const NexusProvider = ({
     [cacheUsdRate, getLocalUsdRate, usdPeggedSymbols]
   );
 
-  const initializeNexus = async (provider: EthereumProvider) => {
-    setLoading(true);
-    try {
-      if (sdk.isInitialized()) {
-        throw new Error("Nexus is already initialized");
+  const initializeNexus = useCallback(
+    async (provider: EthereumProvider) => {
+      setLoading(true);
+      try {
+        if (sdk.isInitialized()) {
+          throw new Error("Nexus is already initialized");
+        }
+        await sdk.initialize(provider);
+        setNexusSDK(sdk);
+      } catch (error) {
+        console.error("Error initializing Nexus:", error);
+        throw error;
+      } finally {
+        setLoading(false);
       }
-      await sdk.initialize(provider);
-      setNexusSDK(sdk);
-    } catch (error) {
-      console.error("Error initializing Nexus:", error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [sdk]
+  );
 
-  const deinitializeNexus = async () => {
+  const deinitializeNexus = useCallback(async () => {
     try {
       if (!nexusSDK) {
         return;
@@ -326,9 +335,9 @@ const NexusProvider = ({
     } catch (error) {
       console.error("Error deinitializing Nexus:", error);
     }
-  };
+  }, [nexusSDK]);
 
-  const attachEventHooks = () => {
+  const attachEventHooks = useCallback(() => {
     sdk.setOnAllowanceHook((data: OnAllowanceHookData) => {
       /**
        * Useful when you want the user to select, min, max or a custom value
@@ -360,47 +369,83 @@ const NexusProvider = ({
        */
       swapIntent.current = data;
     });
-  };
+  }, [sdk]);
 
-  const handleInit = async (provider: EthereumProvider) => {
-    if (sdk.isInitialized() || loading) {
-      return;
+  const handleInit = useCallback(
+    async (provider: EthereumProvider) => {
+      if (sdk.isInitialized() || loading) {
+        return;
+      }
+
+      if (!provider || typeof provider.request !== "function") {
+        console.error("[NexusProvider] Invalid provider:", provider);
+        throw new Error("Invalid EIP-1193 provider");
+      }
+
+      await initializeNexus(provider);
+
+      await setupNexus();
+
+      attachEventHooks();
+    },
+    [attachEventHooks, initializeNexus, loading, sdk, setupNexus]
+  );
+
+  const fetchBridgableBalance = useCallback(async () => {
+    if (bridgableBalanceRequestRef.current) {
+      return bridgableBalanceRequestRef.current;
     }
 
-    if (!provider || typeof provider.request !== "function") {
-      console.error("[NexusProvider] Invalid provider:", provider);
-      throw new Error("Invalid EIP-1193 provider");
-    }
+    const request = (async () => {
+      try {
+        const updatedBalance = await sdk.getBalancesForBridge();
+        setBridgableBalance(updatedBalance);
+      } catch (error) {
+        console.error("Error fetching bridgable balance:", error);
+      }
+    })();
 
-    await initializeNexus(provider);
-
-    await setupNexus();
-
-    attachEventHooks();
-  };
-
-  const fetchBridgableBalance = async () => {
+    bridgableBalanceRequestRef.current = request;
     try {
-      const updatedBalance = await sdk.getBalancesForBridge();
-      setBridgableBalance(updatedBalance);
-    } catch (error) {
-      console.error("Error fetching bridgable balance:", error);
+      await request;
+    } finally {
+      if (bridgableBalanceRequestRef.current === request) {
+        bridgableBalanceRequestRef.current = null;
+      }
     }
-  };
+  }, [sdk]);
 
-  const fetchSwapBalance = async () => {
+  const fetchSwapBalance = useCallback(async () => {
+    if (swapBalanceRequestRef.current) {
+      return swapBalanceRequestRef.current;
+    }
+
+    const request = (async () => {
+      try {
+        const updatedBalance = await sdk.getBalancesForSwap();
+        setSwapBalance(updatedBalance);
+      } catch (error) {
+        console.error("Error fetching swap balance:", error);
+      }
+    })();
+
+    swapBalanceRequestRef.current = request;
     try {
-      const updatedBalance = await sdk.getBalancesForSwap();
-      setSwapBalance(updatedBalance);
-    } catch (error) {
-      console.error("Error fetching swap balance:", error);
+      await request;
+    } finally {
+      if (swapBalanceRequestRef.current === request) {
+        swapBalanceRequestRef.current = null;
+      }
     }
-  };
+  }, [sdk]);
 
-  function getFiatValue(amount: number, token: string) {
-    const rate = getLocalUsdRate(token);
-    return rate * amount;
-  }
+  const getFiatValue = useCallback(
+    (amount: number, token: string) => {
+      const rate = getLocalUsdRate(token);
+      return rate * amount;
+    },
+    [getLocalUsdRate]
+  );
 
   useAccountEffect({
     onDisconnect() {
@@ -408,37 +453,58 @@ const NexusProvider = ({
     },
   });
 
-  const setIntent = (data: OnIntentHookData | null) => {
+  const setIntent = useCallback((data: OnIntentHookData | null) => {
     intent.current = data;
-  };
+  }, []);
 
-  const setAllowance = (data: OnAllowanceHookData | null) => {
+  const setAllowance = useCallback((data: OnAllowanceHookData | null) => {
     allowance.current = data;
-  };
+  }, []);
 
-  const value = {
-    nexusSDK,
-    initializeNexus,
-    deinitializeNexus,
-    attachEventHooks,
-    intent,
-    allowance,
-    handleInit,
-    supportedChainsAndTokens,
-    swapSupportedChainsAndTokens,
-    bridgableBalance,
-    swapBalance,
-    network: config?.network,
-    loading,
-    fetchBridgableBalance,
-    fetchSwapBalance,
-    swapIntent,
-    exchangeRate: exchangeRate.current,
-    getFiatValue,
-    resolveTokenUsdRate,
-    setIntent,
-    setAllowance,
-  };
+  const value = useMemo<NexusContextType>(
+    () => ({
+      nexusSDK,
+      initializeNexus,
+      deinitializeNexus,
+      attachEventHooks,
+      intent,
+      allowance,
+      handleInit,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
+      bridgableBalance,
+      swapBalance,
+      network: stableConfig.network,
+      loading,
+      fetchBridgableBalance,
+      fetchSwapBalance,
+      swapIntent,
+      exchangeRate: exchangeRate.current,
+      getFiatValue,
+      resolveTokenUsdRate,
+      setIntent,
+      setAllowance,
+    }),
+    [
+      nexusSDK,
+      initializeNexus,
+      deinitializeNexus,
+      attachEventHooks,
+      handleInit,
+      supportedChainsAndTokens,
+      swapSupportedChainsAndTokens,
+      bridgableBalance,
+      swapBalance,
+      stableConfig.network,
+      loading,
+      fetchBridgableBalance,
+      fetchSwapBalance,
+      getFiatValue,
+      resolveTokenUsdRate,
+      setIntent,
+      setAllowance,
+    ]
+  );
   return (
     <NexusContext.Provider value={value}>{children}</NexusContext.Provider>
   );

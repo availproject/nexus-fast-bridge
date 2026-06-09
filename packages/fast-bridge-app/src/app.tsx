@@ -7,6 +7,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
+const NEXUS_PROVIDER_CONFIG = {
+  debug: true,
+  network: "mainnet",
+} as const;
+
 function XSocialIcon() {
   return (
     <svg
@@ -135,12 +140,7 @@ export default function App() {
 
   return (
     <Web3Provider appConfig={appConfig}>
-      <NexusProvider
-        config={{
-          network: "mainnet",
-          debug: true,
-        }}
-      >
+      <NexusProvider config={NEXUS_PROVIDER_CONFIG}>
         <div className="fastbridge-app-shell">
           <Navbar />
           <main className="fastbridge-app-main">
