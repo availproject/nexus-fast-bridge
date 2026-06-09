@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import { useEffect, useRef } from "react";
 import { useStableCallback } from "./use-stable-callback";
 
@@ -20,9 +21,7 @@ export function useInterval(
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!enabled || delay == null) {
-      return;
-    }
+    if (!enabled || delay == null) return;
     if (immediate) {
       savedCallback();
     }

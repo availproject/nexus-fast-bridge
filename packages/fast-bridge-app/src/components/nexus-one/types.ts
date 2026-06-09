@@ -1,66 +1,50 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
-import type { Address } from "viem";
+
+import {
+  type ExecuteParams,
+  type SUPPORTED_CHAINS_IDS,
+} from "@avail-project/nexus-core";
+import { type Address } from "viem";
 
 export type NexusOneMode = "swap" | "send" | "deposit";
 
 /** Exact In: user specifies the "from" amount. Exact Out: user specifies the "to" amount. */
 export type SwapType = "exactIn" | "exactOut";
 
-/**
- * A single DeFi yield/deposit opportunity that can be listed in the deposit widget.
- * Devs pass an array of these so users can pick which protocol to deposit into.
- */
-export interface DepositOpportunity {
-  /** Optional APY string shown in the card, e.g. "4.2%" */
+export type DepositExecuteConfig = Omit<ExecuteParams, "toChainId">;
+
+export interface NexusOneDepositConfig {
   apy?: string;
-  chainId: number;
-  /** Short description shown in the card */
+  chainId: SUPPORTED_CHAINS_IDS;
+  depositTargetLogo?: string;
   description?: string;
-  /** Parameters for sdk.swapAndExecute */
-  execute?:
-    | {
-        to: `0x${string}`;
-        data?: `0x${string}`;
-        value?: bigint;
-        gas: bigint;
-        gasPrice?: "low" | "medium" | "high";
-        tokenApproval?: {
-          token: `0x${string}`;
-          amount: bigint;
-          spender: `0x${string}`;
-        };
-      }
-    | ((
-        amount: bigint,
-        connectedAddress: `0x${string}`
-      ) => {
-        to: `0x${string}`;
-        data?: `0x${string}`;
-        value?: bigint;
-        gas: bigint;
-        gasPrice?: "low" | "medium" | "high";
-        tokenApproval?: {
-          token: `0x${string}`;
-          amount: bigint;
-          spender: `0x${string}`;
-        };
-      });
-  id: string;
-  /** Display label, e.g. "Aave USDC on Polygon" */
+  estimatedTime?: string;
+  executeDeposit: (
+    tokenSymbol: string,
+    tokenAddress: Address,
+    amount: bigint,
+    chainId: number,
+    user: Address
+  ) => DepositExecuteConfig;
+  explorerUrl?: string;
+  gasTokenSymbol?: string;
   label?: string;
-  /** Optional URL to a protocol/token logo */
   logo?: string;
-  /** Protocol name, e.g. "Aave" */
-  protocol: string;
-  /** New subtitle for UI (e.g. "Deposit USDC on Arbitrum") */
+
+  /** Optional labels used by Nexus One history/progress copy. */
+  protocol?: string;
   subtitle?: string;
-  /** New title for UI (e.g. "Aave") */
   title?: string;
   tokenAddress: Address;
-  /** Optional custom token logo provided by developer */
+  tokenDecimals: number;
   tokenLogo?: string;
   tokenSymbol: string;
 }
+
+export type NexusOneDepositMetadata = Omit<
+  NexusOneDepositConfig,
+  "executeDeposit"
+>;
 
 export interface NexusOnePrefill {
   amount?: string;
@@ -86,23 +70,28 @@ export interface NexusOneConfig {
     token: Address;
     chain: number;
   }[];
+  /** Required for deposit mode. Describes the single destination and app call. */
+  deposit?: NexusOneDepositConfig;
   mode: NexusOneMode;
-  /** For deposit mode: list of DeFi opportunities the user can pick from */
-  opportunities?: DepositOpportunity[];
   prefill?: NexusOnePrefill;
 }
 
 export interface NexusOneProps {
+  className?: string;
   config: NexusOneConfig;
   connectedAddress?: Address;
+  defaultOpen?: boolean;
   embed?: boolean;
   onClose?: () => void;
   onComplete?: (explorerUrl?: string) => void;
   onError?: (message: string) => void;
+  onOpenChange?: (open: boolean) => void;
   onReceiveAssetChange?: (asset: {
     chainId?: number;
+    chainName?: string;
     contractAddress: string;
     symbol: string;
   }) => void;
   onStart?: () => void;
+  open?: boolean;
 }

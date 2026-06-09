@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+import { useEffect, useRef, useState } from "react";
 
 interface UseStopwatchOptions {
   intervalMs?: number;
@@ -14,26 +15,24 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setElapsedSeconds(0);
-  }, []);
+  };
 
-  const stop = useCallback(() => {
+  const stop = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  }, []);
+  };
 
-  const start = useCallback(() => {
-    if (timerRef.current) {
-      return;
-    }
+  const start = () => {
+    if (timerRef.current) return;
     timerRef.current = setInterval(() => {
       // 1s == 1000ms; we add fractional seconds per tick
       setElapsedSeconds((prev) => prev + intervalMs / 1000);
     }, intervalMs);
-  }, [intervalMs]);
+  };
 
   useEffect(() => {
     if (running) {
@@ -42,7 +41,8 @@ export function useStopwatch(options: UseStopwatchOptions = {}) {
       stop();
     }
     return stop;
-  }, [running, start, stop]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, intervalMs]);
 
   return {
     seconds: elapsedSeconds,

@@ -163,19 +163,18 @@ export default function LandingPage() {
           </div>
 
           {/* Right: Bridge Card */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via onKeyDown */}
-          <div
+          <button
             className="bridge-card-wrapper"
             onClick={handleBridgeClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleBridgeClick();
-              }
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              font: "inherit",
+              padding: 0,
+              textAlign: "left",
             }}
-            role="button"
-            style={{ cursor: "pointer" }}
-            tabIndex={0}
+            type="button"
           >
             <div className="bridge-card">
               <div className="bridge-form">
@@ -235,9 +234,7 @@ export default function LandingPage() {
                   <span className="recipient-text">Add Recipient Address</span>
                 </div>
               </div>
-              <button className="connect-wallet-btn" type="button">
-                Bridge
-              </button>
+              <span className="connect-wallet-btn">Bridge</span>
               <div className="powered-by">
                 <span>Powered by</span>
                 <img
@@ -263,7 +260,7 @@ export default function LandingPage() {
               <div className="dot" data-slide="11" />
               <div className="dot" data-slide="12" />
             </div>
-          </div>
+          </button>
         </div>
       </section>
 

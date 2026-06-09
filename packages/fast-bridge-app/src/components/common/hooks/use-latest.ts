@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import { useLayoutEffect, useRef } from "react";
 
 /**

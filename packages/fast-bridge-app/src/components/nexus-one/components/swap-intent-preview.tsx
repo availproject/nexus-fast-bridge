@@ -5,10 +5,11 @@ import { CHAIN_METADATA, type SwapStepType } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { ChevronDown, Info, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
+import { getShortChainName } from "../../common/utils/constant";
 import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
-import type { DepositOpportunity, NexusOneMode } from "../types";
-import type { SwapTokenOption } from "./swap-asset-selector";
+import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import { type SwapTokenOption } from "./swap-asset-selector";
 
 export interface SwapIntentSource {
   amount: string;
@@ -67,7 +68,7 @@ export interface SwapIntentPreviewProps {
   mode?: NexusOneMode;
   onAccept: () => void;
   onReject: () => void;
-  opportunity?: DepositOpportunity;
+  opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
   steps?: Array<{ id: number; completed: boolean; step: SwapStepType }>;
   supportedTokenAssets?: any[] | null;
@@ -89,12 +90,8 @@ const brand = "var(--foreground-brand, #006BF4)";
 const stripNumeric = (value: unknown) => String(value).replace(/[^0-9.-]/g, "");
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = stripNumeric(value);
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -119,27 +116,19 @@ const formatAmount = (
 };
 
 const formatUsdDelta = (value: Decimal) => {
-  if (value.gt(0) && value.lt(0.01)) {
-    return "-<0.01 USD";
-  }
+  if (value.gt(0) && value.lt(0.01)) return "-<0.01 USD";
   return value.gt(0) ? `-${formatAmount(value)} USD` : "0 USD";
 };
 
 const formatUsdAmount = (value: Decimal) => {
-  if (value.gt(0) && value.lt(0.01)) {
-    return "<0.01 USD";
-  }
+  if (value.gt(0) && value.lt(0.01)) return "<0.01 USD";
   return value.gt(0) ? `${formatAmount(value)} USD` : "0 USD";
 };
 
 const formatUsdValue = (value: Decimal) => {
   const absolute = value.abs();
-  if (absolute.eq(0)) {
-    return "$0";
-  }
-  if (absolute.lt(0.000_001)) {
-    return value.lt(0) ? "-<$0.000001" : "<$0.000001";
-  }
+  if (absolute.eq(0)) return "$0";
+  if (absolute.lt(0.000001)) return value.lt(0) ? "-<$0.000001" : "<$0.000001";
 
   const amount = absolute.lt(0.01)
     ? formatAmount(absolute, { max: 6 })
@@ -193,15 +182,10 @@ const normalizeIntentToken = <
 
 const formatSymbolSummary = (symbols: string[]) => {
   const visible = unique(symbols);
-  if (visible.length === 0) {
-    return "-";
-  }
-  if (visible.length <= 2) {
-    return visible.join(", ");
-  }
-  if (visible.length === 3) {
+  if (visible.length === 0) return "-";
+  if (visible.length <= 2) return visible.join(", ");
+  if (visible.length === 3)
     return `${visible[0]}, ${visible[1]} and ${visible[2]}`;
-  }
 
   const others = visible.length - 2;
   return `${visible[0]}, ${visible[1]} and ${others} other${others === 1 ? "" : "s"}`;
@@ -360,7 +344,7 @@ function TruncatedAddress({ address }: { address: string }) {
             right: 0,
             top: "calc(100% + 8px)",
             whiteSpace: "nowrap",
-            zIndex: 10_000,
+            zIndex: 10000,
           }}
         >
           {address}
@@ -451,7 +435,7 @@ function InlineInfoTooltip({ message }: { message: string }) {
             transform: "translateX(-50%)",
             whiteSpace: "normal",
             width: "210px",
-            zIndex: 10_000,
+            zIndex: 10000,
           }}
         >
           {message}
@@ -663,7 +647,7 @@ export function SwapIntentPreview({
   const hasResolvedQuote = Boolean(
     normalizedIntentDest && normalizedIntentSources.length > 0
   );
-  const quoteUnavailable = !(isLoading || hasResolvedQuote);
+  const quoteUnavailable = !isLoading && !hasResolvedQuote;
 
   const destTokenSymbol =
     normalizedIntentDest?.token.symbol ||
@@ -672,8 +656,11 @@ export function SwapIntentPreview({
     "-";
   const destChainName =
     flowMode === "deposit"
-      ? opportunity?.title || opportunity?.protocol || "Opportunity"
-      : normalizedIntentDest?.chain.name || toToken?.chainName || "";
+      ? opportunity?.title || opportunity?.protocol || "App"
+      : getShortChainName(
+          normalizedIntentDest?.chain.id ?? toToken?.chainId,
+          normalizedIntentDest?.chain.name || toToken?.chainName || ""
+        );
 
   const requestedDestinationAmount = isExactOutDisplayFlow
     ? parseDecimal(toAmountTokens ?? toAmount)
@@ -844,8 +831,8 @@ export function SwapIntentPreview({
   const pendingLabel = isLoading ? "Fetching quote" : "Quote unavailable";
   const pendingValue = isLoading ? "..." : "--";
   const sourceUsd =
-    intentSourceUsdNumber !== undefined
-      ? `${formatAmount(intentSourceUsdNumber)} USD`
+    effectiveSourceUsdNumber !== undefined
+      ? `${formatAmount(effectiveSourceUsdNumber)} USD`
       : pendingValue;
   const receiveUsd = hasFiatQuote
     ? `${formatAmount(destinationUsdNumber)} USD`
@@ -889,7 +876,7 @@ export function SwapIntentPreview({
             tokenLogo: source.token.logo || fallbackSource?.logo || "",
             chainLogo: source.chain.logo || fallbackSource?.chainLogo || "",
             symbol: source.token.symbol,
-            chainName: source.chain.name,
+            chainName: getShortChainName(source.chain.id, source.chain.name),
             tokenAmount: `${formatTokenAmount(source.amount)} ${source.token.symbol}`,
             usdAmount:
               parseDecimal(source.value) !== undefined
@@ -907,7 +894,7 @@ export function SwapIntentPreview({
             tokenLogo: source.logo || "",
             chainLogo: source.chainLogo || "",
             symbol: source.symbol,
-            chainName: source.chainName || "",
+            chainName: getShortChainName(source.chainId, source.chainName),
             tokenAmount: sourceAmount
               ? `${formatTokenAmount(sourceAmount)} ${source.symbol}`
               : pendingLabel,
@@ -932,8 +919,10 @@ export function SwapIntentPreview({
           chainLogo:
             normalizedIntentDest?.chain.logo || toToken?.chainLogo || "",
           symbol: destTokenSymbol,
-          chainName:
-            normalizedIntentDest?.chain.name || toToken?.chainName || "",
+          chainName: getShortChainName(
+            normalizedIntentDest?.chain.id ?? toToken?.chainId,
+            normalizedIntentDest?.chain.name || toToken?.chainName || ""
+          ),
           tokenAmount: `${formatTokenAmount(displayOnlyDestinationCoverage)} ${destTokenSymbol}`,
           usdAmount:
             displayOnlyDestinationCoverageUsd !== undefined
@@ -946,6 +935,7 @@ export function SwapIntentPreview({
     ? [...baseSourceDetailRows, displayOnlyDestinationSourceRow]
     : baseSourceDetailRows;
   const singleSourceHeader = (() => {
+    if (displayOnlyDestinationSourceRow) return null;
     if (
       !displayOnlyDestinationSourceRow &&
       normalizedIntentSources.length === 1
@@ -953,7 +943,7 @@ export function SwapIntentPreview({
       const source = normalizedIntentSources[0];
       return {
         amount: formatTokenAmount(source.amount),
-        chainName: source.chain.name,
+        chainName: getShortChainName(source.chain.id, source.chain.name),
         symbol: source.token.symbol,
       };
     }
@@ -961,12 +951,10 @@ export function SwapIntentPreview({
     if (normalizedIntentSources.length === 0 && fallbackSources.length === 1) {
       const source = fallbackSources[0];
       const sourceAmount = source.userAmount || fromAmount;
-      if (!sourceAmount) {
-        return null;
-      }
+      if (!sourceAmount) return null;
       return {
         amount: formatTokenAmount(sourceAmount),
-        chainName: source.chainName || "",
+        chainName: getShortChainName(source.chainId, source.chainName),
         symbol: source.symbol,
       };
     }
@@ -975,8 +963,8 @@ export function SwapIntentPreview({
   })();
   const sourceHeaderAmount =
     singleSourceHeader?.amount ||
-    (intentSourceUsdNumber !== undefined
-      ? formatAmount(intentSourceUsdNumber)
+    (effectiveSourceUsdNumber !== undefined
+      ? formatAmount(effectiveSourceUsdNumber)
       : pendingValue);
   const sourceHeaderUnit = singleSourceHeader?.symbol || "USD";
   const sourceHeaderSubtitle = (() => {
@@ -1016,12 +1004,8 @@ export function SwapIntentPreview({
       : flowMode === "send" || hasRecipientTransfer
         ? "Send now"
         : "Swap now";
-  const shouldPulseCta = !(
-    isLoading ||
-    isRefreshing ||
-    isExecuting ||
-    quoteUnavailable
-  );
+  const shouldPulseCta =
+    !isLoading && !isRefreshing && !isExecuting && !quoteUnavailable;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>

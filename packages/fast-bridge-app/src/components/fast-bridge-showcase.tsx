@@ -3,7 +3,7 @@ import { TOKEN_CONTRACT_ADDRESSES } from "@avail-project/nexus-core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Address } from "viem";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
-import { getChainSlugById } from "@/config/chain-settings";
+import { getChainSlugById, getChainSlugByName } from "@/config/chain-settings";
 import { readBridgeParams } from "../lib/url-params";
 import { useRuntime } from "../providers/runtime-context";
 import NexusOne from "./nexus-one/nexus-one";
@@ -18,6 +18,7 @@ const DESTINATION_TOKEN_BY_CHAIN_SLUG: Record<string, string> = {
 
 interface ReceiveAsset {
   chainId?: number;
+  chainName?: string;
   contractAddress: string;
   symbol: string;
 }
@@ -30,6 +31,13 @@ const tokenAddresses = TOKEN_CONTRACT_ADDRESSES as Record<
   string,
   Partial<Record<number, Address>>
 >;
+
+function getReceiveAssetKey(asset: ReceiveAsset | null): string {
+  if (!asset) {
+    return "";
+  }
+  return `${asset.chainId ?? asset.chainName ?? "unknown"}:${asset.contractAddress.toLowerCase()}:${asset.symbol.toUpperCase()}`;
+}
 
 function getReceiveTokenAddress(
   chainId: number,
@@ -128,8 +136,14 @@ const FastBridgeShowcase = () => {
 
   const handleReceiveAssetChange = useCallback(
     (asset: ReceiveAsset) => {
-      setReceiveAssetOverride(asset);
-      const slug = asset.chainId ? getChainSlugById(asset.chainId) : undefined;
+      setReceiveAssetOverride((current) =>
+        getReceiveAssetKey(current) === getReceiveAssetKey(asset)
+          ? current
+          : asset
+      );
+      const slug =
+        (asset.chainId ? getChainSlugById(asset.chainId) : undefined) ??
+        getChainSlugByName(asset.chainName);
       if (slug && slug !== chainSlug) {
         setChain(slug);
       }

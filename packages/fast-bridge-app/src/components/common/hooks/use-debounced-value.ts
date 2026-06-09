@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "./use-debounced-callback";
 
@@ -11,7 +12,8 @@ export function useDebouncedValue<T>(value: T, delay: number): T {
   useEffect(() => {
     setter(value);
     return setter.cancel;
-  }, [setter, value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, delay]);
 
   return debounced;
 }

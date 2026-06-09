@@ -1,12 +1,12 @@
-import type {
-  BridgeStepType,
-  NexusNetwork,
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+import {
+  type BridgeStepType,
+  type NexusNetwork,
   NexusSDK,
-  OnAllowanceHookData,
-  OnIntentHookData,
-  SUPPORTED_CHAINS_IDS,
-  SUPPORTED_TOKENS,
-  UserAsset,
+  type OnAllowanceHookData,
+  type OnIntentHookData,
+  parseUnits,
+  type UserAsset,
 } from "@avail-project/nexus-core";
 import {
   type RefObject,
@@ -18,16 +18,14 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress } from "viem";
-import { persistToken } from "@/providers/runtime-context";
-import { resolveUsdLimit } from "../../../lib/bridge-limits";
-import type { TransactionStatus } from "../tx/types";
+import { type TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
-import type {
-  SourceCoverageState,
-  TransactionFlowExecutor,
-  TransactionFlowInputs,
-  TransactionFlowPrefill,
-  TransactionFlowType,
+import {
+  type SourceCoverageState,
+  type TransactionFlowExecutor,
+  type TransactionFlowInputs,
+  type TransactionFlowPrefill,
+  type TransactionFlowType,
 } from "../types/transaction-flow";
 import {
   buildInitialInputs,
@@ -35,34 +33,29 @@ import {
   formatAmountForDisplay,
   getCoverageDecimals,
   MAX_AMOUNT_DEBOUNCE_MS,
+  normalizeMaxAmount,
 } from "../utils/transaction-flow";
 import { useDebouncedCallback } from "./use-debounced-callback";
 import { useNexusError } from "./use-nexus-error";
 import { usePolling } from "./use-polling";
 import { useStopwatch } from "./use-stopwatch";
 import { useTransactionExecution } from "./use-transaction-execution";
-import { useUsdMaxAmount } from "./use-usd-max-amount";
 
 interface BaseTransactionFlowProps {
   allowance: RefObject<OnAllowanceHookData | null>;
   bridgableBalance: UserAsset[] | null;
-  denyIntentOnReset?: boolean;
   executeTransaction: TransactionFlowExecutor;
   fetchBalance: () => Promise<void>;
   intent: RefObject<OnIntentHookData | null>;
   isSourceMenuOpen?: boolean;
-  mapUsdmToUsdcBalance?: boolean;
   maxAmount?: string | number;
-  maxAmountByDestinationChainId?: Record<number, number>;
-  maxAmountByTokenAndChain?: Record<string, Record<number, number>>;
   network: NexusNetwork;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
-  onComplete?: (explorerUrl?: string) => void | Promise<void>;
+  onComplete?: (explorerUrl?: string) => void;
   onError?: (message: string) => void;
   onStart?: () => void;
   prefill?: TransactionFlowPrefill;
-  supportedTokens?: string[];
   type: TransactionFlowType;
 }
 
@@ -70,12 +63,10 @@ export interface UseTransactionFlowProps extends BaseTransactionFlowProps {
   connectedAddress?: Address;
 }
 
-interface State {
+type State = {
   inputs: TransactionFlowInputs;
   status: TransactionStatus;
-}
-
-type AllowanceStepState = "not-required" | "pending" | "completed";
+};
 
 type Action =
   | { type: "setInputs"; payload: Partial<TransactionFlowInputs> }
@@ -96,14 +87,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     fetchBalance,
     allowance,
     maxAmount,
-    maxAmountByDestinationChainId,
-    maxAmountByTokenAndChain,
     isSourceMenuOpen = false,
     notifyHistoryRefresh,
-    mapUsdmToUsdcBalance = false,
-    denyIntentOnReset = true,
     executeTransaction,
-    supportedTokens,
   } = props;
 
   const connectedAddress = props.connectedAddress;
@@ -129,9 +115,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
           }),
         };
       case "setStatus":
-        if (state.status === action.payload) {
-          return state;
-        }
         return { ...state, status: action.payload };
       default:
         return state;
@@ -140,62 +123,12 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const inputs = state.inputs;
-
-  const prevPrefillChainId = useRef(prefill?.chainId);
-  useEffect(() => {
-    if (prefill?.chainId && prefill.chainId !== prevPrefillChainId.current) {
-      prevPrefillChainId.current = prefill.chainId;
-      dispatch({
-        type: "setInputs",
-        payload: { chain: prefill.chainId as SUPPORTED_CHAINS_IDS },
-      });
-    }
-  }, [prefill?.chainId]);
-
-  const prevPrefillToken = useRef(prefill?.token);
-  useEffect(() => {
-    if (prefill?.token && prefill.token !== prevPrefillToken.current) {
-      prevPrefillToken.current = prefill.token;
-      dispatch({
-        type: "setInputs",
-        payload: { token: prefill.token as SUPPORTED_TOKENS },
-      });
-    }
-  }, [prefill?.token]);
-
-  useEffect(() => {
-    if (
-      supportedTokens &&
-      supportedTokens.length > 0 &&
-      inputs?.token &&
-      !(
-        supportedTokens.includes(inputs.token.toUpperCase()) ||
-        supportedTokens.includes(inputs.token)
-      )
-    ) {
-      const fallback = supportedTokens[0] as SUPPORTED_TOKENS;
-      dispatch({
-        type: "setInputs",
-        payload: { token: fallback },
-      });
-      persistToken(fallback);
-    }
-  }, [supportedTokens, inputs?.token]);
-
   const setInputs = (
     next: TransactionFlowInputs | Partial<TransactionFlowInputs>
   ) => {
-    const payload = next as Partial<TransactionFlowInputs>;
-    const hasActualChange = Object.entries(payload).some(
-      ([key, value]) =>
-        state.inputs[key as keyof TransactionFlowInputs] !== value
-    );
-    if (!hasActualChange) {
-      return;
-    }
     dispatch({
       type: "setInputs",
-      payload,
+      payload: next as Partial<TransactionFlowInputs>,
     });
   };
 
@@ -207,8 +140,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const previousConnectedAddressRef = useRef<Address | undefined>(
     connectedAddress
   );
-  const previousSelectedTokenRef = useRef(inputs?.token);
-  const lastInvalidationKeyRef = useRef<string>("");
   const maxAmountRequestIdRef = useRef(0);
   const [selectedSourceChains, setSelectedSourceChains] = useState<
     number[] | null
@@ -218,41 +149,16 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   >(null);
   const [appliedSourceSelectionKey, setAppliedSourceSelectionKey] =
     useState("ALL");
-  const [allowanceStepState, setAllowanceStepState] =
-    useState<AllowanceStepState>("not-required");
-  const [allowanceApprovalsRequired, setAllowanceApprovalsRequired] =
-    useState(0);
-  const [allowanceApprovalsCompleted, setAllowanceApprovalsCompleted] =
-    useState(0);
   const {
     steps,
     onStepsList,
     onStepComplete,
     reset: resetSteps,
   } = useTransactionSteps<BridgeStepType>();
-  // Resolve the USD dollar limit for the current destination chain and token.
-  // Delegates to the shared resolver which merges global cross-chain limits
-  // with any per-app chainFeatures overrides.
-  const usdLimitForDest = useMemo(
-    () =>
-      resolveUsdLimit({
-        token: inputs?.token,
-        chainId: inputs?.chain,
-        maxAmount,
-        maxAmountByDestinationChainId,
-        maxAmountByTokenAndChain,
-      }),
-    [
-      maxAmount,
-      maxAmountByDestinationChainId,
-      maxAmountByTokenAndChain,
-      inputs?.chain,
-      inputs?.token,
-    ]
+  const configuredMaxAmount = useMemo(
+    () => normalizeMaxAmount(maxAmount),
+    [maxAmount]
   );
-
-  // Convert the USD limit to a token-unit string using live pricing.
-  const configuredMaxAmount = useUsdMaxAmount(usdLimitForDest, inputs?.token);
 
   const areInputsValid = useMemo(() => {
     const hasToken = inputs?.token !== undefined && inputs?.token !== null;
@@ -265,19 +171,17 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   const filteredBridgableBalance = useMemo(() => {
     return bridgableBalance?.find((bal) =>
-      inputs?.token === "USDM" && mapUsdmToUsdcBalance
+      inputs?.token === "USDM"
         ? bal?.symbol === "USDC"
         : bal?.symbol === inputs?.token
     );
-  }, [bridgableBalance, inputs?.token, mapUsdmToUsdcBalance]);
+  }, [bridgableBalance, inputs?.token]);
 
   const availableSources = useMemo(() => {
     const breakdown = filteredBridgableBalance?.breakdown ?? [];
     const destinationChainId = inputs?.chain;
     const nonZero = breakdown.filter((source) => {
-      if (Number.parseFloat(source.balance ?? "0") <= 0) {
-        return false;
-      }
+      if (Number.parseFloat(source.balance ?? "0") <= 0) return false;
       if (typeof destinationChainId === "number") {
         return source.chain.id !== destinationChainId;
       }
@@ -291,11 +195,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     }
     return nonZero.sort((a, b) => {
       try {
-        const aRaw = nexusSDK.utils.parseUnits(a.balance ?? "0", decimals);
-        const bRaw = nexusSDK.utils.parseUnits(b.balance ?? "0", decimals);
-        if (aRaw === bRaw) {
-          return 0;
-        }
+        const aRaw = parseUnits(a.balance ?? "0", decimals);
+        const bRaw = parseUnits(b.balance ?? "0", decimals);
+        if (aRaw === bRaw) return 0;
         return aRaw > bRaw ? -1 : 1;
       } catch {
         return Number.parseFloat(b.balance) - Number.parseFloat(a.balance);
@@ -332,9 +234,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       : undefined;
 
   const sourceSelectionKey = useMemo(() => {
-    if (allAvailableSourceChainIds.length === 0) {
-      return "NONE";
-    }
+    if (allAvailableSourceChainIds.length === 0) return "NONE";
     if (!selectedSourceChains || selectedSourceChains.length === 0) {
       return "ALL";
     }
@@ -349,18 +249,14 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const intentSourceSpendAmount = intent.current?.intent?.sourcesTotal;
 
   const getMaxForCurrentSelection = useCallback(async () => {
-    if (!(nexusSDK && inputs?.token && inputs?.chain)) {
-      return undefined;
-    }
+    if (!nexusSDK || !inputs?.token || !inputs?.chain) return undefined;
     const maxBalAvailable = await nexusSDK.calculateMaxForBridge({
       token: inputs.token,
       toChainId: inputs.chain,
       recipient: inputs.recipient,
       sourceChains: sourceChainsForSdk,
     });
-    if (!maxBalAvailable?.amount) {
-      return "0";
-    }
+    if (!maxBalAvailable?.amount) return "0";
     return clampAmountToMax({
       amount: maxBalAvailable.amount,
       maxAmount: configuredMaxAmount,
@@ -380,9 +276,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
   const toggleSourceChain = useCallback(
     (chainId: number) => {
       setSelectedSourceChains((prev) => {
-        if (allAvailableSourceChainIds.length === 0) {
-          return prev;
-        }
+        if (allAvailableSourceChainIds.length === 0) return prev;
         const current =
           prev && prev.length > 0 ? prev : allAvailableSourceChainIds;
         const next = current.includes(chainId)
@@ -400,7 +294,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     [allAvailableSourceChainIds]
   );
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Computes source-coverage state from SDK intent, selected chains, and fallbacks.
   const sourceSelection = useMemo(() => {
     const amount =
       intentSourceSpendAmount?.trim() ?? inputs?.amount?.trim() ?? "";
@@ -415,13 +308,9 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       !nexusSDK || typeof decimals !== "number"
         ? BigInt(0)
         : availableSources.reduce((sum, source) => {
-            if (!selectedChainSet.has(source.chain.id)) {
-              return sum;
-            }
+            if (!selectedChainSet.has(source.chain.id)) return sum;
             try {
-              return (
-                sum + nexusSDK.utils.parseUnits(source.balance ?? "0", decimals)
-              );
+              return sum + parseUnits(source.balance ?? "0", decimals);
             } catch {
               return sum;
             }
@@ -442,7 +331,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       isBelowSafetyBuffer: false,
     };
 
-    if (!(nexusSDK && inputs?.token && inputs?.chain && amount)) {
+    if (!nexusSDK || !inputs?.token || !inputs?.chain || !amount) {
       return baseSelection;
     }
 
@@ -465,12 +354,12 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
       const coverageState: SourceCoverageState =
         selectedTotalRaw < requiredRaw ? "error" : "healthy";
 
-      let coverageBasisPoints = 10_000;
-      if (requiredRaw > BigInt(0) && selectedTotalRaw < requiredRaw) {
-        coverageBasisPoints = Number(
-          (selectedTotalRaw * BigInt(10_000)) / requiredRaw
-        );
-      }
+      const coverageBasisPoints =
+        requiredRaw === BigInt(0)
+          ? 10_000
+          : selectedTotalRaw >= requiredRaw
+            ? 10_000
+            : Number((selectedTotalRaw * BigInt(10_000)) / requiredRaw);
 
       return {
         selectedTotal,
@@ -505,17 +394,6 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     availableSources,
     effectiveSelectedSourceChains,
   ]);
-
-  const hasPendingAllowanceApproval = Boolean(allowance.current);
-  const registerAllowanceUserApproval = useCallback(() => {
-    setAllowanceApprovalsCompleted((previousCompleted) => {
-      const requiredCount = Math.max(1, allowanceApprovalsRequired);
-      if (previousCompleted >= requiredCount) {
-        return previousCompleted;
-      }
-      return previousCompleted + 1;
-    });
-  }, [allowanceApprovalsRequired]);
 
   const stopwatch = useStopwatch({ intervalMs: 100 });
   const setStatus = useCallback(
@@ -567,10 +445,8 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     onStart,
     onComplete,
     onError,
-    onAllowanceUserApproval: registerAllowanceUserApproval,
     fetchBalance,
     notifyHistoryRefresh,
-    denyIntentOnReset,
   });
 
   usePolling(
@@ -581,21 +457,17 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     async () => {
       await refreshIntent();
     },
-    15_000
+    15000
   );
 
   const debouncedRefreshMaxForSelection = useDebouncedCallback(
-    async (requestId: unknown) => {
+    async (requestId: number) => {
       try {
         const maxForCurrentSelection = await getMaxForCurrentSelection();
-        if (requestId !== maxAmountRequestIdRef.current) {
-          return;
-        }
+        if (requestId !== maxAmountRequestIdRef.current) return;
         setSelectedSourcesMaxAmount(maxForCurrentSelection ?? "0");
       } catch (error) {
-        if (requestId !== maxAmountRequestIdRef.current) {
-          return;
-        }
+        if (requestId !== maxAmountRequestIdRef.current) return;
         console.error("Unable to calculate max for selected sources:", error);
         setSelectedSourcesMaxAmount("0");
       }
@@ -605,7 +477,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   useEffect(() => {
     debouncedRefreshMaxForSelection.cancel();
-    if (!(nexusSDK && inputs?.token && inputs?.chain)) {
+    if (!nexusSDK || !inputs?.token || !inputs?.chain) {
       maxAmountRequestIdRef.current += 1;
       setSelectedSourcesMaxAmount(null);
       return;
@@ -619,140 +491,54 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     debouncedRefreshMaxForSelection(requestId);
   }, [
     allAvailableSourceChainIds.length,
+    configuredMaxAmount,
     debouncedRefreshMaxForSelection,
+    inputs?.recipient,
+    sourceSelectionKey,
     inputs?.chain,
     inputs?.token,
     nexusSDK,
   ]);
 
   useEffect(() => {
-    if (type !== "bridge" || !connectedAddress) {
-      return;
-    }
-    const hasLockedPrefillRecipient = Boolean(
-      prefill?.recipient && prefill.recipient !== connectedAddress
-    );
+    if (type !== "bridge" || !connectedAddress) return;
     const previousConnectedAddress = previousConnectedAddressRef.current;
     if (!previousConnectedAddress) {
       previousConnectedAddressRef.current = connectedAddress;
-      if (!(hasLockedPrefillRecipient || inputs?.recipient)) {
-        dispatch({
-          type: "setInputs",
-          payload: { recipient: connectedAddress },
-        });
-      }
       return;
     }
-    if (connectedAddress === previousConnectedAddress) {
-      return;
-    }
+    if (connectedAddress === previousConnectedAddress) return;
     previousConnectedAddressRef.current = connectedAddress;
-    if (hasLockedPrefillRecipient) {
-      return;
-    }
+    if (prefill?.recipient) return;
     if (!inputs?.recipient || inputs.recipient === previousConnectedAddress) {
       dispatch({ type: "setInputs", payload: { recipient: connectedAddress } });
     }
   }, [type, connectedAddress, inputs?.recipient, prefill?.recipient]);
 
   useEffect(() => {
-    if (state.status === "success") {
-      return;
-    }
-    const hasInputs = Boolean(
-      inputs?.amount || inputs?.chain || inputs?.recipient || inputs?.token
-    );
-    if (!(hasInputs || intent.current)) {
-      lastInvalidationKeyRef.current = "";
-      return;
-    }
-    const invalidationKey = [
-      inputs?.amount ?? "",
-      inputs?.chain ?? "",
-      inputs?.recipient ?? "",
-      inputs?.token ?? "",
-      intent.current ? "intent" : "no-intent",
-    ].join("|");
-    if (lastInvalidationKeyRef.current === invalidationKey) {
-      return;
-    }
-    lastInvalidationKeyRef.current = invalidationKey;
-    invalidatePendingExecution({ forceResetUI: !areInputsValid });
-  }, [
-    inputs?.amount,
-    inputs?.chain,
-    inputs?.recipient,
-    inputs?.token,
-    intent,
-    invalidatePendingExecution,
-    areInputsValid,
-    state.status,
-  ]);
+    invalidatePendingExecution();
+  }, [inputs, invalidatePendingExecution]);
 
   useEffect(() => {
-    if (previousSelectedTokenRef.current === inputs?.token) {
-      return;
-    }
-    previousSelectedTokenRef.current = inputs?.token;
     setSelectedSourceChains(null);
   }, [inputs?.token]);
 
   useEffect(() => {
-    if (!hasPendingAllowanceApproval) {
-      return;
+    if (isDialogOpen) return;
+    stopwatch.stop();
+    stopwatch.reset();
+    if (state.status === "success" || state.status === "error") {
+      resetSteps();
+      setLastExplorerUrl("");
+      setStatus("idle");
     }
-    const requiredCount = Math.max(1, allowance.current?.sources?.length ?? 1);
-    setAllowanceApprovalsRequired(requiredCount);
-    setAllowanceApprovalsCompleted(0);
-    setAllowanceStepState("pending");
-  }, [allowance, hasPendingAllowanceApproval]);
-
-  useEffect(() => {
-    if (allowanceStepState !== "pending") {
-      return;
-    }
-    const requiredCount = Math.max(1, allowanceApprovalsRequired);
-    if (allowanceApprovalsCompleted >= requiredCount) {
-      setAllowanceStepState("completed");
-    }
-  }, [
-    allowanceApprovalsCompleted,
-    allowanceApprovalsRequired,
-    allowanceStepState,
-  ]);
-
-  useEffect(() => {
-    if (!isDialogOpen && state.status === "idle") {
-      setAllowanceStepState("not-required");
-      setAllowanceApprovalsRequired(0);
-      setAllowanceApprovalsCompleted(0);
-    }
-  }, [isDialogOpen, state.status]);
-
-  useEffect(() => {
-    if (!isDialogOpen) {
-      stopwatch.stop();
-      stopwatch.reset();
-      if (state.status === "success" || state.status === "error") {
-        resetSteps();
-        setLastExplorerUrl("");
-        setStatus("idle");
-      }
-    }
-  }, [
-    isDialogOpen,
-    resetSteps,
-    setStatus,
-    state.status,
-    stopwatch.reset,
-    stopwatch.stop,
-  ]);
+  }, [isDialogOpen, resetSteps, setStatus, state.status, stopwatch]);
 
   useEffect(() => {
     if (txError) {
       setTxError(null);
     }
-  }, [txError]);
+  }, [inputs, txError]);
 
   return {
     inputs,
@@ -788,6 +574,5 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     requiredSafetyTotal: sourceSelection.requiredSafetyTotal,
     maxAvailableAmount: selectedSourcesMaxAmount ?? undefined,
     isInputsValid: areInputsValid,
-    allowanceStepState,
   };
 }

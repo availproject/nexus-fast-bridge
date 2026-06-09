@@ -1,7 +1,9 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { nexusOneTheme } from "../theme";
 import {
   formatSelectedTokenBalanceLabel,
   formatUsdBalanceLabel,
@@ -12,6 +14,16 @@ const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
   fontVariantNumeric: "tabular-nums",
 };
+
+const QUICK_SELECT_PERCENTAGES = [20, 50, 100] as const;
+const theme = nexusOneTheme;
+const paperFont = theme.fonts.sans;
+const paperText = theme.colors.text;
+const paperMutedText = theme.colors.muted;
+const paperEmptyAmountText = theme.colors.textEmpty;
+const paperCardShadow = theme.shadows.card;
+const paperInsetCardShadow = theme.shadows.inset;
+const paperPillShadow = theme.shadows.tokenPill;
 
 interface SwapIdleFormProps {
   allowOverBalanceAmounts?: boolean;
@@ -48,7 +60,7 @@ const ChevronDownIcon = () => (
     <path
       d="M2 3.5L5 6.5L8 3.5"
       fill="none"
-      stroke="#848483"
+      stroke={theme.colors.textSubtle}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth="1.3"
@@ -67,7 +79,7 @@ const ArrowUpDownIcon = () => (
     <path
       d="M7 15L7 3M7 3L11 7M7 3L3 7M17 9L17 21M17 21L13 17M17 21L21 17"
       fill="none"
-      stroke="#848483"
+      stroke={theme.colors.textSubtle}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth="2"
@@ -79,40 +91,41 @@ const ArrowUpDownIcon = () => (
 function PercentButtons({
   visible,
   onSelect,
-  maxLabel = "MAX",
+  maxLabel = "Max",
 }: {
   visible: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
 }) {
-  if (!visible) {
-    return null;
-  }
-
   return (
     <div
+      aria-hidden={!visible}
       style={{
         alignItems: "center",
+        backgroundColor: theme.colors.segmented,
+        borderRadius: theme.radius.segmented,
+        boxShadow: "#2A388B0F 0px 1px 2px inset",
         boxSizing: "border-box",
         display: "flex",
-        gap: "5px",
-        height: "24px",
-        minHeight: "24px",
-        opacity: 1,
+        flexShrink: 0,
+        gap: "2px",
+        height: "26px",
+        minHeight: "26px",
+        opacity: visible ? 1 : 0,
         overflow: "hidden",
-        pointerEvents: "auto",
+        padding: "2px",
+        pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out",
-        width: "100%",
       }}
     >
-      {[25, 50, 75, 100].map((pct) => {
+      {QUICK_SELECT_PERCENTAGES.map((pct) => {
         const label = pct === 100 ? maxLabel : `${pct}%`;
         return (
           <PercentHoverButton
             key={pct}
             label={label}
             onClick={() => onSelect(pct)}
-            tabIndex={0}
+            tabIndex={visible ? 0 : -1}
           />
         );
       })}
@@ -144,9 +157,7 @@ function UnifiedTokenLogoBadge({
 
   const showPopover = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect || typeof window === "undefined") {
-      return;
-    }
+    if (!rect || typeof window === "undefined") return;
     const width = 250;
     const maxHeight = 260;
     const viewportPadding = 8;
@@ -186,14 +197,14 @@ function UnifiedTokenLogoBadge({
         <div
           style={{
             alignItems: "center",
-            backgroundColor: "#006BF4",
-            border: "1px solid #FFFFFE",
-            borderRadius: "999px",
+            backgroundColor: theme.colors.primary,
+            border: `1px solid ${theme.colors.surface}`,
+            borderRadius: theme.radius.tokenPill,
             bottom: -3,
             boxSizing: "border-box",
-            color: "#FFFFFE",
+            color: theme.colors.surface,
             display: "flex",
-            fontFamily: '"Geist", system-ui, sans-serif',
+            fontFamily: paperFont,
             fontSize: "8px",
             fontWeight: 700,
             height: "12px",
@@ -214,8 +225,8 @@ function UnifiedTokenLogoBadge({
         createPortal(
           <div
             style={{
-              backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              backgroundColor: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`,
               borderRadius: "10px",
               boxShadow: "0 10px 28px rgba(22, 22, 21, 0.14)",
               boxSizing: "border-box",
@@ -228,7 +239,7 @@ function UnifiedTokenLogoBadge({
               position: "fixed",
               top: popover.top,
               width: popover.width,
-              zIndex: 2_147_483_647,
+              zIndex: 2147483647,
             }}
           >
             <div
@@ -241,8 +252,8 @@ function UnifiedTokenLogoBadge({
             >
               <span
                 style={{
-                  color: "#848483",
-                  fontFamily: '"Geist", system-ui, sans-serif',
+                  color: theme.colors.textSubtle,
+                  fontFamily: paperFont,
                   fontSize: "11px",
                   fontWeight: 700,
                   letterSpacing: "0.08em",
@@ -254,8 +265,8 @@ function UnifiedTokenLogoBadge({
               </span>
               <span
                 style={{
-                  color: "#161615",
-                  fontFamily: '"Geist", system-ui, sans-serif',
+                  color: theme.colors.textStrong,
+                  fontFamily: paperFont,
                   fontSize: "13px",
                   fontWeight: 700,
                   lineHeight: "16px",
@@ -298,8 +309,8 @@ function UnifiedTokenLogoBadge({
                     />
                     <span
                       style={{
-                        color: "#161615",
-                        fontFamily: '"Geist", system-ui, sans-serif',
+                        color: theme.colors.textStrong,
+                        fontFamily: paperFont,
                         fontSize: "13px",
                         fontWeight: 500,
                         lineHeight: "18px",
@@ -313,8 +324,8 @@ function UnifiedTokenLogoBadge({
                   </div>
                   <span
                     style={{
-                      color: "#161615",
-                      fontFamily: '"Geist", system-ui, sans-serif',
+                      color: theme.colors.textStrong,
+                      fontFamily: paperFont,
                       fontSize: "13px",
                       fontWeight: 600,
                       lineHeight: "18px",
@@ -382,9 +393,7 @@ function PercentHoverButton({
       }}
       onMouseUp={() => setActive(false)}
       onPointerDown={(event) => {
-        if (event.pointerType === "mouse") {
-          return;
-        }
+        if (event.pointerType === "mouse") return;
         event.preventDefault();
         if (pointerResetTimerRef.current) {
           clearTimeout(pointerResetTimerRef.current);
@@ -404,30 +413,32 @@ function PercentHoverButton({
       }}
       style={{
         alignItems: "center",
-        backgroundColor: isHighlighted ? "#E8F0FF" : "#F4F4F3",
-        borderRadius: "7px",
-        boxSizing: "border-box",
-        display: "flex",
-        flex: "1 1 0%",
-        justifyContent: "center",
-        paddingBlock: "3px",
-        paddingInline: "7px",
+        backgroundColor: isHighlighted ? theme.colors.surface : "transparent",
         border: "none",
+        borderRadius: "6px",
+        boxShadow: isHighlighted ? "#3C286414 0px 1px 2px" : "none",
+        boxSizing: "border-box",
         cursor: "pointer",
-        transition: "background-color 0.2s ease-out",
+        display: "flex",
+        height: "22px",
+        justifyContent: "center",
+        minWidth: "32px",
+        paddingBlock: 0,
+        paddingInline: "7px",
+        transition: "background-color 0.2s ease-out, box-shadow 0.2s ease-out",
       }}
       tabIndex={tabIndex}
     >
       <div
         style={{
           boxSizing: "border-box",
-          color: isHighlighted ? "#006BF4" : "#363635",
-          fontFamily: '"Geist", system-ui, sans-serif',
+          color: isHighlighted ? paperText : paperMutedText,
+          display: "inline-block",
+          fontFamily: paperFont,
           fontSize: "11px",
           fontWeight: 500,
-          lineHeight: "16px",
+          lineHeight: "14px",
           transition: "color 0.2s ease-out",
-          ...(label === "MAX" ? { letterSpacing: "0.02em" } : {}),
         }}
       >
         {label}
@@ -494,8 +505,8 @@ function LogoCircle({
         onError={() => setFailed(true)}
         src={src}
         style={{
-          backgroundColor: "#FFFFFE",
-          borderRadius: "999px",
+          backgroundColor: theme.colors.surface,
+          borderRadius: theme.radius.tokenPill,
           height: `${size}px`,
           objectFit: "cover",
           outline,
@@ -512,11 +523,11 @@ function LogoCircle({
       role="img"
       style={{
         alignItems: "center",
-        backgroundColor: "#E8F0FF",
-        borderRadius: "999px",
-        color: "#006BF4",
+        backgroundColor: theme.colors.blue[100],
+        borderRadius: theme.radius.tokenPill,
+        color: theme.colors.primary,
         display: "flex",
-        fontFamily: '"Geist", system-ui, sans-serif',
+        fontFamily: paperFont,
         fontSize: `${fontSize}px`,
         fontWeight: 700,
         height: `${size}px`,
@@ -536,9 +547,7 @@ const sameAddress = (a?: string, b?: string) =>
   Boolean(a && b && a.toLowerCase() === b.toLowerCase());
 
 const formatShortAddress = (address?: string) => {
-  if (!address) {
-    return "";
-  }
+  if (!address) return "";
   return address.length > 12
     ? `${address.slice(0, 6)}…${address.slice(-4)}`
     : address;
@@ -547,12 +556,8 @@ const formatShortAddress = (address?: string) => {
 const formatTokenBalanceLabel = formatSelectedTokenBalanceLabel;
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -575,9 +580,7 @@ const getTokenInputDecimals = (token?: Pick<SwapTokenOption, "decimals">) => {
 };
 
 const formatAmountInputDisplay = (value: string) => {
-  if (!value) {
-    return "";
-  }
+  if (!value) return "";
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -626,7 +629,8 @@ export function SwapIdleForm({
         const container = sourceListRef.current;
         const row = sourceRowRefs.current[newIndex];
         if (
-          !(container && row) ||
+          !container ||
+          !row ||
           container.scrollHeight <= container.clientHeight
         ) {
           return;
@@ -649,37 +653,25 @@ export function SwapIdleForm({
   const sanitizeInput = (raw: string, maxDecimals = 18): string => {
     let next = raw.replaceAll(/[^0-9.]/g, "");
     const parts = next.split(".");
-    if (parts.length > 2) {
-      next = parts[0] + "." + parts.slice(1).join("");
-    }
+    if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
     const [integerPart, decimalPart] = next.split(".");
     if (decimalPart !== undefined) {
       next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
     }
-    if (next === ".") {
-      next = "0.";
-    }
+    if (next === ".") next = "0.";
     // Strip leading zeros
     if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
       next = next.replace(/^0+/, "");
-      if (next === "") {
-        next = "0";
-      }
-      if (next.startsWith(".")) {
-        next = "0" + next;
-      }
+      if (next === "") next = "0";
+      if (next.startsWith(".")) next = "0" + next;
     }
     return next;
   };
 
   const handleBlurAmount = (index: number) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!(token && token.userAmount)) {
-      return;
-    }
+    if (!token || !token.userAmount) return;
     if (token.userAmount.includes(".")) {
       const stripped = token.userAmount.replace(/0+$/, "").replace(/\.$/, "");
       if (stripped !== token.userAmount) {
@@ -699,13 +691,9 @@ export function SwapIdleForm({
   };
 
   const handleTokenAmountChange = (index: number, val: string) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     let sanitized = sanitizeInput(
       val,
@@ -740,22 +728,16 @@ export function SwapIdleForm({
   };
 
   const handleToggleMode = (index: number) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     const tokenBalance =
       Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
     const fiatBalance =
       Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
     const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-    if (price === 0) {
-      return;
-    }
+    if (price === 0) return;
 
     const currentVal = Number(token.userAmount || 0);
     const next = [...fromTokens];
@@ -776,25 +758,17 @@ export function SwapIdleForm({
   };
 
   const getSourceUsdValue = React.useCallback((token: SwapTokenOption) => {
-    if (!(token && token.userAmount)) {
-      return 0;
-    }
+    if (!token || !token.userAmount) return 0;
     const quotedUsd = parseDecimal(token.userAmountUsd);
-    if (quotedUsd && quotedUsd.gte(0)) {
-      return quotedUsd.toNumber();
-    }
+    if (quotedUsd && quotedUsd.gte(0)) return quotedUsd.toNumber();
     const tokenBalance =
       Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
     const fiatBalance =
       Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
     const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
     const amountNumber = Number(token.userAmount || 0);
-    if (!Number.isFinite(amountNumber)) {
-      return 0;
-    }
-    if (token.userAmountMode === "usd") {
-      return amountNumber;
-    }
+    if (!Number.isFinite(amountNumber)) return 0;
+    if (token.userAmountMode === "usd") return amountNumber;
     return amountNumber * price;
   }, []);
 
@@ -806,7 +780,7 @@ export function SwapIdleForm({
   const [isSourceListAtBottom, setIsSourceListAtBottom] = useState(false);
   const updateSourceListScrollState = React.useCallback(() => {
     const element = sourceListRef.current;
-    if (!(element && hasSourceOverflow)) {
+    if (!element || !hasSourceOverflow) {
       setIsSourceListAtBottom(false);
       return;
     }
@@ -856,8 +830,8 @@ export function SwapIdleForm({
       : formatAmountInputDisplay(receiveInputValue);
   const receiveAmountTextColor =
     (!isExactIn && amount) || (isExactIn && receiveQuoteAmount)
-      ? "#161615"
-      : "#9E9E9C";
+      ? paperText
+      : paperEmptyAmountText;
   const receiveUsdRate = getReceiveUsdRate();
   const receiveTokenAmount = parseDecimal(receiveInputValue);
   const receiveUsdAmount = receiveQuoteUsd
@@ -874,9 +848,9 @@ export function SwapIdleForm({
   );
   const recipientColor = recipientAddress
     ? isDefaultRecipient
-      ? "#006BF4"
+      ? theme.colors.primaryText
       : "#B7791F"
-    : "#848483";
+    : paperMutedText;
   const getTokenAmountTotal = (tokens: SwapTokenOption[]) =>
     tokens.reduce((sum, item) => sum + Number(item.userAmount || 0), 0);
 
@@ -885,18 +859,14 @@ export function SwapIdleForm({
     pct: number,
     token: SwapTokenOption
   ) => {
-    if (!(token.balance && onUpdateTokens)) {
-      return;
-    }
+    if (!token.balance || !onUpdateTokens) return;
     let finalVal = "";
     const isUsdMode = token.userAmountMode === "usd";
 
     if (isUsdMode) {
       const fiatBalStr = String(token.balanceInFiat || "0");
       const fiatBalance = parseDecimal(fiatBalStr);
-      if (!fiatBalance) {
-        return;
-      }
+      if (!fiatBalance) return;
       if (pct === 100) {
         finalVal = fiatBalance
           .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -911,9 +881,7 @@ export function SwapIdleForm({
     } else {
       const balanceStr = String(token.balance || "0");
       const tokenBalance = parseDecimal(balanceStr);
-      if (!tokenBalance) {
-        return;
-      }
+      if (!tokenBalance) return;
       const tokenDecimals = getTokenInputDecimals(token);
       if (pct === 100) {
         finalVal = tokenBalance
@@ -940,13 +908,9 @@ export function SwapIdleForm({
   };
 
   const handleSendPercent = (pct: number) => {
-    if (!totalBalance) {
-      return;
-    }
-    const bal = Number.parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
-    if (isNaN(bal)) {
-      return;
-    }
+    if (!totalBalance) return;
+    const bal = parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
+    if (isNaN(bal)) return;
     const val = bal * (pct / 100);
     // If there's only one token, or no tokens, update the main amount
     if (fromTokens.length <= 1) {
@@ -957,6 +921,9 @@ export function SwapIdleForm({
       onAmountChange(val.toFixed(6).replace(/\.?0+$/, ""), "send");
     }
   };
+
+  const hasSelectedSourceAssets = fromTokens.length > 0;
+  const hasMultipleSourceAssets = fromTokens.length > 1;
 
   return (
     <div
@@ -980,20 +947,23 @@ export function SwapIdleForm({
       <div
         style={{
           alignItems: "center",
-          backgroundColor: "#FFFFFE",
-          borderColor: "#E8E8E7",
-          borderRadius: "12px",
+          backgroundColor: hasSelectedSourceAssets
+            ? theme.colors.surfaceInset
+            : theme.colors.surface,
+          borderColor: "transparent",
+          borderRadius: theme.radius.panel,
           borderStyle: "solid",
           borderWidth: "1px",
-          boxShadow: "#1616150A 0px 1px 2px",
+          boxShadow: hasSelectedSourceAssets
+            ? paperInsetCardShadow
+            : paperCardShadow,
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
+          gap: "12px",
           justifyContent: "center",
-          paddingBlock: "14px",
-          paddingInline: "14px",
+          padding: "16px",
           width: "100%",
         }}
       >
@@ -1010,17 +980,49 @@ export function SwapIdleForm({
         >
           <div
             style={{
+              alignItems: "center",
               boxSizing: "border-box",
-              color: "#848483",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
-              fontWeight: 500,
-              letterSpacing: "0.08em",
-              lineHeight: "20px",
-              textTransform: "uppercase" as const,
+              display: "flex",
+              gap: "8px",
             }}
           >
-            Send
+            <span
+              style={{
+                boxSizing: "border-box",
+                color: paperMutedText,
+                fontFamily: paperFont,
+                fontSize: "12px",
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                lineHeight: "16px",
+                textTransform: "uppercase" as const,
+              }}
+            >
+              Send
+            </span>
+            {hasMultipleSourceAssets && (
+              <span
+                style={{
+                  alignItems: "center",
+                  backgroundColor: theme.primitives.badge.backgroundColor,
+                  borderRadius: "100px",
+                  boxSizing: "border-box",
+                  color: theme.primitives.badge.color,
+                  display: "flex",
+                  fontFamily: paperFont,
+                  fontSize: "9px",
+                  fontWeight: 600,
+                  height: "20px",
+                  letterSpacing: "0.06em",
+                  lineHeight: "12px",
+                  paddingBlock: "1px",
+                  paddingInline: "6px",
+                  textTransform: "uppercase" as const,
+                }}
+              >
+                {fromTokens.length} assets
+              </span>
+            )}
           </div>
           <button
             disabled={fromTokens.length === 0}
@@ -1029,14 +1031,17 @@ export function SwapIdleForm({
               alignItems: "center",
               background: "transparent",
               border: "none",
-              borderRadius: "6px",
+              borderRadius: "10px",
               display: "flex",
-              gap: "5px",
-              padding: "2px 0",
-              color: fromTokens.length > 0 ? "#006BF4" : "#A8A8A6",
+              flexShrink: 0,
+              gap: "6px",
+              height: "18px",
+              justifyContent: "center",
+              padding: 0,
+              color: fromTokens.length > 0 ? paperText : theme.colors.muted,
               cursor: fromTokens.length > 0 ? "pointer" : "not-allowed",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontFamily: paperFont,
+              fontSize: "14px",
               fontWeight: 500,
               lineHeight: "18px",
               opacity: fromTokens.length > 0 ? 1 : 0.75,
@@ -1046,14 +1051,18 @@ export function SwapIdleForm({
             <span
               aria-hidden="true"
               style={{
-                color: "currentColor",
-                fontSize: "16px",
-                lineHeight: "16px",
+                color:
+                  fromTokens.length > 0
+                    ? theme.colors.primary
+                    : theme.colors.muted,
+                fontSize: "18px",
+                fontWeight: 500,
+                lineHeight: "14px",
               }}
             >
               +
             </span>
-            Add more assets
+            Add asset
           </button>
         </div>
 
@@ -1066,7 +1075,7 @@ export function SwapIdleForm({
             boxSizing: "border-box",
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            gap: hasSelectedSourceAssets ? "8px" : "4px",
             maxHeight: hasSourceOverflow ? "220px" : undefined,
             overflowX: hasSourceOverflow ? "hidden" : undefined,
             overflowY: hasSourceOverflow ? "auto" : undefined,
@@ -1092,7 +1101,7 @@ export function SwapIdleForm({
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "6px",
+                  gap: token ? "4px" : "4px",
                   opacity: 1,
                   position: "relative",
                   transform: "translateY(0)",
@@ -1106,7 +1115,7 @@ export function SwapIdleForm({
                     alignSelf: "stretch",
                     boxSizing: "border-box",
                     display: "flex",
-                    gap: "8px",
+                    gap: "12px",
                     justifyContent: "space-between",
                     width: "100%",
                   }}
@@ -1131,13 +1140,13 @@ export function SwapIdleForm({
                                   ? Boolean(token.userAmount)
                                   : Boolean(isExactIn && amount)
                               )
-                                ? "#161615"
-                                : "#9E9E9C",
-                              fontFamily:
-                                '"Delight-Medium", "Delight", system-ui, sans-serif',
-                              fontSize: "32px",
+                                ? paperText
+                                : paperEmptyAmountText,
+                              fontFamily: paperFont,
+                              fontSize: token ? "32px" : "28px",
                               fontWeight: 500,
-                              lineHeight: "38px",
+                              letterSpacing: token ? "-0.01em" : "-0.02em",
+                              lineHeight: token ? "40px" : "32px",
                               marginRight: "4px",
                             }}
                           >
@@ -1146,17 +1155,13 @@ export function SwapIdleForm({
                         )}
                         <input
                           onBlur={() => {
-                            if (token) {
-                              handleBlurAmount(index);
-                            }
+                            if (token) handleBlurAmount(index);
                             setFocusedRow(null);
                           }}
                           onChange={(e) => {
-                            if (token) {
+                            if (token)
                               handleTokenAmountChange(index, e.target.value);
-                            } else {
-                              handleSendInput(e);
-                            }
+                            else handleSendInput(e);
                           }}
                           onFocus={() => setFocusedRow(index)}
                           placeholder="0"
@@ -1167,13 +1172,13 @@ export function SwapIdleForm({
                                 ? Boolean(token.userAmount)
                                 : Boolean(isExactIn && amount)
                             )
-                              ? "#161615"
-                              : "#9E9E9C",
-                            fontFamily:
-                              '"Delight-Medium", "Delight", system-ui, sans-serif',
-                            fontSize: "32px",
+                              ? paperText
+                              : paperEmptyAmountText,
+                            fontFamily: paperFont,
+                            fontSize: token ? "32px" : "28px",
                             fontWeight: 500,
-                            lineHeight: "38px",
+                            letterSpacing: token ? "-0.01em" : "-0.02em",
+                            lineHeight: token ? "40px" : "32px",
                             background: "transparent",
                             border: "none",
                             outline: "none",
@@ -1229,41 +1234,38 @@ export function SwapIdleForm({
                         onClick={() => onOpenSourcePicker(index)}
                         style={{
                           alignItems: "center",
-                          backgroundColor: "#FFFFFE",
-                          borderColor: token ? "#E8E8E7" : "#C8C8C7",
-                          borderRadius: "999px",
-                          borderStyle: token ? "solid" : "dashed",
+                          backgroundColor: theme.colors.surface,
+                          borderColor: "#0000000A",
+                          borderRadius: theme.radius.tokenPill,
+                          borderStyle: "solid",
                           borderWidth: "1px",
-                          boxShadow: token ? "#1616150A 0px 1px 2px" : "none",
+                          boxShadow: paperPillShadow,
                           boxSizing: "border-box",
                           display: "flex",
-                          gap: "7px",
-                          paddingBottom: "4px",
-                          paddingLeft: token ? "4px" : "8px",
-                          paddingRight: "9px",
-                          paddingTop: "4px",
+                          gap: "8px",
+                          padding: "6px",
                           cursor: "pointer",
                           flexShrink: 0,
                         }}
                       >
                         {token ? (
                           token.isUnified ? (
-                            <UnifiedTokenLogoBadge size={24} token={token} />
+                            <UnifiedTokenLogoBadge size={26} token={token} />
                           ) : (
                             <div
                               style={{
                                 boxSizing: "border-box",
                                 flexShrink: 0,
-                                height: "24px",
+                                height: "26px",
                                 position: "relative" as const,
-                                width: "24px",
+                                width: "26px",
                               }}
                             >
                               <LogoCircle
                                 alt={token.symbol}
-                                fontSize={12}
+                                fontSize={13}
                                 label={token.symbol}
-                                size={24}
+                                size={26}
                                 src={token.logo}
                               />
                               {token.chainLogo && (
@@ -1271,7 +1273,7 @@ export function SwapIdleForm({
                                   alt={token.chainName}
                                   fontSize={6}
                                   label={token.chainName}
-                                  outline="1px solid #FFFFFE"
+                                  outline={`1px solid ${theme.colors.surface}`}
                                   size={12}
                                   src={token.chainLogo}
                                   style={{
@@ -1286,28 +1288,28 @@ export function SwapIdleForm({
                         ) : (
                           <div
                             style={{
-                              borderColor: "#C8C8C7",
+                              borderColor: "#C9C9D2",
                               borderRadius: "999px",
                               borderStyle: "dashed",
-                              borderWidth: "1.5px",
+                              borderWidth: "1px",
                               boxSizing: "border-box",
                               flexShrink: 0,
-                              height: "22px",
-                              width: "22px",
+                              height: "28px",
+                              width: "28px",
                             }}
                           />
                         )}
                         <div
                           style={{
                             boxSizing: "border-box",
-                            color: "#161615",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: token ? "13px" : "15px",
-                            fontWeight: 500,
-                            lineHeight: token ? "17px" : "22px",
+                            color: paperText,
+                            fontFamily: paperFont,
+                            fontSize: "15px",
+                            fontWeight: token ? 600 : 500,
+                            lineHeight: token ? "24px" : "18px",
                           }}
                         >
-                          {token ? token.symbol : "Assets"}
+                          {token ? token.symbol : "Select asset"}
                         </div>
                         <ChevronDownIcon />
                       </button>
@@ -1315,9 +1317,7 @@ export function SwapIdleForm({
                     {token && fromTokens.length > 1 && (
                       <button
                         onClick={() => {
-                          if (!onUpdateTokens) {
-                            return;
-                          }
+                          if (!onUpdateTokens) return;
                           const next = [...fromTokens];
                           next.splice(index, 1);
                           onUpdateTokens(next);
@@ -1328,8 +1328,8 @@ export function SwapIdleForm({
                           );
                         }}
                         style={{
-                          width: "22px",
-                          height: "22px",
+                          width: "24px",
+                          height: "24px",
                           borderRadius: "999px",
                           backgroundColor: "#F0F0EF",
                           border: "none",
@@ -1343,15 +1343,15 @@ export function SwapIdleForm({
                         <svg
                           fill="none"
                           height="10"
-                          stroke="#848483"
+                          stroke={theme.colors.muted}
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth="2"
+                          strokeWidth="1.4"
                           viewBox="0 0 24 24"
                           width="10"
                         >
-                          <line x1="18" x2="6" y1="6" y2="18" />
-                          <line x1="6" x2="18" y1="6" y2="18" />
+                          <line x1="18" x2="6" y1="6" y2="18"></line>
+                          <line x1="6" x2="18" y1="6" y2="18"></line>
                         </svg>
                       </button>
                     )}
@@ -1373,21 +1373,20 @@ export function SwapIdleForm({
                     <SkeletonBar height="18px" width="84px" />
                   ) : (
                     (() => {
-                      if (!token) {
+                      if (!token)
                         return (
                           <div
                             style={{
                               boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
+                              color: paperMutedText,
+                              fontFamily: paperFont,
+                              fontSize: "14px",
                               lineHeight: "18px",
                             }}
                           >
                             ≈ ${usdValue || "0.00"}
                           </div>
                         );
-                      }
                       const tokenBalance =
                         Number(String(token.balance).replace(/[^0-9.]/g, "")) ||
                         0;
@@ -1416,16 +1415,16 @@ export function SwapIdleForm({
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "6px",
+                            gap: "4px",
                             cursor: price > 0 ? "pointer" : "default",
                           }}
                         >
                           <div
                             style={{
                               boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
+                              color: paperMutedText,
+                              fontFamily: paperFont,
+                              fontSize: "14px",
                               lineHeight: "18px",
                             }}
                           >
@@ -1440,7 +1439,7 @@ export function SwapIdleForm({
                   )}
                   {showSourceRouteSkeleton ? (
                     <SkeletonBar height="18px" width="124px" />
-                  ) : token && focusedRow === index ? (
+                  ) : token ? (
                     <div
                       onMouseEnter={() => setTooltip(`asset-send-${index}`)}
                       onMouseLeave={() => setTooltip(null)}
@@ -1448,34 +1447,34 @@ export function SwapIdleForm({
                         alignItems: "center",
                         boxSizing: "border-box",
                         display: "flex",
-                        gap: "5px",
+                        flexShrink: 0,
+                        gap: "8px",
+                        justifyContent: "flex-end",
+                        minHeight: "26px",
+                        opacity: focusedRow === index ? 1 : 0,
+                        pointerEvents: focusedRow === index ? "auto" : "none",
                         position: "relative",
                         cursor: "default",
+                        transition: "opacity 0.18s ease-out",
                       }}
                     >
+                      <PercentButtons
+                        onSelect={(pct) =>
+                          handleSendPercentForToken(index, pct, token)
+                        }
+                        visible={focusedRow === index}
+                      />
                       <div
                         style={{
                           boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
+                          color: paperMutedText,
+                          fontFamily: paperFont,
                           fontSize: "13px",
                           fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
+                          lineHeight: "16px",
                         }}
                       >
-                        Asset Balance ·
-                      </div>
-                      <div
-                        style={{
-                          boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        {formatTokenBalanceLabel(token)}
+                        Balance · {formatTokenBalanceLabel(token)}
                       </div>
 
                       {/* Tooltip */}
@@ -1488,14 +1487,14 @@ export function SwapIdleForm({
                               ? { top: "calc(100% + 8px)" }
                               : { bottom: "calc(100% + 8px)" }),
                             width: "220px",
-                            backgroundColor: "#fff",
-                            border: "1px solid #E8E8E7",
-                            borderRadius: "12px",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                            backgroundColor: theme.colors.surface,
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: theme.radius.panel,
+                            boxShadow: theme.shadows.tooltip,
                             padding: "14px",
                             display: "flex",
                             flexDirection: "column",
-                            zIndex: 10_000,
+                            zIndex: 10000,
                             pointerEvents: "none",
                             textAlign: "left",
                           }}
@@ -1504,11 +1503,11 @@ export function SwapIdleForm({
                             style={{
                               fontSize: "11px",
                               fontWeight: 600,
-                              color: "#848483",
+                              color: theme.colors.textSubtle,
                               letterSpacing: "0.06em",
                               textTransform: "uppercase",
                               marginBottom: "4px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontFamily: paperFont,
                             }}
                           >
                             Asset Balance
@@ -1516,9 +1515,9 @@ export function SwapIdleForm({
                           <div
                             style={{
                               fontSize: "13px",
-                              color: "#161615",
+                              color: theme.colors.textStrong,
                               lineHeight: "18px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontFamily: paperFont,
                             }}
                           >
                             This is your current asset balance on this chain.
@@ -1526,18 +1525,10 @@ export function SwapIdleForm({
                         </div>
                       )}
                     </div>
-                  ) : null}
+                  ) : (
+                    <div aria-hidden="true" style={{ minWidth: "1px" }} />
+                  )}
                 </div>
-
-                {/* 25% 50% 75% MAX — shown only while the row amount is focused */}
-                <PercentButtons
-                  onSelect={(pct) =>
-                    token
-                      ? handleSendPercentForToken(index, pct, token)
-                      : handleSendPercent(pct)
-                  }
-                  visible={Boolean(token) && focusedRow === index}
-                />
               </div>
             );
           })}
@@ -1552,9 +1543,7 @@ export function SwapIdleForm({
             }
             onClick={() => {
               const element = sourceListRef.current;
-              if (!element) {
-                return;
-              }
+              if (!element) return;
               element.scrollTo({
                 behavior: "smooth",
                 top: isSourceListAtBottom ? 0 : element.scrollTop + 80,
@@ -1568,7 +1557,7 @@ export function SwapIdleForm({
               color: "#686866",
               cursor: "pointer",
               display: "flex",
-              fontFamily: '"Geist", system-ui, sans-serif',
+              fontFamily: paperFont,
               fontSize: "12px",
               fontWeight: 500,
               gap: "5px",
@@ -1588,8 +1577,10 @@ export function SwapIdleForm({
             style={{
               alignSelf: "stretch",
               color:
-                sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
-              fontFamily: '"Geist", system-ui, sans-serif',
+                sourceRouteStatus === "insufficient"
+                  ? "#D32F2F"
+                  : theme.colors.primary,
+              fontFamily: paperFont,
               fontSize: "13px",
               fontWeight: 500,
               lineHeight: "18px",
@@ -1601,38 +1592,56 @@ export function SwapIdleForm({
         )}
 
         {/* Total USD */}
-        {totalUsd > 0 && (
+        {hasMultipleSourceAssets && totalUsd > 0 && (
           <div
             style={{
+              alignItems: "center",
+              alignSelf: "stretch",
+              borderTopColor: theme.colors.divider,
+              borderTopStyle: "solid",
+              borderTopWidth: "1px",
+              boxSizing: "border-box",
               display: "flex",
               gap: "8px",
-              alignItems: "center",
-              paddingTop: "6px",
-              alignSelf: "flex-start",
-              justifyContent: "flex-start",
+              justifyContent: "space-between",
+              paddingTop: "16px",
+              width: "100%",
             }}
           >
-            <span
+            <div
               style={{
-                fontSize: "17px",
-                fontWeight: 600,
-                color: "#161615",
-                fontFamily: '"Geist", system-ui, sans-serif',
+                alignItems: "center",
+                boxSizing: "border-box",
+                display: "flex",
+                gap: "8px",
               }}
             >
-              ≈ ${totalUsd.toFixed(2)}
-            </span>
-            <span
-              style={{
-                fontSize: "12px",
-                color: "#848483",
-                fontWeight: 600,
-                fontFamily: '"Geist", system-ui, sans-serif',
-                letterSpacing: "0.05em",
-              }}
-            >
-              TOTAL
-            </span>
+              <span
+                style={{
+                  color: paperText,
+                  fontFamily: paperFont,
+                  fontSize: "18px",
+                  fontVariantNumeric: "tabular-nums",
+                  fontWeight: 500,
+                  lineHeight: "22px",
+                }}
+              >
+                ≈ ${totalUsd.toFixed(2)}
+              </span>
+              <span
+                style={{
+                  color: paperMutedText,
+                  fontFamily: paperFont,
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  lineHeight: "16px",
+                  textTransform: "uppercase" as const,
+                }}
+              >
+                Total
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -1640,19 +1649,18 @@ export function SwapIdleForm({
       {/* ─── RECEIVE PANEL ─── */}
       <div
         style={{
-          backgroundColor: "#FFFFFE",
-          borderColor: "#E8E8E7",
-          borderRadius: "12px",
+          backgroundColor: theme.colors.surface,
+          borderColor: "transparent",
+          borderRadius: theme.radius.panel,
           borderStyle: "solid",
           borderWidth: "1px",
-          boxShadow: "#1616150A 0px 1px 2px",
+          boxShadow: paperCardShadow,
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
-          paddingBlock: "16px",
-          paddingInline: "14px",
+          gap: "12px",
+          padding: "16px",
           width: "100%",
         }}
       >
@@ -1660,12 +1668,12 @@ export function SwapIdleForm({
           style={{
             alignSelf: "stretch",
             boxSizing: "border-box",
-            color: "#848483",
-            fontFamily: '"Geist", system-ui, sans-serif',
+            color: paperMutedText,
+            fontFamily: paperFont,
             fontSize: "12px",
             fontWeight: 500,
             letterSpacing: "0.08em",
-            lineHeight: "20px",
+            lineHeight: "16px",
             textTransform: "uppercase" as const,
             width: "100%",
           }}
@@ -1715,11 +1723,11 @@ export function SwapIdleForm({
                 style={{
                   boxSizing: "border-box",
                   color: receiveAmountTextColor,
-                  fontFamily:
-                    '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "32px",
+                  fontFamily: paperFont,
+                  fontSize: "28px",
                   fontWeight: 500,
-                  lineHeight: "38px",
+                  letterSpacing: "-0.02em",
+                  lineHeight: "32px",
                   background: "transparent",
                   border: "none",
                   cursor: "default",
@@ -1740,19 +1748,16 @@ export function SwapIdleForm({
               onClick={onOpenDestPicker}
               style={{
                 alignItems: "center",
-                backgroundColor: "#FFFFFE",
-                borderColor: toToken ? "#E8E8E7" : "#C8C8C7",
-                borderRadius: "999px",
-                borderStyle: toToken ? "solid" : "dashed",
+                backgroundColor: theme.colors.surface,
+                borderColor: "#0000000A",
+                borderRadius: theme.radius.tokenPill,
+                borderStyle: "solid",
                 borderWidth: "1px",
-                boxShadow: toToken ? "#1616150A 0px 1px 2px" : "none",
+                boxShadow: paperPillShadow,
                 boxSizing: "border-box",
                 display: "flex",
-                gap: "7px",
-                paddingBottom: "4px",
-                paddingLeft: toToken ? "5px" : "8px",
-                paddingRight: "9px",
-                paddingTop: "4px",
+                gap: "8px",
+                padding: "6px",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
@@ -1762,16 +1767,16 @@ export function SwapIdleForm({
                   style={{
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "24px",
+                    height: "26px",
                     position: "relative" as const,
-                    width: "24px",
+                    width: "26px",
                   }}
                 >
                   <LogoCircle
                     alt={toToken.symbol}
-                    fontSize={12}
+                    fontSize={13}
                     label={toToken.symbol}
-                    size={24}
+                    size={26}
                     src={toToken.logo}
                   />
                   {toToken.chainLogo && (
@@ -1779,7 +1784,7 @@ export function SwapIdleForm({
                       alt={toToken.chainName}
                       fontSize={6}
                       label={toToken.chainName}
-                      outline="1px solid #FFFFFE"
+                      outline={`1px solid ${theme.colors.surface}`}
                       size={12}
                       src={toToken.chainLogo}
                       style={{
@@ -1793,28 +1798,28 @@ export function SwapIdleForm({
               ) : (
                 <div
                   style={{
-                    borderColor: "#C8C8C7",
+                    borderColor: "#C9C9D2",
                     borderRadius: "999px",
                     borderStyle: "dashed",
-                    borderWidth: "1.5px",
+                    borderWidth: "1px",
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "22px",
-                    width: "22px",
+                    height: "28px",
+                    width: "28px",
                   }}
                 />
               )}
               <div
                 style={{
                   boxSizing: "border-box",
-                  color: "#161615",
-                  fontFamily: '"Geist", system-ui, sans-serif',
+                  color: paperText,
+                  fontFamily: paperFont,
                   fontSize: "15px",
-                  fontWeight: 500,
-                  lineHeight: "22px",
+                  fontWeight: toToken ? 600 : 500,
+                  lineHeight: toToken ? "24px" : "18px",
                 }}
               >
-                {toToken ? toToken.symbol : "Assets"}
+                {toToken ? toToken.symbol : "Select asset"}
               </div>
               <ChevronDownIcon />
             </button>
@@ -1837,9 +1842,9 @@ export function SwapIdleForm({
               <div
                 style={{
                   boxSizing: "border-box",
-                  color: "#848483",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
+                  color: paperMutedText,
+                  fontFamily: paperFont,
+                  fontSize: "14px",
                   lineHeight: "18px",
                 }}
               >
@@ -1862,20 +1867,20 @@ export function SwapIdleForm({
                 <div
                   style={{
                     boxSizing: "border-box",
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: paperMutedText,
+                    fontFamily: paperFont,
                     fontSize: "13px",
                     fontVariantNumeric: "tabular-nums",
                     lineHeight: "18px",
                   }}
                 >
-                  Asset Balance ·
+                  Balance ·
                 </div>
                 <div
                   style={{
                     boxSizing: "border-box",
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: paperMutedText,
+                    fontFamily: paperFont,
                     fontSize: "13px",
                     fontVariantNumeric: "tabular-nums",
                     lineHeight: "18px",
@@ -1892,14 +1897,14 @@ export function SwapIdleForm({
                       right: 0,
                       bottom: "calc(100% + 8px)",
                       width: "220px",
-                      backgroundColor: "#fff",
-                      border: "1px solid #E8E8E7",
-                      borderRadius: "12px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      backgroundColor: theme.colors.surface,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.radius.panel,
+                      boxShadow: theme.shadows.tooltip,
                       padding: "14px",
                       display: "flex",
                       flexDirection: "column",
-                      zIndex: 10_000,
+                      zIndex: 10000,
                       pointerEvents: "none",
                       textAlign: "left",
                     }}
@@ -1908,11 +1913,11 @@ export function SwapIdleForm({
                       style={{
                         fontSize: "11px",
                         fontWeight: 600,
-                        color: "#848483",
+                        color: theme.colors.textSubtle,
                         letterSpacing: "0.06em",
                         textTransform: "uppercase",
                         marginBottom: "4px",
-                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontFamily: paperFont,
                       }}
                     >
                       Asset Balance
@@ -1920,9 +1925,9 @@ export function SwapIdleForm({
                     <div
                       style={{
                         fontSize: "13px",
-                        color: "#161615",
+                        color: theme.colors.textStrong,
                         lineHeight: "18px",
-                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontFamily: paperFont,
                       }}
                     >
                       This is your current asset balance on this chain.
@@ -1940,11 +1945,10 @@ export function SwapIdleForm({
             <div
               style={{
                 alignSelf: "stretch",
-                backgroundColor: "#E8E8E7",
+                backgroundColor: theme.colors.divider,
                 boxSizing: "border-box",
                 flexShrink: 0,
                 height: "1px",
-                marginTop: "4px",
                 width: "100%",
               }}
             />
@@ -1954,20 +1958,19 @@ export function SwapIdleForm({
                 boxSizing: "border-box",
                 display: "flex",
                 flexDirection: "column",
-                gap: "5px",
-                paddingTop: "2px",
+                gap: "12px",
                 width: "100%",
               }}
             >
               <div
                 style={{
                   boxSizing: "border-box",
-                  color: "#7C7C7A",
-                  fontFamily: '"Geist", system-ui, sans-serif',
+                  color: paperMutedText,
+                  fontFamily: paperFont,
                   fontSize: "12px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  lineHeight: "20px",
+                  lineHeight: "16px",
                   textTransform: "uppercase" as const,
                 }}
               >
@@ -1988,11 +1991,11 @@ export function SwapIdleForm({
                   style={{
                     boxSizing: "border-box",
                     color: recipientColor,
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontFamily: paperFont,
                     fontSize: "15px",
                     fontVariantNumeric: "tabular-nums",
                     fontWeight: 500,
-                    lineHeight: "17px",
+                    lineHeight: "18px",
                   }}
                 >
                   {recipientAddress
@@ -2003,25 +2006,28 @@ export function SwapIdleForm({
                   onClick={onOpenRecipientPicker}
                   style={{
                     alignItems: "center",
-                    backgroundColor: "#F4F6FF",
-                    borderRadius: "4px",
+                    backgroundColor: theme.colors.surface,
+                    borderColor: "#0000000A",
+                    borderRadius: theme.radius.tokenPill,
+                    borderStyle: "solid",
+                    borderWidth: "1px",
+                    boxShadow: theme.shadows.control,
                     boxSizing: "border-box",
                     display: "flex",
                     gap: "4px",
-                    paddingBlock: "7px",
-                    paddingInline: "10px",
-                    border: "none",
+                    paddingBlock: "6px",
+                    paddingInline: "14px",
                     cursor: "pointer",
                   }}
                 >
                   <div
                     style={{
                       boxSizing: "border-box",
-                      color: "#006BF4",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "12px",
+                      color: paperText,
+                      fontFamily: paperFont,
+                      fontSize: "13px",
                       fontWeight: 500,
-                      lineHeight: "13px",
+                      lineHeight: "16px",
                     }}
                   >
                     Edit

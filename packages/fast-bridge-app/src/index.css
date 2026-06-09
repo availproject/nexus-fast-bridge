@@ -70,6 +70,230 @@ body,
   overflow-x: clip;
 }
 
+.fastbridge-app-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100svh;
+  overflow: hidden;
+  color: #161615;
+  background-image: url("/ethereum-ribbon.png");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 109% 100%;
+}
+
+.fastbridge-app-nav {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  overflow-x: clip;
+}
+
+.fastbridge-app-nav-inner {
+  width: min(1240px, calc(100% - 80px));
+  padding: 16px 0 0;
+  margin: 0 auto;
+}
+
+.fastbridge-app-logo {
+  display: inline-flex;
+  align-items: center;
+  color: #161615;
+  text-decoration: none;
+}
+
+.fastbridge-app-logo-image {
+  display: block;
+  flex: 0 0 auto;
+  width: 187px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.fastbridge-wallet-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 166px;
+  height: 56px;
+  padding: 0 16px;
+  font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 18px;
+  color: #161615;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #fffffe;
+  border: 1px solid #e8e8e7;
+  border-radius: 12px;
+  box-shadow: #5555550d 0 1px 4px;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.fastbridge-wallet-button:hover {
+  box-shadow: #55555514 0 2px 6px;
+  transform: translateY(-1px);
+}
+
+.fastbridge-app-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: clamp(40px, 7vh, 96px) 20px clamp(36px, 6vh, 84px);
+}
+
+.fastbridge-app-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1240px, calc(100% - 80px));
+  padding: 0 0 16px;
+  margin: 0 auto;
+  font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
+  color: #5b5b5a;
+}
+
+.fastbridge-app-footer-left,
+.fastbridge-app-footer-right,
+.fastbridge-powered-by {
+  display: flex;
+  align-items: center;
+}
+
+.fastbridge-app-footer-left {
+  gap: 18px;
+  min-width: 0;
+}
+
+.fastbridge-app-footer-right {
+  flex-shrink: 0;
+  gap: 28px;
+}
+
+.fastbridge-powered-by {
+  flex-shrink: 0;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #525252;
+  letter-spacing: -0.005em;
+}
+
+.fastbridge-footer-avail-logo {
+  display: block;
+  flex-shrink: 0;
+  width: 37px;
+  height: 14px;
+  object-fit: contain;
+  object-position: center 66.667%;
+}
+
+.fastbridge-footer-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 12px;
+  background: #d9d9d7;
+}
+
+.fastbridge-footer-copy {
+  font-size: 13px;
+  line-height: 16px;
+  color: #9e9e9c;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.fastbridge-footer-link,
+.fastbridge-footer-icon-link {
+  color: #161615;
+  text-decoration: none;
+}
+
+.fastbridge-footer-link {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.fastbridge-footer-links,
+.fastbridge-footer-socials {
+  display: flex;
+  align-items: center;
+}
+
+.fastbridge-footer-links {
+  gap: 24px;
+}
+
+.fastbridge-footer-socials {
+  gap: 14px;
+}
+
+.fastbridge-footer-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.fastbridge-footer-icon-link-discord {
+  width: 18px;
+}
+
+.fastbridge-footer-link:hover,
+.fastbridge-footer-icon-link:hover {
+  opacity: 0.72;
+}
+
+@media (max-width: 900px) {
+  .fastbridge-app-nav-inner {
+    width: calc(100% - 40px);
+    padding: 32px 0 0;
+  }
+
+  .fastbridge-wallet-button {
+    width: 132px;
+    height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+    line-height: 18px;
+    border-radius: 10px;
+  }
+
+  .fastbridge-app-logo-image {
+    width: 160px;
+    height: auto;
+  }
+
+  .fastbridge-app-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    width: calc(100% - 40px);
+    padding: 0 0 28px;
+  }
+
+  .fastbridge-app-footer-left,
+  .fastbridge-app-footer-right {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

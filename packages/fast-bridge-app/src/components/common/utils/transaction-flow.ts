@@ -1,31 +1,28 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import {
+  formatUnits,
   type NexusNetwork,
-  type NexusSDK,
+  NexusSDK,
   SUPPORTED_CHAINS,
   type SUPPORTED_CHAINS_IDS,
   type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import type { Address } from "viem";
+import { type Address } from "viem";
 
 const MAX_AMOUNT_REGEX = /^\d*\.?\d+$/;
-const TRAILING_ZEROES_REGEX = /0+$/;
 
 export const MAX_AMOUNT_DEBOUNCE_MS = 300;
 
 export const normalizeMaxAmount = (
   maxAmount?: string | number
 ): string | undefined => {
-  if (maxAmount === undefined || maxAmount === null) {
-    return undefined;
-  }
+  if (maxAmount === undefined || maxAmount === null) return undefined;
   const value = String(maxAmount).trim();
   if (!value || value === "." || !MAX_AMOUNT_REGEX.test(value)) {
     return undefined;
   }
   const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return undefined;
-  }
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
   return value;
 };
 
@@ -42,9 +39,7 @@ export const clampAmountToMax = ({
   token: SUPPORTED_TOKENS;
   chainId: SUPPORTED_CHAINS_IDS;
 }): string => {
-  if (!maxAmount) {
-    return amount;
-  }
+  if (!maxAmount) return amount;
   try {
     const amountRaw = nexusSDK.convertTokenReadableAmountToBigInt(
       amount,
@@ -67,17 +62,11 @@ export const formatAmountForDisplay = (
   decimals: number | undefined,
   nexusSDK: NexusSDK
 ): string => {
-  if (typeof decimals !== "number") {
-    return amount.toString();
-  }
-  const formatted = nexusSDK.utils.formatUnits(amount, decimals);
-  if (!formatted.includes(".")) {
-    return formatted;
-  }
+  if (typeof decimals !== "number") return amount.toString();
+  const formatted = formatUnits(amount, decimals);
+  if (!formatted.includes(".")) return formatted;
   const [whole, fraction] = formatted.split(".");
-  const trimmedFraction = fraction
-    .slice(0, 6)
-    .replace(TRAILING_ZEROES_REGEX, "");
+  const trimmedFraction = fraction.slice(0, 6).replace(/0+$/, "");
   if (!trimmedFraction && whole === "0" && amount > BigInt(0)) {
     return "0.000001";
   }
@@ -125,9 +114,7 @@ export const getCoverageDecimals = ({
   chainId?: SUPPORTED_CHAINS_IDS;
   fallback: number | undefined;
 }) => {
-  if (token === "USDM") {
-    return 18;
-  }
+  if (token === "USDM") return 18;
   if (
     type === "bridge" &&
     token === "USDC" &&

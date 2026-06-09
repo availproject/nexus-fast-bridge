@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import {
   type BridgeStepType,
   NEXUS_EVENTS,
@@ -12,12 +13,12 @@ import {
   useCallback,
   useRef,
 } from "react";
-import type { TransactionStatus } from "../tx/types";
-import type {
-  SourceSelectionValidation,
-  TransactionFlowEvent,
-  TransactionFlowExecutor,
-  TransactionFlowInputs,
+import { type TransactionStatus } from "../tx/types";
+import {
+  type SourceSelectionValidation,
+  type TransactionFlowEvent,
+  type TransactionFlowExecutor,
+  type TransactionFlowInputs,
 } from "../types/transaction-flow";
 
 interface NexusErrorInfo {
@@ -34,7 +35,6 @@ interface UseTransactionExecutionProps {
   allowance: RefObject<OnAllowanceHookData | null>;
   areInputsValid: boolean;
   configuredMaxAmount?: string;
-  denyIntentOnReset?: boolean;
   executeTransaction: TransactionFlowExecutor;
   fetchBalance: () => Promise<void>;
   getMaxForCurrentSelection: () => Promise<string | undefined>;
@@ -44,8 +44,7 @@ interface UseTransactionExecutionProps {
   loading: boolean;
   nexusSDK: NexusSDK | null;
   notifyHistoryRefresh?: () => void;
-  onAllowanceUserApproval?: () => void;
-  onComplete?: (explorerUrl?: string) => void | Promise<void>;
+  onComplete?: (explorerUrl?: string) => void;
   onError?: (message: string) => void;
   onStart?: () => void;
   onStepComplete: (step: BridgeStepType) => void;
@@ -103,43 +102,26 @@ export function useTransactionExecution({
   onStart,
   onComplete,
   onError,
-  onAllowanceUserApproval,
   fetchBalance,
   notifyHistoryRefresh,
-  denyIntentOnReset = true,
 }: UseTransactionExecutionProps) {
   const commitLockRef = useRef(false);
   const runIdRef = useRef(0);
 
-  const setError = useCallback(
-    (message: string, status: TransactionStatus = "error") => {
-      setTxError(message);
-      onError?.(message);
-      setStatus(status);
-    },
-    [onError, setStatus, setTxError]
-  );
-
   const refreshIntent = async (options?: { reportError?: boolean }) => {
-    if (!intent.current) {
-      return false;
-    }
+    if (!intent.current) return false;
     const activeRunId = runIdRef.current;
     setRefreshing(true);
     try {
       const updated = await intent.current.refresh(sourceChainsForSdk);
-      if (activeRunId !== runIdRef.current) {
-        return false;
-      }
+      if (activeRunId !== runIdRef.current) return false;
       if (updated) {
         intent.current.intent = updated;
       }
       setAppliedSourceSelectionKey(sourceSelectionKey);
       return true;
     } catch (error) {
-      if (activeRunId !== runIdRef.current) {
-        return false;
-      }
+      if (activeRunId !== runIdRef.current) return false;
       console.error("Transaction failed:", error);
       if (options?.reportError) {
         const message = "Unable to refresh source selection. Please try again.";
@@ -157,7 +139,7 @@ export function useTransactionExecution({
   const onSuccess = async (explorerUrl?: string) => {
     stopwatch.stop();
     setStatus("success");
-    await onComplete?.(explorerUrl);
+    onComplete?.(explorerUrl);
     intent.current = null;
     allowance.current = null;
     resetInputs();
@@ -168,278 +150,137 @@ export function useTransactionExecution({
     notifyHistoryRefresh?.();
   };
 
-  const validateTransactionInputs = () => {
-    if (
-      !(inputs?.amount && inputs?.recipient && inputs?.chain && inputs?.token)
-    ) {
-      console.error("Missing required inputs");
-      return null;
-    }
-    if (!nexusSDK) {
-      const message = "Nexus SDK not initialized";
-      setTxError(message);
-      onError?.(message);
-      return null;
-    }
-    if (allAvailableSourceChainIds.length === 0) {
-      setError(
-        "No eligible source chains available for the selected token and destination."
-      );
-      return null;
-    }
+  const handleTransaction = async () => {
+    if (commitLockRef.current) return;
+    commitLockRef.current = true;
+    const currentRunId = ++runIdRef.current;
+    let didEnterExecutingState = false;
+    const cleanupSupersededExecution = () => {
+      if (!didEnterExecutingState) return;
+      setRefreshing(false);
+      setIsDialogOpen(false);
+      setLastExplorerUrl("");
+      stopwatch.stop();
+      stopwatch.reset();
+      resetSteps();
+      setStatus("idle");
+    };
 
-    const parsedAmount = Number(inputs.amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError("Enter a valid amount greater than 0.");
-      return null;
-    }
+    try {
+      if (
+        !inputs?.amount ||
+        !inputs?.recipient ||
+        !inputs?.chain ||
+        !inputs?.token
+      ) {
+        console.error("Missing required inputs");
+        return;
+      }
+      if (!nexusSDK) {
+        const message = "Nexus SDK not initialized";
+        setTxError(message);
+        onError?.(message);
+        return;
+      }
+      if (allAvailableSourceChainIds.length === 0) {
+        const message =
+          "No eligible source chains available for the selected token and destination.";
+        setTxError(message);
+        onError?.(message);
+        setStatus("error");
+        return;
+      }
 
-    return {
-      sdk: nexusSDK,
-      token: inputs.token,
-      amountReadable: inputs.amount,
-      recipient: inputs.recipient,
-      chain: inputs.chain,
-      amountBigInt: nexusSDK.convertTokenReadableAmountToBigInt(
+      const parsedAmount = Number(inputs.amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        const message = "Enter a valid amount greater than 0.";
+        setTxError(message);
+        onError?.(message);
+        setStatus("error");
+        return;
+      }
+
+      const amountBigInt = nexusSDK.convertTokenReadableAmountToBigInt(
         inputs.amount,
         inputs.token,
         inputs.chain
-      ),
-    };
-  };
-
-  const isWithinConfiguredLimit = (params: {
-    amountBigInt: bigint;
-    chain: number;
-    sdk: NexusSDK;
-    token: string;
-  }) => {
-    if (!configuredMaxAmount) {
-      return true;
-    }
-    const configuredMaxRaw = params.sdk.convertTokenReadableAmountToBigInt(
-      configuredMaxAmount,
-      params.token,
-      params.chain
-    );
-    if (params.amountBigInt <= configuredMaxRaw) {
-      return true;
-    }
-    setError(
-      `Amount exceeds maximum limit of ${configuredMaxAmount} ${params.token}.`
-    );
-    return false;
-  };
-
-  const validateSelectedSourcesLimit = async (params: {
-    amountBigInt: bigint;
-    chain: number;
-    currentRunId: number;
-    sdk: NexusSDK;
-    token: string;
-  }) => {
-    const maxForCurrentSelection = await getMaxForCurrentSelection();
-    if (params.currentRunId !== runIdRef.current) {
-      return { isStale: true, isValid: false };
-    }
-    if (!maxForCurrentSelection) {
-      setError(
-        `Unable to determine max ${operationName} amount for selected sources. Please try again.`
       );
-      return { isStale: false, isValid: false };
-    }
-    const maxForSelectionRaw = params.sdk.convertTokenReadableAmountToBigInt(
-      maxForCurrentSelection,
-      params.token,
-      params.chain
-    );
-    if (params.amountBigInt <= maxForSelectionRaw) {
-      return { isStale: false, isValid: true };
-    }
-    setError(
-      `Selected sources can provide up to ${maxForCurrentSelection} ${params.token}. Reduce amount or enable more sources.`
-    );
-    return { isStale: false, isValid: false };
-  };
 
-  const applyStepsListEvent = (event: TransactionFlowEvent) => {
-    const list = Array.isArray(event.args) ? event.args : [];
-    onStepsList(list as BridgeStepType[]);
-  };
+      if (configuredMaxAmount) {
+        const configuredMaxRaw = nexusSDK.convertTokenReadableAmountToBigInt(
+          configuredMaxAmount,
+          inputs.token,
+          inputs.chain
+        );
+        if (amountBigInt > configuredMaxRaw) {
+          const message = `Amount exceeds maximum limit of ${configuredMaxAmount} ${inputs.token}.`;
+          setTxError(message);
+          onError?.(message);
+          setStatus("error");
+          return;
+        }
+      }
 
-  const getStepName = (step: unknown): string | null => {
-    if (!step || typeof step !== "object") {
-      return null;
-    }
-    const stepLike = step as { type?: unknown; typeID?: unknown };
-    if (typeof stepLike.type === "string" && stepLike.type.length > 0) {
-      return stepLike.type;
-    }
-    if (typeof stepLike.typeID === "string" && stepLike.typeID.length > 0) {
-      return stepLike.typeID;
-    }
-    return null;
-  };
-
-  const applyStepCompleteEvent = (event: TransactionFlowEvent) => {
-    if (Array.isArray(event.args)) {
-      return;
-    }
-    const stepName = getStepName(event.args);
-    if (stepName === "INTENT_HASH_SIGNED") {
-      stopwatch.start();
-    }
-    if (stepName === "ALLOWANCE_USER_APPROVAL") {
-      onAllowanceUserApproval?.();
-    }
-    onStepComplete(event.args as BridgeStepType);
-  };
-
-  const isRunStale = (currentRunId: number) =>
-    currentRunId !== runIdRef.current;
-
-  const createOnEventHandler =
-    (currentRunId: number) => (event: TransactionFlowEvent) => {
-      if (isRunStale(currentRunId)) {
+      const maxForCurrentSelection = await getMaxForCurrentSelection();
+      if (currentRunId !== runIdRef.current) return;
+      if (!maxForCurrentSelection) {
+        const message = `Unable to determine max ${operationName} amount for selected sources. Please try again.`;
+        setTxError(message);
+        onError?.(message);
+        setStatus("error");
         return;
       }
-      if (event.name === NEXUS_EVENTS.STEPS_LIST) {
-        applyStepsListEvent(event);
-        return;
-      }
-      if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
-        applyStepCompleteEvent(event);
-      }
-    };
-
-  const handleTransactionFailure = (params: {
-    currentRunId: number;
-    error: unknown;
-  }) => {
-    if (isRunStale(params.currentRunId)) {
-      return;
-    }
-    const { message, code, context, details } = handleNexusError(params.error);
-
-    // Trust Wallet workaround: Ignore "wallet did not switch chain" error
-    // since the chain actually switches and completes behind the scenes.
-    if (message?.toLowerCase().includes("wallet did not switch chain")) {
-      console.warn("Ignored known Trust Wallet chain switch anomaly:", message);
-      // Let it fall back to polling for success
-      return;
-    }
-
-    console.error(`Fast ${operationName} transaction failed:`, {
-      code,
-      message,
-      context,
-      details,
-    });
-    if (denyIntentOnReset) {
-      intent.current?.deny();
-    }
-    intent.current = null;
-    allowance.current = null;
-    setTxError(message);
-    onError?.(message);
-    setIsDialogOpen(false);
-    setSelectedSourceChains(null);
-    setRefreshing(false);
-    stopwatch.stop();
-    stopwatch.reset();
-    resetSteps();
-    fetchBalance().catch((error) => {
-      console.error(
-        "Failed to refresh balance after transaction error:",
-        error
+      const maxForSelectionRaw = nexusSDK.convertTokenReadableAmountToBigInt(
+        maxForCurrentSelection,
+        inputs.token,
+        inputs.chain
       );
-    });
-    setStatus("error");
-  };
-
-  const handleTransaction = async () => {
-    if (commitLockRef.current) {
-      return;
-    }
-    commitLockRef.current = true;
-    const currentRunId = ++runIdRef.current;
-
-    try {
-      const validated = validateTransactionInputs();
-      if (!validated) {
-        return;
-      }
-      if (
-        !isWithinConfiguredLimit({
-          amountBigInt: validated.amountBigInt,
-          chain: validated.chain,
-          sdk: validated.sdk,
-          token: validated.token,
-        })
-      ) {
-        return;
-      }
-      const sourceLimit = await validateSelectedSourcesLimit({
-        amountBigInt: validated.amountBigInt,
-        chain: validated.chain,
-        currentRunId,
-        sdk: validated.sdk,
-        token: validated.token,
-      });
-      if (sourceLimit.isStale || !sourceLimit.isValid) {
+      if (amountBigInt > maxForSelectionRaw) {
+        const message = `Selected sources can provide up to ${maxForCurrentSelection} ${inputs.token}. Reduce amount or enable more sources.`;
+        setTxError(message);
+        onError?.(message);
+        setStatus("error");
         return;
       }
 
       setStatus("executing");
+      didEnterExecutingState = true;
       setTxError(null);
       onStart?.();
       setLastExplorerUrl("");
       setAppliedSourceSelectionKey(sourceSelectionKey);
 
-      const onEvent = createOnEventHandler(currentRunId);
-
-      if (nexusSDK) {
-        nexusSDK.setOnIntentHook((data) => {
-          if (isRunStale(currentRunId)) {
-            try {
-              data.deny();
-            } catch {
-              // Ignore failure to deny stale intent
-            }
-            return;
+      const onEvent = (event: TransactionFlowEvent) => {
+        if (currentRunId !== runIdRef.current) return;
+        if (event.name === NEXUS_EVENTS.STEPS_LIST) {
+          const list = Array.isArray(event.args) ? event.args : [];
+          onStepsList(list as BridgeStepType[]);
+        }
+        if (event.name === NEXUS_EVENTS.STEP_COMPLETE) {
+          if (
+            !Array.isArray(event.args) &&
+            "type" in event.args &&
+            event.args.type === "INTENT_HASH_SIGNED"
+          ) {
+            stopwatch.start();
           }
-
-          if (!inputs.amount) {
-            try {
-              data.deny();
-            } catch {
-              // Ignore failure to deny intent for empty amount
-            }
-            return;
+          if (!Array.isArray(event.args)) {
+            onStepComplete(event.args as BridgeStepType);
           }
-
-          intent.current = data;
-        });
-
-        nexusSDK.setOnAllowanceHook((data) => {
-          if (isRunStale(currentRunId)) {
-            return;
-          }
-          allowance.current = data;
-        });
-      }
+        }
+      };
 
       const transactionResult = await executeTransaction({
-        token: validated.token,
-        amount: validated.amountBigInt,
-        amountReadable: validated.amountReadable,
-        toChainId: validated.chain,
-        recipient: validated.recipient,
+        token: inputs.token,
+        amount: amountBigInt,
+        toChainId: inputs.chain,
+        recipient: inputs.recipient,
         sourceChains: sourceChainsForSdk,
         onEvent,
       });
 
-      if (isRunStale(currentRunId)) {
+      if (currentRunId !== runIdRef.current) {
+        cleanupSupersededExecution();
         return;
       }
       if (!transactionResult) {
@@ -448,7 +289,30 @@ export function useTransactionExecution({
       setLastExplorerUrl(transactionResult.explorerUrl);
       await onSuccess(transactionResult.explorerUrl);
     } catch (error) {
-      handleTransactionFailure({ error, currentRunId });
+      if (currentRunId !== runIdRef.current) {
+        cleanupSupersededExecution();
+        return;
+      }
+      const { message, code, context, details } = handleNexusError(error);
+      console.error(`Fast ${operationName} transaction failed:`, {
+        code,
+        message,
+        context,
+        details,
+      });
+      intent.current?.deny();
+      intent.current = null;
+      allowance.current = null;
+      setTxError(message);
+      onError?.(message);
+      setIsDialogOpen(false);
+      setSelectedSourceChains(null);
+      setRefreshing(false);
+      stopwatch.stop();
+      stopwatch.reset();
+      resetSteps();
+      void fetchBalance();
+      setStatus("error");
     } finally {
       commitLockRef.current = false;
     }
@@ -456,9 +320,7 @@ export function useTransactionExecution({
 
   const reset = () => {
     runIdRef.current += 1;
-    if (denyIntentOnReset) {
-      intent.current?.deny();
-    }
+    intent.current?.deny();
     intent.current = null;
     allowance.current = null;
     resetInputs();
@@ -473,9 +335,7 @@ export function useTransactionExecution({
   };
 
   const startTransaction = () => {
-    if (!intent.current) {
-      return;
-    }
+    if (!intent.current) return;
     if (allAvailableSourceChainIds.length === 0) {
       const message =
         "No eligible source chains available for the selected token and destination.";
@@ -489,62 +349,29 @@ export function useTransactionExecution({
       onError?.(message);
       return;
     }
-    const refreshAndAllow = async () => {
+    void (async () => {
       const refreshed = await refreshIntent({ reportError: true });
-      if (!(refreshed && intent.current)) {
-        return;
-      }
+      if (!refreshed || !intent.current) return;
       intent.current.allow();
       setIsDialogOpen(true);
       setTxError(null);
-    };
-
-    refreshAndAllow().catch((error) => {
-      const { message } = handleNexusError(error);
-      setTxError(message);
-      onError?.(message);
-    });
+    })();
   };
 
   const commitAmount = async () => {
-    if (intent.current || loading || txError || !areInputsValid) {
-      return;
-    }
+    if (intent.current || loading || txError || !areInputsValid) return;
     await handleTransaction();
   };
 
-  const invalidatePendingExecution = useCallback(
-    (options?: { forceResetUI?: boolean }) => {
-      runIdRef.current += 1;
-      commitLockRef.current = false;
-      if (intent.current) {
-        if (denyIntentOnReset) {
-          intent.current.deny();
-        }
-        intent.current = null;
-      }
-      allowance.current = null;
-      setAppliedSourceSelectionKey("ALL");
-
-      // Actively clear UI flags if inputs become cleanly invalid (zero, empty, etc.)
-      if (options?.forceResetUI) {
-        setStatus("idle");
-        setRefreshing(false);
-        resetSteps();
-        setLastExplorerUrl("");
-      }
-    },
-    [
-      allowance,
-      denyIntentOnReset,
-      intent,
-      setAppliedSourceSelectionKey,
-      setLastExplorerUrl,
-      setRefreshing,
-      setStatus,
-      resetSteps,
-    ]
-  );
+  const invalidatePendingExecution = useCallback(() => {
+    runIdRef.current += 1;
+    if (intent.current) {
+      intent.current.deny();
+      intent.current = null;
+    }
+    setRefreshing(false);
+    setAppliedSourceSelectionKey("ALL");
+  }, [intent, setAppliedSourceSelectionKey, setRefreshing]);
 
   return {
     refreshIntent,

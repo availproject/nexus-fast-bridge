@@ -18,8 +18,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import type React from "react";
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -28,11 +27,14 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { getShortChainName } from "../../common/utils/constant";
+import { nexusOneTheme } from "../theme";
 
 const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
   fontVariantNumeric: "tabular-nums",
 };
+const theme = nexusOneTheme;
 
 export interface SwapTokenOption {
   balance: string;
@@ -58,12 +60,14 @@ interface SwapAssetSelectorProps {
   allowUnified?: boolean;
   autoSelectFilterTabs?: boolean;
   editingAssetIndex?: number | null;
+  filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
   isMulti?: boolean;
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
   onClearSelection?: () => void;
   onDone?: () => void;
+  onFilterTabSelect?: (tab: Exclude<FilterTab, "custom">) => void;
   onSelect: (token: SwapTokenOption) => void;
   onSelectionChange?: (tokens: SwapTokenOption[]) => void;
   onToggle?: (token: SwapTokenOption) => void;
@@ -82,9 +86,7 @@ export function deriveTokenOptions(
   const tokens: SwapTokenOption[] = [];
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
-      if (Number.parseFloat(bd.balance ?? "0") <= 0) {
-        continue;
-      }
+      if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       tokens.push({
         contractAddress: bd.contractAddress,
@@ -102,7 +104,10 @@ export function deriveTokenOptions(
             ? `$${Number(bd.balanceInFiat).toFixed(2)}`
             : "$0.00",
         chainId: bd.chain?.id,
-        chainName: chainMeta?.name ?? bd.chain?.name,
+        chainName: getShortChainName(
+          bd.chain?.id,
+          chainMeta?.name ?? bd.chain?.name
+        ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
       });
     }
@@ -118,29 +123,20 @@ export function deriveTokenOptions(
 export const RadioDot = ({ selected }: { selected: boolean }) => (
   <div
     style={{
-      width: 20,
-      height: 20,
+      width: 18,
+      height: 18,
       borderRadius: "999px",
       boxSizing: "border-box",
-      border: selected ? "none" : "2px solid #E8E8E7",
-      backgroundColor: selected ? "#006BF4" : "#FFFFFE",
+      border: selected
+        ? `5px solid ${theme.colors.primary}`
+        : `1.5px solid ${theme.colors.border}`,
+      backgroundColor: theme.colors.surface,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
     }}
-  >
-    {selected && (
-      <div
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "999px",
-          backgroundColor: "#FFFFFE",
-        }}
-      />
-    )}
-  </div>
+  />
 );
 
 const SelectionControl = ({
@@ -152,9 +148,7 @@ const SelectionControl = ({
   indeterminate?: boolean;
   multi: boolean;
 }) => {
-  if (!multi) {
-    return <RadioDot selected={selected} />;
-  }
+  if (!multi) return <RadioDot selected={selected} />;
 
   const isActive = selected || indeterminate;
 
@@ -162,8 +156,8 @@ const SelectionControl = ({
     <div
       style={{
         alignItems: "center",
-        backgroundColor: isActive ? "#006BF4" : "#FFFFFE",
-        border: isActive ? "none" : "1.5px solid #E0E0DE",
+        backgroundColor: isActive ? theme.colors.primary : theme.colors.surface,
+        border: isActive ? "none" : `1.5px solid ${theme.colors.border}`,
         borderRadius: "5px",
         boxSizing: "border-box",
         display: "flex",
@@ -174,10 +168,10 @@ const SelectionControl = ({
       }}
     >
       {selected && (
-        <Check style={{ color: "#FFFFFE", height: 14, width: 14 }} />
+        <Check style={{ color: theme.colors.surface, height: 14, width: 14 }} />
       )}
       {!selected && indeterminate && (
-        <Minus style={{ color: "#FFFFFE", height: 14, width: 14 }} />
+        <Minus style={{ color: theme.colors.surface, height: 14, width: 14 }} />
       )}
     </div>
   );
@@ -204,7 +198,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
         out.push({
           id: t.chainId,
           logo: t.chainLogo,
-          name: t.chainName,
+          name: getShortChainName(t.chainId, t.chainName),
           balance: t.balance,
           balanceInFiat: t.balanceInFiat,
         });
@@ -224,9 +218,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
     setShowTooltip(true);
   };
   const closeTooltip = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-    }
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     closeTimerRef.current = setTimeout(() => {
       setShowTooltip(false);
       closeTimerRef.current = null;
@@ -234,9 +226,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
   };
   useEffect(() => {
     return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-      }
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, []);
   const showTooltipAbove = tooltipRect ? tooltipRect.top > 240 : true;
@@ -247,10 +237,10 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             onMouseEnter={openTooltip}
             onMouseLeave={closeTooltip}
             style={{
-              backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              backgroundColor: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`,
               borderRadius: 10,
-              boxShadow: "0 8px 24px rgba(22,22,21,0.12)",
+              boxShadow: theme.shadows.tooltip,
               ...tabularNums,
               left: Math.min(
                 Math.max(tooltipRect.left - 24, 8),
@@ -266,15 +256,15 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                 ? tooltipRect.top - 12
                 : tooltipRect.bottom + 8,
               transform: showTooltipAbove ? "translateY(-100%)" : "none",
-              zIndex: 2_147_483_647,
+              zIndex: 2147483647,
             }}
           >
             <div
               style={{
                 alignItems: "center",
-                color: "#848483",
+                color: theme.colors.muted,
                 display: "flex",
-                fontFamily: '"Geist", system-ui, sans-serif',
+                fontFamily: theme.fonts.sans,
                 fontSize: 11,
                 fontWeight: 700,
                 justifyContent: "space-between",
@@ -285,7 +275,11 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             >
               <span>UNIFIED · {uniqueChains.length} CHAINS</span>
               <span
-                style={{ color: "#161615", fontSize: 12, letterSpacing: 0 }}
+                style={{
+                  color: theme.colors.text,
+                  fontSize: 12,
+                  letterSpacing: 0,
+                }}
               >
                 {tokens
                   .reduce((sum, token) => sum + getTokenFiatValue(token), 0)
@@ -329,7 +323,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                   ) : (
                     <div
                       style={{
-                        backgroundColor: "#E8E8E7",
+                        backgroundColor: theme.colors.border,
                         borderRadius: "999px",
                         height: 16,
                         width: 16,
@@ -338,8 +332,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                   )}
                   <span
                     style={{
-                      color: "#363635",
-                      fontFamily: '"Geist", system-ui, sans-serif',
+                      color: theme.colors.text,
+                      fontFamily: theme.fonts.sans,
                       fontSize: 13,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -351,8 +345,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                 </div>
                 <span
                   style={{
-                    color: "#161615",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: theme.colors.text,
+                    fontFamily: theme.fonts.sans,
                     fontSize: 13,
                     fontWeight: 600,
                     whiteSpace: "nowrap",
@@ -377,7 +371,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 2,
+        gap: 0,
         position: "relative",
       }}
     >
@@ -389,31 +383,35 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             key={c.id}
             src={c.logo}
             style={{
-              width: 16,
-              height: 16,
+              width: 14,
+              height: 14,
               borderRadius: "999px",
               objectFit: "cover",
-              border: "1px solid #fff",
+              outline: `1px solid ${theme.colors.surface}`,
+              marginLeft: i > 0 ? -6 : 0,
             }}
           />
         ) : (
           <div
             key={c.id}
             style={{
-              width: 16,
-              height: 16,
+              width: 14,
+              height: 14,
               borderRadius: "999px",
-              backgroundColor: "#E8E8E7",
+              backgroundColor: theme.colors.border,
+              outline: `1px solid ${theme.colors.surface}`,
+              marginLeft: i > 0 ? -6 : 0,
             }}
           />
         )
       )}
       <span
         style={{
-          fontFamily: '"Geist", system-ui, sans-serif',
-          fontSize: 12,
-          color: "#848483",
-          marginLeft: 2,
+          fontFamily: theme.fonts.sans,
+          fontSize: 14,
+          color: theme.colors.muted,
+          lineHeight: "20px",
+          marginLeft: shown.length > 0 ? 4 : 0,
         }}
       >
         {uniqueChains.length} chain{uniqueChains.length !== 1 ? "s" : ""}
@@ -424,6 +422,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
 
 /* ── Filter tabs ── */
 type FilterTab = "all" | "native" | "stables" | "custom";
+type FilterTabBehavior = "select-all" | "source-pool";
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "native", label: "Native" },
@@ -483,52 +482,29 @@ const isStableToken = (token: SwapTokenOption) =>
   STABLE_SYMBOL_KEYS.has(token.symbol.trim().toUpperCase());
 
 function isNativeToken(t: SwapTokenOption) {
-  if (isNativeLikeAddress(t.contractAddress)) {
-    return true;
-  }
+  if (isNativeLikeAddress(t.contractAddress)) return true;
 
   const sym = t.symbol.toUpperCase();
   const chain = (t.chainName || "").toLowerCase();
 
-  if (sym === "ETH") {
-    return !(
-      chain.includes("bnb") ||
-      chain.includes("bsc") ||
-      chain.includes("polygon") ||
-      chain.includes("monad") ||
-      chain.includes("hyperevm")
+  if (sym === "ETH")
+    return (
+      !chain.includes("bnb") &&
+      !chain.includes("bsc") &&
+      !chain.includes("polygon") &&
+      !chain.includes("monad") &&
+      !chain.includes("hyperevm")
     );
-  }
-  if (sym === "POL" || sym === "MATIC") {
-    return chain.includes("polygon");
-  }
-  if (sym === "HYPE") {
-    return chain.includes("hyperevm");
-  }
-  if (sym === "MON") {
-    return chain.includes("monad");
-  }
-  if (sym === "BNB") {
-    return chain.includes("bnb") || chain.includes("bsc");
-  }
-  if (sym === "AVAX") {
-    return chain.includes("avalanche");
-  }
-  if (sym === "FTM") {
-    return chain.includes("fantom");
-  }
-  if (sym === "CELO") {
-    return chain.includes("celo");
-  }
-  if (sym === "SUI") {
-    return chain.includes("sui");
-  }
-  if (sym === "APT") {
-    return chain.includes("aptos");
-  }
-  if (sym === "SOL") {
-    return chain.includes("solana");
-  }
+  if (sym === "POL" || sym === "MATIC") return chain.includes("polygon");
+  if (sym === "HYPE") return chain.includes("hyperevm");
+  if (sym === "MON") return chain.includes("monad");
+  if (sym === "BNB") return chain.includes("bnb") || chain.includes("bsc");
+  if (sym === "AVAX") return chain.includes("avalanche");
+  if (sym === "FTM") return chain.includes("fantom");
+  if (sym === "CELO") return chain.includes("celo");
+  if (sym === "SUI") return chain.includes("sui");
+  if (sym === "APT") return chain.includes("aptos");
+  if (sym === "SOL") return chain.includes("solana");
   return false;
 }
 
@@ -541,13 +517,13 @@ const modalHeightTransitionStyle = {
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 export const SWAP_CHAIN_DISPLAY_ORDER = [
   1, // Ethereum
-  42_161, // Arbitrum
+  42161, // Arbitrum
   8453, // Base
   137, // Polygon
   10, // OP
   999, // HyperEVM
   56, // BSC
-  43_114, // Avalanche
+  43114, // Avalanche
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
@@ -565,9 +541,7 @@ export const sortChainIdsBySwapDisplayOrder = (chainIds: number[]) =>
       SWAP_CHAIN_DISPLAY_ORDER_RANK.get(a) ?? Number.MAX_SAFE_INTEGER;
     const bRank =
       SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b) ?? Number.MAX_SAFE_INTEGER;
-    if (aRank !== bRank) {
-      return aRank - bRank;
-    }
+    if (aRank !== bRank) return aRank - bRank;
 
     const aName = CHAIN_METADATA[a]?.name ?? String(a);
     const bName = CHAIN_METADATA[b]?.name ?? String(b);
@@ -585,13 +559,11 @@ export const compareChainsBySwapDisplayOrder = <
   const bRank =
     SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b.chainId ?? -1) ??
     Number.MAX_SAFE_INTEGER;
-  if (aRank !== bRank) {
-    return aRank - bRank;
-  }
+  if (aRank !== bRank) return aRank - bRank;
   return (a.chainName ?? "").localeCompare(b.chainName ?? "");
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42_161, 43_114, 534_352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
@@ -605,9 +577,7 @@ const formatBalanceWithSymbol = (
 ) => {
   const balance = String(token.balance ?? "").trim();
   const symbol = token.symbol?.trim();
-  if (!symbol) {
-    return balance || "0";
-  }
+  if (!symbol) return balance || "0";
   if (new RegExp(`(?:^|\\s)${escapeRegExp(symbol)}$`, "i").test(balance)) {
     return balance || `0 ${symbol}`;
   }
@@ -615,12 +585,8 @@ const formatBalanceWithSymbol = (
 };
 
 const parseTokenAmount = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -637,9 +603,7 @@ export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
   const abs = amount.abs();
 
-  if (amount.isZero()) {
-    return "0";
-  }
+  if (amount.isZero()) return "0";
 
   const compactUnits = [
     { suffix: "T", value: new Decimal(1_000_000_000_000) },
@@ -676,12 +640,8 @@ export const formatUsdBalanceLabel = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
   const abs = amount.abs();
 
-  if (amount.isZero()) {
-    return "$0.00";
-  }
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.isZero()) return "$0.00";
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
 
   const compactUnits = [
     { suffix: "T", value: new Decimal(1_000_000_000_000) },
@@ -704,9 +664,7 @@ export const formatUsdBalanceLabel = (value: unknown) => {
 export const formatSelectedTokenBalanceLabel = (
   token?: Pick<SwapTokenOption, "balance" | "symbol">
 ) => {
-  if (!token) {
-    return "";
-  }
+  if (!token) return "";
   const symbol = token.symbol || "";
   const formatted = formatTokenAmountDisplay(token.balance);
   return symbol ? `${formatted} ${symbol}` : formatted;
@@ -732,9 +690,7 @@ export const getTokenSearchRank = (
   query: string
 ) => {
   const terms = getSearchTerms(query);
-  if (terms.length === 0) {
-    return null;
-  }
+  if (terms.length === 0) return null;
 
   let matchedTerms = 0;
   let symbolExactTerms = 0;
@@ -764,48 +720,22 @@ export const getTokenSearchRank = (
     const chainInclude = chainPrefix || includesTerm(token.chainName, term);
     const addressMatch = includesTerm(token.contractAddress, term);
 
-    if (tokenInclude || chainInclude || addressMatch) {
-      matchedTerms += 1;
-    }
-    if (symbolExact) {
-      symbolExactTerms += 1;
-    }
-    if (symbolPrefix) {
-      symbolPrefixTerms += 1;
-    }
-    if (symbolInclude) {
-      symbolIncludeTerms += 1;
-    }
-    if (namePrefix) {
-      namePrefixTerms += 1;
-    }
-    if (tokenExact) {
-      tokenExactTerms += 1;
-    }
-    if (tokenPrefix) {
-      tokenPrefixTerms += 1;
-    }
-    if (tokenInclude) {
-      tokenIncludeTerms += 1;
-    }
-    if (chainExact) {
-      chainExactTerms += 1;
-    }
-    if (chainPrefix) {
-      chainPrefixTerms += 1;
-    }
-    if (chainInclude) {
-      chainIncludeTerms += 1;
-    }
-    if (addressMatch) {
-      addressTerms += 1;
-    }
+    if (tokenInclude || chainInclude || addressMatch) matchedTerms += 1;
+    if (symbolExact) symbolExactTerms += 1;
+    if (symbolPrefix) symbolPrefixTerms += 1;
+    if (symbolInclude) symbolIncludeTerms += 1;
+    if (namePrefix) namePrefixTerms += 1;
+    if (tokenExact) tokenExactTerms += 1;
+    if (tokenPrefix) tokenPrefixTerms += 1;
+    if (tokenInclude) tokenIncludeTerms += 1;
+    if (chainExact) chainExactTerms += 1;
+    if (chainPrefix) chainPrefixTerms += 1;
+    if (chainInclude) chainIncludeTerms += 1;
+    if (addressMatch) addressTerms += 1;
   }
 
   const allTermsMatched = matchedTerms === terms.length;
-  if (!allTermsMatched) {
-    return null;
-  }
+  if (!allTermsMatched) return null;
 
   if (
     terms.length > 1 &&
@@ -823,42 +753,23 @@ export const getTokenSearchRank = (
 
   let score = 20;
   if (isTokenChainMatch) {
-    if (symbolExactTerms > 0 && chainExactTerms > 0) {
-      score = 0;
-    } else if (symbolExactTerms > 0 && chainPrefixTerms > 0) {
-      score = 1;
-    } else if (symbolExactTerms > 0 && chainIncludeTerms > 0) {
-      score = 2;
-    } else if (symbolPrefixTerms > 0 && chainIncludeTerms > 0) {
-      score = 3;
-    } else if (symbolIncludeTerms > 0 && chainIncludeTerms > 0) {
-      score = 4;
-    } else if (namePrefixTerms > 0 && chainIncludeTerms > 0) {
-      score = 5;
-    } else {
-      score = 6;
-    }
-  } else if (symbolExactTerms > 0) {
-    score = 7;
-  } else if (symbolPrefixTerms > 0) {
-    score = 8;
-  } else if (symbolIncludeTerms > 0) {
-    score = 9;
-  } else if (tokenExactTerms > 0) {
-    score = 10;
-  } else if (tokenPrefixTerms > 0) {
-    score = 11;
-  } else if (tokenIncludeTerms > 0) {
-    score = 12;
-  } else if (chainExactTerms > 0) {
-    score = 13;
-  } else if (chainPrefixTerms > 0) {
-    score = 14;
-  } else if (chainIncludeTerms > 0) {
-    score = 15;
-  } else if (addressTerms > 0) {
-    score = 16;
-  }
+    if (symbolExactTerms > 0 && chainExactTerms > 0) score = 0;
+    else if (symbolExactTerms > 0 && chainPrefixTerms > 0) score = 1;
+    else if (symbolExactTerms > 0 && chainIncludeTerms > 0) score = 2;
+    else if (symbolPrefixTerms > 0 && chainIncludeTerms > 0) score = 3;
+    else if (symbolIncludeTerms > 0 && chainIncludeTerms > 0) score = 4;
+    else if (namePrefixTerms > 0 && chainIncludeTerms > 0) score = 5;
+    else score = 6;
+  } else if (symbolExactTerms > 0) score = 7;
+  else if (symbolPrefixTerms > 0) score = 8;
+  else if (symbolIncludeTerms > 0) score = 9;
+  else if (tokenExactTerms > 0) score = 10;
+  else if (tokenPrefixTerms > 0) score = 11;
+  else if (tokenIncludeTerms > 0) score = 12;
+  else if (chainExactTerms > 0) score = 13;
+  else if (chainPrefixTerms > 0) score = 14;
+  else if (chainIncludeTerms > 0) score = 15;
+  else if (addressTerms > 0) score = 16;
 
   return {
     allTermsMatched,
@@ -889,21 +800,15 @@ const compareTokensBySearch = (
   const bRank = getTokenSearchRank(b, query);
   const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
   const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
-  if (aScore !== bScore) {
-    return aScore - bScore;
-  }
+  if (aScore !== bScore) return aScore - bScore;
 
   const aMatched = aRank?.matchedTerms ?? 0;
   const bMatched = bRank?.matchedTerms ?? 0;
-  if (aMatched !== bMatched) {
-    return bMatched - aMatched;
-  }
+  if (aMatched !== bMatched) return bMatched - aMatched;
 
   const aFiat = getTokenFiatValue(a);
   const bFiat = getTokenFiatValue(b);
-  if (aFiat !== bFiat) {
-    return bFiat - aFiat;
-  }
+  if (aFiat !== bFiat) return bFiat - aFiat;
 
   return `${a.symbol} ${a.chainName}`.localeCompare(
     `${b.symbol} ${b.chainName}`
@@ -916,22 +821,14 @@ function getUnifiedSymbol(token: Pick<SwapTokenOption, "symbol" | "chainId">) {
   }
 
   const symbol = token.symbol.toUpperCase();
-  if (symbol.includes("USDC") || symbol === "USDM") {
-    return "USDC" as const;
-  }
-  if (symbol.includes("USDT")) {
-    return "USDT" as const;
-  }
-  if (symbol === "ETH") {
-    return "ETH" as const;
-  }
+  if (symbol.includes("USDC") || symbol === "USDM") return "USDC" as const;
+  if (symbol.includes("USDT")) return "USDT" as const;
+  if (symbol === "ETH") return "ETH" as const;
   return null;
 }
 
 function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
-  if (!(a && b)) {
-    return false;
-  }
+  if (!a || !b) return false;
   if (a.isUnified || b.isUnified) {
     return Boolean(
       a.isUnified && b.isUnified && a.unifiedSymbol === b.unifiedSymbol
@@ -978,21 +875,15 @@ function isNativeLikeAddress(address?: string) {
 
 function addressTail(address?: string) {
   const normalized = (address ?? "").toLowerCase();
-  if (!normalized.startsWith("0x")) {
-    return normalized;
-  }
+  if (!normalized.startsWith("0x")) return normalized;
   return normalized.slice(-40);
 }
 
 function sameContractAddress(a?: string, b?: string) {
   const normalizedA = (a ?? "").toLowerCase();
   const normalizedB = (b ?? "").toLowerCase();
-  if (!(normalizedA && normalizedB)) {
-    return normalizedA === normalizedB;
-  }
-  if (normalizedA === normalizedB) {
-    return true;
-  }
+  if (!normalizedA || !normalizedB) return normalizedA === normalizedB;
+  if (normalizedA === normalizedB) return true;
   if (isNativeLikeAddress(normalizedA) && isNativeLikeAddress(normalizedB)) {
     return true;
   }
@@ -1017,6 +908,8 @@ export function SwapAssetSelector({
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
+  filterTabBehavior = "select-all",
+  onFilterTabSelect,
   lockedTokens = [],
   onSelectionChange,
   requiredUsd,
@@ -1052,9 +945,7 @@ export function SwapAssetSelector({
     SwapTokenOption[]
   >(() => mergeTokenOptions(selectedTokens, lockedSelectedTokens));
   useEffect(() => {
-    if (!isMulti) {
-      return;
-    }
+    if (!isMulti) return;
     setDraftSelectedTokens(
       mergeTokenOptions(selectedTokens, lockedSelectedTokens)
     );
@@ -1093,14 +984,10 @@ export function SwapAssetSelector({
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;
-    if (!listEl) {
-      return;
-    }
+    if (!listEl) return;
 
     const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) {
-      return;
-    }
+    if (nextHeight <= stableListHeightRef.current) return;
 
     stableListHeightRef.current = nextHeight;
     setStableListHeight(nextHeight);
@@ -1110,9 +997,7 @@ export function SwapAssetSelector({
     preserveListHeight();
 
     const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") {
-      return;
-    }
+    if (!listEl || typeof ResizeObserver === "undefined") return;
 
     const observer = new ResizeObserver(() => {
       preserveListHeight();
@@ -1169,9 +1054,8 @@ export function SwapAssetSelector({
           (token) => token.chainId === selectedChainFilter
         );
       }
-      if (tab === "native") {
-        result = result.filter(isNativeToken);
-      } else if (tab === "stables") {
+      if (tab === "native") result = result.filter(isNativeToken);
+      else if (tab === "stables") {
         result = result.filter(isStableToken);
       }
 
@@ -1189,9 +1073,7 @@ export function SwapAssetSelector({
 
   const selectionMatchesFilterTab = useCallback(
     (tab: FilterTab) => {
-      if (tab === "custom") {
-        return true;
-      }
+      if (tab === "custom") return true;
       const expected = getFilterTabTokens(tab);
       const selected = mergeTokenOptions(
         activeSelectedTokens,
@@ -1210,15 +1092,15 @@ export function SwapAssetSelector({
   );
 
   useEffect(() => {
-    if (!(autoSelectFilterTabs && isMulti) || activeTab === "custom") {
-      return;
-    }
     if (
-      activeSelectedTokens.length === 0 &&
-      lockedSelectedTokens.length === 0
-    ) {
+      !autoSelectFilterTabs ||
+      filterTabBehavior === "source-pool" ||
+      !isMulti ||
+      activeTab === "custom"
+    )
       return;
-    }
+    if (activeSelectedTokens.length === 0 && lockedSelectedTokens.length === 0)
+      return;
     if (!selectionMatchesFilterTab(activeTab)) {
       setActiveTab("custom");
     }
@@ -1226,6 +1108,7 @@ export function SwapAssetSelector({
     activeTab,
     activeSelectedTokens.length,
     autoSelectFilterTabs,
+    filterTabBehavior,
     isMulti,
     lockedSelectedTokens.length,
     selectionMatchesFilterTab,
@@ -1242,21 +1125,16 @@ export function SwapAssetSelector({
         .filter((t) => getTokenSearchRank(t, query) !== null)
         .sort((a, b) => compareTokensBySearch(a, b, query));
     }
-    if (activeTab === "native") {
-      result = result.filter(isNativeToken);
-    } else if (activeTab === "stables") {
-      result = result.filter(isStableToken);
-    } else if (activeTab === "custom" && !autoSelectFilterTabs) {
-      result = result.filter((t) => !(isNativeToken(t) || isStableToken(t)));
-    }
+    if (activeTab === "native") result = result.filter(isNativeToken);
+    else if (activeTab === "stables") result = result.filter(isStableToken);
+    else if (activeTab === "custom" && !autoSelectFilterTabs)
+      result = result.filter((t) => !isNativeToken(t) && !isStableToken(t));
     return result;
   }, [activeTab, allTokens, autoSelectFilterTabs, query, selectedChainFilter]);
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
-      if (!preserveSelectedBelowMinimum) {
-        return false;
-      }
+      if (!preserveSelectedBelowMinimum) return false;
 
       return activeSelectedTokens.some(
         (selected) =>
@@ -1291,11 +1169,9 @@ export function SwapAssetSelector({
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
         isPrioritySearchMatch(t, query)
-      ) {
+      )
         above.push(t);
-      } else {
-        below.push(t);
-      }
+      else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
   }, [filtered, isTokenSelectedForVisibility, query]);
@@ -1309,9 +1185,7 @@ export function SwapAssetSelector({
         continue;
       }
       const key = unifiedSym ?? `${token.contractAddress}-${token.chainId}`;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(token);
     }
     return Object.values(groups)
@@ -1372,9 +1246,7 @@ export function SwapAssetSelector({
                 Number.MAX_SAFE_INTEGER
             )
           );
-          if (aScore !== bScore) {
-            return aScore - bScore;
-          }
+          if (aScore !== bScore) return aScore - bScore;
         }
         return b.totalFiat - a.totalFiat;
       });
@@ -1392,11 +1264,8 @@ export function SwapAssetSelector({
     e.stopPropagation();
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(symbol)) {
-        next.delete(symbol);
-      } else {
-        next.add(symbol);
-      }
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
       return next;
     });
   };
@@ -1428,9 +1297,7 @@ export function SwapAssetSelector({
           )
       );
     }
-    if (editingAssetIndex === null) {
-      return false;
-    }
+    if (editingAssetIndex === null) return false;
     const st = activeSelectedTokens[editingAssetIndex];
     return sameTokenOption(st, token);
   };
@@ -1438,9 +1305,7 @@ export function SwapAssetSelector({
   const isGroupUnifiedSelectedInOtherSlot = (
     group: (typeof groupedFiltered)[0]
   ) => {
-    if (allowSelectedTokenRemoval) {
-      return false;
-    }
+    if (allowSelectedTokenRemoval) return false;
     const relevantTokens = isMulti
       ? activeSelectedTokens
       : activeSelectedTokens.filter((_, idx) => idx !== editingAssetIndex);
@@ -1457,9 +1322,7 @@ export function SwapAssetSelector({
         (st) => st.isUnified && st.unifiedSymbol === group.symbol
       );
     }
-    if (editingAssetIndex === null) {
-      return false;
-    }
+    if (editingAssetIndex === null) return false;
     const st = activeSelectedTokens[editingAssetIndex];
     return Boolean(st?.isUnified && st.unifiedSymbol === group.symbol);
   };
@@ -1467,9 +1330,7 @@ export function SwapAssetSelector({
   const isAnyTokenInGroupSelectedInOtherSlot = (
     group: (typeof groupedFiltered)[0]
   ) => {
-    if (allowSelectedTokenRemoval) {
-      return false;
-    }
+    if (allowSelectedTokenRemoval) return false;
     const relevantTokens = isMulti
       ? activeSelectedTokens
       : activeSelectedTokens.filter((_, idx) => idx !== editingAssetIndex);
@@ -1482,12 +1343,12 @@ export function SwapAssetSelector({
 
   const handleFilterTabClick = (tab: FilterTab) => {
     setActiveTab(tab);
-    if (
-      autoSelectFilterTabs &&
-      isMulti &&
-      tab !== "custom" &&
-      onSelectionChange
-    ) {
+    if (autoSelectFilterTabs && isMulti && tab !== "custom") {
+      if (filterTabBehavior === "source-pool") {
+        onFilterTabSelect?.(tab);
+        return;
+      }
+      if (!onSelectionChange) return;
       emitSelectionChange(getFilterTabTokens(tab));
     }
   };
@@ -1502,7 +1363,7 @@ export function SwapAssetSelector({
   };
 
   const handleMultiTokenToggle = (token: SwapTokenOption) => {
-    if (!(autoSelectFilterTabs && isMulti && onSelectionChange)) {
+    if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
       onToggle?.(token);
       return;
     }
@@ -1517,9 +1378,7 @@ export function SwapAssetSelector({
         ? token.sourceTokens
         : [token];
     const unlockedTargets = targets.filter((target) => !isLockedToken(target));
-    if (unlockedTargets.length === 0) {
-      return;
-    }
+    if (unlockedTargets.length === 0) return;
 
     const allTargetsSelected = unlockedTargets.every((target) =>
       current.some((item) => sameTokenOption(item, target))
@@ -1537,9 +1396,7 @@ export function SwapAssetSelector({
     isDisabledByUnified = false
   ) => {
     const selectedInOther = !isMulti && isTokenSelectedInOtherSlot(token);
-    if (selectedInOther) {
-      return null;
-    }
+    if (selectedInOther) return null;
 
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
@@ -1549,9 +1406,7 @@ export function SwapAssetSelector({
         disabled={disabled}
         key={`${token.contractAddress}-${token.chainId}`}
         onClick={() => {
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           if (isMulti) {
             handleMultiTokenToggle(token);
           } else if (
@@ -1560,31 +1415,38 @@ export function SwapAssetSelector({
             onToggle
           ) {
             onToggle(token);
-          } else {
-            onSelect(token);
-          }
+          } else onSelect(token);
         }}
         style={{
-          width: "100%",
-          display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 14px",
-          paddingLeft: indent ? "36px" : "14px",
           backgroundColor: "transparent",
           border: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          borderBottom: "1px solid #F0F0EF",
+          borderBottom: `1px solid ${theme.colors.divider}`,
           boxSizing: "border-box",
+          cursor: disabled ? "not-allowed" : "pointer",
+          display: "flex",
+          gap: "12px",
+          justifyContent: "space-between",
           opacity: isDisabledByUnified ? 0.5 : 1,
+          padding: "16px",
+          paddingLeft: indent ? "44px" : "16px",
+          width: "100%",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            alignItems: "center",
+            display: "flex",
+            flex: "1 1 auto",
+            gap: "12px",
+            minWidth: 0,
+          }}
+        >
           <SelectionControl
             multi={Boolean(isMulti)}
             selected={selectedInCurrent}
           />
-          <div style={{ flexShrink: 0, width: 40, height: 40 }}>
+          <div style={{ flexShrink: 0, width: 36, height: 36 }}>
             {token.logo ? (
               <img
                 alt={token.symbol}
@@ -1593,8 +1455,8 @@ export function SwapAssetSelector({
                 }}
                 src={token.logo}
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   borderRadius: "999px",
                   objectFit: "cover",
                 }}
@@ -1602,14 +1464,14 @@ export function SwapAssetSelector({
             ) : (
               <div
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   borderRadius: "999px",
-                  backgroundColor: "#006BF4",
+                  backgroundColor: theme.colors.primary,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#fff",
+                  color: theme.colors.surface,
                   fontSize: 14,
                   fontWeight: 700,
                 }}
@@ -1623,14 +1485,17 @@ export function SwapAssetSelector({
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-start",
+              gap: "2px",
+              minWidth: 0,
             }}
           >
             <span
               style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
+                fontFamily: theme.fonts.sans,
                 fontWeight: 500,
-                fontSize: 15,
-                color: "#161615",
+                fontSize: 16,
+                color: theme.colors.text,
+                lineHeight: "24px",
               }}
             >
               {token.symbol}
@@ -1643,17 +1508,18 @@ export function SwapAssetSelector({
                     src={token.chainLogo}
                     style={{
                       borderRadius: "999px",
-                      height: 14,
+                      height: 16,
                       objectFit: "cover",
-                      width: 14,
+                      width: 16,
                     }}
                   />
                 )}
                 <span
                   style={{
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
-                    color: "#848483",
+                    fontFamily: theme.fonts.sans,
+                    fontSize: 14,
+                    color: theme.colors.muted,
+                    lineHeight: "20px",
                   }}
                 >
                   {token.chainName}
@@ -1667,23 +1533,27 @@ export function SwapAssetSelector({
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-end",
+            flexShrink: 0,
+            gap: "2px",
           }}
         >
           <span
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
+              fontFamily: theme.fonts.sans,
               fontWeight: 500,
-              fontSize: 14,
-              color: "#161615",
+              fontSize: 16,
+              color: theme.colors.text,
+              lineHeight: "24px",
             }}
           >
             {formatBalanceWithSymbol(token)}
           </span>
           <span
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
-              color: "#848483",
+              fontFamily: theme.fonts.sans,
+              fontSize: 14,
+              color: theme.colors.muted,
+              lineHeight: "20px",
             }}
           >
             ≈ {token.balanceInFiat}
@@ -1708,9 +1578,7 @@ export function SwapAssetSelector({
 
     const unifiedSelectedInOther =
       !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
-    if (unifiedSelectedInOther) {
-      return null;
-    }
+    if (unifiedSelectedInOther) return null;
 
     const individualTokens = group.tokens.filter(
       (token) =>
@@ -1725,9 +1593,7 @@ export function SwapAssetSelector({
     const visibleTokensCount = individualTokens.filter(
       (t) => !isTokenSelectedInOtherSlot(t)
     ).length;
-    if (!hasVisibleUnifiedRow && visibleTokensCount === 0) {
-      return null;
-    }
+    if (!hasVisibleUnifiedRow && visibleTokensCount === 0) return null;
 
     const isExpanded = expandedGroups.has(group.symbol);
     const unifiedSelectedInCurrent = isGroupUnifiedSelectedInCurrentSlot(group);
@@ -1781,27 +1647,33 @@ export function SwapAssetSelector({
               onSelect(unifiedToken);
             }}
             style={{
-              width: "100%",
-              display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px 14px",
               backgroundColor: "transparent",
               border: "none",
-              cursor: "pointer",
-              borderBottom: "1px solid #F0F0EF",
+              borderBottom: `1px solid ${theme.colors.divider}`,
               boxSizing: "border-box",
+              cursor: "pointer",
+              display: "flex",
+              gap: "12px",
+              justifyContent: "space-between",
+              padding: "16px",
+              width: "100%",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                flex: "1 1 auto",
+                gap: "12px",
+                minWidth: 0,
+              }}
+            >
               <div
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isMulti) {
-                    handleMultiTokenToggle(unifiedToken);
-                  } else {
-                    onSelect(unifiedToken);
-                  }
+                  if (isMulti) handleMultiTokenToggle(unifiedToken);
+                  else onSelect(unifiedToken);
                 }}
                 style={{ cursor: "pointer" }}
               >
@@ -1817,8 +1689,8 @@ export function SwapAssetSelector({
                 style={{
                   position: "relative",
                   flexShrink: 0,
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                 }}
               >
                 {group.logo ? (
@@ -1829,8 +1701,8 @@ export function SwapAssetSelector({
                     }}
                     src={group.logo}
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: 36,
+                      height: 36,
                       borderRadius: "999px",
                       objectFit: "cover",
                     }}
@@ -1838,14 +1710,14 @@ export function SwapAssetSelector({
                 ) : (
                   <div
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: 36,
+                      height: 36,
                       borderRadius: "999px",
-                      backgroundColor: "#006BF4",
+                      backgroundColor: theme.colors.primary,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#fff",
+                      color: theme.colors.surface,
                       fontSize: 14,
                       fontWeight: 700,
                     }}
@@ -1859,30 +1731,39 @@ export function SwapAssetSelector({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-start",
+                  gap: "3px",
+                  minWidth: 0,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span
                     style={{
-                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontFamily: theme.fonts.sans,
                       fontWeight: 500,
-                      fontSize: 15,
-                      color: "#161615",
+                      fontSize: 16,
+                      color: theme.colors.text,
+                      lineHeight: "24px",
                     }}
                   >
                     {group.symbol}
                   </span>
                   <span
                     style={{
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: 11,
+                      alignItems: "center",
+                      backgroundColor: theme.primitives.badge.backgroundColor,
+                      borderRadius: "100px",
+                      boxSizing: "border-box",
+                      color: theme.colors.primaryText,
+                      display: "flex",
+                      fontFamily: theme.fonts.sans,
+                      fontSize: 9,
                       fontWeight: 600,
-                      color: "#006BF4",
-                      backgroundColor: "#E8F0FF",
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                      letterSpacing: "0.04em",
-                      lineHeight: "16px",
+                      height: 20,
+                      letterSpacing: "0.06em",
+                      lineHeight: "12px",
+                      paddingBlock: 1,
+                      paddingInline: 6,
+                      textTransform: "uppercase",
                     }}
                   >
                     UNIFIED
@@ -1897,23 +1778,27 @@ export function SwapAssetSelector({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
+                  flexShrink: 0,
+                  gap: "2px",
                 }}
               >
                 <span
                   style={{
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontFamily: theme.fonts.sans,
                     fontWeight: 500,
-                    fontSize: 14,
-                    color: "#161615",
+                    fontSize: 16,
+                    color: theme.colors.text,
+                    lineHeight: "24px",
                   }}
                 >
                   {group.totalBalStr}
                 </span>
                 <span
                   style={{
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
-                    color: "#848483",
+                    fontFamily: theme.fonts.sans,
+                    fontSize: 14,
+                    color: theme.colors.muted,
+                    lineHeight: "20px",
                   }}
                 >
                   ≈ {group.totalFiatStr}
@@ -1978,9 +1863,7 @@ export function SwapAssetSelector({
           selectedUsdAmount.div(requiredUsdAmount).mul(100)
         ).toNumber()
       : 0;
-  const subtitle = isMulti
-    ? `${selectedAssetCount} asset${selectedAssetCount === 1 ? "" : "s"} selected`
-    : "";
+  const subtitle = "Select token and chain";
 
   useEffect(() => {
     setPortalRoot(
@@ -2025,24 +1908,22 @@ export function SwapAssetSelector({
     const options = new Map<number, SwapTokenOption>();
 
     for (const chain of swapSupportedChains ?? []) {
-      if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) {
-        continue;
-      }
+      if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) continue;
       options.set(chain.id, {
         contractAddress: "",
         symbol: "",
-        name: chain.name,
+        name: getShortChainName(chain.id, chain.name),
         decimals: 18,
         balance: "0",
         balanceInFiat: "$0.00",
         chainId: chain.id,
-        chainName: chain.name,
+        chainName: getShortChainName(chain.id, chain.name),
         chainLogo: chain.logo,
       });
     }
 
     for (const token of allTokens) {
-      if (!(token.chainId && SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId))) {
+      if (!token.chainId || !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId)) {
         continue;
       }
       if (!options.has(token.chainId)) {
@@ -2084,74 +1965,67 @@ export function SwapAssetSelector({
         maxHeight: "100%",
         minHeight: 0,
         overflow: "hidden",
-        padding: "12px",
+        padding: 0,
         transition: modalHeightTransition,
         width: "100%",
         willChange: "height, max-height",
       }}
     >
-      {/* Drawer Handle */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#E8E8E7",
-          }}
-        />
-      </div>
-
       {/* Header */}
       <div
         style={{
+          alignItems: "center",
+          alignSelf: "stretch",
+          boxSizing: "border-box",
           display: "flex",
-          alignItems: "flex-start",
           gap: 12,
-          marginBottom: 12,
+          paddingInline: "16px",
+          paddingTop: "16px",
         }}
       >
         <button
           onClick={onBack}
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            border: "1px solid #E8E8E7",
-            display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#FFFFFE",
+            backgroundColor: theme.colors.surface,
+            border: "1px solid #0000000A",
+            borderRadius: 99,
+            boxShadow: theme.shadows.control,
+            boxSizing: "border-box",
             cursor: "pointer",
+            display: "flex",
             flexShrink: 0,
+            height: 32,
+            justifyContent: "center",
+            width: 32,
           }}
         >
           <ChevronDown
-            style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
+            style={{
+              color: theme.colors.icon,
+              height: 14,
+              transform: "rotate(90deg)",
+              width: 14,
+            }}
           />
         </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
+            gap: "2px",
             minWidth: 0,
             flex: "1 1 auto",
           }}
         >
           <span
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
+              color: theme.colors.text,
+              fontFamily: theme.fonts.display,
               fontSize: 18,
-              fontWeight: 600,
-              color: "#161615",
+              fontWeight: 500,
+              letterSpacing: "0.02em",
+              lineHeight: "24px",
             }}
           >
             {title}
@@ -2159,9 +2033,10 @@ export function SwapAssetSelector({
           {subtitle && (
             <span
               style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 13,
-                color: "#848483",
+                color: theme.colors.muted,
+                fontFamily: theme.fonts.sans,
+                fontSize: 14,
+                lineHeight: "20px",
               }}
             >
               {subtitle}
@@ -2176,10 +2051,10 @@ export function SwapAssetSelector({
               style={{
                 backgroundColor: "transparent",
                 border: "none",
-                color: "#006BF4",
+                color: theme.colors.primary,
                 cursor: "pointer",
                 flexShrink: 0,
-                fontFamily: '"Geist", system-ui, sans-serif',
+                fontFamily: theme.fonts.sans,
                 fontSize: 13,
                 fontWeight: 500,
                 lineHeight: "18px",
@@ -2192,24 +2067,34 @@ export function SwapAssetSelector({
       </div>
 
       {/* Search */}
-      <div style={{ paddingBottom: 6 }}>
+      <div style={{ paddingInline: "16px" }}>
         <div
           style={{
-            display: "flex",
             alignItems: "center",
-            height: 42,
-            gap: 8,
-            borderRadius: 12,
-            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
+            alignSelf: "stretch",
+            backgroundColor: theme.colors.surfaceInset,
+            border: "none",
+            borderRadius: 14,
             boxShadow: isSearchFocused
-              ? "0 0 0 1px rgba(0,107,244,0.16)"
-              : "none",
-            padding: "0 8px 0 16px",
-            backgroundColor: "#F0F0EF",
+              ? `${theme.shadows.inset}, 0 0 0 1px rgba(0,107,244,0.16)`
+              : theme.shadows.inset,
+            boxSizing: "border-box",
+            display: "flex",
+            flexShrink: 0,
+            gap: 10,
+            height: 56,
+            paddingLeft: 14,
+            paddingRight: 8,
+            width: "100%",
           }}
         >
           <Search
-            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
+            style={{
+              width: 18,
+              height: 18,
+              color: theme.colors.muted,
+              flexShrink: 0,
+            }}
           />
           <input
             onBlur={() => setIsSearchFocused(false)}
@@ -2221,9 +2106,10 @@ export function SwapAssetSelector({
               backgroundColor: "transparent",
               border: "none",
               outline: "none",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
-              color: "#161615",
+              fontFamily: theme.fonts.sans,
+              fontSize: 16,
+              color: theme.colors.text,
+              lineHeight: "24px",
               minWidth: 0,
             }}
             value={query}
@@ -2238,7 +2124,7 @@ export function SwapAssetSelector({
                 padding: 0,
               }}
             >
-              <X style={{ width: 16, height: 16, color: "#848483" }} />
+              <X style={{ width: 16, height: 16, color: theme.colors.muted }} />
             </button>
           )}
           {/* Chain Selector Badge */}
@@ -2247,23 +2133,24 @@ export function SwapAssetSelector({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 5,
-              padding: "4px 8px 4px 5px",
+              gap: 6,
+              paddingBlock: 6,
+              paddingInline: 10,
               borderRadius: 999,
-              backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              backgroundColor: theme.colors.surface,
+              border: "1px solid #0000000A",
               cursor: "pointer",
-              height: 38,
+              height: 32,
               flexShrink: 0,
-              boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+              boxShadow: "#3C28640F 0px 1px 2px",
             }}
           >
             {selectedChainFilter === null ? (
               <Globe
                 style={{
-                  width: 16,
-                  height: 16,
-                  color: "#161615",
+                  width: 14,
+                  height: 14,
+                  color: theme.colors.textStrong,
                   flexShrink: 0,
                 }}
               />
@@ -2272,8 +2159,8 @@ export function SwapAssetSelector({
                 alt={selectedChainLabel}
                 src={selectedChainToken?.chainLogo}
                 style={{
-                  width: 18,
-                  height: 18,
+                  width: 16,
+                  height: 16,
                   borderRadius: "999px",
                   objectFit: "cover",
                   flexShrink: 0,
@@ -2282,12 +2169,12 @@ export function SwapAssetSelector({
             )}
             <span
               style={{
-                color: "#161615",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                color: theme.colors.text,
+                fontFamily: theme.fonts.sans,
+                fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "16px",
-                maxWidth: "86px",
+                lineHeight: "20px",
+                maxWidth: "96px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -2295,7 +2182,9 @@ export function SwapAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
+            <ChevronDown
+              style={{ width: 12, height: 12, color: theme.colors.muted }}
+            />
           </button>
         </div>
       </div>
@@ -2303,12 +2192,15 @@ export function SwapAssetSelector({
       {/* Filter tabs */}
       <div
         style={{
+          alignItems: "center",
+          alignSelf: "stretch",
+          backgroundColor: theme.colors.segmented,
+          borderRadius: 12,
+          boxShadow: "#2A388B0F 0px 1px 2px inset",
+          boxSizing: "border-box",
           display: "flex",
-          gap: 0,
-          backgroundColor: "#F0F0EF",
-          borderRadius: 8,
+          marginInline: "16px",
           padding: 4,
-          marginBottom: 6,
         }}
       >
         {visibleFilterTabs.map((tab) => (
@@ -2316,19 +2208,21 @@ export function SwapAssetSelector({
             key={tab.key}
             onClick={() => handleFilterTabClick(tab.key)}
             style={{
-              flex: 1,
-              padding: "6px 0",
+              flex: "1 1 0%",
+              height: activeTab === tab.key ? 40 : 32,
               backgroundColor:
-                activeTab === tab.key ? "#FFFFFE" : "transparent",
+                activeTab === tab.key ? theme.colors.surface : "transparent",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 8,
               cursor: "pointer",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
-              fontWeight: 500,
-              color: activeTab === tab.key ? "#161615" : "#848483",
+              fontFamily: theme.fonts.sans,
+              fontSize: 14,
+              fontWeight: activeTab === tab.key ? 600 : 500,
+              color:
+                activeTab === tab.key ? theme.colors.text : theme.colors.muted,
               boxShadow:
-                activeTab === tab.key ? "0px 1px 2px rgba(0,0,0,0.05)" : "none",
+                activeTab === tab.key ? theme.shadows.segmentedActive : "none",
+              lineHeight: "20px",
               transition: "all 0.15s",
             }}
           >
@@ -2344,7 +2238,7 @@ export function SwapAssetSelector({
           flex: "1 1 auto",
           minHeight: stableListHeight ? `${stableListHeight}px` : 0,
           overflowY: "auto",
-          paddingBottom: 6,
+          paddingInline: "16px",
         }}
       >
         {isLoading ? (
@@ -2362,15 +2256,15 @@ export function SwapAssetSelector({
               style={{
                 width: 20,
                 height: 20,
-                color: "#848483",
+                color: theme.colors.muted,
                 animation: "spin 1s linear infinite",
               }}
             />
             <p
               style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
+                fontFamily: theme.fonts.sans,
                 fontSize: 14,
-                color: "#848483",
+                color: theme.colors.muted,
               }}
             >
               Loading assets…
@@ -2379,9 +2273,9 @@ export function SwapAssetSelector({
         ) : aboveMin.length === 0 && belowMin.length === 0 ? (
           <p
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
+              fontFamily: theme.fonts.sans,
               fontSize: 14,
-              color: "#848483",
+              color: theme.colors.muted,
               textAlign: "center",
               padding: "32px 0",
             }}
@@ -2393,11 +2287,12 @@ export function SwapAssetSelector({
             {groupedFiltered.length > 0 && (
               <div
                 style={{
-                  border: "1px solid #E8E8E7",
-                  borderRadius: 14,
+                  border: "none",
+                  borderRadius: 12,
+                  boxShadow: theme.shadows.card,
                   overflowX: "hidden",
                   overflowY: "visible",
-                  backgroundColor: "#FFFFFE",
+                  backgroundColor: theme.colors.surface,
                 }}
               >
                 {groupedFiltered.map((group) =>
@@ -2411,8 +2306,8 @@ export function SwapAssetSelector({
             {belowMin.length > 0 && (
               <div
                 style={{
-                  backgroundColor: "#FFFFFE",
-                  border: "1px solid #E8E8E7",
+                  backgroundColor: theme.colors.surface,
+                  border: `1px solid ${theme.colors.border}`,
                   borderRadius: 12,
                   overflow: "hidden",
                 }}
@@ -2465,10 +2360,10 @@ export function SwapAssetSelector({
                     >
                       <span
                         style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontFamily: theme.fonts.sans,
                           fontWeight: 600,
                           fontSize: 13,
-                          color: "#161615",
+                          color: theme.colors.textStrong,
                           lineHeight: "18px",
                         }}
                       >
@@ -2476,9 +2371,9 @@ export function SwapAssetSelector({
                       </span>
                       <span
                         style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontFamily: theme.fonts.sans,
                           fontSize: 12,
-                          color: "#848483",
+                          color: theme.colors.textSubtle,
                           lineHeight: "16px",
                           textAlign: "left",
                         }}
@@ -2506,7 +2401,7 @@ export function SwapAssetSelector({
                               borderRadius: "999px",
                               objectFit: "cover",
                               marginLeft: i > 0 ? -6 : 0,
-                              border: "1.5px solid #fff",
+                              border: `1.5px solid ${theme.colors.surface}`,
                             }}
                           />
                         ) : (
@@ -2516,9 +2411,9 @@ export function SwapAssetSelector({
                               width: 18,
                               height: 18,
                               borderRadius: "999px",
-                              backgroundColor: "#E8E8E7",
+                              backgroundColor: theme.colors.border,
                               marginLeft: i > 0 ? -6 : 0,
-                              border: "1.5px solid #fff",
+                              border: `1.5px solid ${theme.colors.surface}`,
                             }}
                           />
                         )
@@ -2529,15 +2424,15 @@ export function SwapAssetSelector({
                             width: 18,
                             height: 18,
                             borderRadius: "999px",
-                            backgroundColor: "#161615",
+                            backgroundColor: theme.colors.textStrong,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             fontSize: 9,
                             fontWeight: 700,
-                            color: "#fff",
+                            color: theme.colors.surface,
                             marginLeft: -6,
-                            border: "1.5px solid #fff",
+                            border: `1.5px solid ${theme.colors.surface}`,
                           }}
                         >
                           +{belowMin.length - 3}
@@ -2546,11 +2441,19 @@ export function SwapAssetSelector({
                     </div>
                     {showBelowMin ? (
                       <ChevronUp
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          color: theme.colors.textSubtle,
+                        }}
                       />
                     ) : (
                       <ChevronDown
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          color: theme.colors.textSubtle,
+                        }}
                       />
                     )}
                   </div>
@@ -2620,7 +2523,7 @@ export function SwapAssetSelector({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  color: "#fff",
+                                  color: theme.colors.surface,
                                   fontSize: 9,
                                   fontWeight: 700,
                                 }}
@@ -2633,7 +2536,7 @@ export function SwapAssetSelector({
                                 alt=""
                                 src={token.chainLogo}
                                 style={{
-                                  border: "1.5px solid #FFFFFE",
+                                  border: `1.5px solid ${theme.colors.surface}`,
                                   borderRadius: "999px",
                                   bottom: -2,
                                   filter: "grayscale(0.2)",
@@ -2648,10 +2551,10 @@ export function SwapAssetSelector({
                           </div>
                           <span
                             style={{
-                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontFamily: theme.fonts.sans,
                               fontWeight: 500,
                               fontSize: 12,
-                              color: "#848483",
+                              color: theme.colors.textSubtle,
                               lineHeight: "16px",
                               minWidth: 0,
                               overflow: "hidden",
@@ -2665,9 +2568,9 @@ export function SwapAssetSelector({
                         </div>
                         <span
                           style={{
-                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontFamily: theme.fonts.sans,
                             fontSize: 12,
-                            color: "#848483",
+                            color: theme.colors.textSubtle,
                             fontWeight: 500,
                             lineHeight: "16px",
                             flexShrink: 0,
@@ -2688,11 +2591,17 @@ export function SwapAssetSelector({
 
       {/* Done button */}
       {isMulti && (
-        <div style={{ paddingBottom: 6, marginTop: "auto" }}>
+        <div
+          style={{
+            marginTop: "auto",
+            paddingBottom: "16px",
+            paddingInline: "16px",
+          }}
+        >
           {shouldShowSelectionProgress && requiredUsdAmount && (
             <div
               style={{
-                borderTop: "1px solid #E8E8E7",
+                borderTop: `1px solid ${theme.colors.border}`,
                 boxSizing: "border-box",
                 marginBottom: 12,
                 paddingTop: 12,
@@ -2708,8 +2617,8 @@ export function SwapAssetSelector({
               >
                 <span
                   style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: theme.colors.muted,
+                    fontFamily: theme.fonts.sans,
                     fontSize: 13,
                     lineHeight: "18px",
                   }}
@@ -2718,13 +2627,13 @@ export function SwapAssetSelector({
                 </span>
                 <span
                   style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: theme.colors.muted,
+                    fontFamily: theme.fonts.sans,
                     fontSize: 13,
                     lineHeight: "18px",
                   }}
                 >
-                  <strong style={{ color: "#161615", fontWeight: 600 }}>
+                  <strong style={{ color: theme.colors.text, fontWeight: 600 }}>
                     {formatUsdBalanceLabel(selectionDeficitUsdAmount)}
                   </strong>{" "}
                   more
@@ -2732,7 +2641,7 @@ export function SwapAssetSelector({
               </div>
               <div
                 style={{
-                  backgroundColor: "#F0F0EF",
+                  backgroundColor: theme.colors.segmented,
                   borderRadius: "999px",
                   height: 6,
                   overflow: "hidden",
@@ -2741,7 +2650,7 @@ export function SwapAssetSelector({
               >
                 <div
                   style={{
-                    backgroundColor: "#006BF4",
+                    backgroundColor: theme.colors.primary,
                     borderRadius: "999px",
                     height: "100%",
                     transition: "width 240ms ease",
@@ -2755,20 +2664,21 @@ export function SwapAssetSelector({
             <button
               onClick={handleDone}
               style={{
-                width: "100%",
-                height: 48,
-                display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#006BF4",
-                color: "#FFFFFE",
+                backgroundColor: theme.colors.text,
                 border: "none",
                 borderRadius: 14,
+                boxShadow: theme.shadows.primaryButton,
+                color: theme.colors.surface,
                 cursor: "pointer",
-                fontFamily: '"Geist", system-ui, sans-serif',
+                display: "flex",
+                fontFamily: theme.fonts.sans,
                 fontSize: 16,
-                fontWeight: 600,
-                boxShadow: "0px 1px 4px 0px #5555550D",
+                fontWeight: 500,
+                height: 48,
+                justifyContent: "center",
+                lineHeight: "24px",
+                width: "100%",
               }}
             >
               Done
@@ -2798,7 +2708,7 @@ export function SwapAssetSelector({
               <div
                 onClick={closeChainSelector}
                 style={{
-                  backgroundColor: "rgba(0,0,0,0.22)",
+                  backgroundColor: "rgba(255,255,255,0.46)",
                   bottom: 0,
                   left: 0,
                   pointerEvents: "auto",
@@ -2813,21 +2723,21 @@ export function SwapAssetSelector({
                 className={
                   isChainSelectorClosing
                     ? undefined
-                    : "slide-in-from-bottom-full animate-in duration-300"
+                    : "animate-in slide-in-from-bottom-full duration-300"
                 }
                 data-nexus-one-sheet
                 style={{
                   ...modalHeightTransitionStyle,
-                  backgroundColor: "#FFFFFE",
-                  borderRadius: "24px 24px 0 0",
-                  boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: "20px 20px 0 0",
+                  boxShadow: theme.shadows.sheet,
                   boxSizing: "border-box",
                   display: "flex",
                   flexDirection: "column",
                   height: "90%",
                   maxHeight: "90%",
                   overflow: "hidden",
-                  padding: "12px",
+                  padding: 0,
                   pointerEvents: "auto",
                   position: "relative",
                   transform: isChainSelectorClosing
@@ -2841,58 +2751,48 @@ export function SwapAssetSelector({
               >
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginBottom: 8,
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      backgroundColor: "#D8D8D6",
-                      borderRadius: "999px",
-                      height: 4,
-                      width: 32,
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
                     alignItems: "center",
+                    boxSizing: "border-box",
                     display: "flex",
-                    gap: 10,
-                    marginBottom: 10,
+                    gap: 16,
+                    paddingInline: 16,
+                    paddingTop: 16,
                   }}
                 >
                   <button
                     onClick={closeChainSelector}
                     style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      border: "1px solid #E8E8E7",
-                      display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "#FFFFFE",
+                      backgroundColor: theme.colors.surface,
+                      border: "1px solid #0000000A",
+                      borderRadius: 99,
+                      boxShadow: theme.shadows.control,
+                      boxSizing: "border-box",
                       cursor: "pointer",
+                      display: "flex",
                       flexShrink: 0,
+                      height: 32,
+                      justifyContent: "center",
+                      width: 32,
                     }}
                   >
                     <ChevronDown
                       style={{
-                        width: 15,
-                        height: 15,
+                        color: theme.colors.icon,
+                        width: 14,
+                        height: 14,
                         transform: "rotate(90deg)",
                       }}
                     />
                   </button>
                   <span
                     style={{
-                      color: "#161615",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: 17,
-                      fontWeight: 600,
+                      color: theme.colors.text,
+                      fontFamily: theme.fonts.display,
+                      fontSize: 18,
+                      fontWeight: 500,
+                      letterSpacing: "0.02em",
+                      lineHeight: "24px",
                     }}
                   >
                     Select chain
@@ -2900,27 +2800,28 @@ export function SwapAssetSelector({
                 </div>
 
                 {/* Search */}
-                <div style={{ paddingBottom: 10 }}>
+                <div style={{ paddingInline: 16, paddingTop: 16 }}>
                   <div
                     style={{
-                      display: "flex",
                       alignItems: "center",
-                      height: 38,
-                      gap: 8,
-                      borderRadius: 11,
-                      border: `1px solid ${isChainSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
-                      padding: "0 12px",
-                      backgroundColor: "#FFFFFE",
+                      backgroundColor: theme.colors.surfaceInset,
+                      border: "none",
+                      borderRadius: 14,
                       boxShadow: isChainSearchFocused
-                        ? "0 0 0 1px rgba(0,107,244,0.16)"
-                        : "none",
+                        ? `${theme.shadows.inset}, 0 0 0 1px rgba(0,107,244,0.16)`
+                        : theme.shadows.inset,
+                      boxSizing: "border-box",
+                      display: "flex",
+                      gap: 10,
+                      height: 48,
+                      paddingInline: 14,
                     }}
                   >
                     <Search
                       style={{
                         width: 18,
                         height: 18,
-                        color: "#848483",
+                        color: theme.colors.muted,
                         flexShrink: 0,
                       }}
                     />
@@ -2934,9 +2835,10 @@ export function SwapAssetSelector({
                         backgroundColor: "transparent",
                         border: "none",
                         outline: "none",
-                        fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: 13,
-                        color: "#161615",
+                        fontFamily: theme.fonts.sans,
+                        fontSize: 16,
+                        color: theme.colors.text,
+                        lineHeight: "24px",
                       }}
                       value={chainQuery}
                     />
@@ -2947,17 +2849,19 @@ export function SwapAssetSelector({
                 <div
                   style={{
                     flex: "1 1 auto",
-                    marginBottom: 10,
                     minHeight: 0,
                     overflowY: "auto",
+                    paddingInline: 16,
+                    paddingTop: 14,
                   }}
                 >
                   <div
                     style={{
-                      border: "1px solid #E8E8E7",
+                      border: `1px solid ${theme.colors.border}`,
                       borderRadius: 12,
                       overflow: "hidden",
-                      backgroundColor: "#FFFFFE",
+                      backgroundColor: theme.colors.surface,
+                      boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
                     }}
                   >
                     <button
@@ -2966,10 +2870,12 @@ export function SwapAssetSelector({
                         width: "100%",
                         display: "flex",
                         alignItems: "center",
-                        padding: "8px 14px",
+                        gap: 14,
+                        paddingBlock: 12,
+                        paddingInline: 16,
                         backgroundColor: "transparent",
                         border: "none",
-                        borderBottom: "1px solid #F0F0EF",
+                        borderBottom: `1px solid ${theme.colors.divider}`,
                         cursor: "pointer",
                         boxSizing: "border-box",
                       }}
@@ -2977,20 +2883,21 @@ export function SwapAssetSelector({
                       <RadioDot selected={draftChainFilter === null} />
                       <Globe
                         style={{
-                          marginLeft: 10,
-                          width: 28,
-                          height: 28,
-                          color: "#161615",
+                          width: 36,
+                          height: 36,
+                          color: theme.colors.text,
                           flexShrink: 0,
                         }}
                       />
                       <span
                         style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: 14,
-                          fontWeight: 500,
-                          marginLeft: 10,
-                          color: "#161615",
+                          color: theme.colors.text,
+                          flex: "1 1 auto",
+                          fontFamily: theme.fonts.sans,
+                          fontSize: 16,
+                          lineHeight: "24px",
+                          minWidth: 0,
+                          textAlign: "left",
                         }}
                       >
                         All Chains
@@ -3012,10 +2919,12 @@ export function SwapAssetSelector({
                             width: "100%",
                             display: "flex",
                             alignItems: "center",
-                            padding: "8px 14px",
+                            gap: 14,
+                            paddingBlock: 12,
+                            paddingInline: 16,
                             backgroundColor: "transparent",
                             border: "none",
-                            borderBottom: "1px solid #F0F0EF",
+                            borderBottom: `1px solid ${theme.colors.divider}`,
                             cursor: "pointer",
                             boxSizing: "border-box",
                           }}
@@ -3025,20 +2934,22 @@ export function SwapAssetSelector({
                             alt={t.chainName}
                             src={t.chainLogo}
                             style={{
-                              marginLeft: 10,
-                              width: 28,
-                              height: 28,
+                              width: 36,
+                              height: 36,
                               borderRadius: "999px",
                               objectFit: "cover",
+                              flexShrink: 0,
                             }}
                           />
                           <span
                             style={{
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 14,
-                              fontWeight: 500,
-                              marginLeft: 10,
-                              color: "#161615",
+                              color: theme.colors.text,
+                              flex: "1 1 auto",
+                              fontFamily: theme.fonts.sans,
+                              fontSize: 16,
+                              lineHeight: "24px",
+                              minWidth: 0,
+                              textAlign: "left",
                             }}
                           >
                             {t.chainName}
@@ -3054,19 +2965,22 @@ export function SwapAssetSelector({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: "#006BF4",
+                    backgroundColor: theme.colors.text,
                     border: "none",
-                    borderRadius: 10,
-                    color: "#FFFFFE",
+                    borderRadius: 14,
+                    boxShadow: theme.shadows.primaryButton,
+                    color: theme.colors.surface,
                     cursor: "pointer",
                     display: "flex",
                     flexShrink: 0,
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    height: 44,
+                    fontFamily: theme.fonts.sans,
+                    fontSize: 16,
+                    fontWeight: 500,
+                    height: 48,
                     justifyContent: "center",
-                    width: "100%",
+                    lineHeight: "24px",
+                    margin: "16px",
+                    width: "calc(100% - 32px)",
                   }}
                 >
                   Done

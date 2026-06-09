@@ -161,12 +161,13 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
 
   const setChain = useCallback(
     (slug: string) => {
-      if (!isValidChainSlug(slug)) {
+      if (!isValidChainSlug(slug) || slug === activeSlug) {
         return;
       }
+      const targetPath = `/${slug}`;
       // Use View Transitions API for smooth theme swap, with fallback
       const doNavigate = () => {
-        navigate(`/${slug}`);
+        navigate(targetPath);
       };
 
       if (
@@ -175,14 +176,22 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       ) {
         (
           document as Document & {
-            startViewTransition: (cb: () => void) => void;
+            startViewTransition: (cb: () => void) => {
+              finished?: Promise<unknown>;
+            };
           }
-        ).startViewTransition(doNavigate);
+        )
+          .startViewTransition(doNavigate)
+          .finished?.catch(() => {
+            if (window.location.pathname !== targetPath) {
+              doNavigate();
+            }
+          });
       } else {
         doNavigate();
       }
     },
-    [navigate]
+    [activeSlug, navigate]
   );
 
   const brandButton = useMemo(

@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
@@ -35,12 +36,8 @@ const border = "#E8E8E7";
 const brand = "#006BF4";
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -61,9 +58,7 @@ const formatToken = (value: unknown) => {
 
 const formatUsd = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
   return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 
@@ -74,9 +69,7 @@ const getTokenInputDecimals = (token?: Pick<SwapTokenOption, "decimals">) => {
 };
 
 const formatAmountInputDisplay = (value: string) => {
-  if (!value) {
-    return "";
-  }
+  if (!value) return "";
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -89,16 +82,12 @@ const formatAmountInputDisplay = (value: string) => {
 const sanitizeAmountInput = (raw: string, maxDecimals: number) => {
   let next = raw.replaceAll(/[^0-9.]/g, "");
   const parts = next.split(".");
-  if (parts.length > 2) {
-    next = parts[0] + "." + parts.slice(1).join("");
-  }
+  if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
   const [integerPart, decimalPart] = next.split(".");
   if (decimalPart !== undefined) {
     next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
   }
-  if (next === ".") {
-    next = "0.";
-  }
+  if (next === ".") next = "0.";
   return next;
 };
 
@@ -516,9 +505,7 @@ export function SendIdleForm({
   const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   React.useEffect(() => {
-    if (!isCalculatingMax) {
-      setPendingPercent(null);
-    }
+    if (!isCalculatingMax) setPendingPercent(null);
   }, [isCalculatingMax]);
 
   const handlePercentSelect = (pct: number) => {

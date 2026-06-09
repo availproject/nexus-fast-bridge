@@ -1,5 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import { X } from "lucide-react";
+import React from "react";
 
 export interface RecipientInputProps {
   hasError?: boolean;
@@ -20,7 +22,7 @@ export function RecipientInput({
 }: RecipientInputProps) {
   return (
     <div
-      className="#848483)] #161615)] flex w-full items-center overflow-hidden px-4 text-[var(--foreground-primary, outline-none transition-all placeholder:text-[var(--foreground-muted,"
+      className="flex items-center w-full px-4 overflow-hidden outline-none transition-all placeholder:text-[var(--foreground-muted, #848483)] text-[var(--foreground-primary, #161615)]"
       style={{
         background: "#FFFFFE",
         height: "46px",
@@ -35,7 +37,7 @@ export function RecipientInput({
     >
       {label && (
         <div
-          className="flex shrink-0 select-none items-center font-geist"
+          className="shrink-0 font-geist select-none flex items-center"
           style={{
             color:
               "var(--foreground-primary, var(--foreground-primary, #161615))",
@@ -58,7 +60,7 @@ export function RecipientInput({
         `}
       </style>
       <input
-        className="nexus-one-recipient-input #848483)] flex-1 border-none bg-transparent font-geist outline-none placeholder:text-[var(--foreground-muted, focus:ring-0"
+        className="nexus-one-recipient-input flex-1 bg-transparent border-none outline-none focus:ring-0 font-geist placeholder:text-[var(--foreground-muted, #848483)]"
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         style={{

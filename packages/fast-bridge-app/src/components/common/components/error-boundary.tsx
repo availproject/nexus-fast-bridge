@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
@@ -51,16 +52,15 @@ export class ErrorBoundary extends Component<
 
       return (
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <div className="mb-2 font-medium text-destructive">
+          <div className="text-destructive font-medium mb-2">
             Something went wrong
           </div>
-          <p className="mb-4 text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-4">
             An unexpected error occurred. Please try again.
           </p>
           <button
-            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
+            className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
             onClick={() => this.setState({ hasError: false, error: null })}
-            type="button"
           >
             Try again
           </button>
@@ -114,19 +114,18 @@ export class WidgetErrorBoundary extends Component<
       }
 
       return (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
-          <div className="mb-2 font-medium text-destructive">
+        <div className="flex flex-col items-center justify-center p-6 text-center bg-destructive/5 rounded-lg border border-destructive/20">
+          <div className="text-destructive font-medium mb-2">
             {this.props.widgetName
               ? `${this.props.widgetName} encountered an error`
               : "Widget error"}
           </div>
-          <p className="mb-4 text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-4">
             {this.state.error?.message || "An unexpected error occurred."}
           </p>
           <button
-            className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
+            className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
             onClick={this.handleReset}
-            type="button"
           >
             Reset widget
           </button>

@@ -13,8 +13,7 @@ import {
 } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
-import type React from "react";
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -40,13 +39,15 @@ import {
   useWalletClient,
 } from "wagmi";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
+import { getShortChainName } from "../common/utils/constant";
 import { useNexus } from "../nexus/nexus-provider";
+import { Button } from "../ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
 import { DepositIdleForm } from "./components/deposit-idle-form";
 import {
   type NexusOneProgressEvent,
   NexusOneProgressScreen,
 } from "./components/nexus-one-progress-screen";
-import { OpportunityList } from "./components/opportunity-list";
 import {
   preloadReceiveTokens,
   ReceiveAssetSelector,
@@ -64,13 +65,20 @@ import {
   type SwapIntentData,
   SwapIntentPreview,
 } from "./components/swap-intent-preview";
-import type {
-  DepositOpportunity,
-  NexusOneMode,
-  NexusOneProps,
-  SwapType,
+import { nexusOneTheme } from "./theme";
+import {
+  type NexusOneDepositConfig,
+  type NexusOneDepositMetadata,
+  type NexusOneMode,
+  type NexusOneProps,
+  type SwapType,
 } from "./types";
 import { findCitreaReceiveToken } from "./utils/citrea-tokens";
+import {
+  type DepositSourceFilter,
+  getDepositSourceId,
+  resolveDepositSourceSelection,
+} from "./utils/deposit-source-selection";
 
 // ---------------------------------------------------------------------------
 // Types for swap step machine
@@ -109,7 +117,7 @@ interface SwapHistoryEntry {
   intentExplorerUrl?: string | null;
   intentId?: number;
   mode: NexusOneMode;
-  opportunity?: DepositOpportunity;
+  opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
   requestedToAmount?: string;
   requestedToValue?: string;
@@ -154,11 +162,11 @@ type PredictiveQuoteBaseline = {
   updatedAt: number;
 };
 
-const QUOTE_REFRESH_INTERVAL_MS = 30_000;
+const QUOTE_REFRESH_INTERVAL_MS = 30000;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 1000;
 const DRAWER_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
-const BASIS_POINTS = 10_000;
+const BASIS_POINTS = 10000;
 const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
 const PREDICTIVE_EXACT_OUT_BUFFER_BPS = 100;
 const PREDICTIVE_QUOTE_DISPLAY_DECIMALS = 8;
@@ -173,10 +181,11 @@ const waitForNextPaint = () =>
       window.setTimeout(() => resolve(), 0);
     });
   });
-const tooltipSurface = "#FFFFFE";
-const tooltipText = "var(--foreground-primary, #161615)";
-const tooltipBorder = "var(--border-default, #E8E8E7)";
-const uiFont = '"Geist", var(--font-geist-sans), system-ui, sans-serif';
+const theme = nexusOneTheme;
+const tooltipSurface = theme.colors.surface;
+const tooltipText = theme.colors.textStrong;
+const tooltipBorder = theme.colors.border;
+const uiFont = theme.fonts.sans;
 const modalHeightTransitionStyle = {
   interpolateSize: "allow-keywords",
 } as React.CSSProperties;
@@ -186,28 +195,70 @@ const getSwapHistoryStorageKey = (ownerAddress?: string) =>
   `${SWAP_HISTORY_STORAGE_KEY_PREFIX}:${ownerAddress?.toLowerCase() || "anonymous"}`;
 
 const getTokenSelectionKey = (token?: SwapTokenOption | null) => {
-  if (!token) {
-    return "";
-  }
+  if (!token) return "";
   if (token.isUnified) {
     return `unified:${token.unifiedSymbol ?? token.symbol}`;
   }
   return `${token.chainId ?? "unknown"}:${token.contractAddress.toLowerCase()}`;
 };
 
+const getTokenQuoteKey = (token?: SwapTokenOption | null) => {
+  if (!token) return "";
+  return [
+    getTokenSelectionKey(token),
+    token.symbol ?? "",
+    token.decimals ?? "",
+  ].join(":");
+};
+
+const getSourceTokensQuoteKey = (tokens: SwapTokenOption[]) =>
+  tokens
+    .map((token) =>
+      [
+        getTokenSelectionKey(token),
+        token.symbol ?? "",
+        token.decimals ?? "",
+        token.userAmount ?? "",
+        token.userAmountUsd ?? "",
+        token.userAmountMode ?? "",
+      ].join(":")
+    )
+    .join("|");
+
 const isSameTokenSelection = (
   a?: SwapTokenOption | null,
   b?: SwapTokenOption | null
 ) => Boolean(a && b && getTokenSelectionKey(a) === getTokenSelectionKey(b));
 
+const getDepositConfigIdentity = (deposit?: NexusOneDepositMetadata | null) => {
+  if (!deposit) return "";
+  return [
+    deposit.chainId,
+    deposit.tokenAddress.toLowerCase(),
+    deposit.tokenSymbol,
+    deposit.tokenDecimals,
+    deposit.protocol ?? "",
+    deposit.title ?? "",
+  ].join(":");
+};
+
+const isSameDepositConfig = (
+  a?: NexusOneDepositConfig | null,
+  b?: NexusOneDepositConfig | null
+) => {
+  if (!a || !b) return false;
+  return getDepositConfigIdentity(a) === getDepositConfigIdentity(b);
+};
+
+const getConfiguredDeposit = (
+  config: NexusOneProps["config"]
+): NexusOneDepositConfig | undefined => config.deposit;
+
 const sanitizeOpportunityForHistory = (
-  opportunity?: DepositOpportunity
-): DepositOpportunity | undefined => {
-  if (!opportunity) {
-    return undefined;
-  }
+  opportunity?: NexusOneDepositMetadata
+): NexusOneDepositMetadata | undefined => {
+  if (!opportunity) return undefined;
   return {
-    id: opportunity.id,
     label: opportunity.label,
     protocol: opportunity.protocol,
     logo: opportunity.logo,
@@ -215,6 +266,7 @@ const sanitizeOpportunityForHistory = (
     subtitle: opportunity.subtitle,
     chainId: opportunity.chainId,
     tokenSymbol: opportunity.tokenSymbol,
+    tokenDecimals: opportunity.tokenDecimals,
     tokenLogo: opportunity.tokenLogo,
     tokenAddress: opportunity.tokenAddress,
     apy: opportunity.apy,
@@ -246,9 +298,7 @@ const isStoredMode = (value: unknown): value is NexusOneMode =>
 const normalizeStoredHistoryEntry = (
   value: unknown
 ): SwapHistoryEntry | null => {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
+  if (!value || typeof value !== "object") return null;
   const entry = value as Partial<SwapHistoryEntry>;
   const startedAt =
     typeof entry.startedAt === "number" && Number.isFinite(entry.startedAt)
@@ -284,19 +334,13 @@ const normalizeStoredHistoryEntry = (
 };
 
 const readSwapHistoryFromStorage = (storageKey: string): SwapHistoryEntry[] => {
-  if (typeof window === "undefined") {
-    return [];
-  }
+  if (typeof window === "undefined") return [];
 
   try {
     const raw = window.localStorage.getItem(storageKey);
-    if (!raw) {
-      return [];
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
+    if (!Array.isArray(parsed)) return [];
     return sortSwapHistoryEntries(
       parsed
         .map(normalizeStoredHistoryEntry)
@@ -311,9 +355,7 @@ const writeSwapHistoryToStorage = (
   storageKey: string,
   entries: SwapHistoryEntry[]
 ) => {
-  if (typeof window === "undefined") {
-    return;
-  }
+  if (typeof window === "undefined") return;
 
   try {
     const persistableEntries =
@@ -391,7 +433,7 @@ function QuoteRefreshCountdown({
             top: "calc(100% + 8px)",
             whiteSpace: "normal",
             width: "max-content",
-            zIndex: 10_000,
+            zIndex: 10000,
           }}
         >
           {tooltipLabel}
@@ -426,12 +468,8 @@ function QuoteRefreshCountdown({
 }
 
 const parseDecimalLoose = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -455,9 +493,7 @@ const formatDecimalDisplay = (
 
 const formatUsdDisplay = (value: unknown) => {
   const amount = parseDecimalLoose(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
   return `$${formatDecimalDisplay(amount, { min: 2, max: 2 })}`;
 };
 
@@ -468,13 +504,9 @@ const formatTokenDisplay = (value: unknown) => {
 };
 
 const extractIntentIdFromUrl = (url?: string | null) => {
-  if (!url) {
-    return undefined;
-  }
+  if (!url) return undefined;
   const match = url.match(/(\d+)(?:\/)?$/);
-  if (!match) {
-    return undefined;
-  }
+  if (!match) return undefined;
   const parsed = Number(match[1]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
@@ -490,9 +522,7 @@ const hasValidIntentExplorer = (
   );
 
 const getExplorerTxUrl = (chainId?: number, txHash?: string | null) => {
-  if (!(chainId && txHash)) {
-    return null;
-  }
+  if (!chainId || !txHash) return null;
   const chainMeta = CHAIN_METADATA[chainId];
   const baseUrl =
     (chainMeta as any)?.blockExplorerUrls?.[0] ||
@@ -669,7 +699,7 @@ function TruncatedAddress({
             right: 0,
             top: "calc(100% + 8px)",
             whiteSpace: "nowrap",
-            zIndex: 10_000,
+            zIndex: 10000,
           }}
         >
           {address}
@@ -680,12 +710,8 @@ function TruncatedAddress({
 }
 
 const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
-  if (entry.mode !== "deposit" && entry.mode !== "send") {
-    return null;
-  }
-  if (!(entry.toToken && entry.requestedToAmount)) {
-    return null;
-  }
+  if (entry.mode !== "deposit" && entry.mode !== "send") return null;
+  if (!entry.toToken || !entry.requestedToAmount) return null;
 
   const requestedAmount = parseDecimalLoose(entry.requestedToAmount);
   const intentDestinationAmount = parseDecimalLoose(
@@ -695,7 +721,8 @@ const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
     entry.toToken.balance?.replace(entry.toToken.symbol, "")
   );
   if (
-    !(requestedAmount && destinationBalanceAmount) ||
+    !requestedAmount ||
+    !destinationBalanceAmount ||
     requestedAmount.lte(0) ||
     destinationBalanceAmount.lte(0)
   ) {
@@ -707,9 +734,7 @@ const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
     destinationBalanceAmount,
     Decimal.max(0, requestedAmount.minus(intentCoversAmount))
   );
-  if (displayAmount.lte(0)) {
-    return null;
-  }
+  if (displayAmount.lte(0)) return null;
 
   const requestedValue = parseDecimalLoose(entry.requestedToValue);
   const destinationValue = parseDecimalLoose(
@@ -727,7 +752,10 @@ const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
     tokenLogo: entry.toToken.logo,
     chainLogo: entry.toToken.chainLogo,
     symbol: entry.toToken.symbol,
-    chainName: entry.toToken.chainName || "",
+    chainName: getShortChainName(
+      entry.toToken.chainId,
+      entry.toToken.chainName
+    ),
     amount: displayAmount
       .toDecimalPlaces(
         Math.max(0, entry.toToken.decimals ?? 18),
@@ -817,7 +845,7 @@ const getSourceRows = (entry: SwapHistoryEntry) => {
         tokenLogo: fallback?.logo,
         chainLogo: source.chain.logo || fallback?.chainLogo,
         symbol: source.token.symbol,
-        chainName: source.chain.name,
+        chainName: getShortChainName(source.chain.id, source.chain.name),
         amount: source.amount,
         value: source.value,
       };
@@ -833,7 +861,7 @@ const getSourceRows = (entry: SwapHistoryEntry) => {
     tokenLogo: token.logo,
     chainLogo: token.chainLogo,
     symbol: token.symbol,
-    chainName: token.chainName || "",
+    chainName: getShortChainName(token.chainId, token.chainName),
     amount: token.userAmount || "0",
     value: token.balanceInFiat,
   }));
@@ -992,7 +1020,10 @@ function SwapReceiptPanel({
   const isSend = entry.mode === "send";
   const isRecipientTransfer = isSend || Boolean(entry.recipientAddress);
   const tokenSymbol = destination?.token.symbol || entry.toToken?.symbol || "";
-  const chainName = destination?.chain.name || entry.toToken?.chainName || "";
+  const chainName = getShortChainName(
+    destination?.chain.id ?? entry.toToken?.chainId,
+    destination?.chain.name || entry.toToken?.chainName || ""
+  );
   const depositVenue =
     entry.opportunity?.title || entry.opportunity?.protocol || chainName;
   const amount = destination?.amount || "";
@@ -1337,17 +1368,11 @@ function SwapReceiptPanel({
 
 const getRelativeTime = (time: number, now: number) => {
   const seconds = Math.max(1, Math.floor((now - time) / 1000));
-  if (seconds < 60) {
-    return `${seconds} second${seconds === 1 ? "" : "s"} ago`;
-  }
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"} ago`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  }
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  }
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   const days = Math.floor(hours / 24);
   return `${days} day${days === 1 ? "" : "s"} ago`;
 };
@@ -1467,8 +1492,10 @@ function SwapHistoryPanel({
         const destinationLogo = entry.toToken?.logo;
         const destinationChainLogo =
           destination?.chain.logo || entry.toToken?.chainLogo || "";
-        const destinationChainName =
-          destination?.chain.name || entry.toToken?.chainName || "";
+        const destinationChainName = getShortChainName(
+          destination?.chain.id ?? entry.toToken?.chainId,
+          destination?.chain.name || entry.toToken?.chainName || ""
+        );
         const destinationSymbol =
           destination?.token.symbol || entry.toToken?.symbol || "";
         const destinationValue =
@@ -1712,7 +1739,11 @@ function SwapHistoryPanel({
 export function NexusOne({
   config,
   embed = true,
+  className,
   connectedAddress,
+  open: controlledOpen,
+  onOpenChange,
+  defaultOpen = false,
   onComplete,
   onStart,
   onError,
@@ -1729,20 +1760,21 @@ export function NexusOne({
     supportedChainsAndTokens,
     fetchSwapBalance,
     handleInit,
+    swapIntent: providerSwapIntent,
     loading: nexusLoading,
   } = useNexus();
 
   // Mode is a single value, not an array
   const activeMode = config.mode;
-  if (
-    activeMode === "deposit" &&
-    (!config.opportunities || config.opportunities.length === 0)
-  ) {
-    throw new Error(
-      "NexusOne deposit mode requires config.opportunities with at least one opportunity."
-    );
+  const configuredDeposit = getConfiguredDeposit(config);
+  const configuredDepositIdentity = getDepositConfigIdentity(configuredDeposit);
+  if (activeMode === "deposit" && !configuredDeposit) {
+    throw new Error("NexusOne deposit mode requires config.deposit.");
   }
   const showCloseButton = !embed && Boolean(onClose);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isControlledOpen = controlledOpen !== undefined;
+  const isModalOpen = isControlledOpen ? controlledOpen : internalOpen;
 
   // Preload receive tokens once SDK is available
   useEffect(() => {
@@ -1827,11 +1859,15 @@ export function NexusOne({
   const [fromTokens, setFromTokens] = useState<SwapTokenOption[]>([]);
   const [sourceSelectionTouched, setSourceSelectionTouched] = useState(false);
   const [sourceSelectionRevision, setSourceSelectionRevision] = useState(0);
-  const [, setExactOutQuoteSourceMode] = useState<"all" | "selected">("all");
+  const [exactOutQuoteSourceMode, setExactOutQuoteSourceMode] = useState<
+    "all" | "selected"
+  >("all");
   const exactOutQuoteSourceModeRef = useRef<"all" | "selected">("all");
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
+  const fromTokensQuoteKey = getSourceTokensQuoteKey(fromTokens);
+  const toTokenQuoteKey = getTokenQuoteKey(toToken);
   const appliedTokenPrefillRef = useRef<string | null>(null);
 
   const setExactOutQuoteSourceModeValue = useCallback(
@@ -1843,11 +1879,17 @@ export function NexusOne({
   );
 
   useEffect(() => {
-    if (!nexusSDK) {
-      return;
-    }
+    if (!nexusSDK) return;
     void fetchSwapBalance();
-  }, [activeMode, fetchSwapBalance, nexusSDK, swapStep]);
+
+    const refreshTimer = window.setInterval(() => {
+      void fetchSwapBalance({ force: true });
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(refreshTimer);
+    };
+  }, [fetchSwapBalance, nexusSDK]);
 
   useEffect(() => {
     setSourceSelectionTouched(false);
@@ -1858,9 +1900,7 @@ export function NexusOne({
     const previousDefault = previousDefaultRecipientRef.current;
     previousDefaultRecipientRef.current = defaultRecipientAddress;
 
-    if (activeMode !== "swap" || !defaultRecipientAddress) {
-      return;
-    }
+    if (activeMode !== "swap" || !defaultRecipientAddress) return;
 
     setRecipientAddress((current) => {
       if (
@@ -1894,6 +1934,52 @@ export function NexusOne({
     destinationExplorerUrl: string | null;
   }>({ sourceExplorerUrl: null, destinationExplorerUrl: null });
   const swapRunIdRef = useRef(0);
+
+  const widgetSessionIdRef = useRef<string>(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+  const widgetAttemptIdRef = useRef<string | null>(null);
+  const widgetOpenedTsRef = useRef<number>(Date.now());
+  const previewViewedTsRef = useRef<number | null>(null);
+  const previewConfirmedTsRef = useRef<number | null>(null);
+  const attemptCountRef = useRef(0);
+  const fundsMovedRef = useRef(false);
+  const intentUrlRef = useRef<string | null>(null);
+  const hadSimulationSuccessRef = useRef(false);
+  const hadPreviewViewedRef = useRef(false);
+  const widgetOpenedFiredRef = useRef(false);
+  const reachedTerminalRef = useRef(false);
+  const amountEnteredLastValueRef = useRef<string>("");
+  const lastInputMethodRef = useRef<
+    "typed" | "percent_25" | "percent_50" | "percent_75" | "percent_max"
+  >("typed");
+  const prevSourceTouchedRef = useRef(false);
+  const previousAutoSourceCountRef = useRef(0);
+  const analyticsRef = useRef<{
+    track: (event: string, properties?: Record<string, unknown>) => void;
+  } | null>(null);
+  const selectedOpportunityRef = useRef<NexusOneDepositConfig | undefined>(
+    undefined
+  );
+
+  const newAttemptId = useCallback(() => {
+    return typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }, []);
+
+  const rotateAttempt = useCallback(() => {
+    widgetAttemptIdRef.current = newAttemptId();
+    previewViewedTsRef.current = null;
+    previewConfirmedTsRef.current = null;
+    fundsMovedRef.current = false;
+    intentUrlRef.current = null;
+    hadSimulationSuccessRef.current = false;
+    hadPreviewViewedRef.current = false;
+    reachedTerminalRef.current = false;
+  }, [newAttemptId]);
   const [intentToAmount, setIntentToAmount] = useState<string | undefined>(
     undefined
   );
@@ -1950,6 +2036,7 @@ export function NexusOne({
     sourceExplorerUrl: string | null;
     destinationExplorerUrl: string | null;
   }>({ sourceExplorerUrl: null, destinationExplorerUrl: null });
+  const activeQuoteInputKeyRef = useRef("");
 
   // Ref to store swap intent hook allow/deny callbacks
   const swapIntentRef = useRef<{
@@ -1958,6 +2045,7 @@ export function NexusOne({
     deny: () => void;
     refresh: () => Promise<any>;
     runId?: number;
+    quoteInputKey?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -2006,16 +2094,12 @@ export function NexusOne({
 
   const syncRootContentHeight = useCallback(() => {
     const element = rootContentRef.current;
-    if (!element) {
-      return;
-    }
+    if (!element) return;
 
     const nextHeight = Math.ceil(
       Math.max(element.getBoundingClientRect().height, element.scrollHeight)
     );
-    if (nextHeight <= 0) {
-      return;
-    }
+    if (nextHeight <= 0) return;
 
     setRootContentHeight((previousHeight) =>
       previousHeight === nextHeight ? previousHeight : nextHeight
@@ -2027,9 +2111,7 @@ export function NexusOne({
     syncRootContentHeight();
 
     const element = rootContentRef.current;
-    if (!element || typeof ResizeObserver === "undefined") {
-      return;
-    }
+    if (!element || typeof ResizeObserver === "undefined") return;
 
     let frame = 0;
     const observer = new ResizeObserver(() => {
@@ -2054,9 +2136,7 @@ export function NexusOne({
   }, [currentSwapId]);
 
   useEffect(() => {
-    if (historyStorageKeyRef.current === historyStorageKey) {
-      return;
-    }
+    if (historyStorageKeyRef.current === historyStorageKey) return;
     historyStorageKeyRef.current = historyStorageKey;
     skipNextHistoryPersistRef.current = true;
     setSwapHistory(readSwapHistoryFromStorage(historyStorageKey));
@@ -2072,10 +2152,8 @@ export function NexusOne({
   }, [historyStorageKey, swapHistory]);
 
   useEffect(() => {
-    if (swapStep !== "history") {
-      return;
-    }
-    const timer = window.setInterval(() => setHistoryNow(Date.now()), 30_000);
+    if (swapStep !== "history") return;
+    const timer = window.setInterval(() => setHistoryNow(Date.now()), 30000);
     return () => window.clearInterval(timer);
   }, [swapStep]);
 
@@ -2105,9 +2183,7 @@ export function NexusOne({
           break;
         }
       }
-      if (matchedBreakdown) {
-        break;
-      }
+      if (matchedBreakdown) break;
     }
 
     const chainMeta = CHAIN_METADATA[source.chain.id];
@@ -2115,7 +2191,7 @@ export function NexusOne({
     const isNativeSource = isNativeTokenAddress(source.token.contractAddress);
     const nativeCurrency = chainMeta?.nativeCurrency;
     const sourceSymbol =
-      isNativeSource && !(source.token.symbol && matchedAsset?.icon)
+      isNativeSource && (!source.token.symbol || !matchedAsset?.icon)
         ? nativeCurrency?.symbol || source.token.symbol
         : source.token.symbol || nativeCurrency?.symbol || "";
     const sourceDecimals =
@@ -2141,7 +2217,10 @@ export function NexusOne({
             ? `$${sourceValue.toFixed(2)}`
             : "$0.00",
       chainId: source.chain.id,
-      chainName: chainMeta?.name ?? source.chain.name,
+      chainName: getShortChainName(
+        source.chain.id,
+        chainMeta?.name ?? source.chain.name
+      ),
       chainLogo: chainMeta?.logo ?? source.chain.logo,
       userAmount: source.amount,
       userAmountUsd: Number.isFinite(sourceValue) ? source.value : undefined,
@@ -2183,7 +2262,16 @@ export function NexusOne({
   const clearSelectedSources = () => {
     setFromTokens((current) => (current.length === 0 ? current : []));
     setSourceSelectionTouched(false);
+    setDepositSourceFilter("all");
     setExactOutQuoteSourceModeValue("all");
+  };
+
+  const resetExactOutSourcesToAuto = () => {
+    setFromTokens((current) => (current.length === 0 ? current : []));
+    setSourceSelectionTouched(false);
+    setDepositSourceFilter("all");
+    setExactOutQuoteSourceModeValue("all");
+    setSourceSelectionRevision((current) => current + 1);
   };
 
   const getSourceAmountInput = (tokens: SwapTokenOption[]) => {
@@ -2195,12 +2283,8 @@ export function NexusOne({
   };
 
   const parseFiatNumber = (value: unknown) => {
-    if (value === null || value === undefined || value === "") {
-      return undefined;
-    }
-    if (Decimal.isDecimal(value)) {
-      return value;
-    }
+    if (value === null || value === undefined || value === "") return undefined;
+    if (Decimal.isDecimal(value)) return value;
     const cleaned = String(value).replace(/[^0-9.-]/g, "");
     if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
       return undefined;
@@ -2228,9 +2312,7 @@ export function NexusOne({
     contractAddress?: string,
     symbol?: string
   ) => {
-    if (!(chainId && symbol)) {
-      return "";
-    }
+    if (!chainId || !symbol) return "";
     return [
       chainId,
       (contractAddress || zeroAddress).toLowerCase(),
@@ -2271,7 +2353,8 @@ export function NexusOne({
     const symbol = destination?.token?.symbol;
 
     if (
-      !(amount && value) ||
+      !amount ||
+      !value ||
       amount.lte(0) ||
       value.lte(0) ||
       !chainId ||
@@ -2281,9 +2364,7 @@ export function NexusOne({
     }
 
     const rate = value.div(amount);
-    if (!rate.isFinite() || rate.lte(0)) {
-      return;
-    }
+    if (!rate.isFinite() || rate.lte(0)) return;
 
     const cached: CachedIntentUsdRate = {
       amount: amount.toFixed(),
@@ -2339,9 +2420,7 @@ export function NexusOne({
     return getCachedIntentUsdRate(token) ?? new Decimal(0);
   };
   const getUsdRateForSymbol = (symbol?: string) => {
-    if (!symbol) {
-      return new Decimal(0);
-    }
+    if (!symbol) return new Decimal(0);
     const fiat = getFiatValue(1, symbol);
     if (Number.isFinite(fiat) && fiat > 0) {
       return new Decimal(fiat);
@@ -2359,9 +2438,7 @@ export function NexusOne({
     token: Pick<SwapTokenOption, "symbol" | "decimals">
   ) => {
     const rate = getUsdRateForSymbol(token.symbol);
-    if (rate.lte(0)) {
-      return undefined;
-    }
+    if (rate.lte(0)) return undefined;
     return usdAmount
       .div(rate)
       .toDecimalPlaces(Math.max(0, token.decimals ?? 18), Decimal.ROUND_DOWN)
@@ -2369,9 +2446,7 @@ export function NexusOne({
   };
 
   const getMaxSwapQuoteCacheKey = (token?: SwapTokenOption) => {
-    if (!token?.chainId) {
-      return "";
-    }
+    if (!token?.chainId) return "";
     return [
       token.chainId,
       (token.contractAddress || zeroAddress).toLowerCase(),
@@ -2392,7 +2467,8 @@ export function NexusOne({
 
     const cached = getCachedMaxSwapQuote(token);
     if (
-      !(cached && cached.maxUsdAmount) ||
+      !cached ||
+      !cached.maxUsdAmount ||
       cached.maxUsdAmount.lte(0) ||
       cached.maxTokenAmount.lte(0)
     ) {
@@ -2402,14 +2478,10 @@ export function NexusOne({
   };
 
   const resolveUsdRateForSymbol = async (symbol?: string) => {
-    if (!symbol) {
-      return new Decimal(0);
-    }
+    if (!symbol) return new Decimal(0);
 
     const localRate = getUsdRateForSymbol(symbol);
-    if (localRate.gt(0)) {
-      return localRate;
-    }
+    if (localRate.gt(0)) return localRate;
 
     try {
       const resolvedRate = await resolveTokenUsdRate(symbol);
@@ -2423,14 +2495,10 @@ export function NexusOne({
 
   const resolveMaxSwapQuote = async (token: SwapTokenOption) => {
     const key = getMaxSwapQuoteCacheKey(token);
-    if (!key) {
-      return undefined;
-    }
+    if (!key) return undefined;
 
     const cached = maxSwapQuoteCacheRef.current[key];
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
 
     const calculateMaxForSwap = nexusSDK?.calculateMaxForSwap;
     if (typeof calculateMaxForSwap !== "function" || !token.chainId) {
@@ -2452,9 +2520,7 @@ export function NexusOne({
           )
         : undefined);
 
-    if (!maxAmount || maxAmount.lte(0)) {
-      return undefined;
-    }
+    if (!maxAmount || maxAmount.lte(0)) return undefined;
 
     const safeMaxAmount = maxAmount.mul(receiveMaxSafetyMultiplier);
     const destinationRate = await resolveUsdRateForSymbol(
@@ -2469,9 +2535,7 @@ export function NexusOne({
         async (sumPromise, source) => {
           const sum = await sumPromise;
           const amount = parseFiatNumber(source.amount) ?? new Decimal(0);
-          if (amount.lte(0)) {
-            return sum;
-          }
+          if (amount.lte(0)) return sum;
 
           const sourceRate = await resolveUsdRateForSymbol(source.symbol);
           return sourceRate.gt(0) ? sum.plus(amount.mul(sourceRate)) : sum;
@@ -2500,9 +2564,7 @@ export function NexusOne({
     preferUsd: boolean
   ) => {
     const maxQuote = await resolveMaxSwapQuote(token);
-    if (!maxQuote) {
-      return undefined;
-    }
+    if (!maxQuote) return undefined;
 
     const ratio = new Decimal(pct).div(100);
     if (preferUsd && maxQuote.maxUsdAmount && maxQuote.maxUsdAmount.gt(0)) {
@@ -2530,16 +2592,10 @@ export function NexusOne({
   ) => {
     const amountNumber =
       parseFiatNumber(token.userAmount || fallbackAmount) ?? new Decimal(0);
-    if (amountNumber.lte(0)) {
-      return new Decimal(0);
-    }
+    if (amountNumber.lte(0)) return new Decimal(0);
     const quotedUsd = parseFiatNumber(token.userAmountUsd);
-    if (quotedUsd && quotedUsd.gte(0)) {
-      return quotedUsd;
-    }
-    if (token.userAmountMode === "usd") {
-      return amountNumber;
-    }
+    if (quotedUsd && quotedUsd.gte(0)) return quotedUsd;
+    if (token.userAmountMode === "usd") return amountNumber;
 
     const rate = getTokenUsdRate(token);
     return rate.gt(0) ? amountNumber.mul(rate) : new Decimal(0);
@@ -2553,9 +2609,7 @@ export function NexusOne({
 
   const getTokenAmountForUsd = (token: SwapTokenOption, usdAmount: Decimal) => {
     const rate = getTokenUsdRate(token);
-    if (rate.lte(0) || usdAmount.lte(0)) {
-      return new Decimal(0);
-    }
+    if (rate.lte(0) || usdAmount.lte(0)) return new Decimal(0);
     return usdAmount.div(rate);
   };
 
@@ -2564,9 +2618,7 @@ export function NexusOne({
     tokenAmount: Decimal
   ) => {
     const rate = getTokenUsdRate(token);
-    if (rate.lte(0) || tokenAmount.lte(0)) {
-      return new Decimal(0);
-    }
+    if (rate.lte(0) || tokenAmount.lte(0)) return new Decimal(0);
     return tokenAmount.mul(rate);
   };
 
@@ -2596,9 +2648,7 @@ export function NexusOne({
       parseFiatNumber(destinationBalance) ??
       parseFiatNumber(token.balance) ??
       new Decimal(0);
-    if (balanceAmount.lte(0)) {
-      return null;
-    }
+    if (balanceAmount.lte(0)) return null;
 
     const externalAmount =
       producedAmount && producedAmount.gt(0) ? producedAmount : new Decimal(0);
@@ -2607,9 +2657,7 @@ export function NexusOne({
       new Decimal(0)
     );
     const coveredAmount = Decimal.min(balanceAmount, uncoveredAmount);
-    if (coveredAmount.lte(0)) {
-      return null;
-    }
+    if (coveredAmount.lte(0)) return null;
 
     const requestedRate =
       requestedUsd && requestedUsd.gt(0)
@@ -2639,9 +2687,7 @@ export function NexusOne({
     coverage: ReturnType<typeof getExactOutDestinationBalanceCoverage>,
     token?: SwapTokenOption
   ): SwapTokenOption | null => {
-    if (!(coverage && token) || coverage.amount.lte(0)) {
-      return null;
-    }
+    if (!coverage || !token || coverage.amount.lte(0)) return null;
 
     const amount = coverage.amount
       .toDecimalPlaces(Math.max(0, token.decimals ?? 18), Decimal.ROUND_DOWN)
@@ -2663,9 +2709,7 @@ export function NexusOne({
 
   const cacheSymbolUsdRate = (symbol: string | undefined, rate: Decimal) => {
     const symbolKey = getSymbolUsdRateCacheKey(symbol);
-    if (!symbolKey || rate.lte(0)) {
-      return;
-    }
+    if (!symbolKey || rate.lte(0)) return;
 
     intentSymbolUsdRateCacheRef.current[symbolKey] = {
       amount: "1",
@@ -2694,9 +2738,7 @@ export function NexusOne({
     sources = fromTokens
   ) => {
     const destinationKey = getPredictiveDestinationKey(destination);
-    if (!destinationKey) {
-      return "";
-    }
+    if (!destinationKey) return "";
     if (mode !== "swap" || type !== "exactIn") {
       return `exactOut:${destinationKey}`;
     }
@@ -2720,14 +2762,10 @@ export function NexusOne({
   };
 
   const resolveUsdRateForToken = async (token?: SwapTokenOption) => {
-    if (!token?.symbol) {
-      return new Decimal(0);
-    }
+    if (!token?.symbol) return new Decimal(0);
 
     const localRate = getTokenUsdRate(token);
-    if (localRate.gt(0)) {
-      return localRate;
-    }
+    if (localRate.gt(0)) return localRate;
 
     const resolvedRate = await resolveUsdRateForSymbol(token.symbol);
     if (resolvedRate.gt(0)) {
@@ -2738,9 +2776,7 @@ export function NexusOne({
 
   const getPredictiveExactInSourceTokens = () => {
     const expanded = getExpandedSourceTokens(fromTokens);
-    if (expanded.length === 0) {
-      return [];
-    }
+    if (expanded.length === 0) return [];
 
     return expanded
       .map((token) => {
@@ -2757,9 +2793,7 @@ export function NexusOne({
   const sortUnifiedSourceTokens = (tokens: SwapTokenOption[]) =>
     [...tokens].sort((a, b) => {
       const fiatDiff = getTokenBalanceUsd(b).cmp(getTokenBalanceUsd(a));
-      if (fiatDiff !== 0) {
-        return fiatDiff;
-      }
+      if (fiatDiff !== 0) return fiatDiff;
       return getTokenBalanceAmount(b).cmp(getTokenBalanceAmount(a));
     });
 
@@ -2767,15 +2801,11 @@ export function NexusOne({
     token: SwapTokenOption,
     fallbackAmount?: string
   ) => {
-    if (!(token.isUnified && token.sourceTokens?.length)) {
-      return [token];
-    }
+    if (!token.isUnified || !token.sourceTokens?.length) return [token];
 
     const rawAmount =
       parseFiatNumber(token.userAmount || fallbackAmount) ?? new Decimal(0);
-    if (rawAmount.lte(0)) {
-      return [];
-    }
+    if (rawAmount.lte(0)) return [];
 
     const sortedSources = sortUnifiedSourceTokens(token.sourceTokens).filter(
       (source) =>
@@ -2790,14 +2820,10 @@ export function NexusOne({
       let remainingUsd = rawAmount;
 
       for (const source of sortedSources) {
-        if (remainingUsd.lte(0)) {
-          break;
-        }
+        if (remainingUsd.lte(0)) break;
 
         const availableUsd = getTokenBalanceUsd(source);
-        if (availableUsd.lte(0)) {
-          continue;
-        }
+        if (availableUsd.lte(0)) continue;
 
         const targetUsd = Decimal.min(remainingUsd, availableUsd);
         const tokenAmount = getTokenAmountForUsd(
@@ -2807,9 +2833,7 @@ export function NexusOne({
           Math.max(0, source.decimals || 18),
           Decimal.ROUND_DOWN
         );
-        if (tokenAmount.lte(0)) {
-          continue;
-        }
+        if (tokenAmount.lte(0)) continue;
 
         const actualUsd = getUsdForTokenAmount(source, tokenAmount);
         allocated.push({
@@ -2829,22 +2853,16 @@ export function NexusOne({
     let remainingTokenAmount = rawAmount;
 
     for (const source of sortedSources) {
-      if (remainingTokenAmount.lte(0)) {
-        break;
-      }
+      if (remainingTokenAmount.lte(0)) break;
 
       const availableTokenAmount = getTokenBalanceAmount(source);
-      if (availableTokenAmount.lte(0)) {
-        continue;
-      }
+      if (availableTokenAmount.lte(0)) continue;
 
       const tokenAmount = Decimal.min(
         remainingTokenAmount,
         availableTokenAmount
       ).toDecimalPlaces(Math.max(0, source.decimals || 18), Decimal.ROUND_DOWN);
-      if (tokenAmount.lte(0)) {
-        continue;
-      }
+      if (tokenAmount.lte(0)) continue;
 
       const actualUsd = getUsdForTokenAmount(source, tokenAmount);
       allocated.push({
@@ -2901,13 +2919,9 @@ export function NexusOne({
     );
     const seen = new Set<string>();
     return expanded.filter((token) => {
-      if (!(token.chainId && token.contractAddress)) {
-        return false;
-      }
+      if (!token.chainId || !token.contractAddress) return false;
       const key = `${token.chainId}-${token.contractAddress.toLowerCase()}`;
-      if (seen.has(key)) {
-        return false;
-      }
+      if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
@@ -2920,9 +2934,7 @@ export function NexusOne({
 
     for (const asset of swapBalance ?? []) {
       for (const breakdown of asset.breakdown ?? []) {
-        if (breakdown.chain?.id !== chainId) {
-          continue;
-        }
+        if (breakdown.chain?.id !== chainId) continue;
         const breakdownSymbol = (
           breakdown.symbol ??
           asset.symbol ??
@@ -2936,9 +2948,7 @@ export function NexusOne({
               (breakdownSymbol === nativeSymbol || assetSymbol === nativeSymbol)
           );
 
-        if (!isNativeBalance) {
-          continue;
-        }
+        if (!isNativeBalance) continue;
         balance = balance.plus(
           parseFiatNumber(breakdown.balance) ?? new Decimal(0)
         );
@@ -2949,16 +2959,10 @@ export function NexusOne({
   };
 
   const hasGasForSource = (token: SwapTokenOption) => {
-    if (!(token.chainId && token.contractAddress)) {
-      return false;
-    }
+    if (!token.chainId || !token.contractAddress) return false;
     const tokenBalance = parseFiatNumber(token.balance) ?? new Decimal(0);
-    if (tokenBalance.lte(0)) {
-      return false;
-    }
-    if (isNativeTokenAddress(token.contractAddress)) {
-      return true;
-    }
+    if (tokenBalance.lte(0)) return false;
+    if (isNativeTokenAddress(token.contractAddress)) return true;
     return getNativeGasBalanceForChain(token.chainId).gt(0);
   };
 
@@ -2972,20 +2976,23 @@ export function NexusOne({
         const balance = parseFiatNumber(breakdown.balance) ?? new Decimal(0);
         const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
         if (
-          !(chainId && contractAddress) ||
+          !chainId ||
+          !contractAddress ||
           balance.lte(0) ||
           !fiatBalance ||
           fiatBalance.lt(minimumSourceUsd)
-        ) {
+        )
           continue;
-        }
 
         const chainMeta = CHAIN_METADATA[chainId];
         const symbol = breakdown.symbol ?? asset.symbol;
         tokens.push({
           chainId,
           chainLogo: chainMeta?.logo ?? breakdown.chain?.logo,
-          chainName: chainMeta?.name ?? breakdown.chain?.name,
+          chainName: getShortChainName(
+            chainId,
+            chainMeta?.name ?? breakdown.chain?.name
+          ),
           contractAddress,
           decimals: breakdown.decimals ?? asset.decimals ?? 18,
           logo: asset.icon ?? "",
@@ -3003,14 +3010,135 @@ export function NexusOne({
     return getExpandedSourceTokens(tokens).filter(hasGasForSource);
   };
 
+  const getDepositDestinationForSourceSelection = () => {
+    const destination =
+      activeMode === "deposit" ? selectedOpportunity : toToken;
+    const chainId = destination?.chainId;
+    const tokenAddress =
+      activeMode === "deposit"
+        ? selectedOpportunity?.tokenAddress
+        : toToken?.contractAddress;
+    const tokenSymbol =
+      activeMode === "deposit"
+        ? selectedOpportunity?.tokenSymbol
+        : toToken?.symbol;
+
+    if (!chainId || !tokenAddress || !tokenSymbol) return undefined;
+
+    return {
+      chainId,
+      tokenAddress: tokenAddress as `0x${string}`,
+      tokenSymbol,
+    };
+  };
+  const getDestinationSourceIdForDeposit = () => {
+    const destination = getDepositDestinationForSourceSelection();
+    return destination
+      ? getDepositSourceId(destination.tokenAddress, destination.chainId)
+      : undefined;
+  };
+  const getDepositSourceTargetUsd = () => {
+    if (activeMode !== "deposit") return undefined;
+    const requestedUsd = depositUsdDecimal;
+    if (!requestedUsd || requestedUsd.lte(0)) return undefined;
+
+    const coverage = getExactOutDestinationBalanceCoverage({
+      requestedAmount: depositTokenAmountForQuote,
+      requestedUsd,
+      token: toToken,
+    });
+    return Decimal.max(
+      requestedUsd.minus(coverage?.usd ?? new Decimal(0)),
+      new Decimal(0)
+    );
+  };
+
+  const getDepositSourceIdsFromTokens = (tokens: SwapTokenOption[]) =>
+    getExpandedSourceTokens(tokens)
+      .filter((token) => token.chainId && token.contractAddress)
+      .map((token) =>
+        getDepositSourceId(token.contractAddress, token.chainId!)
+      );
+
+  const getDepositTokenOptionsBySourceId = () => {
+    const map = new Map<string, SwapTokenOption>();
+    const sourceTokens = [
+      ...(swapBalance ? deriveTokenOptions(swapBalance) : []),
+      ...fromTokens,
+    ];
+
+    for (const token of getExpandedSourceTokens(sourceTokens)) {
+      if (!token.chainId || !token.contractAddress) continue;
+      const id = getDepositSourceId(token.contractAddress, token.chainId);
+      if (!map.has(id)) {
+        map.set(id, {
+          ...token,
+          userAmount: "",
+        });
+      }
+    }
+
+    return map;
+  };
+
+  const getDepositSourceTokensForIds = (sourceIds: string[]) => {
+    const tokenBySourceId = getDepositTokenOptionsBySourceId();
+    return sourceIds
+      .map((sourceId) => tokenBySourceId.get(sourceId))
+      .filter((token): token is SwapTokenOption => Boolean(token))
+      .map((token) => ({ ...token, userAmount: "" }));
+  };
+
+  const getResolvedDepositSourceSelection = (options?: {
+    filter?: DepositSourceFilter;
+    selectedTokens?: SwapTokenOption[];
+    isManualSelection?: boolean;
+    targetAmountUsd?: Decimal;
+  }) => {
+    const destination = getDepositDestinationForSourceSelection();
+    if (!destination) {
+      return { sourcePoolIds: [], selectedSourceIds: [], fromSources: [] };
+    }
+
+    const manualSelection =
+      options?.isManualSelection ?? sourceSelectionTouched;
+    const selectedTokensForResolution = options?.selectedTokens ?? fromTokens;
+    const selectedSourceIds = getDepositSourceIdsFromTokens(
+      selectedTokensForResolution
+    );
+    const destinationSourceId = getDestinationSourceIdForDeposit();
+    const targetAmountUsd =
+      options?.targetAmountUsd ??
+      (activeMode === "deposit"
+        ? getDepositSourceTargetUsd()
+        : activeMode === "send"
+          ? new Decimal(sendAmountUsd || 0)
+          : undefined);
+
+    return resolveDepositSourceSelection({
+      swapBalance,
+      destination,
+      filter: manualSelection
+        ? "custom"
+        : (options?.filter ?? depositSourceFilter),
+      selectedSourceIds,
+      isManualSelection: manualSelection,
+      minimumBalanceUsd: minimumSourceUsd.toNumber(),
+      targetAmountUsd: targetAmountUsd?.toNumber(),
+      excludedSourceIds: destinationSourceId ? [destinationSourceId] : [],
+    });
+  };
+
   const getExactOutSourceTokens = (
-    mode: "all" | "selected" = exactOutQuoteSourceModeRef.current
+    mode: "all" | "selected" = exactOutQuoteSourceModeRef.current,
+    targetAmountUsd?: Decimal
   ) => {
-    if (
-      (activeMode === "deposit" || activeMode === "send") &&
-      mode === "selected" &&
-      fromTokens.length > 0
-    ) {
+    if (activeMode === "deposit") {
+      const selection = getResolvedDepositSourceSelection({ targetAmountUsd });
+      return getDepositSourceTokensForIds(selection.selectedSourceIds);
+    }
+
+    if (activeMode === "send" && mode === "selected" && fromTokens.length > 0) {
       return filterMinimumSourceUsdTokens(
         getExpandedSourceTokens(fromTokens)
       ).filter(hasGasForSource);
@@ -3020,6 +3148,12 @@ export function NexusOne({
   };
 
   const buildFromSourcesPayload = (tokens: SwapTokenOption[]) => {
+    if (activeMode === "deposit") {
+      return {
+        fromSources: getResolvedDepositSourceSelection().fromSources,
+      };
+    }
+
     const eligibleTokens = filterMinimumSourceUsdTokens(tokens).filter(
       (token) => token.chainId && token.contractAddress
     );
@@ -3032,40 +3166,32 @@ export function NexusOne({
   };
 
   const buildPredictiveExactOutSources = async (requiredSourceUsd: Decimal) => {
-    if (requiredSourceUsd.lte(0)) {
-      return [];
-    }
+    if (requiredSourceUsd.lte(0)) return [];
 
     const destinationKey = getTokenSelectionKey(toToken);
-    const candidates = getExactOutSourceTokens()
+    const candidates = getExactOutSourceTokens(
+      exactOutQuoteSourceModeRef.current,
+      requiredSourceUsd
+    )
       .filter((token) => getTokenSelectionKey(token) !== destinationKey)
-      .filter((token) => getTokenBalanceUsd(token).gt(0))
-      .sort((a, b) => getTokenBalanceUsd(b).cmp(getTokenBalanceUsd(a)));
+      .filter((token) => getTokenBalanceUsd(token).gt(0));
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
 
     for (const token of candidates) {
-      if (remainingUsd.lte(0)) {
-        break;
-      }
+      if (remainingUsd.lte(0)) break;
 
       const availableUsd = getTokenBalanceUsd(token);
-      if (availableUsd.lte(0)) {
-        continue;
-      }
+      if (availableUsd.lte(0)) continue;
 
       const rate = await resolveUsdRateForToken(token);
-      if (rate.lte(0)) {
-        continue;
-      }
+      if (rate.lte(0)) continue;
 
       const targetUsd = Decimal.min(remainingUsd, availableUsd);
       const tokenAmount = targetUsd
         .div(rate)
         .toDecimalPlaces(Math.max(0, token.decimals || 18), Decimal.ROUND_DOWN);
-      if (tokenAmount.lte(0)) {
-        continue;
-      }
+      if (tokenAmount.lte(0)) continue;
 
       sources.push({
         ...token,
@@ -3090,9 +3216,7 @@ export function NexusOne({
     ];
 
     try {
-      if (err?.data) {
-        parts.push(JSON.stringify(err.data));
-      }
+      if (err?.data) parts.push(JSON.stringify(err.data));
     } catch {
       // Ignore non-serializable SDK error metadata.
     }
@@ -3157,21 +3281,15 @@ export function NexusOne({
   };
 
   const getExactInSourceDeficitUsd = () => {
-    if (swapType !== "exactIn" || fromTokens.length === 0) {
-      return undefined;
-    }
+    if (swapType !== "exactIn" || fromTokens.length === 0) return undefined;
 
     return fromTokens.reduce((sum, token) => {
       const requestedAmount = parseFiatNumber(token.userAmount);
-      if (!requestedAmount || requestedAmount.lte(0)) {
-        return sum;
-      }
+      if (!requestedAmount || requestedAmount.lte(0)) return sum;
 
       if (token.userAmountMode === "usd") {
         const availableUsd = parseFiatNumber(token.balanceInFiat);
-        if (!availableUsd || requestedAmount.lte(availableUsd)) {
-          return sum;
-        }
+        if (!availableUsd || requestedAmount.lte(availableUsd)) return sum;
         return sum.plus(requestedAmount.minus(availableUsd));
       }
 
@@ -3281,9 +3399,7 @@ export function NexusOne({
     id: string | null | undefined,
     patch: Partial<SwapHistoryEntry>
   ) => {
-    if (!id) {
-      return;
-    }
+    if (!id) return;
     setSwapHistory((prev) =>
       sortSwapHistoryEntries(
         prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry))
@@ -3327,9 +3443,7 @@ export function NexusOne({
     step: SwapStepType | BridgeStepType | undefined,
     defaultCompleted: boolean
   ) => {
-    if (!step) {
-      return;
-    }
+    if (!step) return;
     const completed =
       typeof (step as any).completed === "boolean"
         ? Boolean((step as any).completed)
@@ -3354,9 +3468,7 @@ export function NexusOne({
     name: string,
     stepList: Array<SwapStepType | BridgeStepType>
   ) => {
-    if (stepList.length === 0) {
-      return;
-    }
+    if (stepList.length === 0) return;
 
     setProgressEvents((prev) => {
       const next = [
@@ -3428,22 +3540,18 @@ export function NexusOne({
       finalExplorerUrl: explorerUrlsRef.current.destinationExplorerUrl,
       ...patch,
     });
-    void fetchSwapBalance();
+    void fetchSwapBalance({ force: true });
   };
 
   const markSwapExecutionStarted = () => {
-    if (currentSwapStartedAtRef.current > 0) {
-      return;
-    }
+    if (currentSwapStartedAtRef.current > 0) return;
     const now = Date.now();
     currentSwapStartedAtRef.current = now;
     patchCurrentSwapHistoryEntry({ startedAt: now });
   };
 
   const enterSkippedSwapProgress = () => {
-    if (activeMode !== "deposit" && activeMode !== "send") {
-      return;
-    }
+    if (activeMode !== "deposit" && activeMode !== "send") return;
 
     const shouldInitializeProgress = swapStepRef.current !== "progress";
     if (!currentSwapIdRef.current) {
@@ -3467,19 +3575,17 @@ export function NexusOne({
   };
 
   const handleRefundIntent = async (entry: SwapHistoryEntry) => {
-    if (!(nexusSDK && entry.intentId)) {
-      return;
-    }
+    if (!nexusSDK || !entry.intentId) return;
     patchSwapHistoryEntry(entry.id, { status: "refund-initiated" });
     try {
       await nexusSDK.refundIntent(entry.intentId);
-      void fetchSwapBalance();
+      void fetchSwapBalance({ force: true });
     } catch (error: any) {
       patchSwapHistoryEntry(entry.id, {
         status: "failed",
         error: error?.message || "Refund failed. Please try again.",
       });
-      void fetchSwapBalance();
+      void fetchSwapBalance({ force: true });
     }
   };
 
@@ -3492,24 +3598,18 @@ export function NexusOne({
       new Decimal(0)
     );
 
-    if (!destinationAmount || destinationAmount.lte(0)) {
-      return;
-    }
+    if (!destinationAmount || destinationAmount.lte(0)) return;
 
     const destinationUsdRate =
       destinationValue && destinationValue.gt(0)
         ? destinationValue.div(destinationAmount)
         : getUsdRateForSymbol(intent.destination?.token?.symbol);
-    if (destinationUsdRate.lte(0)) {
-      return;
-    }
+    if (destinationUsdRate.lte(0)) return;
 
     cacheSymbolUsdRate(intent.destination?.token?.symbol, destinationUsdRate);
 
     const key = getPredictiveQuoteCacheKey();
-    if (!key) {
-      return;
-    }
+    if (!key) return;
 
     const baseline: PredictiveQuoteBaseline = {
       destinationUsdRate: destinationUsdRate.toDecimalPlaces(18).toFixed(),
@@ -3606,17 +3706,26 @@ export function NexusOne({
   );
 
   // Register swap intent hook immediately before executing a swap to prevent race conditions across multiple components
-  const registerIntentHook = (runId: number) => {
-    if (!nexusSDK) {
-      return;
-    }
+  const registerIntentHook = (runId: number, quoteInputKey: string) => {
+    if (!nexusSDK) return;
     nexusSDK.setOnSwapIntentHook(async ({ intent, allow, deny, refresh }) => {
-      if (swapRunIdRef.current !== runId) {
+      if (
+        swapRunIdRef.current !== runId ||
+        activeQuoteInputKeyRef.current !== quoteInputKey
+      ) {
         deny();
         return;
       }
       // Store callbacks so accept/reject buttons can call them
-      swapIntentRef.current = { intent, allow, deny, refresh, runId };
+      providerSwapIntent.current = { intent, allow, deny, refresh };
+      swapIntentRef.current = {
+        intent,
+        allow,
+        deny,
+        refresh,
+        runId,
+        quoteInputKey,
+      };
       // Populate intent data for preview
       applySwapIntent(intent);
       setIntentLoading(false);
@@ -3628,20 +3737,85 @@ export function NexusOne({
 
   // Deposit-specific
   const [selectedOpportunity, setSelectedOpportunity] = useState<
-    DepositOpportunity | undefined
-  >(() =>
-    activeMode === "deposit" && config.opportunities?.length === 1
-      ? config.opportunities[0]
-      : undefined
-  );
-  const [pendingOpportunity, setPendingOpportunity] = useState<
-    DepositOpportunity | undefined
-  >(undefined);
+    NexusOneDepositConfig | undefined
+  >(() => (activeMode === "deposit" ? configuredDeposit : undefined));
+  const selectedOpportunityIdentity =
+    getDepositConfigIdentity(selectedOpportunity);
   const [depositAmountMode, setDepositAmountMode] = useState<"token" | "usd">(
     "token"
   );
+  const [depositSourceFilter, setDepositSourceFilter] =
+    useState<DepositSourceFilter>("all");
 
-  const toTokenFromOpportunity = (opp: DepositOpportunity): SwapTokenOption => {
+  const trackDeposit = useCallback(
+    (event: string, props?: Record<string, unknown>) => {
+      const analytics = nexusSDK?.analytics;
+      if (!analytics) return;
+      analytics.track(event, {
+        widgetSessionId: widgetSessionIdRef.current,
+        widgetAttemptId: widgetAttemptIdRef.current,
+        opportunityProtocol: selectedOpportunity?.protocol ?? null,
+        destinationChainId: selectedOpportunity?.chainId ?? null,
+        destinationToken: selectedOpportunity?.tokenSymbol ?? null,
+        ...props,
+      });
+    },
+    [nexusSDK, selectedOpportunity]
+  );
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    if (!nexusSDK?.analytics) return;
+    if (widgetOpenedFiredRef.current) return;
+    widgetOpenedFiredRef.current = true;
+    widgetOpenedTsRef.current = Date.now();
+    rotateAttempt();
+    trackDeposit("deposit_widget_opened", {
+      embed: Boolean(embed),
+      depositConfigured: Boolean(configuredDeposit),
+      prefillAmountPresent: Boolean(config.prefill?.amount),
+    });
+  }, [
+    activeMode,
+    nexusSDK,
+    embed,
+    configuredDeposit,
+    config.prefill,
+    rotateAttempt,
+    trackDeposit,
+  ]);
+
+  useEffect(() => {
+    analyticsRef.current = nexusSDK?.analytics ?? null;
+  }, [nexusSDK]);
+
+  useEffect(() => {
+    selectedOpportunityRef.current = selectedOpportunity;
+  }, [selectedOpportunity]);
+
+  useEffect(() => {
+    return () => {
+      if (!widgetOpenedFiredRef.current) return;
+      const analytics = analyticsRef.current;
+      if (!analytics) return;
+      const opp = selectedOpportunityRef.current;
+      analytics.track("deposit_widget_closed", {
+        widgetSessionId: widgetSessionIdRef.current,
+        widgetAttemptId: widgetAttemptIdRef.current,
+        opportunityProtocol: opp?.protocol ?? null,
+        lastStep: swapStepRef.current,
+        reachedTerminal: reachedTerminalRef.current,
+        hadSimulationSuccess: hadSimulationSuccessRef.current,
+        hadPreviewViewed: hadPreviewViewedRef.current,
+        timeInWidgetMs: Date.now() - widgetOpenedTsRef.current,
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toTokenFromOpportunity = (
+    opp: NexusOneDepositMetadata
+  ): SwapTokenOption => {
     const citreaToken = findCitreaReceiveToken({
       address: opp.tokenAddress,
       chainId: opp.chainId,
@@ -3670,6 +3844,7 @@ export function NexusOne({
       decimals:
         matchedToken?.decimals ??
         citreaToken?.decimals ??
+        opp.tokenDecimals ??
         tokenMeta?.decimals ??
         18,
       logo:
@@ -3677,24 +3852,23 @@ export function NexusOne({
         matchedToken?.logo ||
         citreaToken?.logo ||
         tokenMeta?.icon,
-      chainName: CHAIN_METADATA[opp.chainId]?.name ?? citreaToken?.chainName,
+      chainName: getShortChainName(
+        opp.chainId,
+        CHAIN_METADATA[opp.chainId]?.name ?? citreaToken?.chainName
+      ),
       chainLogo: CHAIN_METADATA[opp.chainId]?.logo ?? citreaToken?.chainLogo,
     };
   };
 
   const getDestinationBalanceFromSwapBalances = (token?: SwapTokenOption) => {
-    if (!(token?.chainId && token.contractAddress)) {
-      return null;
-    }
+    if (!token?.chainId || !token.contractAddress) return null;
 
     const targetAddress = token.contractAddress.toLowerCase();
     const targetSymbol = token.symbol.toUpperCase();
 
     for (const asset of swapBalance ?? []) {
       for (const breakdown of asset.breakdown ?? []) {
-        if (breakdown.chain?.id !== token.chainId) {
-          continue;
-        }
+        if (breakdown.chain?.id !== token.chainId) continue;
 
         const breakdownAddress = breakdown.contractAddress?.toLowerCase();
         const addressMatches =
@@ -3705,14 +3879,10 @@ export function NexusOne({
           (breakdown.symbol ?? asset.symbol ?? "").toUpperCase() ===
           targetSymbol;
 
-        if (!(addressMatches || symbolMatches)) {
-          continue;
-        }
+        if (!addressMatches && !symbolMatches) continue;
 
         const balance = parseFiatNumber(breakdown.balance);
-        if (!balance) {
-          return null;
-        }
+        if (!balance) return null;
 
         return `${balance.toDecimalPlaces(6).toFixed()} ${token.symbol}`;
       }
@@ -3723,14 +3893,10 @@ export function NexusOne({
 
   const resolvePrefillToken = useCallback(
     (pair?: { token: `0x${string}`; chain: number }) => {
-      if (!(pair?.token && pair.chain)) {
-        return undefined;
-      }
+      if (!pair?.token || !pair.chain) return undefined;
 
       const normalizeAddress = (address?: string) => {
-        if (!address) {
-          return "";
-        }
+        if (!address) return "";
         return isNativeTokenAddress(address)
           ? zeroAddress
           : address.toLowerCase();
@@ -3742,9 +3908,7 @@ export function NexusOne({
           token.chainId === pair.chain &&
           normalizeAddress(token.contractAddress) === targetAddress
       );
-      if (balanceToken) {
-        return balanceToken;
-      }
+      if (balanceToken) return balanceToken;
 
       const chain = supportedChainsAndTokens?.find(
         (item) => item.id === pair.chain
@@ -3774,13 +3938,11 @@ export function NexusOne({
         TOKEN_METADATA[tokenSymbol as keyof typeof TOKEN_METADATA];
 
       if (
-        !(
-          chain ||
-          matchedToken ||
-          citreaToken ||
-          tokenAddressSymbol ||
-          isNativePrefill
-        )
+        !chain &&
+        !matchedToken &&
+        !citreaToken &&
+        !tokenAddressSymbol &&
+        !isNativePrefill
       ) {
         return undefined;
       }
@@ -3799,7 +3961,10 @@ export function NexusOne({
           (isNativePrefill ? chainMeta?.nativeCurrency?.decimals : undefined) ??
           18,
         logo: matchedToken?.logo || citreaToken?.logo || tokenMeta?.icon,
-        chainName: chain?.name ?? chainMeta?.name ?? citreaToken?.chainName,
+        chainName: getShortChainName(
+          pair.chain,
+          chain?.name ?? chainMeta?.name ?? citreaToken?.chainName
+        ),
         chainLogo: chain?.logo ?? chainMeta?.logo ?? citreaToken?.chainLogo,
       } satisfies SwapTokenOption;
     },
@@ -3807,15 +3972,11 @@ export function NexusOne({
   );
 
   useEffect(() => {
-    if (activeMode !== "swap") {
-      return;
-    }
+    if (activeMode !== "swap") return;
 
     const sourcePrefill = config.prefill?.source;
     const destinationPrefill = config.prefill?.destination;
-    if (!(sourcePrefill || destinationPrefill)) {
-      return;
-    }
+    if (!sourcePrefill && !destinationPrefill) return;
 
     const prefillKey = [
       sourcePrefill
@@ -3827,19 +3988,13 @@ export function NexusOne({
       config.prefill?.amount ? `amount:${config.prefill.amount}` : "",
     ].join("|");
 
-    if (appliedTokenPrefillRef.current === prefillKey) {
-      return;
-    }
+    if (appliedTokenPrefillRef.current === prefillKey) return;
 
     const sourceToken = resolvePrefillToken(sourcePrefill);
     const destinationToken = resolvePrefillToken(destinationPrefill);
 
-    if (sourcePrefill && !sourceToken) {
-      return;
-    }
-    if (destinationPrefill && !destinationToken) {
-      return;
-    }
+    if (sourcePrefill && !sourceToken) return;
+    if (destinationPrefill && !destinationToken) return;
 
     if (sourceToken) {
       setFromTokens([
@@ -3863,9 +4018,7 @@ export function NexusOne({
   ]);
 
   useEffect(() => {
-    if (activeMode !== "send") {
-      return;
-    }
+    if (activeMode !== "send") return;
 
     const sendPrefill =
       config.prefill?.token && config.prefill?.chain
@@ -3874,19 +4027,13 @@ export function NexusOne({
             chain: config.prefill.chain,
           }
         : config.prefill?.destination;
-    if (!sendPrefill) {
-      return;
-    }
+    if (!sendPrefill) return;
 
     const prefillKey = `send:${sendPrefill.chain}:${sendPrefill.token.toLowerCase()}`;
-    if (appliedTokenPrefillRef.current === prefillKey) {
-      return;
-    }
+    if (appliedTokenPrefillRef.current === prefillKey) return;
 
     const token = resolvePrefillToken(sendPrefill);
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     setToToken(token);
     setSwapType("exactOut");
@@ -3901,12 +4048,9 @@ export function NexusOne({
   ]);
 
   useEffect(() => {
-    if (config.prefill?.amount) {
-      setAmount(config.prefill.amount);
-    }
-    if (config.prefill?.recipient) {
+    if (config.prefill?.amount) setAmount(config.prefill.amount);
+    if (config.prefill?.recipient)
       setRecipientAddress(config.prefill.recipient);
-    }
   }, [config.prefill?.amount, config.prefill?.recipient]);
 
   useEffect(() => {
@@ -3918,96 +4062,13 @@ export function NexusOne({
         ? toTokenFromOpportunity(selectedOpportunity)
         : undefined);
 
-    if (!(balanceToken?.chainId && ownerAddress)) {
-      return;
-    }
+    if (!balanceToken?.chainId || !ownerAddress) return;
 
     const swapBalanceValue =
       getDestinationBalanceFromSwapBalances(balanceToken);
     if (swapBalanceValue) {
       setDestinationBalance(swapBalanceValue);
-      return;
     }
-
-    const chainMeta = CHAIN_METADATA[balanceToken.chainId];
-    const rpcUrl = chainMeta?.rpcUrls?.[0];
-    if (!rpcUrl) {
-      return;
-    }
-
-    let cancelled = false;
-    const client = createPublicClient({
-      chain: {
-        id: balanceToken.chainId,
-        name: chainMeta?.name ?? balanceToken.chainName ?? "Destination Chain",
-        nativeCurrency: chainMeta?.nativeCurrency ?? {
-          decimals: 18,
-          name: "Ether",
-          symbol: "ETH",
-        },
-        rpcUrls: {
-          default: { http: [rpcUrl] },
-          public: { http: [rpcUrl] },
-        },
-        blockExplorers: chainMeta?.blockExplorerUrls?.[0]
-          ? {
-              default: {
-                name: chainMeta.name,
-                url: chainMeta.blockExplorerUrls[0],
-              },
-            }
-          : undefined,
-      } as any,
-      transport: http(rpcUrl),
-    });
-
-    const fetchDestinationBalance = async () => {
-      try {
-        let rawBalance: bigint;
-        let decimals = balanceToken.decimals || 18;
-
-        if (isNativeTokenAddress(balanceToken.contractAddress)) {
-          rawBalance = await client.getBalance({
-            address: ownerAddress as `0x${string}`,
-          });
-          decimals = 18;
-        } else {
-          const tokenAddress = balanceToken.contractAddress as `0x${string}`;
-          const [balanceResult, decimalsResult] = await Promise.all([
-            client.readContract({
-              abi: erc20Abi,
-              address: tokenAddress,
-              functionName: "balanceOf",
-              args: [ownerAddress as `0x${string}`],
-            }) as Promise<bigint>,
-            client
-              .readContract({
-                abi: erc20Abi,
-                address: tokenAddress,
-                functionName: "decimals",
-              })
-              .catch(() => decimals),
-          ]);
-
-          rawBalance = balanceResult;
-          decimals = Number(decimalsResult) || decimals;
-        }
-
-        if (!cancelled) {
-          setDestinationBalance(
-            `${formatReadableTokenBalanceAmount(rawBalance, decimals)} ${balanceToken.symbol}`
-          );
-        }
-      } catch (error) {
-        console.warn("Unable to fetch destination token balance", error);
-      }
-    };
-
-    void fetchDestinationBalance();
-
-    return () => {
-      cancelled = true;
-    };
   }, [
     activeMode,
     ownerAddress,
@@ -4024,53 +4085,75 @@ export function NexusOne({
   ]);
 
   useEffect(() => {
-    if (activeMode !== "deposit") {
-      return;
-    }
-    if (selectedOpportunity) {
-      return;
-    }
-    if (config.opportunities?.length === 1) {
-      const [opp] = config.opportunities;
-      setSelectedOpportunity(opp);
-      setSwapType("exactOut");
-      setToToken(toTokenFromOpportunity(opp));
-    }
+    if (activeMode !== "deposit" || !configuredDeposit) return;
+    setSelectedOpportunity((current) =>
+      isSameDepositConfig(current, configuredDeposit)
+        ? current
+        : configuredDeposit
+    );
+    setSwapType("exactOut");
+    setToToken((current) => {
+      const next = {
+        ...toTokenFromOpportunity(configuredDeposit),
+        balance: current?.balance ?? "0",
+        balanceInFiat: current?.balanceInFiat ?? "$0.00",
+      };
+      if (
+        current &&
+        current.chainId === next.chainId &&
+        current.contractAddress.toLowerCase() ===
+          next.contractAddress.toLowerCase() &&
+        current.symbol === next.symbol &&
+        current.decimals === next.decimals &&
+        current.logo === next.logo &&
+        current.chainLogo === next.chainLogo &&
+        current.chainName === next.chainName &&
+        current.balance === next.balance &&
+        current.balanceInFiat === next.balanceInFiat
+      ) {
+        return current;
+      }
+      return next;
+    });
   }, [
     activeMode,
-    config.opportunities,
-    selectedOpportunity,
+    configuredDepositIdentity,
+    configuredDeposit?.chainId,
+    configuredDeposit?.tokenAddress,
+    configuredDeposit?.tokenLogo,
+    configuredDeposit?.tokenSymbol,
     supportedChainsAndTokens,
   ]);
 
   useEffect(() => {
-    if (activeMode !== "deposit" || !selectedOpportunity) {
-      return;
-    }
-    setToToken((current) => ({
-      ...toTokenFromOpportunity(selectedOpportunity),
-      balance: current?.balance ?? "0",
-      balanceInFiat: current?.balanceInFiat ?? "$0.00",
-    }));
+    if (activeMode !== "deposit" || !selectedOpportunity) return;
+    setToToken((current) => {
+      const next = {
+        ...toTokenFromOpportunity(selectedOpportunity),
+        balance: current?.balance ?? "0",
+        balanceInFiat: current?.balanceInFiat ?? "$0.00",
+      };
+      if (
+        current &&
+        current.chainId === next.chainId &&
+        current.contractAddress.toLowerCase() ===
+          next.contractAddress.toLowerCase() &&
+        current.symbol === next.symbol &&
+        current.decimals === next.decimals &&
+        current.logo === next.logo &&
+        current.chainLogo === next.chainLogo &&
+        current.chainName === next.chainName &&
+        current.balance === next.balance &&
+        current.balanceInFiat === next.balanceInFiat
+      ) {
+        return current;
+      }
+      return next;
+    });
   }, [activeMode, selectedOpportunity, supportedChainsAndTokens]);
 
   useEffect(() => {
-    if (activeMode !== "deposit") {
-      return;
-    }
-    if (selectedOpportunity) {
-      return;
-    }
-    if (!config.opportunities || config.opportunities.length <= 1) {
-      return;
-    }
-    setPendingOpportunity((current) => current ?? config.opportunities?.[0]);
-  }, [activeMode, config.opportunities, selectedOpportunity]);
-
-  useEffect(() => {
-    if (activeMode !== "send") {
-      return;
-    }
+    if (activeMode !== "send") return;
     setSwapType("exactOut");
   }, [activeMode]);
 
@@ -4081,12 +4164,8 @@ export function NexusOne({
   }, [activeMode, swapType]);
 
   useEffect(() => {
-    if (!toToken?.symbol) {
-      return;
-    }
-    if (getFiatValue(1, toToken.symbol) > 0) {
-      return;
-    }
+    if (!toToken?.symbol) return;
+    if (getFiatValue(1, toToken.symbol) > 0) return;
 
     let cancelled = false;
     void resolveTokenUsdRate(toToken.symbol).catch((error) => {
@@ -4117,9 +4196,7 @@ export function NexusOne({
     currentAsset?.symbol || "USDC"
   );
   const getDepositTokenUsdRate = () => {
-    if (!selectedOpportunity?.tokenSymbol) {
-      return new Decimal(0);
-    }
+    if (!selectedOpportunity?.tokenSymbol) return new Decimal(0);
     const fiat = getFiatValue(1, selectedOpportunity.tokenSymbol);
     if (Number.isFinite(fiat) && fiat > 0) {
       return new Decimal(fiat);
@@ -4129,20 +4206,15 @@ export function NexusOne({
   };
   const getDepositTokenAmountForQuote = () => {
     const parsedAmount = parseFiatNumber(amount) ?? new Decimal(0);
-    if (parsedAmount.lte(0)) {
-      return undefined;
-    }
-    if (depositAmountMode === "token") {
-      return parsedAmount;
-    }
+    if (parsedAmount.lte(0)) return undefined;
+    if (depositAmountMode === "token") return parsedAmount;
 
     const rate = getDepositTokenUsdRate();
-    if (rate.lte(0)) {
-      return undefined;
-    }
+    if (rate.lte(0)) return undefined;
     return parsedAmount.div(rate);
   };
   const depositTokenAmountForQuote = getDepositTokenAmountForQuote();
+  const depositQuoteAmountKey = depositTokenAmountForQuote?.toFixed() ?? "";
   const depositUsdDecimal =
     depositAmountMode === "usd"
       ? (parseFiatNumber(amount) ?? new Decimal(0))
@@ -4154,6 +4226,133 @@ export function NexusOne({
     depositTokenAmountForQuote
       ?.toDecimalPlaces(toToken?.decimals ?? 18)
       .toFixed() ?? "0";
+  const depositSourceTargetUsdKey =
+    activeMode === "deposit"
+      ? (getDepositSourceTargetUsd()?.toFixed() ?? "")
+      : "";
+  const normalizedQuoteAmountKey = parseFiatNumber(amount)?.toFixed() ?? "";
+  const quoteRecipientKey =
+    activeMode === "swap"
+      ? effectiveRecipientAddress
+      : activeMode === "send"
+        ? recipientAddress
+        : "";
+  const activeQuoteInputKey = [
+    activeMode,
+    swapType,
+    normalizedQuoteAmountKey,
+    toTokenQuoteKey,
+    quoteRecipientKey.toLowerCase(),
+    activeMode === "swap" ? fromTokensQuoteKey : "",
+    activeMode === "deposit"
+      ? [
+          depositAmountMode,
+          depositQuoteAmountKey,
+          selectedOpportunityIdentity,
+          depositSourceTargetUsdKey,
+          depositSourceFilter,
+          sourceSelectionTouched ? "manual" : "auto",
+          sourceSelectionRevision,
+          exactOutQuoteSourceMode,
+        ].join(":")
+      : "",
+    activeMode === "send"
+      ? [
+          sourceSelectionTouched ? "manual" : "auto",
+          sourceSelectionRevision,
+          exactOutQuoteSourceMode,
+        ].join(":")
+      : "",
+  ].join("|");
+
+  useEffect(() => {
+    activeQuoteInputKeyRef.current = activeQuoteInputKey;
+  }, [activeQuoteInputKey]);
+  const hasCurrentQuoteIntent = Boolean(
+    intentData &&
+      swapIntentRef.current &&
+      swapIntentRef.current.runId === swapRunIdRef.current &&
+      swapIntentRef.current.quoteInputKey === activeQuoteInputKey
+  );
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    if (!nexusSDK?.analytics) return;
+    const parsed = parseFiatNumber(amount);
+    if (!parsed || parsed.lte(0)) return;
+    if (amount === amountEnteredLastValueRef.current) return;
+    const timeout = setTimeout(() => {
+      amountEnteredLastValueRef.current = amount;
+      trackDeposit("deposit_amount_entered", {
+        amountToken: depositTokenDisplay,
+        amountUsd: Number(depositUsdDisplay) || 0,
+        inputMethod: lastInputMethodRef.current,
+      });
+      lastInputMethodRef.current = "typed";
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [
+    amount,
+    activeMode,
+    nexusSDK,
+    depositTokenDisplay,
+    depositUsdDisplay,
+    trackDeposit,
+  ]);
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    if (intentData) hadSimulationSuccessRef.current = true;
+  }, [intentData, activeMode]);
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    if (sourceSelectionTouched) return;
+    previousAutoSourceCountRef.current = (intentData?.sources ?? []).length;
+  }, [intentData, activeMode, sourceSelectionTouched]);
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    const prev = prevSourceTouchedRef.current;
+    const curr = sourceSelectionTouched;
+    if (prev === curr) return;
+    prevSourceTouchedRef.current = curr;
+    if (!prev && curr) {
+      trackDeposit("deposit_source_selection_changed", {
+        sourceCount: fromTokens.length,
+        sourceChainIds: fromTokens.map((t) => t.chainId).filter(Boolean),
+        sourceTokenSymbols: fromTokens.map((t) => t.symbol).filter(Boolean),
+        previousSourceCount: previousAutoSourceCountRef.current,
+      });
+    } else if (prev && !curr) {
+      trackDeposit("deposit_source_selection_reverted_to_auto", {
+        previousSourceCount: fromTokens.length,
+      });
+    }
+  }, [sourceSelectionTouched, activeMode, fromTokens, trackDeposit]);
+
+  useEffect(() => {
+    if (activeMode !== "deposit") return;
+    if (swapStep !== "preview-intent") return;
+    if (intentLoading) return;
+    if (!intentData) return;
+    if (hadPreviewViewedRef.current) return;
+    hadPreviewViewedRef.current = true;
+    previewViewedTsRef.current = Date.now();
+    trackDeposit("deposit_preview_viewed", {
+      totalFeeUsd: Number(intentFeeUsd) || 0,
+      toAmountUsd: Number(depositUsdDisplay) || 0,
+      sourceCount: (intentData?.sources ?? []).length,
+    });
+  }, [
+    swapStep,
+    intentLoading,
+    intentData,
+    activeMode,
+    intentFeeUsd,
+    depositUsdDisplay,
+    trackDeposit,
+  ]);
   const requiredDestinationTokenAmount =
     activeMode === "deposit"
       ? depositTokenAmountForQuote
@@ -4217,9 +4416,7 @@ export function NexusOne({
           ? cachedDestinationRate
           : await resolveUsdRateForToken(toToken);
 
-      if (cancelled || runId !== predictiveQuoteRunRef.current) {
-        return;
-      }
+      if (cancelled || runId !== predictiveQuoteRunRef.current) return;
       if (destinationRate.lte(0)) {
         setPredictiveQuote((current) =>
           current?.mode === "exactIn" ? null : current
@@ -4231,9 +4428,7 @@ export function NexusOne({
       for (const source of sources) {
         const sourceAmount =
           parseFiatNumber(source.userAmount) ?? new Decimal(0);
-        if (sourceAmount.lte(0)) {
-          continue;
-        }
+        if (sourceAmount.lte(0)) continue;
 
         if (source.userAmountMode === "usd") {
           sourceUsd = sourceUsd.plus(sourceAmount);
@@ -4241,9 +4436,7 @@ export function NexusOne({
         }
 
         const sourceRate = await resolveUsdRateForToken(source);
-        if (cancelled || runId !== predictiveQuoteRunRef.current) {
-          return;
-        }
+        if (cancelled || runId !== predictiveQuoteRunRef.current) return;
         if (sourceRate.lte(0)) {
           setPredictiveQuote((current) =>
             current?.mode === "exactIn" ? null : current
@@ -4327,7 +4520,8 @@ export function NexusOne({
     const parsedAmount = parseFiatNumber(amount);
     const key = getPredictiveQuoteCacheKey();
     if (
-      !(toToken && parsedAmount) ||
+      !toToken ||
+      !parsedAmount ||
       parsedAmount.lte(0) ||
       !key ||
       (activeMode === "deposit" && !selectedOpportunity)
@@ -4351,9 +4545,7 @@ export function NexusOne({
           ? cachedDestinationRate
           : await resolveUsdRateForToken(toToken);
 
-      if (cancelled || runId !== predictiveQuoteRunRef.current) {
-        return;
-      }
+      if (cancelled || runId !== predictiveQuoteRunRef.current) return;
       if (destinationRate.lte(0)) {
         setPredictiveQuote((current) =>
           current?.mode === "exactOut" ? null : current
@@ -4420,9 +4612,9 @@ export function NexusOne({
     amount,
     depositAmountMode,
     destinationBalance,
-    fromTokens,
+    fromTokensQuoteKey,
     nexusSDK,
-    selectedOpportunity,
+    selectedOpportunityIdentity,
     sourceSelectionRevision,
     swapBalance,
     swapStep,
@@ -4435,17 +4627,27 @@ export function NexusOne({
     toToken?.symbol,
   ]);
 
-  const defaultDepositSourceTokens = useMemo<SwapTokenOption[]>(() => {
-    if (activeMode !== "deposit" || !swapBalance) {
-      return [];
-    }
-    return deriveTokenOptions(swapBalance)
-      .filter(hasMinimumSourceUsdBalance)
-      .map((token) => ({
-        ...token,
-        userAmount: "",
-      }));
-  }, [activeMode, swapBalance]);
+  const resolvedDepositSourceTokens = useMemo<SwapTokenOption[]>(() => {
+    if (activeMode !== "deposit" || !swapBalance) return [];
+    const selection = getResolvedDepositSourceSelection();
+    return getDepositSourceTokensForIds(selection.selectedSourceIds);
+  }, [
+    activeMode,
+    depositSourceFilter,
+    depositQuoteAmountKey,
+    depositSourceTargetUsdKey,
+    depositUsdDecimal.toFixed(),
+    fromTokensQuoteKey,
+    selectedOpportunity?.chainId,
+    selectedOpportunity?.tokenAddress,
+    selectedOpportunity?.tokenSymbol,
+    sourceSelectionRevision,
+    sourceSelectionTouched,
+    swapBalance,
+    toToken?.chainId,
+    toToken?.contractAddress,
+    toToken?.symbol,
+  ]);
   const lockedDestinationSourceTokens = useMemo<SwapTokenOption[]>(() => {
     if (
       (activeMode !== "deposit" && activeMode !== "send") ||
@@ -4459,9 +4661,7 @@ export function NexusOne({
     for (const asset of swapBalance ?? []) {
       for (const breakdown of asset.breakdown ?? []) {
         const chainId = breakdown.chain?.id;
-        if (chainId !== toToken.chainId) {
-          continue;
-        }
+        if (chainId !== toToken.chainId) continue;
 
         const breakdownAddress = breakdown.contractAddress;
         const addressMatches =
@@ -4475,28 +4675,24 @@ export function NexusOne({
           (breakdown.symbol ?? asset.symbol ?? "").toUpperCase() ===
           toToken.symbol.toUpperCase();
 
-        if (!(addressMatches || symbolMatches)) {
-          continue;
-        }
+        if (!addressMatches && !symbolMatches) continue;
 
         const balanceAmount = parseFiatNumber(breakdown.balance);
-        if (!balanceAmount || balanceAmount.lte(0)) {
-          continue;
-        }
+        if (!balanceAmount || balanceAmount.lte(0)) continue;
 
         const chainMeta = CHAIN_METADATA[chainId];
         const symbol = breakdown.symbol ?? asset.symbol ?? toToken.symbol;
         const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
-        if (!fiatBalance || fiatBalance.lt(minimumSourceUsd)) {
-          continue;
-        }
+        if (!fiatBalance || fiatBalance.lt(minimumSourceUsd)) continue;
         return [
           {
             chainId,
             chainLogo:
               chainMeta?.logo ?? breakdown.chain?.logo ?? toToken.chainLogo,
-            chainName:
-              chainMeta?.name ?? breakdown.chain?.name ?? toToken.chainName,
+            chainName: getShortChainName(
+              chainId,
+              chainMeta?.name ?? breakdown.chain?.name ?? toToken.chainName
+            ),
             contractAddress:
               breakdown.contractAddress ?? toToken.contractAddress,
             decimals:
@@ -4529,15 +4725,9 @@ export function NexusOne({
   ]);
 
   useEffect(() => {
-    if (activeMode !== "deposit" && activeMode !== "send") {
-      return;
-    }
-    if (lockedDestinationSourceTokens.length === 0) {
-      return;
-    }
-    if (activeMode === "deposit" && !sourceSelectionTouched) {
-      return;
-    }
+    if (activeMode !== "deposit" && activeMode !== "send") return;
+    if (lockedDestinationSourceTokens.length === 0) return;
+    if (activeMode === "deposit" && !sourceSelectionTouched) return;
 
     setFromTokens((current) => {
       const missing = lockedDestinationSourceTokens.filter(
@@ -4547,9 +4737,7 @@ export function NexusOne({
               getTokenSelectionKey(token) === getTokenSelectionKey(locked)
           )
       );
-      if (missing.length === 0) {
-        return current;
-      }
+      if (missing.length === 0) return current;
       return [
         ...current,
         ...missing.map((token) => ({ ...token, userAmount: "" })),
@@ -4558,64 +4746,43 @@ export function NexusOne({
   }, [activeMode, lockedDestinationSourceTokens, sourceSelectionTouched]);
 
   useEffect(() => {
-    if (activeMode !== "deposit") {
-      return;
-    }
-    if (sourceSelectionTouched) {
-      return;
-    }
+    if (activeMode !== "deposit") return;
+    if (sourceSelectionTouched) return;
     if (
-      !(toToken && depositTokenAmountForQuote) ||
+      !toToken ||
+      !depositTokenAmountForQuote ||
       depositTokenAmountForQuote.lte(0)
     ) {
       return;
     }
-    if (
-      defaultDepositSourceTokens.length === 0 &&
-      lockedDestinationSourceTokens.length === 0
-    ) {
+    if (resolvedDepositSourceTokens.length === 0) {
       return;
     }
 
     setFromTokens((current) => {
-      const lockedKeys = new Set(
-        lockedDestinationSourceTokens.map(getTokenSelectionKey)
-      );
-      const canInitialize =
-        current.length === 0 ||
-        current.every((token) => lockedKeys.has(getTokenSelectionKey(token)));
-      if (!canInitialize) {
-        return current;
-      }
+      const canInitialize = current.length === 0;
+      if (!canInitialize) return current;
 
       const next: SwapTokenOption[] = [];
       const seen = new Set<string>();
-      for (const token of [
-        ...defaultDepositSourceTokens,
-        ...lockedDestinationSourceTokens,
-      ]) {
+      for (const token of resolvedDepositSourceTokens) {
         const key = getTokenSelectionKey(token);
-        if (!key || seen.has(key)) {
-          continue;
-        }
+        if (!key || seen.has(key)) continue;
         seen.add(key);
         next.push({ ...token, userAmount: "" });
       }
 
       const currentKeys = current.map(getTokenSelectionKey).sort().join("|");
       const nextKeys = next.map(getTokenSelectionKey).sort().join("|");
-      if (currentKeys === nextKeys) {
-        return current;
-      }
+      if (currentKeys === nextKeys) return current;
       return next;
     });
   }, [
     activeMode,
-    defaultDepositSourceTokens,
-    depositTokenAmountForQuote?.toFixed(),
-    lockedDestinationSourceTokens,
+    depositQuoteAmountKey,
+    resolvedDepositSourceTokens,
     sourceSelectionTouched,
-    toToken,
+    toTokenQuoteKey,
   ]);
 
   // ---------------------------------------------------------------------------
@@ -4632,10 +4799,20 @@ export function NexusOne({
     currentSwapIdRef.current = null;
     currentSwapStartedAtRef.current = 0;
     clearSelectedSources();
-    setToToken(undefined);
-    setSelectedOpportunity(undefined);
-    setPendingOpportunity(undefined);
     setDepositAmountMode("token");
+    if (activeMode === "deposit") {
+      setSelectedOpportunity(configuredDeposit);
+      setToToken(
+        configuredDeposit
+          ? toTokenFromOpportunity(configuredDeposit)
+          : undefined
+      );
+      amountEnteredLastValueRef.current = "";
+      rotateAttempt();
+    } else {
+      setToToken(undefined);
+      setSelectedOpportunity(undefined);
+    }
   };
 
   const resetInputsAfterSuccessfulExecution = () => {
@@ -4648,32 +4825,46 @@ export function NexusOne({
     setIntentData(null);
     setFromTokens((current) => (current.length === 0 ? current : []));
     setSourceSelectionTouched(false);
-    setToToken(undefined);
+    setDepositSourceFilter("all");
     setDepositAmountMode("token");
+    if (activeMode === "deposit") {
+      setSelectedOpportunity(configuredDeposit);
+      setToToken(
+        configuredDeposit
+          ? toTokenFromOpportunity(configuredDeposit)
+          : undefined
+      );
+    } else {
+      setToToken(undefined);
+    }
   };
 
-  const handleSelectDepositOpportunity = (opp: DepositOpportunity) => {
-    clearPendingSwapIntent();
-    setTxError(null);
-    setSwapQuoteIssue(null);
-    setSelectedOpportunity(opp);
-    setPendingOpportunity(opp);
-    setSwapType("exactOut");
-    setDepositAmountMode("token");
-    setAmount("");
-    clearSelectedSources();
-    setToToken(toTokenFromOpportunity(opp));
-  };
+  const handleModalOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && swapStepRef.current === "progress") return;
+      if (!isControlledOpen) {
+        setInternalOpen(open);
+      }
+      onOpenChange?.(open);
+      if (!open) {
+        clearPendingSwapIntent();
+        onClose?.();
+      }
+    },
+    [clearPendingSwapIntent, isControlledOpen, onClose, onOpenChange]
+  );
 
   const handleClose = () => {
+    if (!embed) {
+      handleModalOpenChange(false);
+      return;
+    }
     clearPendingSwapIntent();
     onClose?.();
   };
 
   const handleConnectWallet = async () => {
-    if (walletActionPending || nexusLoading || isWalletConnectPending) {
-      return;
-    }
+    if (walletActionPending || nexusLoading || isWalletConnectPending) return;
 
     setWalletActionPending(true);
     setTxError(null);
@@ -4746,7 +4937,7 @@ export function NexusOne({
       setTxError("Recipient address is required");
       return;
     }
-    if (!(next.endsWith(".eth") || isAddress(next))) {
+    if (!next.endsWith(".eth") && !isAddress(next)) {
       setTxError("Incorrect address");
       return;
     }
@@ -4768,6 +4959,9 @@ export function NexusOne({
   const handleEnterPreview = async (options: { background?: boolean } = {}) => {
     const { background = false } = options;
     const isExactOutFlow = activeMode === "deposit" || activeMode === "send";
+    const quoteInputKey = activeQuoteInputKeyRef.current;
+    const isCurrentQuoteInput = () =>
+      activeQuoteInputKeyRef.current === quoteInputKey;
 
     if (!toToken) {
       return;
@@ -4785,31 +4979,29 @@ export function NexusOne({
       return;
     }
 
+    if (!background && activeMode === "deposit") {
+      trackDeposit("deposit_confirm_clicked", {
+        amountToken: depositTokenDisplay,
+        amountUsd: Number(depositUsdDisplay) || 0,
+        selectionMode: sourceSelectionTouched ? "manual" : "auto",
+        sourceCount: (intentData?.sources ?? []).length,
+      });
+    }
+
     setTxError(null);
     setSwapQuoteIssue(null);
 
     if (
       !background &&
       swapIntentRef.current?.runId === swapRunIdRef.current &&
+      swapIntentRef.current?.quoteInputKey === quoteInputKey &&
       intentData &&
-      !intentLoading &&
       (activeMode !== "send" || Boolean(recipientAddress)) &&
       ((activeMode !== "deposit" && activeMode !== "send") ||
         (intentData.sources ?? []).length > 0)
     ) {
       swapStepRef.current = "preview-intent";
       setSwapStep("preview-intent");
-      return;
-    }
-
-    if (
-      !background &&
-      (activeMode === "deposit" || activeMode === "send") &&
-      (!(intentData && swapIntentRef.current) ||
-        swapIntentRef.current.runId !== swapRunIdRef.current ||
-        (intentData.sources ?? []).length === 0)
-    ) {
-      setTxError("Quote unavailable. Please wait for sources to be selected.");
       return;
     }
 
@@ -4858,9 +5050,11 @@ export function NexusOne({
           setTxError(e.message || "Failed to resolve ENS name.");
           return;
         }
-      } else if (!isAddress(resolvedRecipientAddress)) {
-        setTxError("Invalid recipient address.");
-        return;
+      } else {
+        if (!isAddress(resolvedRecipientAddress)) {
+          setTxError("Invalid recipient address.");
+          return;
+        }
       }
 
       if (
@@ -4872,6 +5066,10 @@ export function NexusOne({
         setTxError("Recipient cannot be the connected wallet.");
         return;
       }
+    }
+
+    if (!isCurrentQuoteInput()) {
+      return;
     }
 
     if (!background) {
@@ -4906,7 +5104,7 @@ export function NexusOne({
     const runId = swapRunIdRef.current;
 
     // Claim ownership of global singleton hook before executing SDK swap
-    registerIntentHook(runId);
+    registerIntentHook(runId, quoteInputKey);
 
     const getSwapStepListFromEvent = (event: { args: any }) => {
       const args = (event as any).args;
@@ -4918,7 +5116,6 @@ export function NexusOne({
     };
 
     const handleSwapEvent = (event: { name: string; args: any }) => {
-      console.log("[NexusOne][SDK swap event]", event.name, event);
       if (event.name === NEXUS_EVENTS.SWAP_STEPS_LIST) {
         const stepList = getSwapStepListFromEvent(event);
         if (stepList.length > 0) {
@@ -4954,6 +5151,18 @@ export function NexusOne({
           mergeExplorerUrls({
             destinationExplorerUrl: (step as any).data.explorerURL,
           });
+        }
+        if (
+          (step as any)?.type === "BRIDGE_DEPOSIT" ||
+          (step as any)?.type === "SOURCE_SWAP_HASH" ||
+          (step as any)?.type === "SOURCE_SWAP_BATCH_TX"
+        ) {
+          fundsMovedRef.current = true;
+          const explorerUrl =
+            (step as any)?.data?.explorerURL ?? (step as any)?.explorerURL;
+          if (explorerUrl && !intentUrlRef.current) {
+            intentUrlRef.current = explorerUrl;
+          }
         }
         if ((step as any)?.completed !== false) {
           onStepComplete(step as any);
@@ -5010,6 +5219,18 @@ export function NexusOne({
             sourceExplorerUrl: (step as any).data.explorerURL,
           });
         }
+        if (
+          step?.type === "BRIDGE_DEPOSIT" ||
+          step?.type === "SOURCE_SWAP_HASH" ||
+          step?.type === "SOURCE_SWAP_BATCH_TX"
+        ) {
+          fundsMovedRef.current = true;
+          const explorerUrl =
+            (step as any)?.explorerURL ?? (step as any)?.data?.explorerURL;
+          if (explorerUrl && !intentUrlRef.current) {
+            intentUrlRef.current = explorerUrl;
+          }
+        }
         if (step?.type === "RFF_ID") {
           const nextIntentId = Number((step as any).data);
           if (Number.isFinite(nextIntentId) && nextIntentId > 0) {
@@ -5023,9 +5244,7 @@ export function NexusOne({
     };
 
     const onEvent = (event: any) => {
-      if (swapRunIdRef.current !== runId) {
-        return;
-      }
+      if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) return;
       handleSwapEvent(event);
     };
 
@@ -5045,7 +5264,7 @@ export function NexusOne({
         return {
           to: resolvedRecipientAddress as `0x${string}`,
           value: transferAmount,
-          gas: BigInt(100_000),
+          gas: BigInt(100000),
         };
       }
 
@@ -5056,7 +5275,7 @@ export function NexusOne({
           functionName: "transfer",
           args: [resolvedRecipientAddress as `0x${string}`, transferAmount],
         }),
-        gas: BigInt(100_000),
+        gas: BigInt(100000),
       };
     };
 
@@ -5079,150 +5298,7 @@ export function NexusOne({
     };
 
     try {
-      if (isExactOutFlow) {
-        const exactOutAmountString =
-          activeMode === "deposit"
-            ? depositTokenAmountForQuote
-                ?.toDecimalPlaces(toToken.decimals || 18, Decimal.ROUND_DOWN)
-                .toFixed()
-            : amount;
-        if (!exactOutAmountString || new Decimal(exactOutAmountString).lte(0)) {
-          setTxError(
-            depositAmountMode === "usd"
-              ? "Unable to convert USD amount into the destination token amount."
-              : "Enter a valid amount."
-          );
-          setIntentLoading(false);
-          setQuoteRefreshing(false);
-          setReceiveMaxCalculating(false);
-          return;
-        }
-        const amountBigInt = nexusSDK.utils.parseUnits(
-          exactOutAmountString,
-          toToken.decimals || 18
-        );
-
-        resetExplorerUrls();
-
-        const fromSourcesPayload = buildFromSourcesPayload(
-          getExactOutSourceTokens()
-        );
-
-        let executeConfig: any;
-        if (activeMode === "deposit" && !selectedOpportunity?.execute) {
-          throw new Error(
-            "Selected deposit opportunity is missing execute parameters."
-          );
-        }
-
-        if (activeMode === "deposit" && selectedOpportunity?.execute) {
-          executeConfig =
-            typeof selectedOpportunity.execute === "function"
-              ? selectedOpportunity.execute(
-                  amountBigInt,
-                  (ownerAddress ?? connectedAddress) as `0x${string}`
-                )
-              : selectedOpportunity.execute;
-        } else if (
-          (activeMode === "send" || hasCustomSwapRecipient) &&
-          resolvedRecipientAddress
-        ) {
-          executeConfig = buildRecipientTransferExecuteConfig(amountBigInt);
-        }
-
-        if (executeConfig) {
-          const sdkWithOptionalTransfer = nexusSDK as any;
-          const result =
-            (activeMode === "send" || hasCustomSwapRecipient) &&
-            typeof sdkWithOptionalTransfer.swapAndTransfer === "function"
-              ? await sdkWithOptionalTransfer.swapAndTransfer(
-                  {
-                    mode: "exactOut",
-                    toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
-                    toAmount: amountBigInt,
-                    recipient: resolvedRecipientAddress as `0x${string}`,
-                    ...fromSourcesPayload,
-                  },
-                  { onEvent }
-                )
-              : await nexusSDK.swapAndExecute(
-                  {
-                    toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
-                    toAmount: amountBigInt,
-                    execute: executeConfig,
-                    ...fromSourcesPayload,
-                  },
-                  { onEvent }
-                );
-
-          const swapResult = result?.swapResult ?? result?.result ?? null;
-          const swapSkipped = Boolean((result as any)?.swapSkipped);
-          if (
-            !(swapResult || swapSkipped) &&
-            activeMode !== "send" &&
-            !hasCustomSwapRecipient
-          ) {
-            throw new Error("Swap failed");
-          }
-          const executeTxHash = getSdkTransactionHash(result);
-          const intentExplorerUrl =
-            swapResult?.explorerURL || result?.intentExplorerUrl || null;
-          const intentId =
-            extractIntentIdFromUrl(intentExplorerUrl) ??
-            currentSwapEntry?.intentId;
-          const finalExplorerUrl =
-            getSdkExplorerUrl(result) ||
-            getExplorerTxUrl(toToken.chainId, executeTxHash);
-          if (finalExplorerUrl) {
-            if (activeMode === "send" || hasCustomSwapRecipient) {
-              setTransferExplorerUrl(finalExplorerUrl);
-            }
-            mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
-          }
-          patchCurrentSwapHistoryEntry({
-            intentExplorerUrl,
-            intentId,
-            finalExplorerUrl,
-          });
-        } else {
-          const result = await nexusSDK.swapWithExactOut(
-            {
-              toChainId: toToken.chainId!,
-              toTokenAddress: toToken.contractAddress as `0x${string}`,
-              toAmount: amountBigInt,
-              ...fromSourcesPayload,
-            },
-            {
-              onEvent: (event: any) => {
-                if (swapRunIdRef.current !== runId) {
-                  return;
-                }
-                handleSwapEvent(event);
-              },
-            }
-          );
-          if (!result?.success) {
-            throw new Error(result?.error || "Swap failed");
-          }
-          const intentExplorerUrl = result.result.explorerURL || null;
-          const intentId =
-            extractIntentIdFromUrl(intentExplorerUrl) ??
-            currentSwapEntry?.intentId;
-          patchCurrentSwapHistoryEntry({ intentExplorerUrl, intentId });
-        }
-
-        if (
-          swapRunIdRef.current === runId &&
-          swapStepRef.current === "progress"
-        ) {
-          finishCurrentSwapHistoryEntry("fulfilled");
-          resetInputsAfterSuccessfulExecution();
-          onComplete?.();
-          setSwapStep("success");
-        }
-      } else {
+      if (!isExactOutFlow) {
         const fromPayload: {
           chainId: number;
           tokenAddress: `0x${string}`;
@@ -5239,9 +5315,7 @@ export function NexusOne({
           }
 
           let cleanAmount = parseFiatNumber(rawAmountStr) ?? new Decimal(0);
-          if (cleanAmount.lte(0)) {
-            continue;
-          }
+          if (cleanAmount.lte(0)) continue;
 
           if (token.userAmountMode === "usd") {
             const tokenBalance =
@@ -5258,9 +5332,7 @@ export function NexusOne({
             }
           }
 
-          if (cleanAmount.lte(0)) {
-            continue;
-          }
+          if (cleanAmount.lte(0)) continue;
 
           const safeTokenAmountStr = cleanAmount
             .toDecimalPlaces(
@@ -5388,11 +5460,215 @@ export function NexusOne({
           onComplete?.();
           setSwapStep("success");
         }
+      } else {
+        const exactOutAmountString =
+          activeMode === "deposit"
+            ? depositTokenAmountForQuote
+                ?.toDecimalPlaces(toToken.decimals || 18, Decimal.ROUND_DOWN)
+                .toFixed()
+            : amount;
+        if (!exactOutAmountString || new Decimal(exactOutAmountString).lte(0)) {
+          setTxError(
+            depositAmountMode === "usd"
+              ? "Unable to convert USD amount into the destination token amount."
+              : "Enter a valid amount."
+          );
+          setIntentLoading(false);
+          setQuoteRefreshing(false);
+          setReceiveMaxCalculating(false);
+          return;
+        }
+        const amountBigInt = nexusSDK.utils.parseUnits(
+          exactOutAmountString,
+          toToken.decimals || 18
+        );
+
+        resetExplorerUrls();
+
+        const fromSourcesPayload = buildFromSourcesPayload(
+          getExactOutSourceTokens()
+        );
+
+        let executeConfig: any;
+        if (activeMode === "deposit" && !selectedOpportunity?.executeDeposit) {
+          throw new Error("Deposit config is missing executeDeposit.");
+        }
+
+        if (activeMode === "deposit" && selectedOpportunity) {
+          const user = (ownerAddress ?? connectedAddress) as `0x${string}`;
+
+          const executeParams = selectedOpportunity.executeDeposit(
+            selectedOpportunity.tokenSymbol,
+            selectedOpportunity.tokenAddress,
+            amountBigInt,
+            selectedOpportunity.chainId,
+            user
+          );
+          executeConfig = {
+            to: executeParams.to,
+            value: executeParams.value,
+            data: executeParams.data,
+            gasPrice: executeParams.gasPrice,
+            tokenApproval: executeParams.tokenApproval,
+            gas: BigInt(400_000),
+          };
+        } else if (
+          (activeMode === "send" || hasCustomSwapRecipient) &&
+          resolvedRecipientAddress
+        ) {
+          executeConfig = buildRecipientTransferExecuteConfig(amountBigInt);
+        }
+
+        if (executeConfig) {
+          const sdkWithOptionalTransfer = nexusSDK as any;
+          const result =
+            (activeMode === "send" || hasCustomSwapRecipient) &&
+            typeof sdkWithOptionalTransfer.swapAndTransfer === "function"
+              ? await sdkWithOptionalTransfer.swapAndTransfer(
+                  {
+                    mode: "exactOut",
+                    toChainId: toToken.chainId!,
+                    toTokenAddress: toToken.contractAddress as `0x${string}`,
+                    toAmount: amountBigInt,
+                    recipient: resolvedRecipientAddress as `0x${string}`,
+                    ...fromSourcesPayload,
+                  },
+                  { onEvent }
+                )
+              : await nexusSDK.swapAndExecute(
+                  {
+                    toChainId: toToken.chainId!,
+                    toTokenAddress: toToken.contractAddress as `0x${string}`,
+                    toAmount: amountBigInt,
+                    execute: executeConfig,
+                    ...fromSourcesPayload,
+                  },
+                  { onEvent }
+                );
+
+          const swapResult = result?.swapResult ?? result?.result ?? null;
+          const swapSkipped = Boolean((result as any)?.swapSkipped);
+          if (
+            !swapResult &&
+            !swapSkipped &&
+            activeMode !== "send" &&
+            !hasCustomSwapRecipient
+          ) {
+            throw new Error("Swap failed");
+          }
+          const executeTxHash = getSdkTransactionHash(result);
+          const intentExplorerUrl =
+            swapResult?.explorerURL || result?.intentExplorerUrl || null;
+          const intentId =
+            extractIntentIdFromUrl(intentExplorerUrl) ??
+            currentSwapEntry?.intentId;
+          const finalExplorerUrl =
+            getSdkExplorerUrl(result) ||
+            getExplorerTxUrl(toToken.chainId, executeTxHash);
+          if (finalExplorerUrl) {
+            if (activeMode === "send" || hasCustomSwapRecipient) {
+              setTransferExplorerUrl(finalExplorerUrl);
+            }
+            mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
+          }
+          patchCurrentSwapHistoryEntry({
+            intentExplorerUrl,
+            intentId,
+            finalExplorerUrl,
+          });
+        } else {
+          const result = await nexusSDK.swapWithExactOut(
+            {
+              toChainId: toToken.chainId!,
+              toTokenAddress: toToken.contractAddress as `0x${string}`,
+              toAmount: amountBigInt,
+              ...fromSourcesPayload,
+            },
+            {
+              onEvent: (event: any) => {
+                if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
+                  return;
+                }
+                handleSwapEvent(event);
+              },
+            }
+          );
+          if (!result?.success) {
+            throw new Error(result?.error || "Swap failed");
+          }
+          const intentExplorerUrl = result.result.explorerURL || null;
+          const intentId =
+            extractIntentIdFromUrl(intentExplorerUrl) ??
+            currentSwapEntry?.intentId;
+          patchCurrentSwapHistoryEntry({ intentExplorerUrl, intentId });
+        }
+
+        if (
+          swapRunIdRef.current === runId &&
+          swapStepRef.current === "progress"
+        ) {
+          finishCurrentSwapHistoryEntry("fulfilled");
+          resetInputsAfterSuccessfulExecution();
+          onComplete?.();
+          if (activeMode === "deposit") {
+            reachedTerminalRef.current = true;
+            const now = Date.now();
+            trackDeposit("deposit_completed", {
+              postConfirmDurationMs: previewConfirmedTsRef.current
+                ? now - previewConfirmedTsRef.current
+                : 0,
+              totalDurationMs: now - widgetOpenedTsRef.current,
+              attemptCount: attemptCountRef.current,
+              amountToken: depositTokenDisplay,
+              amountUsd: Number(depositUsdDisplay) || 0,
+            });
+          }
+          setSwapStep("success");
+        }
       }
     } catch (err: any) {
       console.error("Error in handleEnterPreview:", err);
-      if (swapRunIdRef.current !== runId) {
+      if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
         return;
+      }
+      if (activeMode === "deposit" && err?.code !== "USER_DENIED_INTENT") {
+        const hasActiveExecution =
+          swapStepRef.current === "progress" &&
+          Boolean(currentSwapIdRef.current);
+        const isInsufficient = isInsufficientSourcesError(err);
+        const errMessage =
+          (typeof err?.message === "string" ? err.message : "") ||
+          (typeof err === "string" ? err : "");
+        const errName = typeof err?.name === "string" ? err.name : "";
+        const isUserRejected =
+          err?.code === 4001 ||
+          err?.code === "ACTION_REJECTED" ||
+          errName === "UserRejectedRequestError" ||
+          /user rejected|user denied/i.test(errMessage);
+        const failedAtStep:
+          | "simulation"
+          | "nexus_operation"
+          | "execute_leg"
+          | "unknown" = !hasActiveExecution ? "simulation" : "nexus_operation";
+        const errorCategory: string = isUserRejected
+          ? "user_rejected"
+          : isInsufficient
+            ? "no_eligible_sources"
+            : !hasActiveExecution
+              ? "quote_failed"
+              : "execution_failed";
+        reachedTerminalRef.current = true;
+        if (fundsMovedRef.current) {
+          trackDeposit("deposit_partial_movement_detected", {
+            intentUrl: intentUrlRef.current,
+          });
+        }
+        trackDeposit("deposit_failed", {
+          errorCode: err?.code ?? "UNKNOWN",
+          errorCategory,
+          errorMessage: errMessage || "Transaction failed.",
+          failedAtStep,
+        });
       }
       setQuoteRefreshing(false);
       setIntentLoading(false);
@@ -5471,9 +5747,7 @@ export function NexusOne({
   };
 
   useEffect(() => {
-    if (activeMode !== "swap" || swapStep !== "idle" || !nexusSDK) {
-      return;
-    }
+    if (activeMode !== "swap" || swapStep !== "idle" || !nexusSDK) return;
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
@@ -5489,36 +5763,42 @@ export function NexusOne({
       return;
     }
 
+    if (hasCurrentQuoteIntent) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      return;
+    }
+
     clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
     setQuoteRefreshing(true);
+    let quoteStarted = false;
     const timer = window.setTimeout(() => {
+      quoteStarted = true;
       void handleEnterPreview({ background: true });
     }, EXACT_OUT_INPUT_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timer);
-      if (syncingIntentSourcesRef.current) {
-        return;
-      }
-      if (swapStepRef.current === "idle") {
+      if (syncingIntentSourcesRef.current) return;
+      if (!quoteStarted && swapStepRef.current === "idle") {
         clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
       }
     };
   }, [
     activeMode,
+    activeQuoteInputKey,
     amount,
     defaultRecipientAddress,
-    fromTokens,
+    fromTokensQuoteKey,
+    hasCurrentQuoteIntent,
     nexusSDK,
     recipientAddress,
     swapStep,
-    toToken,
+    toTokenQuoteKey,
   ]);
 
   useEffect(() => {
-    if (activeMode !== "deposit" || swapStep !== "idle" || !nexusSDK) {
-      return;
-    }
+    if (activeMode !== "deposit" || swapStep !== "idle" || !nexusSDK) return;
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
@@ -5539,36 +5819,43 @@ export function NexusOne({
       return;
     }
 
+    if (hasCurrentQuoteIntent) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      return;
+    }
+
     clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
     setQuoteRefreshing(true);
+    let quoteStarted = false;
     const timer = window.setTimeout(() => {
+      quoteStarted = true;
       void handleEnterPreview({ background: true });
     }, EXACT_OUT_INPUT_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timer);
-      if (syncingIntentSourcesRef.current) {
-        return;
-      }
-      if (swapStepRef.current === "idle") {
+      if (syncingIntentSourcesRef.current) return;
+      if (!quoteStarted && swapStepRef.current === "idle") {
         clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
       }
     };
   }, [
     activeMode,
     amount,
+    activeQuoteInputKey,
     depositAmountMode,
+    depositQuoteAmountKey,
+    hasCurrentQuoteIntent,
     nexusSDK,
     sourceSelectionRevision,
-    selectedOpportunity,
+    selectedOpportunityIdentity,
     swapStep,
-    toToken,
+    toTokenQuoteKey,
   ]);
 
   useEffect(() => {
-    if (activeMode !== "send" || swapStep !== "idle" || !nexusSDK) {
-      return;
-    }
+    if (activeMode !== "send" || swapStep !== "idle" || !nexusSDK) return;
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
@@ -5584,28 +5871,36 @@ export function NexusOne({
       return;
     }
 
+    if (hasCurrentQuoteIntent) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      return;
+    }
+
     clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
     setQuoteRefreshing(true);
+    let quoteStarted = false;
     const timer = window.setTimeout(() => {
+      quoteStarted = true;
       void handleEnterPreview({ background: true });
     }, EXACT_OUT_INPUT_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timer);
-      if (syncingIntentSourcesRef.current) {
-        return;
-      }
-      if (swapStepRef.current === "idle") {
+      if (syncingIntentSourcesRef.current) return;
+      if (!quoteStarted && swapStepRef.current === "idle") {
         clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
       }
     };
   }, [
     activeMode,
     amount,
+    activeQuoteInputKey,
+    hasCurrentQuoteIntent,
     nexusSDK,
     sourceSelectionRevision,
     swapStep,
-    toToken,
+    toTokenQuoteKey,
   ]);
 
   const refreshActiveSwapIntent = useCallback(async () => {
@@ -5621,6 +5916,10 @@ export function NexusOne({
     }
 
     const runId = activeIntent.runId;
+    const quoteInputKey = activeIntent.quoteInputKey;
+    if (!quoteInputKey || activeQuoteInputKeyRef.current !== quoteInputKey) {
+      return;
+    }
     const isPreviewRefresh = swapStepRef.current === "preview-intent";
     if (isPreviewRefresh) {
       setPreviewQuoteRefreshing(true);
@@ -5629,7 +5928,11 @@ export function NexusOne({
     }
     try {
       const updated = await activeIntent.refresh();
-      if (!updated || swapRunIdRef.current !== runId) {
+      if (
+        !updated ||
+        swapRunIdRef.current !== runId ||
+        activeQuoteInputKeyRef.current !== quoteInputKey
+      ) {
         return;
       }
 
@@ -5640,7 +5943,10 @@ export function NexusOne({
     } catch (err) {
       console.error("Unable to refresh swap intent", err);
     } finally {
-      if (swapRunIdRef.current === runId) {
+      if (
+        swapRunIdRef.current === runId &&
+        activeQuoteInputKeyRef.current === quoteInputKey
+      ) {
         if (isPreviewRefresh) {
           setPreviewQuoteRefreshing(false);
         } else {
@@ -5661,12 +5967,14 @@ export function NexusOne({
       (activeMode === "swap" ||
         activeMode === "deposit" ||
         activeMode === "send") &&
-      Boolean(intentData && swapIntentRef.current) &&
+      Boolean(
+        intentData &&
+          swapIntentRef.current &&
+          swapIntentRef.current.quoteInputKey === activeQuoteInputKey
+      ) &&
       (swapStep === "idle" || swapStep === "preview-intent");
 
-    if (!hasRefreshableIntent) {
-      return;
-    }
+    if (!hasRefreshableIntent) return;
 
     let cancelled = false;
     let timeout: number | undefined;
@@ -5705,6 +6013,7 @@ export function NexusOne({
     };
   }, [
     activeMode,
+    activeQuoteInputKey,
     intentData,
     intentLoading,
     previewQuoteRefreshing,
@@ -5719,7 +6028,11 @@ export function NexusOne({
       (activeMode === "swap" ||
         activeMode === "deposit" ||
         activeMode === "send") &&
-      Boolean(intentData && swapIntentRef.current) &&
+      Boolean(
+        intentData &&
+          swapIntentRef.current &&
+          swapIntentRef.current.quoteInputKey === activeQuoteInputKey
+      ) &&
       (swapStep === "idle" || swapStep === "preview-intent");
 
     if (!hasRefreshableIntent) {
@@ -5739,11 +6052,33 @@ export function NexusOne({
     const interval = window.setInterval(updateProgress, 250);
 
     return () => window.clearInterval(interval);
-  }, [activeMode, intentData, swapStep]);
+  }, [activeMode, activeQuoteInputKey, intentData, swapStep]);
 
   /** User accepted swap from the preview — call allow() from the intent hook */
   const handleSwapAccept = () => {
-    if (swapIntentRef.current) {
+    const activeIntent = swapIntentRef.current;
+    if (activeIntent) {
+      if (
+        activeIntent.quoteInputKey &&
+        activeQuoteInputKeyRef.current !== activeIntent.quoteInputKey
+      ) {
+        clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
+        setQuoteRefreshing(true);
+        setSwapStep("idle");
+        return;
+      }
+      if (activeMode === "deposit") {
+        previewConfirmedTsRef.current = Date.now();
+        attemptCountRef.current += 1;
+        const timeInPreviewMs = previewViewedTsRef.current
+          ? previewConfirmedTsRef.current - previewViewedTsRef.current
+          : 0;
+        trackDeposit("deposit_preview_confirmed", {
+          timeInPreviewMs,
+          totalFeeUsd: Number(intentFeeUsd) || 0,
+          sourceCount: (intentData?.sources ?? []).length,
+        });
+      }
       onStart?.();
       startSwapHistoryEntry();
       setSwapStep("progress");
@@ -5754,8 +6089,7 @@ export function NexusOne({
       } else {
         resetSteps();
       }
-      swapIntentRef.current.allow();
-      // The swap promise in handleEnterPreview will resolve/reject
+      activeIntent.allow();
     }
   };
 
@@ -5763,9 +6097,7 @@ export function NexusOne({
   // Header title
   // ---------------------------------------------------------------------------
   const getTitle = () => {
-    if (swapStep === "history") {
-      return "Transaction History";
-    }
+    if (swapStep === "history") return "Transaction History";
     // Drawer panels overlay the main page,
     // so the header should still show the main page title.
 
@@ -5778,39 +6110,21 @@ export function NexusOne({
     }
 
     if (activeMode === "swap") {
-      if (swapStep === "progress") {
-        return "Swapping…";
-      }
-      if (swapStep === "success") {
-        return "Swap Complete";
-      }
-      if (swapStep === "failed") {
-        return "Swap Failed";
-      }
-      return "Swap and Bridge";
+      if (swapStep === "progress") return "Swapping…";
+      if (swapStep === "success") return "Swap Complete";
+      if (swapStep === "failed") return "Swap Failed";
+      return "Swap";
     }
     if (activeMode === "deposit") {
-      if (swapStep === "progress") {
-        return "Depositing…";
-      }
-      if (swapStep === "success") {
-        return "Deposit Complete";
-      }
-      if (swapStep === "failed") {
-        return "Deposit Failed";
-      }
+      if (swapStep === "progress") return "Depositing…";
+      if (swapStep === "success") return "Deposit Complete";
+      if (swapStep === "failed") return "Deposit Failed";
       return "Deposit";
     }
     if (activeMode === "send") {
-      if (swapStep === "progress") {
-        return "Sending…";
-      }
-      if (swapStep === "success") {
-        return "Send Complete";
-      }
-      if (swapStep === "failed") {
-        return "Send Failed";
-      }
+      if (swapStep === "progress") return "Sending…";
+      if (swapStep === "success") return "Send Complete";
+      if (swapStep === "failed") return "Send Failed";
       return "Send";
     }
     return "Nexus One";
@@ -5819,9 +6133,7 @@ export function NexusOne({
   // Titles that should be center-aligned (main screens / confirm screens)
   // Left-aligned: choose-swap-asset, choose-receive-asset (sub-screens with subtitles)
   const isTitleCentered = () => {
-    if (swapStep === "history") {
-      return false;
-    }
+    if (swapStep === "history") return false;
     return true; // idle, drawer panels, preview-intent, progress, etc.
   };
 
@@ -5909,7 +6221,7 @@ export function NexusOne({
 
   const handleDepositAmountChange = (val: string) => {
     syncingIntentSourcesRef.current = false;
-    setExactOutQuoteSourceModeValue("all");
+    resetExactOutSourcesToAuto();
     maxPercentRunRef.current += 1;
     setReceiveMaxCalculating(false);
     setMaxCalculationPercent(null);
@@ -5929,7 +6241,7 @@ export function NexusOne({
 
   const handleSendAmountChange = (val: string) => {
     syncingIntentSourcesRef.current = false;
-    setExactOutQuoteSourceModeValue("all");
+    resetExactOutSourcesToAuto();
     maxPercentRunRef.current += 1;
     setReceiveMaxCalculating(false);
     setMaxCalculationPercent(null);
@@ -5948,6 +6260,7 @@ export function NexusOne({
 
   const handleDepositAmountModeToggle = () => {
     syncingIntentSourcesRef.current = false;
+    resetExactOutSourcesToAuto();
     const rate = getDepositTokenUsdRate();
     const parsedAmount = parseFiatNumber(amount) ?? new Decimal(0);
     if (parsedAmount.gt(0) && rate.gt(0)) {
@@ -5962,14 +6275,20 @@ export function NexusOne({
   };
 
   const handleDepositPercentSelect = async (pct: number) => {
-    if (!toToken) {
-      return;
-    }
+    if (!toToken) return;
 
     syncingIntentSourcesRef.current = false;
     setTxError(null);
     setSwapQuoteIssue(null);
     const runId = ++maxPercentRunRef.current;
+    lastInputMethodRef.current =
+      pct === 25
+        ? "percent_25"
+        : pct === 50
+          ? "percent_50"
+          : pct === 75
+            ? "percent_75"
+            : "percent_max";
 
     if (pct !== 100) {
       const usdAmount = getTotalBalancePercentUsdAmount(pct);
@@ -5998,9 +6317,7 @@ export function NexusOne({
           pct,
           depositAmountMode === "usd"
         );
-        if (runId !== maxPercentRunRef.current) {
-          return;
-        }
+        if (runId !== maxPercentRunRef.current) return;
         if (!fallback) {
           setQuoteRefreshing(false);
           setReceiveMaxCalculating(false);
@@ -6016,9 +6333,7 @@ export function NexusOne({
         setMaxCalculationPercent(null);
         handleDepositAmountChange(fallback.amount);
       } catch (error: any) {
-        if (runId !== maxPercentRunRef.current) {
-          return;
-        }
+        if (runId !== maxPercentRunRef.current) return;
         console.error("Unable to calculate percentage deposit amount", error);
         setReceiveMaxCalculating(false);
         setMaxCalculationPercent(null);
@@ -6045,14 +6360,12 @@ export function NexusOne({
         100,
         depositAmountMode === "usd"
       );
-      if (runId !== maxPercentRunRef.current) {
-        return;
-      }
+      if (runId !== maxPercentRunRef.current) return;
       if (!maxAmount) {
         setReceiveMaxCalculating(false);
         setMaxCalculationPercent(null);
         setQuoteRefreshing(false);
-        setTxError("No depositable amount is available for this opportunity.");
+        setTxError("No depositable amount is available for this deposit.");
         return;
       }
 
@@ -6061,9 +6374,7 @@ export function NexusOne({
       setMaxCalculationPercent(null);
       handleDepositAmountChange(maxAmount.amount);
     } catch (error: any) {
-      if (runId !== maxPercentRunRef.current) {
-        return;
-      }
+      if (runId !== maxPercentRunRef.current) return;
       console.error("Unable to calculate max deposit amount", error);
       setReceiveMaxCalculating(false);
       setMaxCalculationPercent(null);
@@ -6079,9 +6390,7 @@ export function NexusOne({
   };
 
   const handleSendPercentSelect = async (pct: number) => {
-    if (!toToken) {
-      return;
-    }
+    if (!toToken) return;
 
     syncingIntentSourcesRef.current = false;
     setTxError(null);
@@ -6110,9 +6419,7 @@ export function NexusOne({
           pct,
           false
         );
-        if (runId !== maxPercentRunRef.current) {
-          return;
-        }
+        if (runId !== maxPercentRunRef.current) return;
         if (!fallback) {
           setQuoteRefreshing(false);
           setReceiveMaxCalculating(false);
@@ -6125,9 +6432,7 @@ export function NexusOne({
         setMaxCalculationPercent(null);
         handleSendAmountChange(fallback.amount);
       } catch (error: any) {
-        if (runId !== maxPercentRunRef.current) {
-          return;
-        }
+        if (runId !== maxPercentRunRef.current) return;
         console.error("Unable to calculate percentage send amount", error);
         setReceiveMaxCalculating(false);
         setMaxCalculationPercent(null);
@@ -6150,9 +6455,7 @@ export function NexusOne({
     try {
       await waitForNextPaint();
       const maxAmount = await getPercentAmountFromMaxQuote(toToken, 100, false);
-      if (runId !== maxPercentRunRef.current) {
-        return;
-      }
+      if (runId !== maxPercentRunRef.current) return;
       if (!maxAmount) {
         setReceiveMaxCalculating(false);
         setMaxCalculationPercent(null);
@@ -6165,9 +6468,7 @@ export function NexusOne({
       setMaxCalculationPercent(null);
       handleSendAmountChange(maxAmount.amount);
     } catch (error: any) {
-      if (runId !== maxPercentRunRef.current) {
-        return;
-      }
+      if (runId !== maxPercentRunRef.current) return;
       console.error("Unable to calculate max send amount", error);
       setReceiveMaxCalculating(false);
       setMaxCalculationPercent(null);
@@ -6188,6 +6489,9 @@ export function NexusOne({
     swapQuoteIssue?.type === "insufficientSources"
       ? swapQuoteIssue
       : null;
+  const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
+  const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
+  const hasCurrentIntentSources = hasCurrentRunnableIntent && hasIntentSources;
   const isExactOutRouteLoading =
     (activeMode === "deposit" || activeMode === "send") &&
     swapStep === "idle" &&
@@ -6196,12 +6500,8 @@ export function NexusOne({
       toToken && (receiveMaxCalculating || (amount && Number(amount) > 0))
     ) &&
     !exactOutInsufficientSourceIssue &&
+    !hasCurrentIntentSources &&
     (quoteRefreshing || intentLoading || receiveMaxCalculating);
-  const hasCurrentRunnableIntent =
-    Boolean(intentData && swapIntentRef.current) &&
-    swapIntentRef.current?.runId === swapRunIdRef.current &&
-    !intentLoading;
-  const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
   const isQuoteUnavailableForAutoSourceFlow =
     (activeMode === "deposit" || activeMode === "send") &&
     Boolean(hasPositiveDecimalInput(amount) && toToken) &&
@@ -6209,10 +6509,10 @@ export function NexusOne({
     !receiveMaxCalculating &&
     !intentLoading &&
     !exactOutInsufficientSourceIssue &&
-    !(hasCurrentRunnableIntent && hasIntentSources);
+    !hasCurrentIntentSources;
   const hasPositiveRootAmount = hasPositiveDecimalInput(amount);
   const hasReadySwapQuoteInput = hasReadyExactInSwapInput(fromTokens, toToken);
-  const needsWalletConnection = !(ownerAddress && nexusSDK);
+  const needsWalletConnection = !ownerAddress || !nexusSDK;
   const walletConnectBusy =
     walletActionPending ||
     nexusLoading ||
@@ -6227,60 +6527,45 @@ export function NexusOne({
       Boolean(exactOutInsufficientSourceIssue);
   const isDepositCtaDisabled = needsWalletConnection
     ? walletConnectBusy
-    : !(hasPositiveRootAmount && toToken) ||
-      quoteRefreshing ||
+    : !hasPositiveRootAmount ||
+      !toToken ||
       receiveMaxCalculating ||
-      isQuoteUnavailableForAutoSourceFlow ||
+      (!hasCurrentIntentSources &&
+        (quoteRefreshing ||
+          intentLoading ||
+          isQuoteUnavailableForAutoSourceFlow)) ||
       Boolean(exactOutInsufficientSourceIssue);
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? walletConnectBusy
-    : !(hasPositiveRootAmount && toToken) ||
+    : !hasPositiveRootAmount ||
+      !toToken ||
       hasSameOwnerSendRecipient ||
       receiveMaxCalculating ||
       (!sendNeedsRecipient &&
-        (quoteRefreshing || isQuoteUnavailableForAutoSourceFlow)) ||
+        !hasCurrentIntentSources &&
+        (quoteRefreshing ||
+          intentLoading ||
+          isQuoteUnavailableForAutoSourceFlow)) ||
       Boolean(exactOutInsufficientSourceIssue);
   const quoteCtaLabel = (fallback: string) => {
-    if (needsWalletConnection) {
-      return walletCtaLabel;
-    }
-    if (exactOutInsufficientSourceIssue) {
-      return "Insufficient balance";
-    }
-    if (receiveMaxCalculating) {
-      return "Calculating...";
-    }
-    if (quoteRefreshing) {
+    if (needsWalletConnection) return walletCtaLabel;
+    if (exactOutInsufficientSourceIssue) return "Insufficient balance";
+    if (receiveMaxCalculating) return "Calculating...";
+    if (!hasCurrentIntentSources && (quoteRefreshing || intentLoading)) {
       return "Fetching quotes...";
     }
-    if (isQuoteUnavailableForAutoSourceFlow) {
-      return "Quote unavailable";
-    }
-    if (!hasPositiveRootAmount) {
-      return "Enter amount";
-    }
+    if (isQuoteUnavailableForAutoSourceFlow) return "Quote unavailable";
+    if (!hasPositiveRootAmount) return "Enter amount";
     return fallback;
   };
   const sendCtaLabel = (() => {
-    if (needsWalletConnection) {
-      return walletCtaLabel;
-    }
-    if (exactOutInsufficientSourceIssue) {
-      return "Insufficient balance";
-    }
-    if (!hasPositiveRootAmount) {
-      return "Enter amount";
-    }
-    if (!toToken) {
-      return "Select token";
-    }
-    if (hasSameOwnerSendRecipient) {
-      return "Change recipient";
-    }
-    if (sendNeedsRecipient) {
-      return "Add recipient";
-    }
+    if (needsWalletConnection) return walletCtaLabel;
+    if (exactOutInsufficientSourceIssue) return "Insufficient balance";
+    if (!hasPositiveRootAmount) return "Enter amount";
+    if (!toToken) return "Select token";
+    if (hasSameOwnerSendRecipient) return "Change recipient";
+    if (sendNeedsRecipient) return "Add recipient";
     return quoteCtaLabel("Review send");
   })();
   const previewIntentSourceUsdNumber = (intentData?.sources ?? []).reduce(
@@ -6450,7 +6735,7 @@ export function NexusOne({
     (activeMode === "swap" ||
       activeMode === "deposit" ||
       activeMode === "send") &&
-    Boolean(intentData && swapIntentRef.current) &&
+    hasCurrentQuoteIntent &&
     (swapStep === "idle" || swapStep === "preview-intent");
   const isRecipientDrawerClosing = closingDrawerStep === "enter-recipient";
   const isSwapAssetDrawerClosing = closingDrawerStep === "choose-swap-asset";
@@ -6462,19 +6747,19 @@ export function NexusOne({
     swapStep === "enter-recipient" ||
     closingDrawerStep !== null;
 
-  return (
+  const widgetContent = (
     <div
+      className={className}
       data-nexus-one-root
       style={{
-        backgroundColor: "#F9F9F8",
-        backgroundImage:
-          "url(https://files.availproject.org/nexus-elements/nexus-one/card-bg.png)",
+        backgroundColor: theme.colors.surface,
+        backgroundImage: "none",
         backgroundPosition: "center",
         backgroundPositionX: "center",
         backgroundPositionY: "center",
         backgroundSize: "cover",
-        borderRadius: "16px",
-        boxShadow: "#5B5B5B0D 0px 1px 12px",
+        borderRadius: theme.radius.modal,
+        boxShadow: theme.shadows.root,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -6485,7 +6770,7 @@ export function NexusOne({
         gap: "12px",
         height:
           hasMeasuredRootContent && rootContentHeight
-            ? `${rootContentHeight}px`
+            ? `${rootContentHeight + 40}px`
             : "fit-content",
         maxHeight: "90dvh",
         lineHeight: "16px",
@@ -6493,13 +6778,18 @@ export function NexusOne({
         overflowX: "hidden",
         overflowY: isDrawerOverlayActive ? "hidden" : "auto",
         overscrollBehavior: isDrawerOverlayActive ? "contain" : "auto",
-        scrollbarColor: "#C8C8C7 transparent",
+        padding: "20px",
+        scrollbarColor: `${theme.colors.textEmpty} transparent`,
+        scrollbarGutter: "stable",
         scrollbarWidth: "thin",
         position: "relative",
         transition: hasMeasuredRootContent ? "height 260ms ease" : undefined,
         willChange: "height",
-        maxWidth: "450px",
-        width: "90%",
+        maxWidth: "500px",
+        minWidth: 0,
+        width: "100%",
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
       }}
     >
       <div
@@ -6521,9 +6811,7 @@ export function NexusOne({
             display: "flex",
             flexShrink: 0,
             justifyContent: "space-between",
-            paddingLeft: "12px",
-            paddingRight: "12px",
-            paddingTop: "12px",
+            padding: 0,
             width: "100%",
             position: "relative",
             zIndex: 10,
@@ -6544,19 +6832,17 @@ export function NexusOne({
                   marginRight: "4px",
                 }}
               >
-                <ArrowLeft className="h-5 w-5" style={{ color: "#161615" }} />
+                <ArrowLeft
+                  className="w-5 h-5"
+                  style={{ color: theme.colors.textStrong }}
+                />
               </button>
             )}
             <div
               style={{
                 boxSizing: "border-box",
-                color: "#161615",
-                fontFamily:
-                  '"Delight-Medium", "Delight", system-ui, sans-serif',
-                fontSize: "15px",
-                fontWeight: 500,
-                letterSpacing: "0.02em",
-                lineHeight: "18px",
+                color: theme.colors.text,
+                ...theme.typography.headingPanel,
               }}
             >
               {getTitle()}
@@ -6569,46 +6855,14 @@ export function NexusOne({
               swapType === "exactIn" && (
                 <span
                   style={{
-                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    color: theme.colors.muted,
+                    fontFamily: theme.fonts.sans,
                     fontSize: "13px",
-                    color: "var(--foreground-muted, #848483)",
                     marginLeft: "8px",
                   }}
                 >
                   {fromTokens.length} asset(s) selected
                 </span>
-              )}
-
-            {/* Protocol chip appended next to Title when Deposit Protocol selected */}
-            {isTitleCentered() &&
-              activeMode === "deposit" &&
-              swapStep === "idle" &&
-              selectedOpportunity && (
-                <div className="pointer-events-auto relative ml-2 flex items-center">
-                  <button
-                    className="flex items-center gap-1 rounded-[4px] py-1 pr-1.5 pl-2 transition-colors hover:bg-black/5"
-                    onClick={() => {
-                      clearPendingSwapIntent();
-                      setSelectedOpportunity(undefined);
-                      setToToken(undefined);
-                      clearSelectedSources();
-                      setAmount("");
-                      setDepositAmountMode("token");
-                    }}
-                    style={{
-                      fontFamily: "var(--font-geist-mono), sans-serif",
-                      fontSize: "10px",
-                      fontWeight: 500,
-                      color: "var(--foreground-muted, #848483)",
-                      background: "var(--background-tertiary, #F0F0EF)",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {selectedOpportunity.title || selectedOpportunity.protocol}
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </div>
               )}
           </div>
 
@@ -6618,7 +6872,7 @@ export function NexusOne({
               alignItems: "center",
               boxSizing: "border-box",
               display: "flex",
-              gap: "10px",
+              gap: "12px",
             }}
           >
             {hasQuoteRefreshCountdown && (
@@ -6632,17 +6886,19 @@ export function NexusOne({
               onClick={() => setSwapStep("history")}
               style={{
                 alignItems: "center",
-                backgroundColor: "#FFFFFE",
-                borderRadius: "8px",
+                backgroundColor: theme.primitives.iconButton.backgroundColor,
+                borderColor: theme.primitives.iconButton.borderColor,
+                borderRadius: theme.radius.iconButton,
+                borderStyle: "solid",
+                borderWidth: "1px",
+                boxShadow: theme.primitives.iconButton.boxShadow,
                 boxSizing: "border-box",
                 display: "flex",
                 flexShrink: 0,
                 height: "32px",
                 justifyContent: "center",
-                outline: "1px solid #E8E8E7",
                 width: "32px",
                 cursor: "pointer",
-                border: "none",
                 padding: 0,
               }}
             >
@@ -6656,20 +6912,20 @@ export function NexusOne({
               >
                 <path
                   d="M8 4V8L10.5 9.5"
-                  stroke="#161615"
+                  stroke={theme.colors.textStrong}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="1.4"
                 />
                 <path
                   d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
-                  stroke="#161615"
+                  stroke={theme.colors.textStrong}
                   strokeLinecap="round"
                   strokeWidth="1.4"
                 />
                 <path
                   d="M13.5 2V5H10.5"
-                  stroke="#161615"
+                  stroke={theme.colors.textStrong}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="1.4"
@@ -6682,16 +6938,18 @@ export function NexusOne({
                 onClick={handleClose}
                 style={{
                   alignItems: "center",
-                  backgroundColor: "#FFFFFE",
-                  border: "none",
-                  borderRadius: "8px",
+                  backgroundColor: theme.primitives.iconButton.backgroundColor,
+                  borderColor: theme.primitives.iconButton.borderColor,
+                  borderRadius: theme.radius.iconButton,
+                  borderStyle: "solid",
+                  borderWidth: "1px",
+                  boxShadow: theme.primitives.iconButton.boxShadow,
                   boxSizing: "border-box",
                   cursor: "pointer",
                   display: "flex",
                   flexShrink: 0,
                   height: "32px",
                   justifyContent: "center",
-                  outline: "1px solid #E8E8E7",
                   padding: 0,
                   width: "32px",
                 }}
@@ -6706,7 +6964,7 @@ export function NexusOne({
                 >
                   <path
                     d="M4 4L12 12M12 4L4 12"
-                    stroke="#161615"
+                    stroke={theme.colors.textStrong}
                     strokeLinecap="round"
                     strokeWidth="1.4"
                   />
@@ -6725,10 +6983,9 @@ export function NexusOne({
             display: "flex",
             flex: 1,
             flexDirection: "column",
-            gap: "10px",
+            gap: "12px",
             minHeight: 0,
-            paddingInline: "12px",
-            paddingBottom: "12px",
+            padding: 0,
           }}
         >
           {/* =============================================================== */}
@@ -6812,7 +7069,7 @@ export function NexusOne({
 
                 {(swapStep === "success" || swapStep === "failed") &&
                   currentSwapEntry && (
-                    <div className="fade-in slide-in-from-bottom-4 w-full animate-in duration-500">
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
                       <SwapReceiptPanel
                         entry={currentSwapEntry}
                         onDone={handleReset}
@@ -6908,20 +7165,23 @@ export function NexusOne({
                       backgroundColor: exactOutInsufficientSourceIssue
                         ? "#FCEEED"
                         : isSwapCtaDisabled
-                          ? "#F0F0EF"
-                          : "#006BF4",
+                          ? theme.colors.surfaceCool
+                          : theme.colors.text,
                       border: exactOutInsufficientSourceIssue
                         ? "1px solid #F7C4C1"
                         : "none",
-                      borderRadius: exactOutInsufficientSourceIssue
-                        ? "4px"
-                        : "8px",
+                      borderRadius: theme.radius.primaryButton,
+                      boxShadow:
+                        exactOutInsufficientSourceIssue || isSwapCtaDisabled
+                          ? "none"
+                          : theme.shadows.primaryButton,
                       boxSizing: "border-box",
                       display: "flex",
                       flexShrink: 0,
                       gap: "8px",
-                      height: "48px",
+                      height: "52px",
                       justifyContent: "center",
+                      marginTop: "8px",
                       paddingInline: "16px",
                       cursor: isSwapCtaDisabled ? "default" : "pointer",
                       width: "100%",
@@ -6941,7 +7201,9 @@ export function NexusOne({
                       <Loader2
                         className="animate-spin"
                         style={{
-                          color: isSwapCtaDisabled ? "#9E9E9C" : "#FFFFFE",
+                          color: isSwapCtaDisabled
+                            ? theme.colors.muted
+                            : theme.colors.surface,
                           height: "16px",
                           width: "16px",
                         }}
@@ -6953,17 +7215,22 @@ export function NexusOne({
                         color: exactOutInsufficientSourceIssue
                           ? "#D32F2F"
                           : isSwapCtaDisabled
-                            ? "#9E9E9C"
-                            : "#FFFFFE",
-                        fontFamily: '"Geist", system-ui, sans-serif',
+                            ? theme.colors.muted
+                            : theme.colors.surface,
+                        fontFamily: theme.fonts.sans,
                         fontSize: exactOutInsufficientSourceIssue
                           ? "15px"
                           : "16px",
                         fontWeight: 500,
-                        lineHeight: "24px",
+                        letterSpacing: "-0.005em",
+                        lineHeight: exactOutInsufficientSourceIssue
+                          ? "18px"
+                          : "20px",
                       }}
                     >
-                      {quoteCtaLabel("Review swap")}
+                      {fromTokens.length === 0
+                        ? "Add assets to send"
+                        : quoteCtaLabel("Review swap")}
                     </div>
                   </button>
                 </div>
@@ -6981,71 +7248,7 @@ export function NexusOne({
               "enter-recipient",
             ].includes(swapStep) && (
               <>
-                {/* Opportunity list */}
-                {config.opportunities &&
-                  config.opportunities.length > 0 &&
-                  !selectedOpportunity && (
-                    <>
-                      <OpportunityList
-                        onSelect={setPendingOpportunity}
-                        opportunities={config.opportunities}
-                        selectedId={
-                          pendingOpportunity?.id ?? config.opportunities[0]?.id
-                        }
-                      />
-
-                      {/* Done button for opportunity selection */}
-                      <div
-                        style={{
-                          boxSizing: "border-box",
-                          display: "flex",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            const opportunity =
-                              pendingOpportunity ?? config.opportunities?.[0];
-                            if (opportunity) {
-                              handleSelectDepositOpportunity(opportunity);
-                              setSwapStep("idle");
-                            }
-                          }}
-                          style={{
-                            alignItems: "center",
-                            backgroundColor: "#006BF4",
-                            borderRadius: "8px",
-                            boxShadow: "#5555550D 0px 1px 4px",
-                            boxSizing: "border-box",
-                            display: "flex",
-                            flex: 1,
-                            height: "48px",
-                            justifyContent: "center",
-                            border: "none",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div
-                            style={{
-                              boxSizing: "border-box",
-                              color: "#FFFFFE",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "15px",
-                              fontWeight: 500,
-                              lineHeight: "18px",
-                            }}
-                          >
-                            Done
-                          </div>
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                {/* After opportunity selected — show deposit form */}
-                {(!config.opportunities ||
-                  config.opportunities.length === 0 ||
-                  selectedOpportunity) && (
+                {selectedOpportunity && (
                   <>
                     <DepositIdleForm
                       amount={amount}
@@ -7053,7 +7256,10 @@ export function NexusOne({
                       calculatingPercent={maxCalculationPercent}
                       fromTokens={displayFromTokens}
                       isCalculatingMax={receiveMaxCalculating}
-                      isQuoteRefreshing={quoteRefreshing || intentLoading}
+                      isQuoteRefreshing={
+                        !hasCurrentIntentSources &&
+                        (quoteRefreshing || intentLoading)
+                      }
                       onAmountChange={handleDepositAmountChange}
                       onAmountModeToggle={handleDepositAmountModeToggle}
                       onOpenSourcePicker={() =>
@@ -7100,14 +7306,19 @@ export function NexusOne({
                           backgroundColor: exactOutInsufficientSourceIssue
                             ? "#FCEEED"
                             : isDepositCtaDisabled
-                              ? "#F0F0EF"
-                              : "#006BF4",
+                              ? theme.colors.surfaceCool
+                              : theme.colors.text,
                           border: exactOutInsufficientSourceIssue
                             ? "1px solid #F7C4C1"
                             : "none",
                           borderRadius: exactOutInsufficientSourceIssue
                             ? "4px"
-                            : "8px",
+                            : theme.radius.primaryButton,
+                          boxShadow:
+                            exactOutInsufficientSourceIssue ||
+                            isDepositCtaDisabled
+                              ? "none"
+                              : theme.shadows.primaryButton,
                           boxSizing: "border-box",
                           display: "flex",
                           flexShrink: 0,
@@ -7128,14 +7339,15 @@ export function NexusOne({
                             }}
                           />
                         ) : (needsWalletConnection && walletConnectBusy) ||
-                          quoteRefreshing ||
+                          (!hasCurrentIntentSources &&
+                            (quoteRefreshing || intentLoading)) ||
                           receiveMaxCalculating ? (
                           <Loader2
                             className="animate-spin"
                             style={{
                               color: isDepositCtaDisabled
-                                ? "#9E9E9C"
-                                : "#FFFFFE",
+                                ? theme.colors.muted
+                                : theme.colors.surface,
                               height: "16px",
                               width: "16px",
                             }}
@@ -7147,9 +7359,9 @@ export function NexusOne({
                             color: exactOutInsufficientSourceIssue
                               ? "#D32F2F"
                               : isDepositCtaDisabled
-                                ? "#9E9E9C"
-                                : "#FFFFFE",
-                            fontFamily: '"Geist", system-ui, sans-serif',
+                                ? theme.colors.muted
+                                : theme.colors.surface,
+                            fontFamily: theme.fonts.sans,
                             fontSize: exactOutInsufficientSourceIssue
                               ? "15px"
                               : "16px",
@@ -7182,7 +7394,10 @@ export function NexusOne({
                   calculatingPercent={maxCalculationPercent}
                   fromTokens={displayFromTokens}
                   isCalculatingMax={receiveMaxCalculating}
-                  isQuoteRefreshing={quoteRefreshing}
+                  isQuoteRefreshing={
+                    !hasCurrentIntentSources &&
+                    (quoteRefreshing || intentLoading)
+                  }
                   onAmountChange={handleSendAmountChange}
                   onOpenAssetPicker={() =>
                     openDrawerStep("choose-receive-asset")
@@ -7239,14 +7454,18 @@ export function NexusOne({
                       backgroundColor: exactOutInsufficientSourceIssue
                         ? "#FCEEED"
                         : isSendCtaDisabled
-                          ? "#F0F0EF"
-                          : "#006BF4",
+                          ? theme.colors.surfaceCool
+                          : theme.colors.text,
                       border: exactOutInsufficientSourceIssue
                         ? "1px solid #F7C4C1"
                         : "none",
                       borderRadius: exactOutInsufficientSourceIssue
                         ? "4px"
-                        : "8px",
+                        : theme.radius.primaryButton,
+                      boxShadow:
+                        exactOutInsufficientSourceIssue || isSendCtaDisabled
+                          ? "none"
+                          : theme.shadows.primaryButton,
                       boxSizing: "border-box",
                       display: "flex",
                       flexShrink: 0,
@@ -7268,11 +7487,15 @@ export function NexusOne({
                       />
                     ) : (needsWalletConnection && walletConnectBusy) ||
                       (!sendNeedsRecipient &&
-                        (quoteRefreshing || receiveMaxCalculating)) ? (
+                        ((!hasCurrentIntentSources &&
+                          (quoteRefreshing || intentLoading)) ||
+                          receiveMaxCalculating)) ? (
                       <Loader2
                         className="animate-spin"
                         style={{
-                          color: isSendCtaDisabled ? "#9E9E9C" : "#FFFFFE",
+                          color: isSendCtaDisabled
+                            ? theme.colors.muted
+                            : theme.colors.surface,
                           height: "16px",
                           width: "16px",
                         }}
@@ -7284,9 +7507,9 @@ export function NexusOne({
                         color: exactOutInsufficientSourceIssue
                           ? "#D32F2F"
                           : isSendCtaDisabled
-                            ? "#9E9E9C"
-                            : "#FFFFFE",
-                        fontFamily: '"Geist", system-ui, sans-serif',
+                            ? theme.colors.muted
+                            : theme.colors.surface,
+                        fontFamily: theme.fonts.sans,
                         fontSize: exactOutInsufficientSourceIssue
                           ? "15px"
                           : "16px",
@@ -7349,7 +7572,7 @@ export function NexusOne({
               className={
                 isRecipientDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7361,12 +7584,12 @@ export function NexusOne({
                 position: "absolute",
                 right: 0,
                 width: "100%",
-                backgroundColor: "#FFFFFE",
+                backgroundColor: theme.colors.surface,
                 borderRadius: "16px 16px 0 0",
                 display: "flex",
                 flexDirection: "column",
                 pointerEvents: "auto",
-                boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
+                boxShadow: theme.shadows.sheet,
                 boxSizing: "border-box",
                 overflowY: "auto",
                 padding: "12px 16px 16px",
@@ -7388,7 +7611,7 @@ export function NexusOne({
               >
                 <div
                   style={{
-                    backgroundColor: "#D8D8D6",
+                    backgroundColor: theme.colors.divider,
                     borderRadius: "999px",
                     height: "4px",
                     width: "32px",
@@ -7411,8 +7634,8 @@ export function NexusOne({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: "#FFFFFE",
-                    border: "1px solid #E8E8E7",
+                    backgroundColor: theme.colors.surface,
+                    border: `1px solid ${theme.colors.border}`,
                     borderRadius: "8px",
                     cursor: "pointer",
                     display: "flex",
@@ -7425,14 +7648,17 @@ export function NexusOne({
                   type="button"
                 >
                   <ArrowLeft
-                    style={{ color: "#161615", height: "16px", width: "16px" }}
+                    style={{
+                      color: theme.colors.textStrong,
+                      height: "16px",
+                      width: "16px",
+                    }}
                   />
                 </button>
                 <div
                   style={{
-                    color: "#161615",
-                    fontFamily:
-                      '"Delight-Medium", "Delight", system-ui, sans-serif',
+                    color: theme.colors.textStrong,
+                    fontFamily: theme.fonts.display,
                     fontSize: "18px",
                     fontWeight: 500,
                     lineHeight: "24px",
@@ -7443,7 +7669,7 @@ export function NexusOne({
               </div>
               <div
                 style={{
-                  backgroundColor: "#E8E8E7",
+                  backgroundColor: theme.colors.border,
                   height: "1px",
                   marginBottom: "16px",
                   width: "100%",
@@ -7459,8 +7685,8 @@ export function NexusOne({
               >
                 <div
                   style={{
-                    color: "#9E9E9C",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: theme.colors.muted,
+                    fontFamily: theme.fonts.sans,
                     fontSize: "13px",
                     fontWeight: 500,
                     lineHeight: "18px",
@@ -7475,9 +7701,9 @@ export function NexusOne({
                       backgroundColor: "#F4F7FE",
                       border: "none",
                       borderRadius: "4px",
-                      color: "#006BF4",
+                      color: theme.colors.primary,
                       cursor: "pointer",
-                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontFamily: theme.fonts.sans,
                       fontSize: "12px",
                       fontWeight: 500,
                       lineHeight: "16px",
@@ -7494,9 +7720,7 @@ export function NexusOne({
                 label={null}
                 onChange={(next) => {
                   setRecipientAddress(next);
-                  if (txError) {
-                    setTxError(null);
-                  }
+                  if (txError) setTxError(null);
                 }}
                 onClear={() => setRecipientAddress("")}
                 placeholder="Wallet address"
@@ -7506,7 +7730,7 @@ export function NexusOne({
                 <div
                   style={{
                     color: "#E35454",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontFamily: theme.fonts.sans,
                     fontSize: "13px",
                     fontWeight: 500,
                     lineHeight: "18px",
@@ -7519,8 +7743,8 @@ export function NexusOne({
               {activeMode === "send" && (
                 <div
                   style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
+                    color: theme.colors.textSubtle,
+                    fontFamily: theme.fonts.sans,
                     fontSize: "13px",
                     lineHeight: "18px",
                     marginTop: "10px",
@@ -7533,14 +7757,14 @@ export function NexusOne({
                 onClick={handleSaveRecipient}
                 style={{
                   alignItems: "center",
-                  backgroundColor: "#006BF4",
+                  backgroundColor: theme.colors.primary,
                   border: "none",
                   borderRadius: "8px",
                   boxShadow: "#5555550D 0px 1px 4px",
-                  color: "#FFFFFE",
+                  color: theme.colors.surface,
                   cursor: "pointer",
                   display: "flex",
-                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontFamily: theme.fonts.sans,
                   fontSize: "16px",
                   fontWeight: 500,
                   height: "48px",
@@ -7583,7 +7807,7 @@ export function NexusOne({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.4)",
+                backgroundColor: "rgba(255,255,255,0.46)",
                 pointerEvents: "auto",
                 opacity: isSwapAssetDrawerClosing ? 0 : 1,
                 transition: `opacity ${DRAWER_CLOSE_MS}ms ease`,
@@ -7593,7 +7817,7 @@ export function NexusOne({
               className={
                 isSwapAssetDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7605,13 +7829,13 @@ export function NexusOne({
                 position: "absolute",
                 right: 0,
                 width: "100%",
-                backgroundColor: "#FFFFFE",
-                borderRadius: "24px 24px 0 0",
+                backgroundColor: theme.colors.surface,
+                borderRadius: "12px 12px 0 0",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
                 pointerEvents: "auto",
-                boxShadow: "0 -4px 12px rgba(0,0,0,0.05)",
+                boxShadow: theme.shadows.sheet,
                 boxSizing: "border-box",
                 opacity: isSwapAssetDrawerClosing ? 0 : 1,
                 transform: isSwapAssetDrawerClosing
@@ -7632,6 +7856,9 @@ export function NexusOne({
                   activeMode === "deposit" || activeMode === "send"
                 }
                 editingAssetIndex={editingAssetIndex}
+                filterTabBehavior={
+                  activeMode === "deposit" ? "source-pool" : "select-all"
+                }
                 hideCustomTab={activeMode === "swap"}
                 isMulti={activeMode === "deposit" || activeMode === "send"}
                 lockedTokens={lockedDestinationSourceTokens}
@@ -7641,6 +7868,9 @@ export function NexusOne({
                     ? () => {
                         setSourceSelectionTouched(true);
                         setExactOutQuoteSourceModeValue("selected");
+                        if (activeMode === "deposit") {
+                          setDepositSourceFilter("custom");
+                        }
                         invalidateExactOutQuoteForRefresh();
                         setSourceSelectionRevision((current) => current + 1);
                         setFromTokens((current) =>
@@ -7650,6 +7880,28 @@ export function NexusOne({
                     : undefined
                 }
                 onDone={closeDrawerToIdle}
+                onFilterTabSelect={
+                  activeMode === "deposit"
+                    ? (tab) => {
+                        const nextFilter: DepositSourceFilter =
+                          tab === "stables" ? "stablecoins" : tab;
+                        setDepositSourceFilter(nextFilter);
+                        setSourceSelectionTouched(false);
+                        setExactOutQuoteSourceModeValue("all");
+                        invalidateExactOutQuoteForRefresh();
+                        setSourceSelectionRevision((current) => current + 1);
+                        const selection = getResolvedDepositSourceSelection({
+                          filter: nextFilter,
+                          isManualSelection: false,
+                        });
+                        setFromTokens(
+                          getDepositSourceTokensForIds(
+                            selection.selectedSourceIds
+                          )
+                        );
+                      }
+                    : undefined
+                }
                 onSelect={(token) => {
                   if (activeMode === "swap") {
                     const next = [...fromTokens];
@@ -7694,6 +7946,9 @@ export function NexusOne({
                   ) {
                     setSourceSelectionTouched(true);
                     setExactOutQuoteSourceModeValue("selected");
+                    if (activeMode === "deposit") {
+                      setDepositSourceFilter("custom");
+                    }
                     invalidateExactOutQuoteForRefresh();
                     setSourceSelectionRevision((current) => current + 1);
                     setFromTokens([{ ...token, userAmount: amount }]);
@@ -7705,6 +7960,9 @@ export function NexusOne({
                     ? (tokens) => {
                         setSourceSelectionTouched(true);
                         setExactOutQuoteSourceModeValue("selected");
+                        if (activeMode === "deposit") {
+                          setDepositSourceFilter("custom");
+                        }
                         invalidateExactOutQuoteForRefresh();
                         setSourceSelectionRevision((current) => current + 1);
                         setFromTokens(
@@ -7720,6 +7978,9 @@ export function NexusOne({
                   if (activeMode === "deposit" || activeMode === "send") {
                     setSourceSelectionTouched(true);
                     setExactOutQuoteSourceModeValue("selected");
+                    if (activeMode === "deposit") {
+                      setDepositSourceFilter("custom");
+                    }
                     invalidateExactOutQuoteForRefresh();
                     setSourceSelectionRevision((current) => current + 1);
                   } else {
@@ -7772,11 +8033,9 @@ export function NexusOne({
                       );
                       const withoutGroup = prev.filter(
                         (item) =>
-                          !(
-                            isSameUnifiedGroup(item) ||
-                            sourceTokens.some((source) =>
-                              isSameSelection(item, source)
-                            )
+                          !isSameUnifiedGroup(item) &&
+                          !sourceTokens.some((source) =>
+                            isSameSelection(item, source)
                           )
                       );
 
@@ -7867,7 +8126,7 @@ export function NexusOne({
                 title={
                   activeMode === "deposit" || activeMode === "send"
                     ? "Choose Assets to Pay with"
-                    : "Select token"
+                    : "Choose assets to send"
                 }
               />
             </div>
@@ -7912,7 +8171,7 @@ export function NexusOne({
               className={
                 isReceiveAssetDrawerClosing
                   ? undefined
-                  : "slide-in-from-bottom-full animate-in duration-300"
+                  : "animate-in slide-in-from-bottom-full duration-300"
               }
               data-nexus-one-sheet
               style={{
@@ -7924,13 +8183,13 @@ export function NexusOne({
                 position: "absolute",
                 right: 0,
                 width: "100%",
-                backgroundColor: "#FFFFFE",
+                backgroundColor: theme.colors.surface,
                 borderRadius: "24px 24px 0 0",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
                 pointerEvents: "auto",
-                boxShadow: "0 -4px 12px rgba(0,0,0,0.05)",
+                boxShadow: theme.shadows.sheet,
                 boxSizing: "border-box",
                 opacity: isReceiveAssetDrawerClosing ? 0 : 1,
                 transform: isReceiveAssetDrawerClosing
@@ -7944,11 +8203,14 @@ export function NexusOne({
                 onBack={closeDrawerToIdle}
                 onSelect={(token) => {
                   const tokenChanged = !isSameTokenSelection(toToken, token);
-                  onReceiveAssetChange?.({
-                    chainId: token.chainId,
-                    contractAddress: token.contractAddress,
-                    symbol: token.symbol,
-                  });
+                  if (tokenChanged) {
+                    onReceiveAssetChange?.({
+                      chainId: token.chainId,
+                      chainName: token.chainName,
+                      contractAddress: token.contractAddress,
+                      symbol: token.symbol,
+                    });
+                  }
                   if (activeMode === "send" || activeMode === "deposit") {
                     setExactOutQuoteSourceModeValue("all");
                     if (tokenChanged) {
@@ -7974,6 +8236,29 @@ export function NexusOne({
           </div>
         )}
     </div>
+  );
+
+  if (embed) return widgetContent;
+
+  return (
+    <Dialog onOpenChange={handleModalOpenChange} open={isModalOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          {activeMode === "deposit"
+            ? "Deposit"
+            : activeMode === "send"
+              ? "Send"
+              : "Swap"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md! border-0 bg-transparent p-0 shadow-none"
+        dismissible={swapStep !== "progress"}
+        showCloseButton={false}
+      >
+        {widgetContent}
+      </DialogContent>
+    </Dialog>
   );
 }
 

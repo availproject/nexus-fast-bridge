@@ -839,3 +839,22 @@ export function getChainSlugById(chainId: number): string | undefined {
   );
   return settings?.slug;
 }
+
+function normalizeChainLookupValue(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export function getChainSlugByName(chainName?: string): string | undefined {
+  if (!chainName) {
+    return undefined;
+  }
+
+  const normalized = normalizeChainLookupValue(chainName);
+  const settings = Object.values(CHAIN_REGISTRY).find((entry) =>
+    [entry.slug, entry.appConfig.chainName].some(
+      (candidate) => normalizeChainLookupValue(candidate) === normalized
+    )
+  );
+
+  return settings?.slug;
+}

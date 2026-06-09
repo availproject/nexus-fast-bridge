@@ -1,9 +1,10 @@
-import type {
-  NexusSDK,
-  SUPPORTED_CHAINS_IDS,
-  SUPPORTED_TOKENS,
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+import {
+  type NexusSDK,
+  type SUPPORTED_CHAINS_IDS,
+  type SUPPORTED_TOKENS,
 } from "@avail-project/nexus-core";
-import type { Address } from "viem";
+import { type Address } from "viem";
 
 export type TransactionFlowType = "bridge" | "transfer";
 
@@ -32,7 +33,6 @@ export type TransactionFlowOnEvent = NonNullable<BridgeOptions["onEvent"]>;
 
 export interface TransactionFlowExecuteParams {
   amount: bigint;
-  amountReadable?: string;
   onEvent: TransactionFlowOnEvent;
   recipient: `0x${string}`;
   sourceChains?: number[];

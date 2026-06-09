@@ -1,5 +1,5 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-core";
-import { useEffect, useState } from "react";
 
 const COINBASE_SPOT_API_BASE = "https://api.coinbase.com/v2/prices";
 const COINBASE_EXCHANGE_RATES_API_BASE =
@@ -7,9 +7,8 @@ const COINBASE_EXCHANGE_RATES_API_BASE =
 const COINGECKO_SIMPLE_PRICE_API_BASE =
   "https://api.coingecko.com/api/v3/simple/price";
 const COINGECKO_SEARCH_API_URL = "https://api.coingecko.com/api/v3/search";
-const TOKEN_SYMBOL_SPLIT_PATTERN = /[._-]/;
 
-export const DEFAULT_COINBASE_PRICE_REQUEST_TIMEOUT_MS = 4000;
+export const DEFAULT_COINBASE_PRICE_REQUEST_TIMEOUT_MS = 4_000;
 export const USD_PEGGED_FALLBACK_RATE = 1;
 export const DEFAULT_USD_PEGGED_TOKEN_SYMBOLS = [
   "USDT",
@@ -91,10 +90,10 @@ export const TOKEN_PRICE_PEGS: Readonly<Record<string, string>> = {
  * through any resolution path (SDK rates, Coinbase API, or pegging fallback).
  */
 export class TokenPricingError extends Error {
-  readonly tokenSymbol: string;
+  public readonly tokenSymbol: string;
 
   constructor(tokenSymbol: string) {
-    super("Price failure: Cannot value this token at the moment");
+    super(`Price failure: Cannot value this token at the moment`);
     this.name = "TokenPricingError";
     this.tokenSymbol = tokenSymbol;
   }
@@ -109,17 +108,17 @@ export function resolveBaseSymbol(tokenSymbol: string): string | null {
   return TOKEN_PRICE_PEGS[normalized] ?? null;
 }
 
-interface CoinbaseSpotPriceResponse {
+type CoinbaseSpotPriceResponse = {
   data?: {
     amount?: string | number;
   };
-}
+};
 
-interface CoinbaseExchangeRatesResponse {
+type CoinbaseExchangeRatesResponse = {
   data?: {
     rates?: Record<string, string | number>;
   };
-}
+};
 
 type CoinGeckoSimplePriceResponse = Record<
   string,
@@ -128,23 +127,23 @@ type CoinGeckoSimplePriceResponse = Record<
   }
 >;
 
-interface CoinGeckoSearchResponse {
+type CoinGeckoSearchResponse = {
   coins?: {
     id?: string;
     market_cap_rank?: number | null;
     name?: string;
     symbol?: string;
   }[];
-}
+};
 
-interface SupportedTokenMetadata {
-  equivalentCurrency?: string;
+type SupportedTokenMetadata = {
   symbol?: string;
-}
+  equivalentCurrency?: string;
+};
 
-interface SupportedChainMetadata {
+type SupportedChainMetadata = {
   tokens?: SupportedTokenMetadata[];
-}
+};
 
 export function normalizeTokenSymbol(tokenSymbol: string): string {
   return tokenSymbol.trim().toUpperCase();
@@ -165,9 +164,7 @@ const USD_RATE_PEG_SYMBOLS: Record<string, string> = {
 
 export function getUsdRatePegSymbol(tokenSymbol: string): string | null {
   const normalized = normalizeTokenSymbol(tokenSymbol);
-  if (!normalized) {
-    return null;
-  }
+  if (!normalized) return null;
 
   return USD_RATE_PEG_SYMBOLS[normalized] ?? null;
 }
@@ -182,13 +179,10 @@ export function toFinitePositiveNumber(value: unknown): number | null {
 
 export function getCoinbaseSymbolCandidates(tokenSymbol: string): string[] {
   const normalized = normalizeTokenSymbol(tokenSymbol);
-  if (!normalized) {
-    return [];
-  }
+  if (!normalized) return [];
 
   const pegSymbol = getUsdRatePegSymbol(normalized);
-  const baseSymbol =
-    normalized.split(TOKEN_SYMBOL_SPLIT_PATTERN)[0] ?? normalized;
+  const baseSymbol = normalized.split(/[._-]/)[0] ?? normalized;
   const wrappedBase =
     baseSymbol.startsWith("W") && baseSymbol.length > 3
       ? baseSymbol.slice(1)
@@ -224,13 +218,10 @@ const COINGECKO_ID_CANDIDATES_BY_SYMBOL: Record<string, string[]> = {
 
 function getCoinGeckoIdCandidates(tokenSymbol: string): string[] {
   const normalized = normalizeTokenSymbol(tokenSymbol);
-  if (!normalized) {
-    return [];
-  }
+  if (!normalized) return [];
 
   const pegSymbol = getUsdRatePegSymbol(normalized);
-  const baseSymbol =
-    normalized.split(TOKEN_SYMBOL_SPLIT_PATTERN)[0] ?? normalized;
+  const baseSymbol = normalized.split(/[._-]/)[0] ?? normalized;
   const wrappedBase =
     baseSymbol.startsWith("W") && baseSymbol.length > 3
       ? baseSymbol.slice(1)
@@ -260,16 +251,12 @@ export function buildUsdPeggedSymbolSet(
     for (const token of chain.tokens ?? []) {
       const symbol = normalizeTokenSymbol(token.symbol ?? "");
       const equivalent = normalizeTokenSymbol(token.equivalentCurrency ?? "");
-      if (!symbol) {
-        continue;
-      }
+      if (!symbol) continue;
 
       // Never add tokens that have an explicit peg in TOKEN_PRICE_PEGS
       // (e.g. wcBTC → BTC). The SDK's equivalentCurrency metadata can
       // incorrectly mark non-stablecoin tokens as USD-pegged.
-      if (TOKEN_PRICE_PEGS[symbol]) {
-        continue;
-      }
+      if (TOKEN_PRICE_PEGS[symbol]) continue;
 
       if (equivalent && symbolSet.has(equivalent)) {
         symbolSet.add(symbol);
@@ -290,9 +277,7 @@ async function fetchJsonWithTimeout<T>(
     const response = await fetch(url, {
       signal: controller.signal,
     });
-    if (!response.ok) {
-      return null;
-    }
+    if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
     return null;
@@ -306,9 +291,7 @@ export async function fetchCoinbaseUsdRate(
   requestTimeoutMs = DEFAULT_COINBASE_PRICE_REQUEST_TIMEOUT_MS
 ): Promise<number | null> {
   const normalized = normalizeTokenSymbol(tokenSymbol);
-  if (!normalized) {
-    return null;
-  }
+  if (!normalized) return null;
 
   for (const candidate of getCoinbaseSymbolCandidates(normalized)) {
     const spotBody = await fetchJsonWithTimeout<CoinbaseSpotPriceResponse>(
@@ -316,9 +299,7 @@ export async function fetchCoinbaseUsdRate(
       requestTimeoutMs
     );
     const spotAmount = toFinitePositiveNumber(spotBody?.data?.amount);
-    if (spotAmount) {
-      return spotAmount;
-    }
+    if (spotAmount) return spotAmount;
 
     const exchangeRatesBody =
       await fetchJsonWithTimeout<CoinbaseExchangeRatesResponse>(
@@ -328,9 +309,7 @@ export async function fetchCoinbaseUsdRate(
     const exchangeRatesAmount = toFinitePositiveNumber(
       exchangeRatesBody?.data?.rates?.USD
     );
-    if (exchangeRatesAmount) {
-      return exchangeRatesAmount;
-    }
+    if (exchangeRatesAmount) return exchangeRatesAmount;
   }
 
   return null;
@@ -340,9 +319,7 @@ async function fetchCoinGeckoUsdRateByIds(
   ids: string[],
   requestTimeoutMs: number
 ): Promise<number | null> {
-  if (ids.length === 0) {
-    return null;
-  }
+  if (ids.length === 0) return null;
 
   const body = await fetchJsonWithTimeout<CoinGeckoSimplePriceResponse>(
     `${COINGECKO_SIMPLE_PRICE_API_BASE}?ids=${encodeURIComponent(
@@ -353,9 +330,7 @@ async function fetchCoinGeckoUsdRateByIds(
 
   for (const id of ids) {
     const rate = toFinitePositiveNumber(body?.[id]?.usd);
-    if (rate) {
-      return rate;
-    }
+    if (rate) return rate;
   }
 
   return null;
@@ -366,17 +341,13 @@ export async function fetchCoinGeckoUsdRate(
   requestTimeoutMs = DEFAULT_COINBASE_PRICE_REQUEST_TIMEOUT_MS
 ): Promise<number | null> {
   const normalized = normalizeTokenSymbol(tokenSymbol);
-  if (!normalized) {
-    return null;
-  }
+  if (!normalized) return null;
 
   const knownIdsRate = await fetchCoinGeckoUsdRateByIds(
     getCoinGeckoIdCandidates(normalized),
     requestTimeoutMs
   );
-  if (knownIdsRate) {
-    return knownIdsRate;
-  }
+  if (knownIdsRate) return knownIdsRate;
 
   const searchBody = await fetchJsonWithTimeout<CoinGeckoSearchResponse>(
     `${COINGECKO_SEARCH_API_URL}?query=${encodeURIComponent(normalized)}`,
@@ -400,49 +371,4 @@ export async function fetchCoinGeckoUsdRate(
       .slice(0, 5),
     requestTimeoutMs
   );
-}
-
-export async function getTokenPriceUSD(symbol: string): Promise<number> {
-  const normalized = normalizeTokenSymbol(symbol);
-  if (!normalized) {
-    return 0;
-  }
-  if (DEFAULT_USD_PEGGED_TOKEN_SYMBOLS.includes(normalized as never)) {
-    return USD_PEGGED_FALLBACK_RATE;
-  }
-  return (
-    (await fetchCoinbaseUsdRate(normalized)) ??
-    (await fetchCoinGeckoUsdRate(normalized)) ??
-    0
-  );
-}
-
-export function useTokenPrice(symbol?: string) {
-  const [price, setPrice] = useState<number>(0);
-
-  useEffect(() => {
-    let active = true;
-    if (!symbol) {
-      setPrice(0);
-      return;
-    }
-
-    getTokenPriceUSD(symbol)
-      .then((nextPrice) => {
-        if (active) {
-          setPrice(nextPrice);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setPrice(0);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [symbol]);
-
-  return price;
 }

@@ -1,14 +1,17 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 "use client";
 
-import type { BridgeStepType, SwapStepType } from "@avail-project/nexus-core";
+import {
+  type BridgeStepType,
+  type SwapStepType,
+} from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
-import type React from "react";
-import { useEffect, useState } from "react";
-import type { DepositOpportunity, NexusOneMode } from "../types";
-import type { SwapTokenOption } from "./swap-asset-selector";
-import type { SwapIntentData } from "./swap-intent-preview";
+import React, { useEffect, useState } from "react";
+import { getShortChainName } from "../../common/utils/constant";
+import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import { type SwapTokenOption } from "./swap-asset-selector";
+import { type SwapIntentData } from "./swap-intent-preview";
 
 type ProgressSdkStep = SwapStepType | BridgeStepType;
 
@@ -32,7 +35,7 @@ interface NexusOneProgressScreenProps {
   fromTokens?: SwapTokenOption[];
   intentData?: SwapIntentData | null;
   mode: NexusOneMode;
-  opportunity?: DepositOpportunity;
+  opportunity?: NexusOneDepositMetadata;
   progressEvents?: NexusOneProgressEvent[];
   recipientAddress?: string;
   steps?: ProgressStep[];
@@ -49,12 +52,8 @@ const brand = "var(--foreground-brand, #006BF4)";
 const danger = "var(--foreground-negative, #E92C2C)";
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -76,9 +75,7 @@ const unique = (values: Array<string | undefined>) =>
   Array.from(new Set(values.filter(Boolean) as string[]));
 
 const formatSymbolSummary = (symbols: string[]) => {
-  if (symbols.length <= 2) {
-    return symbols.join(", ");
-  }
+  if (symbols.length <= 2) return symbols.join(", ");
   return `${symbols.slice(0, 2).join(", ")} and ${symbols.length - 2} others`;
 };
 
@@ -181,9 +178,7 @@ const hasCompletedType = (
   const completedEvent = events.some(
     (event) => event.completed && stepMatches(event.step, tokens)
   );
-  if (completedEvent) {
-    return true;
-  }
+  if (completedEvent) return true;
 
   return steps.some((item) => item.completed && stepMatches(item.step, tokens));
 };
@@ -225,12 +220,8 @@ const getEventStepCount = (
   completedOnly = false
 ) =>
   events.filter((event) => {
-    if (event.name !== eventName || !event.step) {
-      return false;
-    }
-    if (completedOnly && !event.completed) {
-      return false;
-    }
+    if (event.name !== eventName || !event.step) return false;
+    if (completedOnly && !event.completed) return false;
     return stepMatches(event.step, tokens);
   }).length;
 
@@ -329,9 +320,7 @@ const buildStatusRows = ({
     if (failedStatus) {
       const failedIndex = STATUS_ORDER.indexOf(failedStatus);
       const currentIndex = STATUS_ORDER.indexOf(row.id);
-      if (failedIndex >= 0 && currentIndex > failedIndex) {
-        return;
-      }
+      if (failedIndex >= 0 && currentIndex > failedIndex) return;
     }
     rows.push(row);
   };
@@ -488,14 +477,10 @@ const buildStatusRows = ({
   const nextActiveIndex = orderedRows.findIndex(
     (row) => row.state === "default"
   );
-  if (nextActiveIndex === -1) {
-    return orderedRows;
-  }
+  if (nextActiveIndex === -1) return orderedRows;
 
   return orderedRows.map((row, index) => {
-    if (index !== nextActiveIndex) {
-      return row;
-    }
+    if (index !== nextActiveIndex) return row;
     const nextState =
       row.id === "approveTokens" || row.id === "action"
         ? "preapproval"
@@ -646,8 +631,10 @@ export function NexusOneProgressScreen({
     toToken?.symbol ||
     opportunity?.tokenSymbol ||
     "";
-  const destinationChainName =
-    intentDestination?.chain.name || toToken?.chainName || "";
+  const destinationChainName = getShortChainName(
+    intentDestination?.chain.id ?? toToken?.chainId,
+    intentDestination?.chain.name || toToken?.chainName || ""
+  );
   const destinationChain =
     mode === "deposit"
       ? opportunity?.title || opportunity?.protocol || destinationChainName
@@ -666,9 +653,7 @@ export function NexusOneProgressScreen({
       setLockedApprovalTotal(null);
       return;
     }
-    if (lockedApprovalTotal !== null || computedApprovalTotal <= 0) {
-      return;
-    }
+    if (lockedApprovalTotal !== null || computedApprovalTotal <= 0) return;
     setLockedApprovalTotal(computedApprovalTotal);
   }, [computedApprovalTotal, lockedApprovalTotal, progressEvents.length]);
 
@@ -845,9 +830,7 @@ export function NexusOneProgressScreen({
                 <button
                   key={row.id}
                   onClick={() => {
-                    if (canExpand) {
-                      setStepsExpanded((current) => !current);
-                    }
+                    if (canExpand) setStepsExpanded((current) => !current);
                   }}
                   style={{
                     alignItems: hasDescription ? "flex-start" : "center",

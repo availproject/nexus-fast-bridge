@@ -1,8 +1,9 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
-import type { SwapTokenOption } from "./swap-asset-selector";
+import { type SwapTokenOption } from "./swap-asset-selector";
 
 const uiFont = '"Geist", system-ui, sans-serif';
 const primary = "#161615";
@@ -11,12 +12,8 @@ const border = "#E8E8E7";
 const brand = "#006BF4";
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -37,9 +34,7 @@ const formatToken = (value: unknown) => {
 
 const formatUsd = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
   return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 

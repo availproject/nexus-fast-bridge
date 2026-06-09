@@ -1,3 +1,4 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
 export type TransactionStatus =
   | "idle"
   | "preview"
@@ -6,32 +7,22 @@ export type TransactionStatus =
   | "success"
   | "error";
 
-export interface GenericStep<TStep> {
-  completed: boolean;
+export type GenericStep<TStep> = {
   id: number;
+  completed: boolean;
   step: TStep;
-}
-
-interface StepLike {
-  type?: unknown;
-  typeID?: unknown;
-}
+};
 
 /**
  * Normalizes a step to a stable key. Prefers typeID, then type, otherwise JSON.
  */
-export function getStepKey(step: unknown): string {
-  if (!step) {
-    return "";
+export function getStepKey(step: any): string {
+  if (!step) return "";
+  if (typeof step.typeID === "string" && step.typeID.length > 0) {
+    return step.typeID;
   }
-
-  const stepLike = step as StepLike;
-
-  if (typeof stepLike.typeID === "string" && stepLike.typeID.length > 0) {
-    return stepLike.typeID;
-  }
-  if (typeof stepLike.type === "string" && stepLike.type.length > 0) {
-    return stepLike.type;
+  if (typeof step.type === "string" && step.type.length > 0) {
+    return step.type;
   }
   try {
     return JSON.stringify(step);
