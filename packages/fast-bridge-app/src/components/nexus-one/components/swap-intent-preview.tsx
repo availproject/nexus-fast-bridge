@@ -1186,7 +1186,7 @@ export function SwapIntentPreview({
     !isLoading && !isRefreshing && !isExecuting && !quoteUnavailable;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <style>
         {`
           @keyframes nexusPreviewCtaPulse {
@@ -1223,25 +1223,25 @@ export function SwapIntentPreview({
             background: "linear-gradient(180deg, #FFFFFE 0%, #EEF5FF 100%)",
             display: "grid",
             gridTemplateColumns: "1fr auto 1fr",
-            minHeight: "126px",
-            padding: "34px 24px 28px",
+            minHeight: "100px",
+            padding: "26px 20px 22px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
             <div
               style={{
                 alignItems: "baseline",
                 color: primary,
                 display: "flex",
-                gap: "6px",
+                gap: "5px",
                 fontFamily,
-                fontSize: "21px",
+                fontSize: "17px",
                 fontWeight: 600,
-                lineHeight: "26px",
+                lineHeight: "22px",
               }}
             >
               {sourceHeaderAmount}
-              <span style={{ color: muted, fontSize: "12px", fontWeight: 500 }}>
+              <span style={{ color: muted, fontSize: "10px", fontWeight: 500 }}>
                 {sourceHeaderUnit}
               </span>
             </div>
@@ -1249,8 +1249,8 @@ export function SwapIntentPreview({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "12px",
-                lineHeight: "17px",
+                fontSize: "10px",
+                lineHeight: "14px",
               }}
             >
               {sourceHeaderSubtitle}
@@ -1262,9 +1262,9 @@ export function SwapIntentPreview({
             style={{
               alignItems: "center",
               display: "flex",
-              gap: "6px",
+              gap: "5px",
               justifyContent: "center",
-              padding: "0 22px",
+              padding: "0 18px",
             }}
           >
             {[0, 1, 2, 3, 4].map((index) => (
@@ -1274,9 +1274,9 @@ export function SwapIntentPreview({
                   background: index === 2 ? "#006BF4" : "#9FC4FF",
                   borderRadius: "2px",
                   display: "block",
-                  height: "6px",
+                  height: "5px",
                   opacity: index === 2 ? 1 : 0.55,
-                  width: "6px",
+                  width: "5px",
                 }}
               />
             ))}
@@ -1287,7 +1287,7 @@ export function SwapIntentPreview({
               alignItems: "flex-end",
               display: "flex",
               flexDirection: "column",
-              gap: "6px",
+              gap: "5px",
               textAlign: "right",
             }}
           >
@@ -1296,15 +1296,15 @@ export function SwapIntentPreview({
                 alignItems: "baseline",
                 color: primary,
                 display: "flex",
-                gap: "6px",
+                gap: "5px",
                 fontFamily,
-                fontSize: "21px",
+                fontSize: "17px",
                 fontWeight: 600,
-                lineHeight: "26px",
+                lineHeight: "22px",
               }}
             >
               {destinationHeaderAmount}
-              <span style={{ color: muted, fontSize: "12px", fontWeight: 500 }}>
+              <span style={{ color: muted, fontSize: "10px", fontWeight: 500 }}>
                 {destTokenSymbol}
               </span>
             </div>
@@ -1312,8 +1312,8 @@ export function SwapIntentPreview({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "12px",
-                lineHeight: "17px",
+                fontSize: "10px",
+                lineHeight: "14px",
               }}
             >
               {destChainName ? `on ${destChainName}` : destTokenSymbol}

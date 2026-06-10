@@ -197,13 +197,13 @@ export function PayWithSources({
       style={{
         backgroundColor: "#FFFFFE",
         border: `1px solid ${border}`,
-        borderRadius: "12px",
+        borderRadius: "10px",
         boxShadow: "#1616150A 0px 1px 2px",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
-        padding: "14px",
+        gap: "8px",
+        padding: "11px",
       }}
     >
       <div
@@ -219,11 +219,11 @@ export function PayWithSources({
             color: muted,
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "12px",
+            fontSize: "10.5px",
             fontWeight: 500,
             gap: "6px",
             letterSpacing: "0.08em",
-            lineHeight: "18px",
+            lineHeight: "15px",
             textTransform: "uppercase",
           }}
         >
@@ -240,15 +240,15 @@ export function PayWithSources({
             style={{
               backgroundColor: isSourcePickerDisabled ? "#F4F4F3" : "#F4F7FE",
               border: "none",
-              borderRadius: "6px",
+              borderRadius: "5px",
               color: isSourcePickerDisabled ? "#A8A8A6" : brand,
               cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "11px",
               fontWeight: 500,
-              lineHeight: "16px",
+              lineHeight: "14px",
               opacity: isSourcePickerDisabled ? 0.75 : 1,
-              padding: "7px 10px",
+              padding: "5.5px 8px",
             }}
             type="button"
           >
@@ -266,7 +266,7 @@ export function PayWithSources({
               color: brand,
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "11.5px",
               gap: "6px",
             }}
           >
@@ -324,7 +324,7 @@ export function PayWithSources({
                       style={{
                         color: primary,
                         fontFamily: uiFont,
-                        fontSize: "14px",
+                        fontSize: "12px",
                         fontWeight: 600,
                       }}
                     >
@@ -334,7 +334,7 @@ export function PayWithSources({
                       style={{
                         color: muted,
                         fontFamily: uiFont,
-                        fontSize: "12px",
+                        fontSize: "10.5px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -358,7 +358,7 @@ export function PayWithSources({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "11.5px",
                     }}
                   >
                     {formatToken(token.userAmount || token.balance)}{" "}
@@ -368,7 +368,7 @@ export function PayWithSources({
                     style={{
                       color: muted,
                       fontFamily: uiFont,
-                      fontSize: "12px",
+                      fontSize: "10.5px",
                     }}
                   >
                     {formatUsd(token.userAmountUsd || token.balanceInFiat)}
@@ -411,8 +411,8 @@ export function PayWithSources({
           style={{
             color: primary,
             fontFamily: uiFont,
-            fontSize: "13px",
-            lineHeight: "18px",
+            fontSize: "11.5px",
+            lineHeight: "15px",
           }}
         >
           Sources will be auto selected
@@ -426,9 +426,9 @@ export function PayWithSources({
             color: "#D32F2F",
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "13px",
+            fontSize: "11.5px",
             gap: "8px",
-            lineHeight: "18px",
+            lineHeight: "15px",
           }}
         >
           <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />

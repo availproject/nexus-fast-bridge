@@ -21,14 +21,14 @@ export function StatusAlert({
   };
 
   const icons = {
-    error: <AlertCircle className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
-    info: <Info className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
-    warning: <Info className="w-4 h-4 mr-2.5 flex-none mt-0.5" />,
+    error: <AlertCircle className="w-3.5 h-3.5 mr-2 flex-none mt-0.5" />,
+    info: <Info className="w-3.5 h-3.5 mr-2 flex-none mt-0.5" />,
+    warning: <Info className="w-3.5 h-3.5 mr-2 flex-none mt-0.5" />,
   };
 
   return (
     <div
-      className={`rounded-lg p-3 text-sm flex items-start w-full leading-5 font-normal ${styles[type]} ${className}`}
+      className={`rounded-md py-2 px-2.5 text-xs flex items-start w-full leading-4 font-normal ${styles[type]} ${className}`}
     >
       {icons[type]}
       <div className="flex-1">{message}</div>

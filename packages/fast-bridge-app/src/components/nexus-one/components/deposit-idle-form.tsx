@@ -621,7 +621,7 @@ export function DepositIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "10px",
         width: "100%",
       }}
     >
@@ -629,15 +629,15 @@ export function DepositIdleForm({
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: border,
-          borderRadius: "12px",
+          borderRadius: "10px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
-          padding: "15px 14px",
+          gap: "8px",
+          padding: "12px 11px",
         }}
       >
         <div
@@ -651,10 +651,10 @@ export function DepositIdleForm({
             style={{
               color: muted,
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "10.5px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "20px",
+              lineHeight: "16px",
               textTransform: "uppercase",
             }}
           >
@@ -665,8 +665,8 @@ export function DepositIdleForm({
               style={{
                 color: muted,
                 fontFamily: uiFont,
-                fontSize: "13px",
-                lineHeight: "18px",
+                fontSize: "11px",
+                lineHeight: "15px",
               }}
             >
               Total Balance:
@@ -675,9 +675,9 @@ export function DepositIdleForm({
               style={{
                 color: primary,
                 fontFamily: uiFont,
-                fontSize: "13px",
+                fontSize: "11px",
                 fontWeight: 600,
-                lineHeight: "18px",
+                lineHeight: "15px",
               }}
             >
               ${totalBalance}
@@ -725,9 +725,9 @@ export function DepositIdleForm({
                         color: primary,
                         fontFamily:
                           '"Delight-Medium", "Delight", system-ui, sans-serif',
-                        fontSize: "30px",
+                        fontSize: "25px",
                         fontWeight: 500,
-                        lineHeight: "36px",
+                        lineHeight: "30px",
                       }}
                     >
                       $
@@ -745,9 +745,9 @@ export function DepositIdleForm({
                       color: amount ? primary : "#9E9E9C",
                       fontFamily:
                         '"Delight-Medium", "Delight", system-ui, sans-serif',
-                      fontSize: "32px",
+                      fontSize: "26px",
                       fontWeight: 500,
-                      lineHeight: "38px",
+                      lineHeight: "31px",
                       minWidth: 0,
                       outline: "none",
                       padding: 0,
@@ -786,9 +786,9 @@ export function DepositIdleForm({
                 display: "inline-flex",
                 flexShrink: 0,
                 gap: "8px",
-                height: "32px",
-                paddingLeft: "4px",
-                paddingRight: "10px",
+                height: "27px",
+                paddingLeft: "3.5px",
+                paddingRight: "8px",
               }}
             >
               <div
@@ -814,6 +814,8 @@ export function DepositIdleForm({
                       outline: "1px solid #FFFFFE",
                       position: "absolute",
                       right: -2,
+                      width: 12,
+                      height: 12,
                     }}
                   />
                 )}
@@ -822,9 +824,9 @@ export function DepositIdleForm({
                 style={{
                   color: primary,
                   fontFamily: uiFont,
-                  fontSize: "15px",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  lineHeight: "22px",
+                  lineHeight: "18px",
                 }}
               >
                 {toToken?.symbol || "Token"}
@@ -855,8 +857,8 @@ export function DepositIdleForm({
                   color: muted,
                   cursor: "pointer",
                   fontFamily: uiFont,
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "15px",
                   padding: 0,
                 }}
                 type="button"
@@ -898,8 +900,8 @@ export function DepositIdleForm({
                 style={{
                   color: "#7C7C7A",
                   fontFamily: uiFont,
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "15px",
                 }}
               >
                 Balance:
@@ -908,9 +910,9 @@ export function DepositIdleForm({
                 style={{
                   color: primary,
                   fontFamily: uiFont,
-                  fontSize: "13px",
+                  fontSize: "11px",
                   fontWeight: 500,
-                  lineHeight: "18px",
+                  lineHeight: "15px",
                 }}
               >
                 {destinationBalanceLabel}

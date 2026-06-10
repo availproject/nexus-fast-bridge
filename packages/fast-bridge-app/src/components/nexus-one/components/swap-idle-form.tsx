@@ -975,10 +975,10 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
+          gap: "8px",
           justifyContent: "center",
-          paddingBlock: "14px",
-          paddingInline: "14px",
+          paddingBlock: "11px",
+          paddingInline: "11px",
           width: "100%",
         }}
       >
@@ -1675,9 +1675,9 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
-          paddingBlock: "16px",
-          paddingInline: "14px",
+          gap: "8px",
+          paddingBlock: "12px",
+          paddingInline: "11px",
           width: "100%",
         }}
       >

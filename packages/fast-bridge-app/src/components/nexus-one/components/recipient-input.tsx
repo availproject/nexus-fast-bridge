@@ -25,14 +25,14 @@ export function RecipientInput({
       className="flex items-center w-full px-4 overflow-hidden outline-none transition-all placeholder:text-[var(--foreground-muted, #848483)] text-[var(--foreground-primary, #161615)]"
       style={{
         background: "#FFFFFE",
-        height: "46px",
-        borderRadius: "8px",
+        height: "38px",
+        borderRadius: "7px",
         borderWidth: "1px",
         borderStyle: "solid",
         borderColor: hasError ? "#E35454" : "#006BF4",
-        gap: "10px",
-        paddingTop: "10px",
-        paddingBottom: "10px",
+        gap: "8px",
+        paddingTop: "8px",
+        paddingBottom: "8px",
       }}
     >
       {label && (
@@ -41,9 +41,9 @@ export function RecipientInput({
           style={{
             color:
               "var(--foreground-primary, var(--foreground-primary, #161615))",
-            fontSize: "14px",
+            fontSize: "12px",
             fontWeight: 400,
-            lineHeight: "18px",
+            lineHeight: "15px",
           }}
         >
           {label}
@@ -66,10 +66,10 @@ export function RecipientInput({
         style={{
           color: "#161615",
           caretColor: "#006BF4",
-          fontSize: "14px",
+          fontSize: "12px",
           fontWeight: 500,
           WebkitTextFillColor: "#161615",
-          lineHeight: "18px",
+          lineHeight: "15px",
         }}
         value={value}
       />

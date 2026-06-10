@@ -617,7 +617,7 @@ export function SendIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "10px",
         width: "100%",
       }}
     >
@@ -626,7 +626,7 @@ export function SendIdleForm({
           alignItems: "start",
           backgroundColor: "#FFFFFE",
           borderColor: border,
-          borderRadius: "12px",
+          borderRadius: "10px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
@@ -635,8 +635,8 @@ export function SendIdleForm({
           flexDirection: "column",
           gap: "8px",
           justifyContent: "center",
-          paddingBlock: "12px",
-          paddingInline: "14px",
+          paddingBlock: "10px",
+          paddingInline: "11px",
         }}
       >
         <div
@@ -654,10 +654,10 @@ export function SendIdleForm({
               boxSizing: "border-box",
               color: muted,
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "10.5px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "13px",
+              lineHeight: "11px",
               textTransform: "uppercase",
             }}
           >
@@ -679,10 +679,10 @@ export function SendIdleForm({
                 boxSizing: "border-box",
                 color: brand,
                 fontFamily: uiFont,
-                fontSize: "15px",
+                fontSize: "13px",
                 fontVariantNumeric: "tabular-nums",
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "15px",
               }}
             >
               {recipientAddress
@@ -700,8 +700,8 @@ export function SendIdleForm({
                 cursor: "pointer",
                 display: "flex",
                 gap: "4px",
-                paddingBlock: "7px",
-                paddingInline: "10px",
+                paddingBlock: "5.5px",
+                paddingInline: "8px",
               }}
               type="button"
             >
@@ -710,9 +710,9 @@ export function SendIdleForm({
                   boxSizing: "border-box",
                   color: brand,
                   fontFamily: uiFont,
-                  fontSize: "12px",
+                  fontSize: "10.5px",
                   fontWeight: 500,
-                  lineHeight: "13px",
+                  lineHeight: "11px",
                 }}
               >
                 Edit
@@ -726,15 +726,15 @@ export function SendIdleForm({
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: border,
-          borderRadius: "12px",
+          borderRadius: "10px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
-          padding: "15px 14px",
+          gap: "8px",
+          padding: "12px 11px",
         }}
       >
         <div
@@ -748,10 +748,10 @@ export function SendIdleForm({
             style={{
               color: muted,
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "10.5px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "20px",
+              lineHeight: "16px",
               textTransform: "uppercase",
             }}
           >
@@ -762,8 +762,8 @@ export function SendIdleForm({
               style={{
                 color: muted,
                 fontFamily: uiFont,
-                fontSize: "13px",
-                lineHeight: "18px",
+                fontSize: "11px",
+                lineHeight: "15px",
               }}
             >
               Total Balance:
@@ -772,9 +772,9 @@ export function SendIdleForm({
               style={{
                 color: primary,
                 fontFamily: uiFont,
-                fontSize: "13px",
+                fontSize: "11px",
                 fontWeight: 600,
-                lineHeight: "18px",
+                lineHeight: "15px",
               }}
             >
               ${totalBalance}
@@ -819,9 +819,9 @@ export function SendIdleForm({
                   flex: "1 1 0%",
                   fontFamily:
                     '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "32px",
+                  fontSize: "26px",
                   fontWeight: 500,
-                  lineHeight: "38px",
+                  lineHeight: "31px",
                   minWidth: 0,
                   outline: "none",
                   padding: 0,
@@ -857,9 +857,9 @@ export function SendIdleForm({
                 display: "inline-flex",
                 flexShrink: 0,
                 gap: "8px",
-                height: "32px",
-                paddingLeft: "4px",
-                paddingRight: "10px",
+                height: "27px",
+                paddingLeft: "3.5px",
+                paddingRight: "8px",
               }}
               type="button"
             >
@@ -909,9 +909,9 @@ export function SendIdleForm({
                 style={{
                   color: primary,
                   fontFamily: uiFont,
-                  fontSize: "15px",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  lineHeight: "22px",
+                  lineHeight: "18px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}
@@ -941,8 +941,8 @@ export function SendIdleForm({
                 style={{
                   color: muted,
                   fontFamily: uiFont,
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "15px",
                 }}
               >
                 ≈ ${usdValue || "0"}
@@ -982,8 +982,8 @@ export function SendIdleForm({
                     style={{
                       color: "#7C7C7A",
                       fontFamily: uiFont,
-                      fontSize: "13px",
-                      lineHeight: "18px",
+                      fontSize: "11px",
+                      lineHeight: "15px",
                     }}
                   >
                     Balance:
@@ -992,9 +992,9 @@ export function SendIdleForm({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "11px",
                       fontWeight: 500,
-                      lineHeight: "18px",
+                      lineHeight: "15px",
                     }}
                   >
                     {destinationBalanceLabel}

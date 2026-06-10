@@ -794,7 +794,7 @@ export function NexusOneProgressScreen({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "10px",
         width: "100%",
       }}
     >
@@ -802,10 +802,10 @@ export function NexusOneProgressScreen({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "12px",
+          borderRadius: "10px",
           boxShadow: "0px 1px 12px 0px #5B5B5B0D",
           boxSizing: "border-box",
-          padding: "18px 20px 14px",
+          padding: "15px 16px 11px",
           width: "100%",
         }}
       >
@@ -813,8 +813,8 @@ export function NexusOneProgressScreen({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "12px",
-            lineHeight: "16px",
+            fontSize: "10.5px",
+            lineHeight: "14px",
             textAlign: "center",
           }}
         >
@@ -824,9 +824,9 @@ export function NexusOneProgressScreen({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "22px",
+            fontSize: "18px",
             fontWeight: 600,
-            lineHeight: "28px",
+            lineHeight: "22px",
             marginTop: "2px",
             textAlign: "center",
           }}
@@ -840,8 +840,8 @@ export function NexusOneProgressScreen({
           src="https://files.availproject.org/nexus-elements/nexus-one/progress-grid.gif"
           style={{
             display: "block",
-            height: "148px",
-            margin: "18px auto 12px",
+            height: "120px",
+            margin: "15px auto 10px",
             objectFit: "cover",
             width: "100%",
           }}
@@ -861,10 +861,10 @@ export function NexusOneProgressScreen({
               color: primary,
               display: "flex",
               fontFamily,
-              fontSize: "20px",
+              fontSize: "17px",
               fontWeight: 600,
-              gap: "8px",
-              lineHeight: "26px",
+              gap: "6px",
+              lineHeight: "22px",
             }}
           >
             <TokenLogoPair
@@ -876,7 +876,7 @@ export function NexusOneProgressScreen({
               tokenSymbol={destinationSymbol}
             />
             <span>{formatDecimal(destinationAmount, 9)}</span>
-            <span style={{ fontSize: "13px", lineHeight: "18px" }}>
+            <span style={{ fontSize: "10.5px", lineHeight: "14px" }}>
               {destinationSymbol}
             </span>
           </div>
@@ -885,8 +885,8 @@ export function NexusOneProgressScreen({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "12px",
-                lineHeight: "16px",
+                fontSize: "10px",
+                lineHeight: "13px",
               }}
             >
               on {destinationChain}
@@ -953,11 +953,11 @@ export function NexusOneProgressScreen({
                     cursor: canExpand ? "pointer" : "default",
                     display: "flex",
                     fontFamily,
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontWeight: 400,
-                    gap: "10px",
+                    gap: "8px",
                     minHeight: `${getRowHeight(row)}px`,
-                    padding: "12px 16px",
+                    padding: "10px 13px",
                     textAlign: "left",
                     transition:
                       "color 220ms ease, min-height 220ms ease, opacity 220ms ease",
@@ -1023,10 +1023,10 @@ export function NexusOneProgressScreen({
                       <span
                         style={{
                           color: isLoading ? brand : muted,
-                          fontSize: "12px",
+                          fontSize: "10px",
                           fontStyle: "italic",
                           fontWeight: 400,
-                          lineHeight: "16px",
+                          lineHeight: "13px",
                         }}
                       >
                         {row.description}

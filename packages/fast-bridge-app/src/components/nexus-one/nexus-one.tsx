@@ -1094,7 +1094,7 @@ function SwapReceiptPanel({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "10px",
         width: "100%",
       }}
     >
@@ -1104,7 +1104,7 @@ function SwapReceiptPanel({
           border: "1px solid #E8E8E7",
           borderRadius: "12px",
           boxShadow: "0px 1px 12px 0px #5B5B5B0D",
-          padding: "28px 20px",
+          padding: "22px 16px",
           textAlign: "center",
         }}
       >
@@ -2435,7 +2435,7 @@ function NexusOneInner({
     }
   };
 
-  const minimumSourceUsd = new Decimal(1);
+  const minimumSourceUsd = new Decimal(0);
   const hasMinimumSourceUsdBalance = (
     token: Pick<SwapTokenOption, "balanceInFiat">
   ) =>
@@ -6953,10 +6953,10 @@ function NexusOneInner({
         display: "flex",
         flexDirection: "column",
         fontFeatureSettings: '"tnum"',
-        fontSize: "12px",
+        fontSize: "11px",
         fontSynthesis: "none",
         fontVariantNumeric: "tabular-nums",
-        gap: "12px",
+        gap: "10px",
         height:
           hasMeasuredRootContent && rootContentHeight
             ? `${rootContentHeight + 40}px`
@@ -6967,7 +6967,7 @@ function NexusOneInner({
         overflowX: "hidden",
         overflowY: isDrawerOverlayActive ? "hidden" : "auto",
         overscrollBehavior: isDrawerOverlayActive ? "contain" : "auto",
-        padding: "20px",
+        padding: "16px",
         scrollbarColor: `${theme.colors.textEmpty} transparent`,
         scrollbarGutter: "stable",
         scrollbarWidth: "thin",
@@ -6977,8 +6977,9 @@ function NexusOneInner({
             ? `height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`
             : undefined,
         willChange: "height",
-        width: "480px",
-        maxWidth: "100%",
+        width: "100%",
+        maxWidth: "400px",
+        minWidth: "320px",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
       }}
@@ -6990,7 +6991,7 @@ function NexusOneInner({
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
-          gap: "12px",
+          gap: "10px",
           minHeight: 0,
           width: "100%",
         }}
@@ -7174,7 +7175,7 @@ function NexusOneInner({
             display: "flex",
             flex: 1,
             flexDirection: "column",
-            gap: "12px",
+            gap: "10px",
             minHeight: 0,
             padding: 0,
             width: "100%",

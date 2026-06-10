@@ -504,7 +504,7 @@ function isNativeToken(t: SwapTokenOption) {
   return false;
 }
 
-const MIN_FIAT_THRESHOLD = 1;
+const MIN_FIAT_THRESHOLD = 0;
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
