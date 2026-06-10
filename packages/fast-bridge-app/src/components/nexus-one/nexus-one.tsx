@@ -6984,8 +6984,8 @@ function NexusOneInner({
             ? `height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`
             : undefined,
         willChange: "height",
-        width: "100%",
-        maxWidth: "400px",
+        width: "400px",
+        maxWidth: "100%",
         minWidth: "320px",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
