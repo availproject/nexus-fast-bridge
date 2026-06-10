@@ -1058,7 +1058,7 @@ export function ReceiveAssetSelector({
             width: "100%",
             padding: "12px",
             borderRadius: 12,
-            backgroundColor: selectedTokenFull ? "#006BF4" : "#C8C8C7",
+            backgroundColor: selectedTokenFull ? "#1F1F1F" : "#C8C8C7",
             color: "#FFFFFE",
             border: "none",
             cursor: selectedTokenFull ? "pointer" : "not-allowed",
@@ -1361,7 +1361,7 @@ export function ReceiveAssetSelector({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: "#006BF4",
+                    backgroundColor: "#1F1F1F",
                     border: "none",
                     borderRadius: 10,
                     color: "#FFFFFE",

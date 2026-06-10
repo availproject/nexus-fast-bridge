@@ -56,6 +56,43 @@ const monad: Chain = {
   testnet: false,
 };
 
+const hyperevm: Chain = {
+  id: 999,
+  name: "HyperEVM",
+  nativeCurrency: {
+    name: "Hype",
+    symbol: "HYPE",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.hyperevm || "https://rpcs.avail.so/hyperevm"] },
+  },
+  blockExplorers: {
+    default: { name: "HyperEVMScan", url: "https://hyperevmscan.io" },
+  },
+  testnet: false,
+};
+
+const citrea: Chain = {
+  id: 4114,
+  name: "Citrea Mainnet",
+  nativeCurrency: {
+    name: "Citrea Bitcoin",
+    symbol: "cBTC",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citreum"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Citrea Explorer",
+      url: "https://explorer.mainnet.citrea.xyz",
+    },
+  },
+  testnet: false,
+};
+
 const rpcConfig = rpcs as Record<string, string>;
 
 const staticTransports = {
@@ -70,6 +107,8 @@ const staticTransports = {
   [kaia.id]: http(rpcConfig.kaia || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
+  [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
+  [citrea.id]: http(rpcConfig.citrea || undefined),
 };
 
 const staticChains = [
@@ -84,6 +123,8 @@ const staticChains = [
   scroll,
   monad,
   megaeth,
+  hyperevm,
+  citrea,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();
@@ -101,6 +142,7 @@ const metadata = {
 };
 
 export const wagmiAdapter = new WagmiAdapter({
+  // @ts-expect-error networks
   networks: staticChains,
   projectId: walletConnectProjectId,
   ssr: false,
@@ -117,6 +159,7 @@ export function initGlobalAppKit() {
   try {
     appKit = createAppKit({
       adapters: [wagmiAdapter],
+      // @ts-expect-error networks
       networks: staticChains,
       projectId: walletConnectProjectId,
       metadata,

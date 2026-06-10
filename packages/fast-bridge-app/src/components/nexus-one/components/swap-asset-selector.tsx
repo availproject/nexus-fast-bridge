@@ -2586,7 +2586,7 @@ export function SwapAssetSelector({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "#006BF4",
+                backgroundColor: "#1F1F1F",
                 color: "#FFFFFE",
                 border: "none",
                 borderRadius: 14,
@@ -2880,7 +2880,7 @@ export function SwapAssetSelector({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: "#006BF4",
+                    backgroundColor: "#1F1F1F",
                     border: "none",
                     borderRadius: 10,
                     color: "#FFFFFE",

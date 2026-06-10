@@ -1381,7 +1381,7 @@ function SwapReceiptPanel({
         onClick={onDone}
         style={{
           alignItems: "center",
-          background: "#006BF4",
+          background: "#1F1F1F",
           border: "none",
           color: "#FFFFFE",
           cursor: "pointer",
@@ -7950,7 +7950,7 @@ function NexusOneInner({
                 onClick={handleSaveRecipient}
                 style={{
                   alignItems: "center",
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: theme.colors.text,
                   border: "none",
                   borderRadius: "8px",
                   boxShadow: "#5555550D 0px 1px 4px",

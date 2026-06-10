@@ -1191,18 +1191,18 @@ export function SwapIntentPreview({
         {`
           @keyframes nexusPreviewCtaPulse {
             0% {
-              background-color: #006BF4;
-              box-shadow: 0px 1px 4px 0px #5555550D, 0 0 0 0 rgba(0, 107, 244, 0.26);
+              background-color: #1F1F1F;
+              box-shadow: 0px 1px 4px 0px #5555550D, 0 0 0 0 rgba(31, 31, 31, 0.26);
               transform: scale(1);
             }
             58% {
-              background-color: #005BDA;
-              box-shadow: 0px 6px 14px rgba(0, 107, 244, 0.14), 0 0 0 5px rgba(0, 107, 244, 0.07);
+              background-color: #161615;
+              box-shadow: 0px 6px 14px rgba(22, 22, 21, 0.14), 0 0 0 5px rgba(22, 22, 21, 0.07);
               transform: scale(1.009);
             }
             100% {
-              background-color: #006BF4;
-              box-shadow: 0px 1px 4px 0px #5555550D, 0 0 0 8px rgba(0, 107, 244, 0);
+              background-color: #1F1F1F;
+              box-shadow: 0px 1px 4px 0px #5555550D, 0 0 0 8px rgba(31, 31, 31, 0);
               transform: scale(1);
             }
           }
@@ -1722,7 +1722,7 @@ export function SwapIntentPreview({
           animation: shouldPulseCta
             ? "nexusPreviewCtaPulse 1800ms ease-in-out infinite"
             : undefined,
-          background: brand,
+          background: "#1F1F1F",
           borderRadius: "8px",
           boxShadow: "0px 1px 4px 0px #5555550D",
           color: "#FFFFFE",
