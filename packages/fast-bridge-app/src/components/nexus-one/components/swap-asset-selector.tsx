@@ -93,11 +93,7 @@ export function deriveTokenOptions(
         name: bd.symbol ?? asset.symbol,
         logo: asset.icon ?? "",
         decimals: bd.decimals ?? asset.decimals ?? 18,
-        balance:
-          formatTokenBalance(bd.balance, {
-            symbol: bd.symbol ?? asset.symbol,
-            decimals: bd.decimals ?? asset.decimals ?? 18,
-          }) ?? bd.balance,
+        balance: bd.balance,
         balanceInFiat:
           bd.balanceInFiat != null
             ? `$${Number(bd.balanceInFiat).toFixed(2)}`

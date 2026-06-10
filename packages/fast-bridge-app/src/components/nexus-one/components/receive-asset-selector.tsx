@@ -332,11 +332,7 @@ export function ReceiveAssetSelector({
         const symbol = bd.symbol ?? asset.symbol;
         const decimals = bd.decimals ?? asset.decimals ?? 18;
         map.set(key, {
-          balance:
-            formatTokenBalance(bd.balance ?? "0", {
-              symbol,
-              decimals,
-            }) ?? `0 ${symbol}`,
+          balance: bd.balance ?? "0",
           balanceInFiat:
             bd.balanceInFiat != null ? `$${fiatBalance.toFixed(2)}` : "$0.00",
         });
@@ -1021,7 +1017,10 @@ export function ReceiveAssetSelector({
                           color: "#161615",
                         }}
                       >
-                        {t.balance}
+                        {formatTokenBalance(t.balance, {
+                          symbol: t.symbol,
+                          decimals: t.decimals,
+                        }) ?? `${t.balance} ${t.symbol}`}
                       </span>
                       <span
                         style={{
