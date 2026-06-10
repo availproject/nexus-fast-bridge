@@ -56,39 +56,39 @@ const monad: Chain = {
   testnet: false,
 };
 
-const hyperevm: Chain = {
-  id: 999,
-  name: "HyperEVM",
-  nativeCurrency: {
-    name: "Hype",
-    symbol: "HYPE",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.hyperevm || "https://rpcs.avail.so/hyperevm"] },
-  },
-  blockExplorers: {
-    default: { name: "HyperEVMScan", url: "https://hyperevmscan.io" },
-  },
-  testnet: false,
-};
-
 const citrea: Chain = {
   id: 4114,
   name: "Citrea Mainnet",
   nativeCurrency: {
-    name: "Citrea Bitcoin",
+    name: "CBTC",
     symbol: "cBTC",
     decimals: 18,
   },
   rpcUrls: {
-    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citreum"] },
+    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citrea"] },
   },
   blockExplorers: {
     default: {
       name: "Citrea Explorer",
       url: "https://explorer.mainnet.citrea.xyz",
     },
+  },
+  testnet: false,
+};
+
+const hyperevm: Chain = {
+  id: 999,
+  name: "HyperEVM",
+  nativeCurrency: {
+    name: "HYPE",
+    symbol: "HYPE",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.hyperevm || "https://rpc.hyperliquid.xyz/evm"] },
+  },
+  blockExplorers: {
+    default: { name: "Purrsec", url: "https://purrsec.com" },
   },
   testnet: false,
 };
@@ -107,8 +107,8 @@ const staticTransports = {
   [kaia.id]: http(rpcConfig.kaia || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
-  [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
+  [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
 };
 
 const staticChains = [
@@ -123,8 +123,8 @@ const staticChains = [
   scroll,
   monad,
   megaeth,
-  hyperevm,
   citrea,
+  hyperevm,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();
