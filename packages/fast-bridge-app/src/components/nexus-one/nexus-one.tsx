@@ -39,6 +39,7 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { ErrorBoundary } from "../common/components/error-boundary";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
 import { getShortChainName } from "../common/utils/constant";
 import { useNexus } from "../nexus/nexus-provider";
@@ -1089,7 +1090,14 @@ function SwapReceiptPanel({
   const receiptSummary = receiptLocation ? `on ${receiptLocation}` : "";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "14px",
+        width: "100%",
+      }}
+    >
       <div
         style={{
           background: "#FFFFFE",
@@ -1762,7 +1770,67 @@ function SwapHistoryPanel({
 // NexusOne
 // ---------------------------------------------------------------------------
 
-export function NexusOne({
+export function NexusOne(props: NexusOneProps) {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div
+          style={{
+            alignItems: "center",
+            backgroundColor: "#FFFFFE",
+            borderColor: "#E8E8E7",
+            borderRadius: "12px",
+            borderStyle: "solid",
+            borderWidth: "1px",
+            boxShadow: "#1616150A 0px 1px 2px",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            justifyContent: "center",
+            padding: "24px",
+            textAlign: "center",
+            minHeight: "300px",
+            maxWidth: "460px",
+            margin: "0 auto",
+            fontFamily: '"Geist", system-ui, sans-serif',
+          }}
+        >
+          <div style={{ color: "#D32F2F", fontSize: "16px", fontWeight: 600 }}>
+            Something went wrong
+          </div>
+          <div
+            style={{ color: "#848483", fontSize: "13px", lineHeight: "18px" }}
+          >
+            An unexpected error occurred. Please refresh the page or try
+            resetting the widget.
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              backgroundColor: "#006BF4",
+              border: "none",
+              borderRadius: "8px",
+              color: "#FFFFFE",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 500,
+              padding: "8px 16px",
+              transition: "background-color 0.15s ease-out",
+            }}
+            type="button"
+          >
+            Reload Page
+          </button>
+        </div>
+      }
+    >
+      <NexusOneInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function NexusOneInner({
   config,
   embed = true,
   className,
@@ -6909,9 +6977,8 @@ export function NexusOne({
             ? `height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`
             : undefined,
         willChange: "height",
-        maxWidth: "500px",
-        minWidth: 0,
-        width: "100%",
+        width: "480px",
+        maxWidth: "100%",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
       }}
@@ -7110,6 +7177,7 @@ export function NexusOne({
             gap: "12px",
             minHeight: 0,
             padding: 0,
+            width: "100%",
           }}
         >
           {/* =============================================================== */}
@@ -7136,6 +7204,7 @@ export function NexusOne({
                       paddingRight: "2px",
                       scrollbarColor: "#C8C8C7 transparent",
                       scrollbarWidth: "thin",
+                      width: "100%",
                     }}
                   >
                     <SwapIntentPreview

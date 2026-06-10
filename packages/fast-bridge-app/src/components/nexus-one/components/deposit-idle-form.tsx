@@ -201,6 +201,7 @@ function PercentButtons({
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
+        width: "116px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -233,8 +234,9 @@ function PercentButtons({
               fontWeight: 500,
               height: "22px",
               justifyContent: "center",
-              minWidth: "32px",
-              paddingInline: "7px",
+              flex: "1 1 0%",
+              minWidth: 0,
+              paddingInline: "4px",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -835,66 +837,84 @@ export function DepositIdleForm({
               alignItems: "center",
               display: "flex",
               justifyContent: "space-between",
+              width: "100%",
             }}
           >
-            <button
-              onClick={onAmountModeToggle}
+            <div
               style={{
-                background: "transparent",
-                border: "none",
-                color: muted,
-                cursor: "pointer",
-                fontFamily: uiFont,
-                fontSize: "13px",
-                lineHeight: "18px",
-                padding: 0,
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
               }}
-              type="button"
             >
-              {isUsdMode
-                ? `≈ ${tokenValue || "0"} ${toToken?.symbol || ""} ↕`
-                : `≈ $${usdValue || "0"} ↕`}
-            </button>
+              <button
+                onClick={onAmountModeToggle}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: muted,
+                  cursor: "pointer",
+                  fontFamily: uiFont,
+                  fontSize: "13px",
+                  lineHeight: "18px",
+                  padding: 0,
+                }}
+                type="button"
+              >
+                {isUsdMode
+                  ? `≈ ${tokenValue || "0"} ${toToken?.symbol || ""} ↕`
+                  : `≈ $${usdValue || "0"} ↕`}
+              </button>
+            </div>
+
             <div
               style={{
                 alignItems: "center",
                 display: "flex",
-                gap: "8px",
-                opacity: isAmountFocused ? 1 : 0,
-                visibility: isAmountFocused ? "visible" : "hidden",
-                pointerEvents: isAmountFocused ? "auto" : "none",
+                justifyContent: "center",
+                opacity: toToken && isAmountFocused ? 1 : 0,
+                visibility: toToken && isAmountFocused ? "visible" : "hidden",
+                pointerEvents: toToken && isAmountFocused ? "auto" : "none",
                 transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
               }}
             >
-              <PercentButtons
-                onSelect={handlePercentSelect}
-                visible={Boolean(toToken) && isAmountFocused}
-              />
-              <div
-                style={{ alignItems: "center", display: "flex", gap: "5px" }}
+              {toToken && (
+                <PercentButtons
+                  onSelect={handlePercentSelect}
+                  visible={Boolean(toToken) && isAmountFocused}
+                />
+              )}
+            </div>
+
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "5px",
+              }}
+            >
+              <span
+                style={{
+                  color: "#7C7C7A",
+                  fontFamily: uiFont,
+                  fontSize: "13px",
+                  lineHeight: "18px",
+                }}
               >
-                <span
-                  style={{
-                    color: "#7C7C7A",
-                    fontFamily: uiFont,
-                    fontSize: "13px",
-                    lineHeight: "18px",
-                  }}
-                >
-                  Balance:
-                </span>
-                <span
-                  style={{
-                    color: primary,
-                    fontFamily: uiFont,
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    lineHeight: "18px",
-                  }}
-                >
-                  {destinationBalanceLabel}
-                </span>
-              </div>
+                Balance:
+              </span>
+              <span
+                style={{
+                  color: primary,
+                  fontFamily: uiFont,
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  lineHeight: "18px",
+                }}
+              >
+                {destinationBalanceLabel}
+              </span>
             </div>
           </div>
 

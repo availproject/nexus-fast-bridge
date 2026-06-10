@@ -105,6 +105,7 @@ function PercentButtons({
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
+        width: "116px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -137,8 +138,9 @@ function PercentButtons({
               fontWeight: 500,
               height: "22px",
               justifyContent: "center",
-              minWidth: "32px",
-              paddingInline: "7px",
+              flex: "1 1 0%",
+              minWidth: 0,
+              paddingInline: "4px",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -1357,94 +1359,101 @@ export function SwapIdleForm({
                     width: "100%",
                   }}
                 >
-                  {showSourceRouteSkeleton ? (
-                    <SkeletonBar height="18px" width="84px" />
-                  ) : (
-                    (() => {
-                      if (!token)
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-start",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showSourceRouteSkeleton ? (
+                      <SkeletonBar height="18px" width="84px" />
+                    ) : (
+                      (() => {
+                        if (!token)
+                          return (
+                            <div
+                              style={{
+                                boxSizing: "border-box",
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "13px",
+                                lineHeight: "18px",
+                              }}
+                            >
+                              ≈ ${usdValue || "0.00"}
+                            </div>
+                          );
+                        const tokenBalance =
+                          Number(
+                            String(token.balance).replace(/[^0-9.]/g, "")
+                          ) || 0;
+                        const fiatBalance =
+                          Number(
+                            String(token.balanceInFiat).replace(/[^0-9.]/g, "")
+                          ) || 0;
+                        const price =
+                          tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
+                        const isUsdMode = token.userAmountMode === "usd";
+                        const userAmtNum = Number(token.userAmount || 0);
+                        const quotedUsd = parseDecimal(token.userAmountUsd);
+                        const approxValue = isUsdMode
+                          ? price > 0
+                            ? (userAmtNum / price).toFixed(6)
+                            : "0.000000"
+                          : quotedUsd
+                            ? quotedUsd.toDecimalPlaces(2).toFixed()
+                            : (userAmtNum * price).toFixed(2);
+                        const approxPrefix = isUsdMode ? "≈" : "≈ $";
+                        const approxSuffix = isUsdMode
+                          ? ` ${token.symbol}`
+                          : "";
+
                         return (
                           <div
+                            onClick={() => handleToggleMode(index)}
                             style={{
-                              boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
-                              lineHeight: "18px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              cursor: price > 0 ? "pointer" : "default",
                             }}
                           >
-                            ≈ ${usdValue || "0.00"}
+                            <div
+                              style={{
+                                boxSizing: "border-box",
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "13px",
+                                lineHeight: "18px",
+                              }}
+                            >
+                              {approxPrefix}
+                              {approxValue}
+                              {approxSuffix}
+                            </div>
+                            {price > 0 && <ArrowUpDownIcon />}
                           </div>
                         );
-                      const tokenBalance =
-                        Number(String(token.balance).replace(/[^0-9.]/g, "")) ||
-                        0;
-                      const fiatBalance =
-                        Number(
-                          String(token.balanceInFiat).replace(/[^0-9.]/g, "")
-                        ) || 0;
-                      const price =
-                        tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-                      const isUsdMode = token.userAmountMode === "usd";
-                      const userAmtNum = Number(token.userAmount || 0);
-                      const quotedUsd = parseDecimal(token.userAmountUsd);
-                      const approxValue = isUsdMode
-                        ? price > 0
-                          ? (userAmtNum / price).toFixed(6)
-                          : "0.000000"
-                        : quotedUsd
-                          ? quotedUsd.toDecimalPlaces(2).toFixed()
-                          : (userAmtNum * price).toFixed(2);
-                      const approxPrefix = isUsdMode ? "≈" : "≈ $";
-                      const approxSuffix = isUsdMode ? ` ${token.symbol}` : "";
+                      })()
+                    )}
+                  </div>
 
-                      return (
-                        <div
-                          onClick={() => handleToggleMode(index)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            cursor: price > 0 ? "pointer" : "default",
-                          }}
-                        >
-                          <div
-                            style={{
-                              boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
-                              lineHeight: "18px",
-                            }}
-                          >
-                            {approxPrefix}
-                            {approxValue}
-                            {approxSuffix}
-                          </div>
-                          {price > 0 && <ArrowUpDownIcon />}
-                        </div>
-                      );
-                    })()
-                  )}
-                  {showSourceRouteSkeleton ? (
-                    <SkeletonBar height="18px" width="124px" />
-                  ) : token ? (
-                    <div
-                      onMouseEnter={() => setTooltip(`asset-send-${index}`)}
-                      onMouseLeave={() => setTooltip(null)}
-                      style={{
-                        alignItems: "center",
-                        boxSizing: "border-box",
-                        display: "flex",
-                        gap: "8px",
-                        position: "relative",
-                        cursor: "default",
-                        opacity: focusedRow === index ? 1 : 0,
-                        visibility: focusedRow === index ? "visible" : "hidden",
-                        pointerEvents: focusedRow === index ? "auto" : "none",
-                        transition:
-                          "opacity 0.18s ease-out, visibility 0.18s ease-out",
-                      }}
-                    >
+                  <div
+                    style={{
+                      alignItems: "center",
+                      display: "flex",
+                      justifyContent: "center",
+                      opacity: token && focusedRow === index ? 1 : 0,
+                      visibility:
+                        token && focusedRow === index ? "visible" : "hidden",
+                      pointerEvents:
+                        token && focusedRow === index ? "auto" : "none",
+                      transition:
+                        "opacity 0.18s ease-out, visibility 0.18s ease-out",
+                    }}
+                  >
+                    {token && (
                       <PercentButtons
                         onSelect={(pct) =>
                           token
@@ -1453,80 +1462,106 @@ export function SwapIdleForm({
                         }
                         visible={Boolean(token) && focusedRow === index}
                       />
-                      <div
-                        style={{
-                          boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        Asset Balance ·
-                      </div>
-                      <div
-                        style={{
-                          boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        {formatTokenBalanceLabel(token)}
-                      </div>
+                    )}
+                  </div>
 
-                      {/* Tooltip */}
-                      {tooltip === `asset-send-${index}` && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showSourceRouteSkeleton ? (
+                      <SkeletonBar height="18px" width="124px" />
+                    ) : token ? (
+                      <div
+                        onMouseEnter={() => setTooltip(`asset-send-${index}`)}
+                        onMouseLeave={() => setTooltip(null)}
+                        style={{
+                          alignItems: "center",
+                          boxSizing: "border-box",
+                          display: "flex",
+                          gap: "4px",
+                          position: "relative",
+                          cursor: "default",
+                        }}
+                      >
                         <div
                           style={{
-                            position: "absolute",
-                            right: 0,
-                            ...(showTooltipBelow
-                              ? { top: "calc(100% + 8px)" }
-                              : { bottom: "calc(100% + 8px)" }),
-                            width: "220px",
-                            backgroundColor: "#fff",
-                            border: "1px solid #E8E8E7",
-                            borderRadius: "12px",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                            padding: "14px",
-                            display: "flex",
-                            flexDirection: "column",
-                            zIndex: 10000,
-                            pointerEvents: "none",
-                            textAlign: "left",
+                            boxSizing: "border-box",
+                            color: "#848483",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "13px",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: "18px",
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              color: "#848483",
-                              letterSpacing: "0.06em",
-                              textTransform: "uppercase",
-                              marginBottom: "4px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                            }}
-                          >
-                            Asset Balance
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#161615",
-                              lineHeight: "18px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                            }}
-                          >
-                            This is your current asset balance on this chain.
-                          </div>
+                          Balance ·
                         </div>
-                      )}
-                    </div>
-                  ) : null}
+                        <div
+                          style={{
+                            boxSizing: "border-box",
+                            color: "#848483",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "13px",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: "18px",
+                          }}
+                        >
+                          {formatTokenBalanceLabel(token)}
+                        </div>
+
+                        {/* Tooltip */}
+                        {tooltip === `asset-send-${index}` && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              right: 0,
+                              ...(showTooltipBelow
+                                ? { top: "calc(100% + 8px)" }
+                                : { bottom: "calc(100% + 8px)" }),
+                              width: "220px",
+                              backgroundColor: "#fff",
+                              border: "1px solid #E8E8E7",
+                              borderRadius: "12px",
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                              padding: "14px",
+                              display: "flex",
+                              flexDirection: "column",
+                              zIndex: 10000,
+                              pointerEvents: "none",
+                              textAlign: "left",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                color: "#848483",
+                                letterSpacing: "0.06em",
+                                textTransform: "uppercase",
+                                marginBottom: "4px",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                              }}
+                            >
+                              Asset Balance
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "13px",
+                                color: "#161615",
+                                lineHeight: "18px",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                              }}
+                            >
+                              This is your current asset balance on this chain.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 {/* PercentButtons moved inline next to balance */}
