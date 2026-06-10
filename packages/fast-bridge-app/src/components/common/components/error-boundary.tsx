@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
@@ -24,7 +25,7 @@ interface ErrorBoundaryState {
  *   onError={(error) => console.error(error)}
  * >
  *   <MyComponent />
- * </ErrorBoundary>
+ * </error-boundary>
  */
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,

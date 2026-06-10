@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import {
   formatUnits,
   type NexusNetwork,

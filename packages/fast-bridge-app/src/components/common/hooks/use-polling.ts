@@ -1,7 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 import { useRef } from "react";
+import { useInterval } from "./use-interval";
 import { useStableCallback } from "./use-stable-callback";
-import { useInterval } from "./useInterval";
 
 /**
  * Declarative polling with in-flight protection (no overlap).

@@ -73,6 +73,7 @@ export interface NexusOneConfig {
   /** Required for deposit mode. Describes the single destination and app call. */
   deposit?: NexusOneDepositConfig;
   mode: NexusOneMode;
+  onConnectWalletClick?: () => void | Promise<void>;
   prefill?: NexusOnePrefill;
 }
 
@@ -84,14 +85,10 @@ export interface NexusOneProps {
   embed?: boolean;
   onClose?: () => void;
   onComplete?: (explorerUrl?: string) => void;
+  onConnectWallet?: () => void | Promise<void>;
   onError?: (message: string) => void;
   onOpenChange?: (open: boolean) => void;
-  onReceiveAssetChange?: (asset: {
-    chainId?: number;
-    chainName?: string;
-    contractAddress: string;
-    symbol: string;
-  }) => void;
+  onReceiveAssetChange?: (asset: any) => void;
   onStart?: () => void;
   open?: boolean;
 }

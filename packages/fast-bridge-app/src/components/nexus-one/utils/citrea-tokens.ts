@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import { CHAIN_METADATA } from "@avail-project/nexus-core";
 import { getShortChainName } from "../../common/utils/constant";
 import type { SwapTokenOption } from "../components/swap-asset-selector";

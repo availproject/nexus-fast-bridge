@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 
 import {
@@ -42,6 +43,7 @@ interface NexusOneProgressScreenProps {
   toAmount?: string;
   toAmountUsd?: string;
   toToken?: SwapTokenOption;
+  totalFeeUsd?: string;
 }
 
 const fontFamily = '"Geist", var(--font-geist-sans), system-ui, sans-serif';
@@ -112,6 +114,7 @@ const STATUS_ORDER: ProgressStatusId[] = [
 const SWAP_APPROVAL_TYPES = [
   "CREATE_PERMIT_EOA_TO_EPHEMERAL",
   "CREATE_PERMIT_FOR_SOURCE_SWAP",
+  // "BRIDGE_DEPOSIT",
 ];
 
 const REFUND_ELIGIBLE_SWAP_TYPES = ["RFF_ID", "BRIDGE_DEPOSIT"];
@@ -154,11 +157,7 @@ const getStatusForStep = (
     return "swapTokens";
   }
 
-  if (
-    type.includes("DESTINATION_SWAP") ||
-    type.includes("DESTINATION_BATCH") ||
-    type.includes("BRIDGE_DEPOSIT")
-  ) {
+  if (type.includes("DESTINATION_SWAP") || type.includes("DESTINATION_BATCH")) {
     return "receiveToken";
   }
 
@@ -275,7 +274,12 @@ const buildStatusRows = ({
   const destinationChain = context.destinationChain || "destination";
   const opportunityName = context.opportunityName || "app";
   const immutableApprovalTotal =
-    approvalTotalCount ?? countListedSteps(swapListSteps, SWAP_APPROVAL_TYPES);
+    approvalTotalCount ??
+    Math.max(
+      countListedSteps(swapListSteps, SWAP_APPROVAL_TYPES),
+      countListedSteps(fallbackSteps, SWAP_APPROVAL_TYPES),
+      getEventStepCount(events, "SWAP_STEP_COMPLETE", SWAP_APPROVAL_TYPES)
+    );
   const refundEligibleFailure =
     failedStep !== null &&
     failedStep !== undefined &&
@@ -447,7 +451,7 @@ const buildStatusRows = ({
             : state === "error"
               ? "Deposit failed. Funds are in your wallet."
               : state === "preapproval"
-                ? `Approve ${destinationSymbol} deposit to ${opportunityName}`
+                ? `Approve Deposit of ${destinationSymbol} to ${opportunityName}`
                 : `Deposit ${destinationSymbol} to ${opportunityName}`
         : state === "completed"
           ? `${destinationSymbol} sent`
@@ -601,6 +605,8 @@ export function NexusOneProgressScreen({
   toToken,
   fromAmountUsd,
   toAmount,
+  toAmountUsd,
+  totalFeeUsd,
   intentData,
   mode,
   opportunity,
@@ -611,17 +617,101 @@ export function NexusOneProgressScreen({
 }: NexusOneProgressScreenProps) {
   const intentSources = intentData?.sources ?? [];
   const intentDestination = intentData?.destination;
-  const sourceSymbols =
-    intentSources.length > 0
-      ? unique(intentSources.map((source) => source.token.symbol))
-      : unique(fromTokens.map((token) => token.symbol));
-  const sourceUsd =
+  const destinationSourceToken = fromTokens.find((token) => {
+    const destinationChainId = intentDestination?.chain.id ?? toToken?.chainId;
+    const destinationTokenAddress = (
+      intentDestination?.token.contractAddress ??
+      toToken?.contractAddress ??
+      ""
+    ).toLowerCase();
+    const tokenAmount =
+      parseDecimal(token.userAmount) ?? parseDecimal(token.balance);
+
+    return (
+      destinationChainId !== undefined &&
+      destinationTokenAddress !== "" &&
+      token.chainId === destinationChainId &&
+      token.contractAddress.toLowerCase() === destinationTokenAddress &&
+      Boolean(tokenAmount && tokenAmount.gt(0))
+    );
+  });
+  const sourceSymbols = unique([
+    ...(destinationSourceToken ? [destinationSourceToken.symbol] : []),
+    ...(intentSources.length > 0
+      ? intentSources.map((source) => source.token.symbol)
+      : fromTokens.map((token) => token.symbol)),
+  ]);
+  const intentSourceUsd =
     intentSources.length > 0
       ? intentSources.reduce(
           (sum, source) => sum.plus(parseDecimal(source.value) ?? 0),
           new Decimal(0)
         )
       : parseDecimal(fromAmountUsd);
+  const requestedDestinationAmount = parseDecimal(toAmount);
+  const quotedDestinationAmount = parseDecimal(intentDestination?.amount);
+  const destinationBalanceAmount = parseDecimal(toToken?.balance);
+  const requestedDestinationUsd = parseDecimal(toAmountUsd);
+  const destinationUsdRate =
+    requestedDestinationAmount &&
+    requestedDestinationAmount.gt(0) &&
+    requestedDestinationUsd &&
+    requestedDestinationUsd.gt(0)
+      ? requestedDestinationUsd.div(requestedDestinationAmount)
+      : quotedDestinationAmount &&
+          quotedDestinationAmount.gt(0) &&
+          intentDestination?.value
+        ? (parseDecimal(intentDestination.value) ?? new Decimal(0)).div(
+            quotedDestinationAmount
+          )
+        : undefined;
+  const destinationCoverageUsd =
+    (mode === "deposit" || mode === "send") &&
+    requestedDestinationAmount &&
+    requestedDestinationAmount.gt(0) &&
+    quotedDestinationAmount &&
+    requestedDestinationAmount.gt(quotedDestinationAmount) &&
+    destinationBalanceAmount &&
+    destinationBalanceAmount.gt(0) &&
+    destinationUsdRate &&
+    destinationUsdRate.gt(0)
+      ? Decimal.min(
+          requestedDestinationAmount.minus(quotedDestinationAmount),
+          destinationBalanceAmount
+        ).mul(destinationUsdRate)
+      : undefined;
+  const quotedDestinationUsd = parseDecimal(intentDestination?.value);
+  const feeUsd = parseDecimal(totalFeeUsd);
+  const sourceUsd =
+    mode === "deposit" || mode === "send"
+      ? [
+          destinationCoverageUsd !== undefined
+            ? (intentSourceUsd ?? new Decimal(0)).plus(destinationCoverageUsd)
+            : intentSourceUsd,
+          requestedDestinationUsd,
+          requestedDestinationUsd &&
+          requestedDestinationUsd.gt(0) &&
+          intentSourceUsd &&
+          intentSourceUsd.gt(0) &&
+          quotedDestinationUsd &&
+          quotedDestinationUsd.gt(0)
+            ? requestedDestinationUsd.plus(
+                Decimal.max(intentSourceUsd.minus(quotedDestinationUsd), 0)
+              )
+            : undefined,
+          requestedDestinationUsd &&
+          requestedDestinationUsd.gt(0) &&
+          feeUsd &&
+          feeUsd.gt(0)
+            ? requestedDestinationUsd.plus(feeUsd)
+            : undefined,
+        ]
+          .filter((value): value is Decimal => Boolean(value && value.gt(0)))
+          .reduce<Decimal | undefined>(
+            (max, value) => (!max || value.gt(max) ? value : max),
+            undefined
+          )
+      : intentSourceUsd;
   const destinationAmount =
     (mode === "deposit" || mode === "send") && toAmount
       ? toAmount
@@ -639,8 +729,20 @@ export function NexusOneProgressScreen({
     mode === "deposit"
       ? opportunity?.title || opportunity?.protocol || destinationChainName
       : destinationChainName;
-  const computedApprovalTotal =
-    getApprovalTotalFromSwapStepsList(progressEvents);
+  const seededApprovalTotal = countListedSteps(
+    (steps ?? []).map((item) => item.step),
+    SWAP_APPROVAL_TYPES
+  );
+  const completedApprovalEventTotal = getEventStepCount(
+    progressEvents,
+    "SWAP_STEP_COMPLETE",
+    SWAP_APPROVAL_TYPES
+  );
+  const computedApprovalTotal = Math.max(
+    getApprovalTotalFromSwapStepsList(progressEvents),
+    seededApprovalTotal,
+    completedApprovalEventTotal
+  );
   const [lockedApprovalTotal, setLockedApprovalTotal] = useState<number | null>(
     null
   );
@@ -807,7 +909,7 @@ export function NexusOneProgressScreen({
               ? `${Math.max(48, expandedStatusHeight)}px`
               : `${collapsedStatusHeight}px`,
             overflow: "hidden",
-            transition: "max-height 260ms ease",
+            transition: "max-height 220ms ease",
           }}
         >
           <div

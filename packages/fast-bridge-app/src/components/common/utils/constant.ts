@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
 import { formatUnits, parseUnits } from "viem";
 

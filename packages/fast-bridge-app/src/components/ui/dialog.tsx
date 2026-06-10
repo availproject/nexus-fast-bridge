@@ -57,9 +57,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  dismissible = true,
   ...props
 }: ComponentProps<typeof DialogContentPrimitive> & {
   showCloseButton?: boolean;
+  dismissible?: boolean;
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -70,6 +72,16 @@ function DialogContent({
           className
         )}
         data-slot="dialog-content"
+        onEscapeKeyDown={(e) => {
+          if (!dismissible) {
+            e.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          if (!dismissible) {
+            e.preventDefault();
+          }
+        }}
         {...props}
       >
         {children}

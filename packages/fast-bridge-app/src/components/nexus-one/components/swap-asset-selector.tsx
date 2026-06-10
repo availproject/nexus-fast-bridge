@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 import {
   CHAIN_METADATA,
@@ -21,20 +22,17 @@ import {
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
 import { getShortChainName } from "../../common/utils/constant";
-import { nexusOneTheme } from "../theme";
 
 const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
   fontVariantNumeric: "tabular-nums",
 };
-const theme = nexusOneTheme;
 
 export interface SwapTokenOption {
   balance: string;
@@ -62,6 +60,7 @@ interface SwapAssetSelectorProps {
   editingAssetIndex?: number | null;
   filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
+  initialFilterTab?: FilterTab;
   isMulti?: boolean;
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
@@ -123,20 +122,29 @@ export function deriveTokenOptions(
 export const RadioDot = ({ selected }: { selected: boolean }) => (
   <div
     style={{
-      width: 18,
-      height: 18,
+      width: 20,
+      height: 20,
       borderRadius: "999px",
       boxSizing: "border-box",
-      border: selected
-        ? `5px solid ${theme.colors.primary}`
-        : `1.5px solid ${theme.colors.border}`,
-      backgroundColor: theme.colors.surface,
+      border: selected ? "none" : "2px solid #E8E8E7",
+      backgroundColor: selected ? "#006BF4" : "#FFFFFE",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
     }}
-  />
+  >
+    {selected && (
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "999px",
+          backgroundColor: "#FFFFFE",
+        }}
+      />
+    )}
+  </div>
 );
 
 const SelectionControl = ({
@@ -156,8 +164,8 @@ const SelectionControl = ({
     <div
       style={{
         alignItems: "center",
-        backgroundColor: isActive ? theme.colors.primary : theme.colors.surface,
-        border: isActive ? "none" : `1.5px solid ${theme.colors.border}`,
+        backgroundColor: isActive ? "#006BF4" : "#FFFFFE",
+        border: isActive ? "none" : "1.5px solid #E0E0DE",
         borderRadius: "5px",
         boxSizing: "border-box",
         display: "flex",
@@ -168,10 +176,10 @@ const SelectionControl = ({
       }}
     >
       {selected && (
-        <Check style={{ color: theme.colors.surface, height: 14, width: 14 }} />
+        <Check style={{ color: "#FFFFFE", height: 14, width: 14 }} />
       )}
       {!selected && indeterminate && (
-        <Minus style={{ color: theme.colors.surface, height: 14, width: 14 }} />
+        <Minus style={{ color: "#FFFFFE", height: 14, width: 14 }} />
       )}
     </div>
   );
@@ -237,10 +245,10 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             onMouseEnter={openTooltip}
             onMouseLeave={closeTooltip}
             style={{
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: "#FFFFFE",
+              border: "1px solid #E8E8E7",
               borderRadius: 10,
-              boxShadow: theme.shadows.tooltip,
+              boxShadow: "0 8px 24px rgba(22,22,21,0.12)",
               ...tabularNums,
               left: Math.min(
                 Math.max(tooltipRect.left - 24, 8),
@@ -262,9 +270,9 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             <div
               style={{
                 alignItems: "center",
-                color: theme.colors.muted,
+                color: "#848483",
                 display: "flex",
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 11,
                 fontWeight: 700,
                 justifyContent: "space-between",
@@ -275,11 +283,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             >
               <span>UNIFIED · {uniqueChains.length} CHAINS</span>
               <span
-                style={{
-                  color: theme.colors.text,
-                  fontSize: 12,
-                  letterSpacing: 0,
-                }}
+                style={{ color: "#161615", fontSize: 12, letterSpacing: 0 }}
               >
                 {tokens
                   .reduce((sum, token) => sum + getTokenFiatValue(token), 0)
@@ -323,7 +327,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                   ) : (
                     <div
                       style={{
-                        backgroundColor: theme.colors.border,
+                        backgroundColor: "#E8E8E7",
                         borderRadius: "999px",
                         height: 16,
                         width: 16,
@@ -332,8 +336,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                   )}
                   <span
                     style={{
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.sans,
+                      color: "#363635",
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontSize: 13,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -345,8 +349,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                 </div>
                 <span
                   style={{
-                    color: theme.colors.text,
-                    fontFamily: theme.fonts.sans,
+                    color: "#161615",
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
                     fontWeight: 600,
                     whiteSpace: "nowrap",
@@ -371,7 +375,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 0,
+        gap: 2,
         position: "relative",
       }}
     >
@@ -383,35 +387,31 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             key={c.id}
             src={c.logo}
             style={{
-              width: 14,
-              height: 14,
+              width: 16,
+              height: 16,
               borderRadius: "999px",
               objectFit: "cover",
-              outline: `1px solid ${theme.colors.surface}`,
-              marginLeft: i > 0 ? -6 : 0,
+              border: "1px solid #fff",
             }}
           />
         ) : (
           <div
             key={c.id}
             style={{
-              width: 14,
-              height: 14,
+              width: 16,
+              height: 16,
               borderRadius: "999px",
-              backgroundColor: theme.colors.border,
-              outline: `1px solid ${theme.colors.surface}`,
-              marginLeft: i > 0 ? -6 : 0,
+              backgroundColor: "#E8E8E7",
             }}
           />
         )
       )}
       <span
         style={{
-          fontFamily: theme.fonts.sans,
-          fontSize: 14,
-          color: theme.colors.muted,
-          lineHeight: "20px",
-          marginLeft: shown.length > 0 ? 4 : 0,
+          fontFamily: '"Geist", system-ui, sans-serif',
+          fontSize: 12,
+          color: "#848483",
+          marginLeft: 2,
         }}
       >
         {uniqueChains.length} chain{uniqueChains.length !== 1 ? "s" : ""}
@@ -908,6 +908,7 @@ export function SwapAssetSelector({
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
+  initialFilterTab = "all",
   filterTabBehavior = "select-all",
   onFilterTabSelect,
   lockedTokens = [],
@@ -916,12 +917,14 @@ export function SwapAssetSelector({
 }: SwapAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const stableListHeightRef = useRef(0);
   const chainCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const normalizedInitialFilterTab =
+    hideCustomTab && initialFilterTab === "custom" ? "all" : initialFilterTab;
+  const [activeTab, setActiveTab] = useState<FilterTab>(
+    normalizedInitialFilterTab
+  );
   const [showBelowMin, setShowBelowMin] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showChainSelector, setShowChainSelector] = useState(false);
@@ -977,35 +980,18 @@ export function SwapAssetSelector({
   }, [activeTab, hideCustomTab]);
 
   useEffect(() => {
+    setActiveTab((current) =>
+      current === normalizedInitialFilterTab
+        ? current
+        : normalizedInitialFilterTab
+    );
+  }, [normalizedInitialFilterTab]);
+
+  useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
   }, [query, activeTab, selectedChainFilter]);
-
-  const preserveListHeight = useCallback(() => {
-    const listEl = listRef.current;
-    if (!listEl) return;
-
-    const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) return;
-
-    stableListHeightRef.current = nextHeight;
-    setStableListHeight(nextHeight);
-  }, []);
-
-  useLayoutEffect(() => {
-    preserveListHeight();
-
-    const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver(() => {
-      preserveListHeight();
-    });
-    observer.observe(listEl);
-
-    return () => observer.disconnect();
-  }, [preserveListHeight]);
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const baseTokens = staticOptions
@@ -1418,35 +1404,26 @@ export function SwapAssetSelector({
           } else onSelect(token);
         }}
         style={{
+          width: "100%",
+          display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          paddingLeft: indent ? "36px" : "14px",
           backgroundColor: "transparent",
           border: "none",
-          borderBottom: `1px solid ${theme.colors.divider}`,
-          boxSizing: "border-box",
           cursor: disabled ? "not-allowed" : "pointer",
-          display: "flex",
-          gap: "12px",
-          justifyContent: "space-between",
+          borderBottom: "1px solid #F0F0EF",
+          boxSizing: "border-box",
           opacity: isDisabledByUnified ? 0.5 : 1,
-          padding: "16px",
-          paddingLeft: indent ? "44px" : "16px",
-          width: "100%",
         }}
       >
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            flex: "1 1 auto",
-            gap: "12px",
-            minWidth: 0,
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <SelectionControl
             multi={Boolean(isMulti)}
             selected={selectedInCurrent}
           />
-          <div style={{ flexShrink: 0, width: 36, height: 36 }}>
+          <div style={{ flexShrink: 0, width: 40, height: 40 }}>
             {token.logo ? (
               <img
                 alt={token.symbol}
@@ -1455,8 +1432,8 @@ export function SwapAssetSelector({
                 }}
                 src={token.logo}
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   borderRadius: "999px",
                   objectFit: "cover",
                 }}
@@ -1464,14 +1441,14 @@ export function SwapAssetSelector({
             ) : (
               <div
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   borderRadius: "999px",
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: "#006BF4",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: theme.colors.surface,
+                  color: "#fff",
                   fontSize: 14,
                   fontWeight: 700,
                 }}
@@ -1485,17 +1462,14 @@ export function SwapAssetSelector({
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-start",
-              gap: "2px",
-              minWidth: 0,
             }}
           >
             <span
               style={{
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontWeight: 500,
-                fontSize: 16,
-                color: theme.colors.text,
-                lineHeight: "24px",
+                fontSize: 15,
+                color: "#161615",
               }}
             >
               {token.symbol}
@@ -1508,18 +1482,17 @@ export function SwapAssetSelector({
                     src={token.chainLogo}
                     style={{
                       borderRadius: "999px",
-                      height: 16,
+                      height: 14,
                       objectFit: "cover",
-                      width: 16,
+                      width: 14,
                     }}
                   />
                 )}
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
-                    fontSize: 14,
-                    color: theme.colors.muted,
-                    lineHeight: "20px",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 13,
+                    color: "#848483",
                   }}
                 >
                   {token.chainName}
@@ -1533,27 +1506,23 @@ export function SwapAssetSelector({
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-end",
-            flexShrink: 0,
-            gap: "2px",
           }}
         >
           <span
             style={{
-              fontFamily: theme.fonts.sans,
+              fontFamily: '"Geist", system-ui, sans-serif',
               fontWeight: 500,
-              fontSize: 16,
-              color: theme.colors.text,
-              lineHeight: "24px",
+              fontSize: 14,
+              color: "#161615",
             }}
           >
             {formatBalanceWithSymbol(token)}
           </span>
           <span
             style={{
-              fontFamily: theme.fonts.sans,
-              fontSize: 14,
-              color: theme.colors.muted,
-              lineHeight: "20px",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 13,
+              color: "#848483",
             }}
           >
             ≈ {token.balanceInFiat}
@@ -1647,28 +1616,19 @@ export function SwapAssetSelector({
               onSelect(unifiedToken);
             }}
             style={{
+              width: "100%",
+              display: "flex",
               alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 14px",
               backgroundColor: "transparent",
               border: "none",
-              borderBottom: `1px solid ${theme.colors.divider}`,
-              boxSizing: "border-box",
               cursor: "pointer",
-              display: "flex",
-              gap: "12px",
-              justifyContent: "space-between",
-              padding: "16px",
-              width: "100%",
+              borderBottom: "1px solid #F0F0EF",
+              boxSizing: "border-box",
             }}
           >
-            <div
-              style={{
-                alignItems: "center",
-                display: "flex",
-                flex: "1 1 auto",
-                gap: "12px",
-                minWidth: 0,
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1689,8 +1649,8 @@ export function SwapAssetSelector({
                 style={{
                   position: "relative",
                   flexShrink: 0,
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                 }}
               >
                 {group.logo ? (
@@ -1701,8 +1661,8 @@ export function SwapAssetSelector({
                     }}
                     src={group.logo}
                     style={{
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       borderRadius: "999px",
                       objectFit: "cover",
                     }}
@@ -1710,14 +1670,14 @@ export function SwapAssetSelector({
                 ) : (
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       borderRadius: "999px",
-                      backgroundColor: theme.colors.primary,
+                      backgroundColor: "#006BF4",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: theme.colors.surface,
+                      color: "#fff",
                       fontSize: 14,
                       fontWeight: 700,
                     }}
@@ -1731,39 +1691,30 @@ export function SwapAssetSelector({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-start",
-                  gap: "3px",
-                  minWidth: 0,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span
                     style={{
-                      fontFamily: theme.fonts.sans,
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontWeight: 500,
-                      fontSize: 16,
-                      color: theme.colors.text,
-                      lineHeight: "24px",
+                      fontSize: 15,
+                      color: "#161615",
                     }}
                   >
                     {group.symbol}
                   </span>
                   <span
                     style={{
-                      alignItems: "center",
-                      backgroundColor: theme.primitives.badge.backgroundColor,
-                      borderRadius: "100px",
-                      boxSizing: "border-box",
-                      color: theme.colors.primaryText,
-                      display: "flex",
-                      fontFamily: theme.fonts.sans,
-                      fontSize: 9,
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 11,
                       fontWeight: 600,
-                      height: 20,
-                      letterSpacing: "0.06em",
-                      lineHeight: "12px",
-                      paddingBlock: 1,
-                      paddingInline: 6,
-                      textTransform: "uppercase",
+                      color: "#006BF4",
+                      backgroundColor: "#E8F0FF",
+                      borderRadius: 4,
+                      padding: "2px 8px",
+                      letterSpacing: "0.04em",
+                      lineHeight: "16px",
                     }}
                   >
                     UNIFIED
@@ -1778,27 +1729,23 @@ export function SwapAssetSelector({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-end",
-                  flexShrink: 0,
-                  gap: "2px",
                 }}
               >
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontWeight: 500,
-                    fontSize: 16,
-                    color: theme.colors.text,
-                    lineHeight: "24px",
+                    fontSize: 14,
+                    color: "#161615",
                   }}
                 >
                   {group.totalBalStr}
                 </span>
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
-                    fontSize: 14,
-                    color: theme.colors.muted,
-                    lineHeight: "20px",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 13,
+                    color: "#848483",
                   }}
                 >
                   ≈ {group.totalFiatStr}
@@ -1863,7 +1810,9 @@ export function SwapAssetSelector({
           selectedUsdAmount.div(requiredUsdAmount).mul(100)
         ).toNumber()
       : 0;
-  const subtitle = "Select token and chain";
+  const subtitle = isMulti
+    ? `${selectedAssetCount} asset${selectedAssetCount === 1 ? "" : "s"} selected`
+    : "";
 
   useEffect(() => {
     setPortalRoot(
@@ -1965,67 +1914,74 @@ export function SwapAssetSelector({
         maxHeight: "100%",
         minHeight: 0,
         overflow: "hidden",
-        padding: 0,
+        padding: "12px",
         transition: modalHeightTransition,
         width: "100%",
         willChange: "height, max-height",
       }}
     >
+      {/* Drawer Handle */}
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: 10,
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: "#E8E8E7",
+          }}
+        />
+      </div>
+
       {/* Header */}
       <div
         style={{
-          alignItems: "center",
-          alignSelf: "stretch",
-          boxSizing: "border-box",
           display: "flex",
+          alignItems: "flex-start",
           gap: 12,
-          paddingInline: "16px",
-          paddingTop: "16px",
+          marginBottom: 12,
         }}
       >
         <button
           onClick={onBack}
           style={{
-            alignItems: "center",
-            backgroundColor: theme.colors.surface,
-            border: "1px solid #0000000A",
-            borderRadius: 99,
-            boxShadow: theme.shadows.control,
-            boxSizing: "border-box",
-            cursor: "pointer",
-            display: "flex",
-            flexShrink: 0,
-            height: 32,
-            justifyContent: "center",
             width: 32,
+            height: 32,
+            borderRadius: 8,
+            border: "1px solid #E8E8E7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#FFFFFE",
+            cursor: "pointer",
+            flexShrink: 0,
           }}
         >
           <ChevronDown
-            style={{
-              color: theme.colors.icon,
-              height: 14,
-              transform: "rotate(90deg)",
-              width: 14,
-            }}
+            style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
           />
         </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "2px",
+            gap: "6px",
             minWidth: 0,
             flex: "1 1 auto",
           }}
         >
           <span
             style={{
-              color: theme.colors.text,
-              fontFamily: theme.fonts.display,
+              fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 18,
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              lineHeight: "24px",
+              fontWeight: 600,
+              color: "#161615",
             }}
           >
             {title}
@@ -2033,10 +1989,9 @@ export function SwapAssetSelector({
           {subtitle && (
             <span
               style={{
-                color: theme.colors.muted,
-                fontFamily: theme.fonts.sans,
-                fontSize: 14,
-                lineHeight: "20px",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: 13,
+                color: "#848483",
               }}
             >
               {subtitle}
@@ -2051,10 +2006,10 @@ export function SwapAssetSelector({
               style={{
                 backgroundColor: "transparent",
                 border: "none",
-                color: theme.colors.primary,
+                color: "#006BF4",
                 cursor: "pointer",
                 flexShrink: 0,
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
                 fontWeight: 500,
                 lineHeight: "18px",
@@ -2067,34 +2022,24 @@ export function SwapAssetSelector({
       </div>
 
       {/* Search */}
-      <div style={{ paddingInline: "16px" }}>
+      <div style={{ paddingBottom: 6 }}>
         <div
           style={{
-            alignItems: "center",
-            alignSelf: "stretch",
-            backgroundColor: theme.colors.surfaceInset,
-            border: "none",
-            borderRadius: 14,
-            boxShadow: isSearchFocused
-              ? `${theme.shadows.inset}, 0 0 0 1px rgba(0,107,244,0.16)`
-              : theme.shadows.inset,
-            boxSizing: "border-box",
             display: "flex",
-            flexShrink: 0,
-            gap: 10,
-            height: 56,
-            paddingLeft: 14,
-            paddingRight: 8,
-            width: "100%",
+            alignItems: "center",
+            height: 42,
+            gap: 8,
+            borderRadius: 12,
+            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
+            boxShadow: isSearchFocused
+              ? "0 0 0 1px rgba(0,107,244,0.16)"
+              : "none",
+            padding: "0 8px 0 16px",
+            backgroundColor: "#F0F0EF",
           }}
         >
           <Search
-            style={{
-              width: 18,
-              height: 18,
-              color: theme.colors.muted,
-              flexShrink: 0,
-            }}
+            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
           />
           <input
             onBlur={() => setIsSearchFocused(false)}
@@ -2106,10 +2051,9 @@ export function SwapAssetSelector({
               backgroundColor: "transparent",
               border: "none",
               outline: "none",
-              fontFamily: theme.fonts.sans,
-              fontSize: 16,
-              color: theme.colors.text,
-              lineHeight: "24px",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 14,
+              color: "#161615",
               minWidth: 0,
             }}
             value={query}
@@ -2124,7 +2068,7 @@ export function SwapAssetSelector({
                 padding: 0,
               }}
             >
-              <X style={{ width: 16, height: 16, color: theme.colors.muted }} />
+              <X style={{ width: 16, height: 16, color: "#848483" }} />
             </button>
           )}
           {/* Chain Selector Badge */}
@@ -2133,24 +2077,23 @@ export function SwapAssetSelector({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              paddingBlock: 6,
-              paddingInline: 10,
+              gap: 5,
+              padding: "4px 8px 4px 5px",
               borderRadius: 999,
-              backgroundColor: theme.colors.surface,
-              border: "1px solid #0000000A",
+              backgroundColor: "#FFFFFE",
+              border: "1px solid #E8E8E7",
               cursor: "pointer",
-              height: 32,
+              height: 38,
               flexShrink: 0,
-              boxShadow: "#3C28640F 0px 1px 2px",
+              boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
             }}
           >
             {selectedChainFilter === null ? (
               <Globe
                 style={{
-                  width: 14,
-                  height: 14,
-                  color: theme.colors.textStrong,
+                  width: 16,
+                  height: 16,
+                  color: "#161615",
                   flexShrink: 0,
                 }}
               />
@@ -2159,8 +2102,8 @@ export function SwapAssetSelector({
                 alt={selectedChainLabel}
                 src={selectedChainToken?.chainLogo}
                 style={{
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   borderRadius: "999px",
                   objectFit: "cover",
                   flexShrink: 0,
@@ -2169,12 +2112,12 @@ export function SwapAssetSelector({
             )}
             <span
               style={{
-                color: theme.colors.text,
-                fontFamily: theme.fonts.sans,
-                fontSize: "14px",
+                color: "#161615",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "12px",
                 fontWeight: 500,
-                lineHeight: "20px",
-                maxWidth: "96px",
+                lineHeight: "16px",
+                maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -2182,9 +2125,7 @@ export function SwapAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown
-              style={{ width: 12, height: 12, color: theme.colors.muted }}
-            />
+            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
           </button>
         </div>
       </div>
@@ -2192,15 +2133,12 @@ export function SwapAssetSelector({
       {/* Filter tabs */}
       <div
         style={{
-          alignItems: "center",
-          alignSelf: "stretch",
-          backgroundColor: theme.colors.segmented,
-          borderRadius: 12,
-          boxShadow: "#2A388B0F 0px 1px 2px inset",
-          boxSizing: "border-box",
           display: "flex",
-          marginInline: "16px",
+          gap: 0,
+          backgroundColor: "#F0F0EF",
+          borderRadius: 8,
           padding: 4,
+          marginBottom: 6,
         }}
       >
         {visibleFilterTabs.map((tab) => (
@@ -2208,21 +2146,19 @@ export function SwapAssetSelector({
             key={tab.key}
             onClick={() => handleFilterTabClick(tab.key)}
             style={{
-              flex: "1 1 0%",
-              height: activeTab === tab.key ? 40 : 32,
+              flex: 1,
+              padding: "6px 0",
               backgroundColor:
-                activeTab === tab.key ? theme.colors.surface : "transparent",
+                activeTab === tab.key ? "#FFFFFE" : "transparent",
               border: "none",
-              borderRadius: 8,
+              borderRadius: 6,
               cursor: "pointer",
-              fontFamily: theme.fonts.sans,
-              fontSize: 14,
-              fontWeight: activeTab === tab.key ? 600 : 500,
-              color:
-                activeTab === tab.key ? theme.colors.text : theme.colors.muted,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 13,
+              fontWeight: 500,
+              color: activeTab === tab.key ? "#161615" : "#848483",
               boxShadow:
-                activeTab === tab.key ? theme.shadows.segmentedActive : "none",
-              lineHeight: "20px",
+                activeTab === tab.key ? "0px 1px 2px rgba(0,0,0,0.05)" : "none",
               transition: "all 0.15s",
             }}
           >
@@ -2236,9 +2172,9 @@ export function SwapAssetSelector({
         ref={listRef}
         style={{
           flex: "1 1 auto",
-          minHeight: stableListHeight ? `${stableListHeight}px` : 0,
+          minHeight: 0,
           overflowY: "auto",
-          paddingInline: "16px",
+          paddingBottom: 6,
         }}
       >
         {isLoading ? (
@@ -2256,15 +2192,15 @@ export function SwapAssetSelector({
               style={{
                 width: 20,
                 height: 20,
-                color: theme.colors.muted,
+                color: "#848483",
                 animation: "spin 1s linear infinite",
               }}
             />
             <p
               style={{
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 14,
-                color: theme.colors.muted,
+                color: "#848483",
               }}
             >
               Loading assets…
@@ -2273,9 +2209,9 @@ export function SwapAssetSelector({
         ) : aboveMin.length === 0 && belowMin.length === 0 ? (
           <p
             style={{
-              fontFamily: theme.fonts.sans,
+              fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 14,
-              color: theme.colors.muted,
+              color: "#848483",
               textAlign: "center",
               padding: "32px 0",
             }}
@@ -2287,12 +2223,11 @@ export function SwapAssetSelector({
             {groupedFiltered.length > 0 && (
               <div
                 style={{
-                  border: "none",
-                  borderRadius: 12,
-                  boxShadow: theme.shadows.card,
+                  border: "1px solid #E8E8E7",
+                  borderRadius: 14,
                   overflowX: "hidden",
                   overflowY: "visible",
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: "#FFFFFE",
                 }}
               >
                 {groupedFiltered.map((group) =>
@@ -2306,8 +2241,8 @@ export function SwapAssetSelector({
             {belowMin.length > 0 && (
               <div
                 style={{
-                  backgroundColor: theme.colors.surface,
-                  border: `1px solid ${theme.colors.border}`,
+                  backgroundColor: "#FFFFFE",
+                  border: "1px solid #E8E8E7",
                   borderRadius: 12,
                   overflow: "hidden",
                 }}
@@ -2360,10 +2295,10 @@ export function SwapAssetSelector({
                     >
                       <span
                         style={{
-                          fontFamily: theme.fonts.sans,
+                          fontFamily: '"Geist", system-ui, sans-serif',
                           fontWeight: 600,
                           fontSize: 13,
-                          color: theme.colors.textStrong,
+                          color: "#161615",
                           lineHeight: "18px",
                         }}
                       >
@@ -2371,9 +2306,9 @@ export function SwapAssetSelector({
                       </span>
                       <span
                         style={{
-                          fontFamily: theme.fonts.sans,
+                          fontFamily: '"Geist", system-ui, sans-serif',
                           fontSize: 12,
-                          color: theme.colors.textSubtle,
+                          color: "#848483",
                           lineHeight: "16px",
                           textAlign: "left",
                         }}
@@ -2401,7 +2336,7 @@ export function SwapAssetSelector({
                               borderRadius: "999px",
                               objectFit: "cover",
                               marginLeft: i > 0 ? -6 : 0,
-                              border: `1.5px solid ${theme.colors.surface}`,
+                              border: "1.5px solid #fff",
                             }}
                           />
                         ) : (
@@ -2411,9 +2346,9 @@ export function SwapAssetSelector({
                               width: 18,
                               height: 18,
                               borderRadius: "999px",
-                              backgroundColor: theme.colors.border,
+                              backgroundColor: "#E8E8E7",
                               marginLeft: i > 0 ? -6 : 0,
-                              border: `1.5px solid ${theme.colors.surface}`,
+                              border: "1.5px solid #fff",
                             }}
                           />
                         )
@@ -2424,15 +2359,15 @@ export function SwapAssetSelector({
                             width: 18,
                             height: 18,
                             borderRadius: "999px",
-                            backgroundColor: theme.colors.textStrong,
+                            backgroundColor: "#161615",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             fontSize: 9,
                             fontWeight: 700,
-                            color: theme.colors.surface,
+                            color: "#fff",
                             marginLeft: -6,
-                            border: `1.5px solid ${theme.colors.surface}`,
+                            border: "1.5px solid #fff",
                           }}
                         >
                           +{belowMin.length - 3}
@@ -2441,19 +2376,11 @@ export function SwapAssetSelector({
                     </div>
                     {showBelowMin ? (
                       <ChevronUp
-                        style={{
-                          width: 18,
-                          height: 18,
-                          color: theme.colors.textSubtle,
-                        }}
+                        style={{ width: 18, height: 18, color: "#848483" }}
                       />
                     ) : (
                       <ChevronDown
-                        style={{
-                          width: 18,
-                          height: 18,
-                          color: theme.colors.textSubtle,
-                        }}
+                        style={{ width: 18, height: 18, color: "#848483" }}
                       />
                     )}
                   </div>
@@ -2523,7 +2450,7 @@ export function SwapAssetSelector({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  color: theme.colors.surface,
+                                  color: "#fff",
                                   fontSize: 9,
                                   fontWeight: 700,
                                 }}
@@ -2536,7 +2463,7 @@ export function SwapAssetSelector({
                                 alt=""
                                 src={token.chainLogo}
                                 style={{
-                                  border: `1.5px solid ${theme.colors.surface}`,
+                                  border: "1.5px solid #FFFFFE",
                                   borderRadius: "999px",
                                   bottom: -2,
                                   filter: "grayscale(0.2)",
@@ -2551,10 +2478,10 @@ export function SwapAssetSelector({
                           </div>
                           <span
                             style={{
-                              fontFamily: theme.fonts.sans,
+                              fontFamily: '"Geist", system-ui, sans-serif',
                               fontWeight: 500,
                               fontSize: 12,
-                              color: theme.colors.textSubtle,
+                              color: "#848483",
                               lineHeight: "16px",
                               minWidth: 0,
                               overflow: "hidden",
@@ -2568,9 +2495,9 @@ export function SwapAssetSelector({
                         </div>
                         <span
                           style={{
-                            fontFamily: theme.fonts.sans,
+                            fontFamily: '"Geist", system-ui, sans-serif',
                             fontSize: 12,
-                            color: theme.colors.textSubtle,
+                            color: "#848483",
                             fontWeight: 500,
                             lineHeight: "16px",
                             flexShrink: 0,
@@ -2591,17 +2518,11 @@ export function SwapAssetSelector({
 
       {/* Done button */}
       {isMulti && (
-        <div
-          style={{
-            marginTop: "auto",
-            paddingBottom: "16px",
-            paddingInline: "16px",
-          }}
-        >
+        <div style={{ flexShrink: 0, paddingBottom: 6, marginTop: "auto" }}>
           {shouldShowSelectionProgress && requiredUsdAmount && (
             <div
               style={{
-                borderTop: `1px solid ${theme.colors.border}`,
+                borderTop: "1px solid #E8E8E7",
                 boxSizing: "border-box",
                 marginBottom: 12,
                 paddingTop: 12,
@@ -2617,8 +2538,8 @@ export function SwapAssetSelector({
               >
                 <span
                   style={{
-                    color: theme.colors.muted,
-                    fontFamily: theme.fonts.sans,
+                    color: "#848483",
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
                     lineHeight: "18px",
                   }}
@@ -2627,13 +2548,13 @@ export function SwapAssetSelector({
                 </span>
                 <span
                   style={{
-                    color: theme.colors.muted,
-                    fontFamily: theme.fonts.sans,
+                    color: "#848483",
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
                     lineHeight: "18px",
                   }}
                 >
-                  <strong style={{ color: theme.colors.text, fontWeight: 600 }}>
+                  <strong style={{ color: "#161615", fontWeight: 600 }}>
                     {formatUsdBalanceLabel(selectionDeficitUsdAmount)}
                   </strong>{" "}
                   more
@@ -2641,7 +2562,7 @@ export function SwapAssetSelector({
               </div>
               <div
                 style={{
-                  backgroundColor: theme.colors.segmented,
+                  backgroundColor: "#F0F0EF",
                   borderRadius: "999px",
                   height: 6,
                   overflow: "hidden",
@@ -2650,7 +2571,7 @@ export function SwapAssetSelector({
               >
                 <div
                   style={{
-                    backgroundColor: theme.colors.primary,
+                    backgroundColor: "#006BF4",
                     borderRadius: "999px",
                     height: "100%",
                     transition: "width 240ms ease",
@@ -2664,21 +2585,20 @@ export function SwapAssetSelector({
             <button
               onClick={handleDone}
               style={{
+                width: "100%",
+                height: 48,
+                display: "flex",
                 alignItems: "center",
-                backgroundColor: theme.colors.text,
+                justifyContent: "center",
+                backgroundColor: "#006BF4",
+                color: "#FFFFFE",
                 border: "none",
                 borderRadius: 14,
-                boxShadow: theme.shadows.primaryButton,
-                color: theme.colors.surface,
                 cursor: "pointer",
-                display: "flex",
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 16,
-                fontWeight: 500,
-                height: 48,
-                justifyContent: "center",
-                lineHeight: "24px",
-                width: "100%",
+                fontWeight: 600,
+                boxShadow: "0px 1px 4px 0px #5555550D",
               }}
             >
               Done
@@ -2708,7 +2628,7 @@ export function SwapAssetSelector({
               <div
                 onClick={closeChainSelector}
                 style={{
-                  backgroundColor: "rgba(255,255,255,0.46)",
+                  backgroundColor: "rgba(0,0,0,0.22)",
                   bottom: 0,
                   left: 0,
                   pointerEvents: "auto",
@@ -2728,16 +2648,16 @@ export function SwapAssetSelector({
                 data-nexus-one-sheet
                 style={{
                   ...modalHeightTransitionStyle,
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: "20px 20px 0 0",
-                  boxShadow: theme.shadows.sheet,
+                  backgroundColor: "#FFFFFE",
+                  borderRadius: "24px 24px 0 0",
+                  boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
                   boxSizing: "border-box",
                   display: "flex",
                   flexDirection: "column",
                   height: "90%",
                   maxHeight: "90%",
                   overflow: "hidden",
-                  padding: 0,
+                  padding: "12px",
                   pointerEvents: "auto",
                   position: "relative",
                   transform: isChainSelectorClosing
@@ -2751,48 +2671,58 @@ export function SwapAssetSelector({
               >
                 <div
                   style={{
-                    alignItems: "center",
-                    boxSizing: "border-box",
                     display: "flex",
-                    gap: 16,
-                    paddingInline: 16,
-                    paddingTop: 16,
+                    justifyContent: "center",
+                    marginBottom: 8,
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#D8D8D6",
+                      borderRadius: "999px",
+                      height: 4,
+                      width: 32,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    gap: 10,
+                    marginBottom: 10,
                   }}
                 >
                   <button
                     onClick={closeChainSelector}
                     style={{
-                      alignItems: "center",
-                      backgroundColor: theme.colors.surface,
-                      border: "1px solid #0000000A",
-                      borderRadius: 99,
-                      boxShadow: theme.shadows.control,
-                      boxSizing: "border-box",
-                      cursor: "pointer",
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      border: "1px solid #E8E8E7",
                       display: "flex",
-                      flexShrink: 0,
-                      height: 32,
+                      alignItems: "center",
                       justifyContent: "center",
-                      width: 32,
+                      backgroundColor: "#FFFFFE",
+                      cursor: "pointer",
+                      flexShrink: 0,
                     }}
                   >
                     <ChevronDown
                       style={{
-                        color: theme.colors.icon,
-                        width: 14,
-                        height: 14,
+                        width: 15,
+                        height: 15,
                         transform: "rotate(90deg)",
                       }}
                     />
                   </button>
                   <span
                     style={{
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.display,
-                      fontSize: 18,
-                      fontWeight: 500,
-                      letterSpacing: "0.02em",
-                      lineHeight: "24px",
+                      color: "#161615",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 17,
+                      fontWeight: 600,
                     }}
                   >
                     Select chain
@@ -2800,28 +2730,27 @@ export function SwapAssetSelector({
                 </div>
 
                 {/* Search */}
-                <div style={{ paddingInline: 16, paddingTop: 16 }}>
+                <div style={{ paddingBottom: 10 }}>
                   <div
                     style={{
-                      alignItems: "center",
-                      backgroundColor: theme.colors.surfaceInset,
-                      border: "none",
-                      borderRadius: 14,
-                      boxShadow: isChainSearchFocused
-                        ? `${theme.shadows.inset}, 0 0 0 1px rgba(0,107,244,0.16)`
-                        : theme.shadows.inset,
-                      boxSizing: "border-box",
                       display: "flex",
-                      gap: 10,
-                      height: 48,
-                      paddingInline: 14,
+                      alignItems: "center",
+                      height: 38,
+                      gap: 8,
+                      borderRadius: 11,
+                      border: `1px solid ${isChainSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
+                      padding: "0 12px",
+                      backgroundColor: "#FFFFFE",
+                      boxShadow: isChainSearchFocused
+                        ? "0 0 0 1px rgba(0,107,244,0.16)"
+                        : "none",
                     }}
                   >
                     <Search
                       style={{
                         width: 18,
                         height: 18,
-                        color: theme.colors.muted,
+                        color: "#848483",
                         flexShrink: 0,
                       }}
                     />
@@ -2835,10 +2764,9 @@ export function SwapAssetSelector({
                         backgroundColor: "transparent",
                         border: "none",
                         outline: "none",
-                        fontFamily: theme.fonts.sans,
-                        fontSize: 16,
-                        color: theme.colors.text,
-                        lineHeight: "24px",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: 13,
+                        color: "#161615",
                       }}
                       value={chainQuery}
                     />
@@ -2849,19 +2777,17 @@ export function SwapAssetSelector({
                 <div
                   style={{
                     flex: "1 1 auto",
+                    marginBottom: 10,
                     minHeight: 0,
                     overflowY: "auto",
-                    paddingInline: 16,
-                    paddingTop: 14,
                   }}
                 >
                   <div
                     style={{
-                      border: `1px solid ${theme.colors.border}`,
+                      border: "1px solid #E8E8E7",
                       borderRadius: 12,
                       overflow: "hidden",
-                      backgroundColor: theme.colors.surface,
-                      boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
+                      backgroundColor: "#FFFFFE",
                     }}
                   >
                     <button
@@ -2870,12 +2796,10 @@ export function SwapAssetSelector({
                         width: "100%",
                         display: "flex",
                         alignItems: "center",
-                        gap: 14,
-                        paddingBlock: 12,
-                        paddingInline: 16,
+                        padding: "8px 14px",
                         backgroundColor: "transparent",
                         border: "none",
-                        borderBottom: `1px solid ${theme.colors.divider}`,
+                        borderBottom: "1px solid #F0F0EF",
                         cursor: "pointer",
                         boxSizing: "border-box",
                       }}
@@ -2883,21 +2807,20 @@ export function SwapAssetSelector({
                       <RadioDot selected={draftChainFilter === null} />
                       <Globe
                         style={{
-                          width: 36,
-                          height: 36,
-                          color: theme.colors.text,
+                          marginLeft: 10,
+                          width: 28,
+                          height: 28,
+                          color: "#161615",
                           flexShrink: 0,
                         }}
                       />
                       <span
                         style={{
-                          color: theme.colors.text,
-                          flex: "1 1 auto",
-                          fontFamily: theme.fonts.sans,
-                          fontSize: 16,
-                          lineHeight: "24px",
-                          minWidth: 0,
-                          textAlign: "left",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: 14,
+                          fontWeight: 500,
+                          marginLeft: 10,
+                          color: "#161615",
                         }}
                       >
                         All Chains
@@ -2919,12 +2842,10 @@ export function SwapAssetSelector({
                             width: "100%",
                             display: "flex",
                             alignItems: "center",
-                            gap: 14,
-                            paddingBlock: 12,
-                            paddingInline: 16,
+                            padding: "8px 14px",
                             backgroundColor: "transparent",
                             border: "none",
-                            borderBottom: `1px solid ${theme.colors.divider}`,
+                            borderBottom: "1px solid #F0F0EF",
                             cursor: "pointer",
                             boxSizing: "border-box",
                           }}
@@ -2934,22 +2855,20 @@ export function SwapAssetSelector({
                             alt={t.chainName}
                             src={t.chainLogo}
                             style={{
-                              width: 36,
-                              height: 36,
+                              marginLeft: 10,
+                              width: 28,
+                              height: 28,
                               borderRadius: "999px",
                               objectFit: "cover",
-                              flexShrink: 0,
                             }}
                           />
                           <span
                             style={{
-                              color: theme.colors.text,
-                              flex: "1 1 auto",
-                              fontFamily: theme.fonts.sans,
-                              fontSize: 16,
-                              lineHeight: "24px",
-                              minWidth: 0,
-                              textAlign: "left",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: 14,
+                              fontWeight: 500,
+                              marginLeft: 10,
+                              color: "#161615",
                             }}
                           >
                             {t.chainName}
@@ -2965,22 +2884,19 @@ export function SwapAssetSelector({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: theme.colors.text,
+                    backgroundColor: "#006BF4",
                     border: "none",
-                    borderRadius: 14,
-                    boxShadow: theme.shadows.primaryButton,
-                    color: theme.colors.surface,
+                    borderRadius: 10,
+                    color: "#FFFFFE",
                     cursor: "pointer",
                     display: "flex",
                     flexShrink: 0,
-                    fontFamily: theme.fonts.sans,
-                    fontSize: 16,
-                    fontWeight: 500,
-                    height: 48,
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    height: 44,
                     justifyContent: "center",
-                    lineHeight: "24px",
-                    margin: "16px",
-                    width: "calc(100% - 32px)",
+                    width: "100%",
                   }}
                 >
                   Done

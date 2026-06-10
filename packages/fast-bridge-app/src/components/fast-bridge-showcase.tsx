@@ -1,5 +1,6 @@
 "use client";
 import { TOKEN_CONTRACT_ADDRESSES } from "@avail-project/nexus-core";
+import { useAppKit } from "@reown/appkit/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Address } from "viem";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
@@ -77,6 +78,7 @@ function getPreferredDestinationPair(
 
 const FastBridgeShowcase = () => {
   const { address, isConnected, chainId } = useAccount();
+  const { open } = useAppKit();
   const chains = useChains();
   const { switchChain } = useSwitchChain();
   const { appConfig, chainSlug, setChain } = useRuntime();
@@ -156,6 +158,9 @@ const FastBridgeShowcase = () => {
       <NexusOne
         config={nexusConfig}
         connectedAddress={address}
+        onConnectWallet={() => {
+          open({ view: "Connect" });
+        }}
         onReceiveAssetChange={handleReceiveAssetChange}
       />
     </PreviewPanel>

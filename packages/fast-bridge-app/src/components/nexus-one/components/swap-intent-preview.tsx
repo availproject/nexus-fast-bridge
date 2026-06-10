@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 
 import { CHAIN_METADATA, type SwapStepType } from "@avail-project/nexus-core";
@@ -190,6 +191,17 @@ const formatSymbolSummary = (symbols: string[]) => {
   const others = visible.length - 2;
   return `${visible[0]}, ${visible[1]} and ${others} other${others === 1 ? "" : "s"}`;
 };
+
+const sortSourceDetailRowsByUsdDesc = <
+  T extends { symbol?: string; usdAmount?: string },
+>(
+  rows: T[]
+) =>
+  [...rows].sort((a, b) => {
+    const usdDelta = toDecimal(b.usdAmount).cmp(toDecimal(a.usdAmount));
+    if (usdDelta !== 0) return usdDelta;
+    return (a.symbol ?? "").localeCompare(b.symbol ?? "");
+  });
 
 function IntentLogo({
   src,
@@ -635,15 +647,14 @@ export function SwapIntentPreview({
         ? [fromToken]
         : [];
 
-  const sourceSymbols =
+  const baseSourceSymbols =
     normalizedIntentSources.length > 0
       ? unique(normalizedIntentSources.map((source) => source.token.symbol))
       : unique(fallbackSources.map((source) => source.symbol));
-  const sourceLabel = formatSymbolSummary(sourceSymbols);
-  const sourceAssetCount =
+  const baseSourceAssetCount =
     normalizedIntentSources.length ||
     fallbackSources.length ||
-    sourceSymbols.length;
+    baseSourceSymbols.length;
   const hasResolvedQuote = Boolean(
     normalizedIntentDest && normalizedIntentSources.length > 0
   );
@@ -679,6 +690,12 @@ export function SwapIntentPreview({
           destinationBalanceAmount
         )
       : undefined;
+  const displayOnlyDestinationSourceAmount =
+    isExactOutDisplayFlow &&
+    destinationBalanceAmount &&
+    destinationBalanceAmount.gt(0)
+      ? destinationBalanceAmount
+      : undefined;
   const requestedDestinationUsd = parseDecimal(toAmountUsd);
   const destinationDisplayUsdRate =
     requestedDestinationAmount &&
@@ -699,6 +716,13 @@ export function SwapIntentPreview({
     destinationDisplayUsdRate &&
     destinationDisplayUsdRate.gt(0)
       ? displayOnlyDestinationCoverage.mul(destinationDisplayUsdRate)
+      : undefined;
+  const displayOnlyDestinationSourceUsd =
+    displayOnlyDestinationSourceAmount &&
+    displayOnlyDestinationSourceAmount.gt(0) &&
+    destinationDisplayUsdRate &&
+    destinationDisplayUsdRate.gt(0)
+      ? displayOnlyDestinationSourceAmount.mul(destinationDisplayUsdRate)
       : undefined;
 
   const intentSourceUsdValues = normalizedIntentSources.map((source) =>
@@ -771,6 +795,45 @@ export function SwapIntentPreview({
     parseDecimal((intentData as any)?.fees?.total);
   const feeNumber =
     explicitFeeNumber ?? (hasFiatQuote ? new Decimal(0) : undefined);
+  const quotedDestinationUsdNumber = parseDecimal(normalizedIntentDest?.value);
+  const exactOutPaidUsdNumber = (() => {
+    if (!isExactOutDisplayFlow) return effectiveSourceUsdNumber;
+
+    const candidates = [
+      effectiveSourceUsdNumber,
+      requestedDestinationUsd,
+    ].filter((value): value is Decimal => Boolean(value && value.gt(0)));
+
+    if (requestedDestinationUsd && requestedDestinationUsd.gt(0)) {
+      if (
+        intentSourceUsdNumber &&
+        intentSourceUsdNumber.gt(0) &&
+        quotedDestinationUsdNumber &&
+        quotedDestinationUsdNumber.gt(0)
+      ) {
+        candidates.push(
+          requestedDestinationUsd.plus(
+            Decimal.max(
+              intentSourceUsdNumber.minus(quotedDestinationUsdNumber),
+              0
+            )
+          )
+        );
+      }
+
+      const knownOverhead = (feeNumber ?? new Decimal(0)).plus(
+        swapBufferNumber ?? new Decimal(0)
+      );
+      if (knownOverhead.gt(0)) {
+        candidates.push(requestedDestinationUsd.plus(knownOverhead));
+      }
+    }
+
+    return candidates.reduce<Decimal | undefined>(
+      (max, value) => (!max || value.gt(max) ? value : max),
+      undefined
+    );
+  })();
   const priceImpactBaseUsd =
     hasFiatQuote && feeNumber !== undefined
       ? effectiveSourceUsdNumber
@@ -831,8 +894,8 @@ export function SwapIntentPreview({
   const pendingLabel = isLoading ? "Fetching quote" : "Quote unavailable";
   const pendingValue = isLoading ? "..." : "--";
   const sourceUsd =
-    effectiveSourceUsdNumber !== undefined
-      ? `${formatAmount(effectiveSourceUsdNumber)} USD`
+    exactOutPaidUsdNumber !== undefined
+      ? `${formatAmount(exactOutPaidUsdNumber)} USD`
       : pendingValue;
   const receiveUsd = hasFiatQuote
     ? `${formatAmount(destinationUsdNumber)} USD`
@@ -856,6 +919,32 @@ export function SwapIntentPreview({
   const destinationTokenDisplay = hasResolvedQuote
     ? `${formatTokenAmount(destinationTokenAmount)} ${destTokenSymbol}`
     : pendingLabel;
+  const destinationSourceKey = [
+    normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "",
+    (
+      normalizedIntentDest?.token.contractAddress ??
+      toToken?.contractAddress ??
+      ""
+    ).toLowerCase(),
+  ].join("-");
+  const hasDestinationSourceRow = Boolean(
+    destinationSourceKey !== "-" &&
+      (normalizedIntentSources.length > 0
+        ? normalizedIntentSources.some((source) => {
+            const sourceKey = [
+              source.chain.id,
+              source.token.contractAddress.toLowerCase(),
+            ].join("-");
+            return sourceKey === destinationSourceKey;
+          })
+        : fallbackSources.some((source) => {
+            const sourceKey = [
+              source.chainId ?? "",
+              source.contractAddress.toLowerCase(),
+            ].join("-");
+            return sourceKey === destinationSourceKey;
+          }))
+  );
   const swapBufferDisplay =
     swapBufferNumber !== undefined
       ? formatUsdValue(swapBufferNumber)
@@ -871,16 +960,43 @@ export function SwapIntentPreview({
                 token.symbol === source.token.symbol)
           );
 
+          const sourceKey = [
+            source.chain.id,
+            source.token.contractAddress.toLowerCase(),
+          ].join("-");
+          const isDestinationSource =
+            sourceKey === destinationSourceKey &&
+            displayOnlyDestinationSourceAmount !== undefined;
+          const sourceAmountNumber = parseDecimal(source.amount);
+          const displaySourceAmount =
+            isDestinationSource && displayOnlyDestinationSourceAmount
+              ? (sourceAmountNumber ?? new Decimal(0)).plus(
+                  displayOnlyDestinationSourceAmount
+                )
+              : sourceAmountNumber;
+          const sourceValueNumber = parseDecimal(source.value);
+          const displaySourceUsd =
+            isDestinationSource && displayOnlyDestinationSourceUsd
+              ? (sourceValueNumber ?? new Decimal(0)).plus(
+                  displayOnlyDestinationSourceUsd
+                )
+              : sourceValueNumber;
+          const tokenAmountValue =
+            displaySourceAmount !== undefined
+              ? formatTokenAmount(displaySourceAmount)
+              : formatTokenAmount(source.amount);
+
           return {
             key: `${source.chain.id}-${source.token.contractAddress}-${index}`,
             tokenLogo: source.token.logo || fallbackSource?.logo || "",
             chainLogo: source.chain.logo || fallbackSource?.chainLogo || "",
             symbol: source.token.symbol,
             chainName: getShortChainName(source.chain.id, source.chain.name),
-            tokenAmount: `${formatTokenAmount(source.amount)} ${source.token.symbol}`,
+            tokenAmount: `${tokenAmountValue} ${source.token.symbol}`,
+            tokenAmountValue,
             usdAmount:
-              parseDecimal(source.value) !== undefined
-                ? formatUsdValue(parseDecimal(source.value) ?? new Decimal(0))
+              displaySourceUsd !== undefined
+                ? formatUsdValue(displaySourceUsd)
                 : pendingValue,
             index,
           };
@@ -889,30 +1005,60 @@ export function SwapIntentPreview({
           const sourceAmount =
             source.userAmount ||
             (fallbackSources.length === 1 ? fromAmount : "");
+          const sourceKey = [
+            source.chainId ?? "",
+            source.contractAddress.toLowerCase(),
+          ].join("-");
+          const isDestinationSource =
+            sourceKey === destinationSourceKey &&
+            displayOnlyDestinationSourceAmount !== undefined;
+          const sourceAmountNumber = parseDecimal(sourceAmount);
+          const displaySourceAmount =
+            isDestinationSource && displayOnlyDestinationSourceAmount
+              ? (sourceAmountNumber ?? new Decimal(0)).plus(
+                  displayOnlyDestinationSourceAmount
+                )
+              : sourceAmountNumber;
+          const sourceUsdNumber =
+            source.balanceInFiat && source.balance
+              ? toDecimal(source.userAmount || 0).mul(
+                  toDecimal(source.balanceInFiat).div(
+                    Decimal.max(toDecimal(source.balance), 1)
+                  )
+                )
+              : undefined;
+          const displaySourceUsd =
+            isDestinationSource && displayOnlyDestinationSourceUsd
+              ? (sourceUsdNumber ?? new Decimal(0)).plus(
+                  displayOnlyDestinationSourceUsd
+                )
+              : sourceUsdNumber;
+          const tokenAmountValue =
+            displaySourceAmount !== undefined
+              ? formatTokenAmount(displaySourceAmount)
+              : "";
+
           return {
             key: `${source.chainId ?? "chain"}-${source.contractAddress}-${index}`,
             tokenLogo: source.logo || "",
             chainLogo: source.chainLogo || "",
             symbol: source.symbol,
             chainName: getShortChainName(source.chainId, source.chainName),
-            tokenAmount: sourceAmount
-              ? `${formatTokenAmount(sourceAmount)} ${source.symbol}`
+            tokenAmount: tokenAmountValue
+              ? `${tokenAmountValue} ${source.symbol}`
               : pendingLabel,
+            tokenAmountValue,
             usdAmount:
-              source.balanceInFiat && source.balance
-                ? formatUsdValue(
-                    toDecimal(source.userAmount || 0).mul(
-                      toDecimal(source.balanceInFiat).div(
-                        Decimal.max(toDecimal(source.balance), 1)
-                      )
-                    )
-                  )
+              displaySourceUsd !== undefined
+                ? formatUsdValue(displaySourceUsd)
                 : pendingValue,
             index,
           };
         });
   const displayOnlyDestinationSourceRow =
-    displayOnlyDestinationCoverage && displayOnlyDestinationCoverage.gt(0)
+    displayOnlyDestinationSourceAmount &&
+    displayOnlyDestinationSourceAmount.gt(0) &&
+    !hasDestinationSourceRow
       ? {
           key: `destination-existing-${normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "chain"}-${normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress ?? "token"}`,
           tokenLogo: normalizedIntentDest?.token.logo || toToken?.logo || "",
@@ -923,17 +1069,37 @@ export function SwapIntentPreview({
             normalizedIntentDest?.chain.id ?? toToken?.chainId,
             normalizedIntentDest?.chain.name || toToken?.chainName || ""
           ),
-          tokenAmount: `${formatTokenAmount(displayOnlyDestinationCoverage)} ${destTokenSymbol}`,
+          tokenAmount: `${formatTokenAmount(displayOnlyDestinationSourceAmount)} ${destTokenSymbol}`,
+          tokenAmountValue: formatTokenAmount(
+            displayOnlyDestinationSourceAmount
+          ),
           usdAmount:
-            displayOnlyDestinationCoverageUsd !== undefined
-              ? formatUsdValue(displayOnlyDestinationCoverageUsd)
+            displayOnlyDestinationSourceUsd !== undefined
+              ? formatUsdValue(displayOnlyDestinationSourceUsd)
               : pendingValue,
           index: baseSourceDetailRows.length,
         }
       : undefined;
-  const sourceDetailRows = displayOnlyDestinationSourceRow
-    ? [...baseSourceDetailRows, displayOnlyDestinationSourceRow]
-    : baseSourceDetailRows;
+  const sourceDetailRows = sortSourceDetailRowsByUsdDesc(
+    displayOnlyDestinationSourceRow
+      ? [...baseSourceDetailRows, displayOnlyDestinationSourceRow]
+      : baseSourceDetailRows
+  );
+  const sourceSymbols = (() => {
+    const symbols =
+      sourceDetailRows.length > 0
+        ? sourceDetailRows.map((source) => source.symbol)
+        : baseSourceSymbols;
+    return destTokenSymbol && symbols.includes(destTokenSymbol)
+      ? unique([
+          destTokenSymbol,
+          ...symbols.filter((symbol) => symbol !== destTokenSymbol),
+        ])
+      : unique(symbols);
+  })();
+  const sourceLabel = formatSymbolSummary(sourceSymbols);
+  const sourceAssetCount =
+    sourceDetailRows.length || baseSourceAssetCount || sourceSymbols.length;
   const singleSourceHeader = (() => {
     if (displayOnlyDestinationSourceRow) return null;
     if (
@@ -941,8 +1107,9 @@ export function SwapIntentPreview({
       normalizedIntentSources.length === 1
     ) {
       const source = normalizedIntentSources[0];
+      const sourceRow = baseSourceDetailRows[0];
       return {
-        amount: formatTokenAmount(source.amount),
+        amount: sourceRow?.tokenAmountValue ?? formatTokenAmount(source.amount),
         chainName: getShortChainName(source.chain.id, source.chain.name),
         symbol: source.token.symbol,
       };
@@ -953,7 +1120,9 @@ export function SwapIntentPreview({
       const sourceAmount = source.userAmount || fromAmount;
       if (!sourceAmount) return null;
       return {
-        amount: formatTokenAmount(sourceAmount),
+        amount:
+          baseSourceDetailRows[0]?.tokenAmountValue ??
+          formatTokenAmount(sourceAmount),
         chainName: getShortChainName(source.chainId, source.chainName),
         symbol: source.symbol,
       };
@@ -962,20 +1131,29 @@ export function SwapIntentPreview({
     return null;
   })();
   const sourceHeaderAmount =
-    singleSourceHeader?.amount ||
-    (effectiveSourceUsdNumber !== undefined
-      ? formatAmount(effectiveSourceUsdNumber)
-      : pendingValue);
-  const sourceHeaderUnit = singleSourceHeader?.symbol || "USD";
+    isExactOutDisplayFlow && exactOutPaidUsdNumber !== undefined
+      ? formatAmount(exactOutPaidUsdNumber)
+      : singleSourceHeader?.amount ||
+        (exactOutPaidUsdNumber !== undefined
+          ? formatAmount(exactOutPaidUsdNumber)
+          : pendingValue);
+  const sourceHeaderUnit =
+    isExactOutDisplayFlow && exactOutPaidUsdNumber !== undefined
+      ? "USD"
+      : singleSourceHeader?.symbol || "USD";
   const sourceHeaderSubtitle = (() => {
+    if (isExactOutDisplayFlow && exactOutPaidUsdNumber !== undefined) {
+      const count = sourceAssetCount || 1;
+      return `${count} asset${count === 1 ? "" : "s"}`;
+    }
+
     if (singleSourceHeader) {
       return singleSourceHeader.chainName
         ? `on ${singleSourceHeader.chainName}`
         : "";
     }
 
-    const count =
-      sourceAssetCount + (displayOnlyDestinationSourceRow ? 1 : 0) || 1;
+    const count = sourceAssetCount || 1;
     return `${count} asset${count === 1 ? "" : "s"}`;
   })();
   const shouldScrollSourceDetails = sourceDetailRows.length > 5;
@@ -1296,11 +1474,17 @@ export function SwapIntentPreview({
                         >
                           {source.tokenAmount}
                         </span>
-                        <span
-                          style={{ color: muted, fontFamily, fontSize: "12px" }}
-                        >
-                          {source.usdAmount}
-                        </span>
+                        {!isExactOutDisplayFlow && (
+                          <span
+                            style={{
+                              color: muted,
+                              fontFamily,
+                              fontSize: "12px",
+                            }}
+                          >
+                            {source.usdAmount}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}

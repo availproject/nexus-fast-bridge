@@ -15,12 +15,14 @@ interface SendIdleFormProps {
   fromTokens: SwapTokenOption[];
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
+  isSourcePickerDisabled?: boolean;
   onAmountChange: (val: string) => void;
   onOpenAssetPicker: () => void;
   onOpenRecipientPicker: () => void;
   onOpenSourcePicker: () => void;
   onSetPercent: (pct: number) => void;
   recipientAddress: string;
+  reserveSourceRows?: boolean;
   routeMessage?: string;
   routeStatus?: "loading" | "insufficient";
   showAutoBadge?: boolean;
@@ -167,6 +169,81 @@ function SourceLogoPair({ token }: { token: SwapTokenOption }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function PercentButtons({
+  visible,
+  onSelect,
+  maxLabel = "Max",
+}: {
+  visible: boolean;
+  onSelect: (pct: number) => void;
+  maxLabel?: string;
+}) {
+  const [hoveredPct, setHoveredPct] = React.useState<number | null>(null);
+
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        backgroundColor: "#F0F3F9",
+        borderRadius: "8px",
+        boxShadow: "#2A388B0F 0px 1px 2px inset",
+        boxSizing: "border-box",
+        display: "flex",
+        flexShrink: 0,
+        gap: "2px",
+        padding: "2px",
+        opacity: visible ? 1 : 0,
+        visibility: visible ? "visible" : "hidden",
+        pointerEvents: visible ? "auto" : "none",
+        transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
+      }}
+    >
+      {[20, 50, 100].map((pct) => {
+        const label = pct === 100 ? maxLabel : `${pct}%`;
+        const isHovered = hoveredPct === pct;
+
+        return (
+          <button
+            key={pct}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(pct);
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+            }}
+            onMouseEnter={() => setHoveredPct(pct)}
+            onMouseLeave={() => setHoveredPct(null)}
+            style={{
+              alignItems: "center",
+              backgroundColor: isHovered ? "#FFFFFF" : "transparent",
+              borderRadius: "6px",
+              boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
+              boxSizing: "border-box",
+              color: isHovered ? "#1F1F1F" : "#8E8E89",
+              cursor: "pointer",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "11px",
+              fontWeight: 500,
+              height: "22px",
+              justifyContent: "center",
+              minWidth: "32px",
+              paddingInline: "7px",
+              border: "none",
+              transition: "all 0.15s ease-out",
+            }}
+            tabIndex={-1}
+            type="button"
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -500,6 +577,8 @@ export function SendIdleForm({
   calculatingPercent,
   isQuoteRefreshing,
   showAutoBadge = true,
+  isSourcePickerDisabled = false,
+  reserveSourceRows = false,
 }: SendIdleFormProps) {
   const [pendingPercent, setPendingPercent] = useState<number | null>(null);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
@@ -860,147 +939,59 @@ export function SendIdleForm({
             </div>
             {toToken && (
               <div
-                style={{ alignItems: "center", display: "flex", gap: "5px" }}
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  gap: "8px",
+                  opacity: isAmountFocused ? 1 : 0,
+                  visibility: isAmountFocused ? "visible" : "hidden",
+                  pointerEvents: isAmountFocused ? "auto" : "none",
+                  transition:
+                    "opacity 0.18s ease-out, visibility 0.18s ease-out",
+                }}
               >
-                <span
-                  style={{
-                    color: "#7C7C7A",
-                    fontFamily: uiFont,
-                    fontSize: "13px",
-                    lineHeight: "18px",
-                  }}
+                <PercentButtons
+                  onSelect={handlePercentSelect}
+                  visible={Boolean(toToken) && isAmountFocused}
+                />
+                <div
+                  style={{ alignItems: "center", display: "flex", gap: "5px" }}
                 >
-                  Balance:
-                </span>
-                <span
-                  style={{
-                    color: primary,
-                    fontFamily: uiFont,
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    lineHeight: "18px",
-                  }}
-                >
-                  {destinationBalanceLabel}
-                </span>
+                  <span
+                    style={{
+                      color: "#7C7C7A",
+                      fontFamily: uiFont,
+                      fontSize: "13px",
+                      lineHeight: "18px",
+                    }}
+                  >
+                    Balance:
+                  </span>
+                  <span
+                    style={{
+                      color: primary,
+                      fontFamily: uiFont,
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      lineHeight: "18px",
+                    }}
+                  >
+                    {destinationBalanceLabel}
+                  </span>
+                </div>
               </div>
             )}
           </div>
 
-          <div
-            style={{
-              alignItems: "center",
-              display: "flex",
-              gap: "5px",
-              minHeight: "24px",
-              width: "100%",
-            }}
-          >
-            {[25, 50, 75].map((pct) =>
-              (() => {
-                const isPending = Boolean(
-                  isCalculatingMax && activePendingPercent === pct
-                );
-                const isDisabled = !toToken;
-                return (
-                  <button
-                    disabled={isDisabled}
-                    key={pct}
-                    onClick={() => handlePercentSelect(pct)}
-                    onMouseDown={(event) => event.preventDefault()}
-                    style={{
-                      alignItems: "center",
-                      backgroundColor: isPending ? "#E8F0FF" : "#F4F4F3",
-                      border: "none",
-                      borderRadius: "7px",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      display: "flex",
-                      flex: "1 1 0%",
-                      gap: "5px",
-                      justifyContent: "center",
-                      opacity: isDisabled ? 0.55 : 1,
-                      padding: "4px 7px",
-                    }}
-                    type="button"
-                  >
-                    {isPending && (
-                      <Loader2
-                        className="animate-spin"
-                        style={{ color: brand, height: 12, width: 12 }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        color: isPending ? brand : "#363635",
-                        fontFamily: uiFont,
-                        fontSize: "11px",
-                        fontWeight: isPending ? 600 : 500,
-                        lineHeight: "16px",
-                      }}
-                    >
-                      {pct}%
-                    </span>
-                  </button>
-                );
-              })()
-            )}
-            {(() => {
-              const isPending = Boolean(
-                isCalculatingMax && activePendingPercent === 100
-              );
-              const isDisabled = !toToken;
-              return (
-                <button
-                  disabled={isDisabled}
-                  onClick={() => handlePercentSelect(100)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: isPending ? "#E8F0FF" : "#F4F4F3",
-                    border: "none",
-                    borderRadius: "7px",
-                    cursor: isDisabled ? "not-allowed" : "pointer",
-                    display: "flex",
-                    flex: isPending ? "1.8 1 0%" : "1 1 0%",
-                    gap: "5px",
-                    justifyContent: "center",
-                    minWidth: 0,
-                    opacity: isDisabled ? 0.55 : 1,
-                    padding: "4px 7px",
-                  }}
-                  type="button"
-                >
-                  {isPending && (
-                    <Loader2
-                      className="animate-spin"
-                      style={{ color: brand, height: 12, width: 12 }}
-                    />
-                  )}
-                  <span
-                    style={{
-                      color: isPending ? brand : "#363635",
-                      fontFamily: uiFont,
-                      fontSize: isPending ? "9px" : "11px",
-                      fontWeight: isPending ? 600 : 500,
-                      letterSpacing: "0.02em",
-                      lineHeight: "16px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isPending ? "Calculating Max..." : "MAX"}
-                  </span>
-                </button>
-              );
-            })()}
-          </div>
+          {/* Percent buttons moved next to balance */}
         </div>
       </div>
 
       <SharedPayWithSources
         fromTokens={fromTokens}
+        isSourcePickerDisabled={isSourcePickerDisabled}
         onOpenSourcePicker={onOpenSourcePicker}
+        reserveSourceRows={reserveSourceRows}
         routeMessage={routeMessage}
         routeStatus={routeStatus}
         showAutoBadge={showAutoBadge}

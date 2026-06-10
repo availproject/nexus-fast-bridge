@@ -1,4 +1,5 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 import { CHAIN_METADATA, formatTokenBalance } from "@avail-project/nexus-core";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
@@ -40,7 +41,6 @@ const modalHeightTransitionStyle = {
   interpolateSize: "allow-keywords",
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
-const theme = nexusOneTheme;
 
 const AVATAR_COLORS = [
   "#FF6B6B",
@@ -86,7 +86,7 @@ const TokenLogo = ({
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: getAvatarColor(token.symbol),
-          color: theme.colors.surface,
+          color: "#fff",
           fontWeight: 600,
           fontSize,
         }}
@@ -597,7 +597,7 @@ export function ReceiveAssetSelector({
             width: 32,
             height: 4,
             borderRadius: 2,
-            backgroundColor: theme.colors.border,
+            backgroundColor: "#E8E8E7",
           }}
         />
       </div>
@@ -616,11 +616,11 @@ export function ReceiveAssetSelector({
             width: 32,
             height: 32,
             borderRadius: 8,
-            border: `1px solid ${theme.colors.border}`,
+            border: "1px solid #E8E8E7",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: theme.colors.surface,
+            backgroundColor: "#FFFFFE",
             cursor: "pointer",
             flexShrink: 0,
           }}
@@ -632,10 +632,10 @@ export function ReceiveAssetSelector({
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <span
             style={{
-              fontFamily: theme.fonts.sans,
+              fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 18,
               fontWeight: 600,
-              color: theme.colors.textStrong,
+              color: "#161615",
             }}
           >
             Select token to receive
@@ -661,7 +661,7 @@ export function ReceiveAssetSelector({
             height: 42,
             gap: 8,
             borderRadius: 12,
-            border: `1px solid ${isSearchFocused ? "#A8C9FF" : theme.colors.border}`,
+            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
             boxShadow: isSearchFocused
               ? "0 0 0 1px rgba(0,107,244,0.16)"
               : "none",
@@ -670,12 +670,7 @@ export function ReceiveAssetSelector({
           }}
         >
           <Search
-            style={{
-              width: 20,
-              height: 20,
-              color: theme.colors.textSubtle,
-              flexShrink: 0,
-            }}
+            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
           />
           <input
             onBlur={() => setIsSearchFocused(false)}
@@ -687,9 +682,9 @@ export function ReceiveAssetSelector({
               backgroundColor: "transparent",
               border: "none",
               outline: "none",
-              fontFamily: theme.fonts.sans,
+              fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 14,
-              color: theme.colors.textStrong,
+              color: "#161615",
               minWidth: 0,
             }}
             value={query}
@@ -704,13 +699,7 @@ export function ReceiveAssetSelector({
                 padding: 0,
               }}
             >
-              <X
-                style={{
-                  width: 16,
-                  height: 16,
-                  color: theme.colors.textSubtle,
-                }}
-              />
+              <X style={{ width: 16, height: 16, color: "#848483" }} />
             </button>
           )}
           <button
@@ -721,8 +710,8 @@ export function ReceiveAssetSelector({
               gap: 5,
               padding: "4px 8px 4px 5px",
               borderRadius: 999,
-              backgroundColor: theme.colors.surface,
-              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: "#FFFFFE",
+              border: "1px solid #E8E8E7",
               cursor: "pointer",
               height: 38,
               flexShrink: 0,
@@ -734,7 +723,7 @@ export function ReceiveAssetSelector({
                 style={{
                   width: 16,
                   height: 16,
-                  color: theme.colors.textStrong,
+                  color: "#161615",
                   flexShrink: 0,
                 }}
               />
@@ -753,8 +742,8 @@ export function ReceiveAssetSelector({
             )}
             <span
               style={{
-                color: theme.colors.textStrong,
-                fontFamily: theme.fonts.sans,
+                color: "#161615",
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "12px",
                 fontWeight: 500,
                 lineHeight: "16px",
@@ -766,9 +755,7 @@ export function ReceiveAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown
-              style={{ width: 14, height: 14, color: theme.colors.textSubtle }}
-            />
+            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
           </button>
         </div>
 
@@ -790,17 +777,14 @@ export function ReceiveAssetSelector({
                 flex: 1,
                 padding: "6px 0",
                 backgroundColor:
-                  activeTab === tab.key ? theme.colors.surface : "transparent",
+                  activeTab === tab.key ? "#FFFFFE" : "transparent",
                 border: "none",
                 borderRadius: 6,
                 cursor: "pointer",
-                fontFamily: theme.fonts.sans,
+                fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
                 fontWeight: 500,
-                color:
-                  activeTab === tab.key
-                    ? theme.colors.textStrong
-                    : theme.colors.textSubtle,
+                color: activeTab === tab.key ? "#161615" : "#848483",
                 boxShadow:
                   activeTab === tab.key
                     ? "0px 1px 2px rgba(0,0,0,0.05)"
@@ -836,8 +820,8 @@ export function ReceiveAssetSelector({
             style={{
               textAlign: "center",
               padding: "40px",
-              color: theme.colors.textSubtle,
-              fontFamily: theme.fonts.sans,
+              color: "#848483",
+              fontFamily: '"Geist", system-ui, sans-serif',
             }}
           >
             Loading...
@@ -847,8 +831,8 @@ export function ReceiveAssetSelector({
             style={{
               textAlign: "center",
               padding: "40px",
-              color: theme.colors.textSubtle,
-              fontFamily: theme.fonts.sans,
+              color: "#848483",
+              fontFamily: '"Geist", system-ui, sans-serif',
             }}
           >
             No tokens found
@@ -914,7 +898,7 @@ export function ReceiveAssetSelector({
                             width: 22,
                             height: 22,
                             borderRadius: "999px",
-                            border: `2px solid ${theme.colors.surface}`,
+                            border: "2px solid #FFFFFE",
                             zIndex: 2,
                           }}
                         />
@@ -929,10 +913,10 @@ export function ReceiveAssetSelector({
                     >
                       <span
                         style={{
-                          fontFamily: theme.fonts.sans,
+                          fontFamily: '"Geist", system-ui, sans-serif',
                           fontWeight: 500,
                           fontSize: 15,
-                          color: theme.colors.textStrong,
+                          color: "#161615",
                         }}
                       >
                         {t.symbol}
@@ -946,9 +930,9 @@ export function ReceiveAssetSelector({
                       >
                         <span
                           style={{
-                            fontFamily: theme.fonts.sans,
+                            fontFamily: '"Geist", system-ui, sans-serif',
                             fontSize: 13,
-                            color: theme.colors.textSubtle,
+                            color: "#848483",
                           }}
                         >
                           {isDetailActive
@@ -968,7 +952,7 @@ export function ReceiveAssetSelector({
                                 style={{
                                   width: 12,
                                   height: 12,
-                                  color: theme.colors.primary,
+                                  color: "#006BF4",
                                 }}
                               />
                             ) : (
@@ -984,7 +968,7 @@ export function ReceiveAssetSelector({
                                 style={{
                                   width: 12,
                                   height: 12,
-                                  color: theme.colors.textSubtle,
+                                  color: "#848483",
                                   cursor: "pointer",
                                 }}
                               />
@@ -1011,7 +995,7 @@ export function ReceiveAssetSelector({
                                 style={{
                                   width: 12,
                                   height: 12,
-                                  color: theme.colors.textSubtle,
+                                  color: "#848483",
                                   cursor: "pointer",
                                 }}
                               />
@@ -1031,19 +1015,19 @@ export function ReceiveAssetSelector({
                     >
                       <span
                         style={{
-                          fontFamily: theme.fonts.sans,
+                          fontFamily: '"Geist", system-ui, sans-serif',
                           fontWeight: 500,
                           fontSize: 14,
-                          color: theme.colors.textStrong,
+                          color: "#161615",
                         }}
                       >
                         {t.balance}
                       </span>
                       <span
                         style={{
-                          fontFamily: theme.fonts.sans,
+                          fontFamily: '"Geist", system-ui, sans-serif',
                           fontSize: 13,
-                          color: theme.colors.textSubtle,
+                          color: "#848483",
                         }}
                       >
                         {t.balanceInFiat}
@@ -1061,7 +1045,7 @@ export function ReceiveAssetSelector({
       <div
         style={{
           padding: "0 0 6px",
-          backgroundColor: theme.colors.surface,
+          backgroundColor: "#FFFFFE",
           flexShrink: 0,
           zIndex: 10,
         }}
@@ -1075,13 +1059,11 @@ export function ReceiveAssetSelector({
             width: "100%",
             padding: "12px",
             borderRadius: 12,
-            backgroundColor: selectedTokenFull
-              ? theme.colors.primary
-              : theme.colors.textEmpty,
-            color: theme.colors.surface,
+            backgroundColor: selectedTokenFull ? "#006BF4" : "#C8C8C7",
+            color: "#FFFFFE",
             border: "none",
             cursor: selectedTokenFull ? "pointer" : "not-allowed",
-            fontFamily: theme.fonts.sans,
+            fontFamily: '"Geist", system-ui, sans-serif',
             fontWeight: 600,
             fontSize: 16,
           }}
@@ -1131,7 +1113,7 @@ export function ReceiveAssetSelector({
                 data-nexus-one-sheet
                 style={{
                   ...modalHeightTransitionStyle,
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: "#FFFFFE",
                   borderRadius: "24px 24px 0 0",
                   boxShadow: "0 -4px 16px rgba(0,0,0,0.08)",
                   boxSizing: "border-box",
@@ -1181,8 +1163,8 @@ export function ReceiveAssetSelector({
                     onClick={closeChainSelector}
                     style={{
                       alignItems: "center",
-                      backgroundColor: theme.colors.surface,
-                      border: `1px solid ${theme.colors.border}`,
+                      backgroundColor: "#FFFFFE",
+                      border: "1px solid #E8E8E7",
                       borderRadius: 8,
                       cursor: "pointer",
                       display: "flex",
@@ -1202,10 +1184,10 @@ export function ReceiveAssetSelector({
                   </button>
                   <span
                     style={{
-                      fontFamily: theme.fonts.sans,
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontWeight: 600,
                       fontSize: 17,
-                      color: theme.colors.textStrong,
+                      color: "#161615",
                     }}
                   >
                     Select chain
@@ -1215,8 +1197,8 @@ export function ReceiveAssetSelector({
                   <div
                     style={{
                       alignItems: "center",
-                      backgroundColor: theme.colors.surface,
-                      border: `1px solid ${isChainSearchFocused ? "#A8C9FF" : theme.colors.border}`,
+                      backgroundColor: "#FFFFFE",
+                      border: `1px solid ${isChainSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
                       borderRadius: 11,
                       boxShadow: isChainSearchFocused
                         ? "0 0 0 1px rgba(0,107,244,0.16)"
@@ -1231,7 +1213,7 @@ export function ReceiveAssetSelector({
                       style={{
                         width: 18,
                         height: 18,
-                        color: theme.colors.textSubtle,
+                        color: "#848483",
                         flexShrink: 0,
                       }}
                     />
@@ -1243,9 +1225,9 @@ export function ReceiveAssetSelector({
                       style={{
                         backgroundColor: "transparent",
                         border: "none",
-                        color: theme.colors.textStrong,
+                        color: "#161615",
                         flex: 1,
-                        fontFamily: theme.fonts.sans,
+                        fontFamily: '"Geist", system-ui, sans-serif',
                         fontSize: 13,
                         minWidth: 0,
                         outline: "none",
@@ -1264,10 +1246,10 @@ export function ReceiveAssetSelector({
                 >
                   <div
                     style={{
-                      border: `1px solid ${theme.colors.border}`,
+                      border: "1px solid #E8E8E7",
                       borderRadius: 12,
                       overflow: "hidden",
-                      backgroundColor: theme.colors.surface,
+                      backgroundColor: "#FFFFFE",
                     }}
                   >
                     <button
@@ -1297,16 +1279,16 @@ export function ReceiveAssetSelector({
                           style={{
                             width: 28,
                             height: 28,
-                            color: theme.colors.textStrong,
+                            color: "#161615",
                             flexShrink: 0,
                           }}
                         />
                         <span
                           style={{
-                            fontFamily: theme.fonts.sans,
+                            fontFamily: '"Geist", system-ui, sans-serif',
                             fontWeight: 500,
                             fontSize: 14,
-                            color: theme.colors.textStrong,
+                            color: "#161615",
                           }}
                         >
                           All Chains
@@ -1359,10 +1341,10 @@ export function ReceiveAssetSelector({
                               />
                               <span
                                 style={{
-                                  fontFamily: theme.fonts.sans,
+                                  fontFamily: '"Geist", system-ui, sans-serif',
                                   fontWeight: 500,
                                   fontSize: 14,
-                                  color: theme.colors.textStrong,
+                                  color: "#161615",
                                 }}
                               >
                                 {meta.name}
@@ -1380,14 +1362,14 @@ export function ReceiveAssetSelector({
                   }}
                   style={{
                     alignItems: "center",
-                    backgroundColor: theme.colors.primary,
+                    backgroundColor: "#006BF4",
                     border: "none",
                     borderRadius: 10,
-                    color: theme.colors.surface,
+                    color: "#FFFFFE",
                     cursor: "pointer",
                     display: "flex",
                     flexShrink: 0,
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 15,
                     fontWeight: 600,
                     height: 44,
@@ -1413,12 +1395,9 @@ export function ReceiveAssetSelector({
 
           return createPortal(
             <div
-              className="w-[280px] rounded-xl p-4 text-left"
+              className="w-[280px] bg-white border border-[#E8E8E7] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-4 text-left"
               onClick={(e) => e.stopPropagation()}
               style={{
-                backgroundColor: theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`,
-                boxShadow: theme.shadows.tooltip,
                 position: "fixed",
                 top: tooltipState.y - 12,
                 left: tooltipState.x,
@@ -1438,9 +1417,9 @@ export function ReceiveAssetSelector({
                   transform: "translateX(-50%) rotate(45deg)",
                   width: "12px",
                   height: "12px",
-                  backgroundColor: theme.colors.surface,
-                  borderRight: `1px solid ${theme.colors.border}`,
-                  borderBottom: `1px solid ${theme.colors.border}`,
+                  backgroundColor: "#fff",
+                  borderRight: "1px solid #E8E8E7",
+                  borderBottom: "1px solid #E8E8E7",
                   zIndex: 1,
                 }}
               ></div>
@@ -1468,7 +1447,7 @@ export function ReceiveAssetSelector({
                         width: 10,
                         height: 10,
                         borderRadius: "999px",
-                        border: `1px solid ${theme.colors.surface}`,
+                        border: "1px solid #FFFFFE",
                         zIndex: 2,
                       }}
                     />
@@ -1477,10 +1456,10 @@ export function ReceiveAssetSelector({
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <span
                     style={{
-                      fontFamily: theme.fonts.sans,
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontWeight: 600,
                       fontSize: 14,
-                      color: theme.colors.textStrong,
+                      color: "#161615",
                     }}
                   >
                     {tooltipState.t.name}
@@ -1498,18 +1477,18 @@ export function ReceiveAssetSelector({
               >
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 12,
-                    color: theme.colors.textSubtle,
+                    color: "#848483",
                   }}
                 >
                   Symbol:
                 </span>
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 12,
-                    color: theme.colors.textStrong,
+                    color: "#161615",
                     fontWeight: 500,
                   }}
                 >
@@ -1528,18 +1507,18 @@ export function ReceiveAssetSelector({
               >
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 12,
-                    color: theme.colors.textSubtle,
+                    color: "#848483",
                   }}
                 >
                   Decimals:
                 </span>
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 12,
-                    color: theme.colors.textStrong,
+                    color: "#161615",
                     fontWeight: 500,
                   }}
                 >
@@ -1557,9 +1536,9 @@ export function ReceiveAssetSelector({
               >
                 <span
                   style={{
-                    fontFamily: theme.fonts.sans,
+                    fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 12,
-                    color: theme.colors.textSubtle,
+                    color: "#848483",
                   }}
                 >
                   Contract address:
@@ -1569,9 +1548,9 @@ export function ReceiveAssetSelector({
                     href={`${explorerUrl}/address/${tooltipState.t.contractAddress}`}
                     rel="noopener noreferrer"
                     style={{
-                      fontFamily: theme.fonts.sans,
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontSize: 11,
-                      color: theme.colors.primary,
+                      color: "#006BF4",
                       wordBreak: "break-all",
                       textDecoration: "underline",
                       outline: "none",
@@ -1584,9 +1563,9 @@ export function ReceiveAssetSelector({
                 ) : (
                   <span
                     style={{
-                      fontFamily: theme.fonts.sans,
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontSize: 11,
-                      color: theme.colors.textStrong,
+                      color: "#161615",
                       wordBreak: "break-all",
                     }}
                   >
