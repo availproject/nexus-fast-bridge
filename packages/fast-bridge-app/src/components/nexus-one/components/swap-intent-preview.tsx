@@ -143,6 +143,26 @@ const formatTokenAmount = (value: unknown) => {
   return amount.toDecimalPlaces(9).toFixed();
 };
 
+const formatHeaderTokenAmount = (value: unknown) => {
+  const amount = toDecimal(value);
+  if (amount.isZero()) return "0";
+  if (amount.abs().gte(1000)) {
+    return amount.toDecimalPlaces(2).toFixed();
+  }
+  if (amount.abs().gte(1)) {
+    return amount.toDecimalPlaces(4).toFixed();
+  }
+  return amount.toDecimalPlaces(6).toFixed();
+};
+
+const getFontSize = (amountStr: string, symbolStr: string) => {
+  const totalLength =
+    String(amountStr || "").length + String(symbolStr || "").length;
+  if (totalLength > 16) return "15px";
+  if (totalLength > 12) return "17px";
+  return "21px";
+};
+
 const unique = (values: string[]) =>
   Array.from(new Set(values.filter(Boolean)));
 
@@ -914,7 +934,7 @@ export function SwapIntentPreview({
         })}%`
       : pendingValue;
   const destinationHeaderAmount = hasResolvedQuote
-    ? formatTokenAmount(destinationTokenAmount)
+    ? formatHeaderTokenAmount(destinationTokenAmount)
     : pendingValue;
   const destinationTokenDisplay = hasResolvedQuote
     ? `${formatTokenAmount(destinationTokenAmount)} ${destTokenSymbol}`
@@ -1109,7 +1129,8 @@ export function SwapIntentPreview({
       const source = normalizedIntentSources[0];
       const sourceRow = baseSourceDetailRows[0];
       return {
-        amount: sourceRow?.tokenAmountValue ?? formatTokenAmount(source.amount),
+        amount:
+          sourceRow?.tokenAmountValue ?? formatHeaderTokenAmount(source.amount),
         chainName: getShortChainName(source.chain.id, source.chain.name),
         symbol: source.token.symbol,
       };
@@ -1122,7 +1143,7 @@ export function SwapIntentPreview({
       return {
         amount:
           baseSourceDetailRows[0]?.tokenAmountValue ??
-          formatTokenAmount(sourceAmount),
+          formatHeaderTokenAmount(sourceAmount),
         chainName: getShortChainName(source.chainId, source.chainName),
         symbol: source.symbol,
       };
@@ -1235,7 +1256,7 @@ export function SwapIntentPreview({
                 display: "flex",
                 gap: "5px",
                 fontFamily,
-                fontSize: "17px",
+                fontSize: getFontSize(sourceHeaderAmount, sourceHeaderUnit),
                 fontWeight: 600,
                 lineHeight: "22px",
               }}
@@ -1298,7 +1319,7 @@ export function SwapIntentPreview({
                 display: "flex",
                 gap: "5px",
                 fontFamily,
-                fontSize: "17px",
+                fontSize: getFontSize(destinationHeaderAmount, destTokenSymbol),
                 fontWeight: 600,
                 lineHeight: "22px",
               }}
@@ -1723,7 +1744,7 @@ export function SwapIntentPreview({
             ? "nexusPreviewCtaPulse 1800ms ease-in-out infinite"
             : undefined,
           background: "#1F1F1F",
-          borderRadius: "8px",
+          borderRadius: "11px",
           boxShadow: "0px 1px 4px 0px #5555550D",
           color: "#FFFFFE",
           fontFamily,

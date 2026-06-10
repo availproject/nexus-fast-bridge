@@ -1383,6 +1383,8 @@ function SwapReceiptPanel({
           alignItems: "center",
           background: "#1F1F1F",
           border: "none",
+          borderRadius: "11px",
+          boxShadow: "0px 1px 4px 0px #5555550D",
           color: "#FFFFFE",
           cursor: "pointer",
           display: "flex",
@@ -6325,11 +6327,7 @@ function NexusOneInner({
     return true; // idle, drawer panels, preview-intent, progress, etc.
   };
 
-  const canGoBack =
-    swapStep !== "idle" &&
-    swapStep !== "choose-swap-asset" &&
-    swapStep !== "choose-receive-asset" &&
-    swapStep !== "enter-recipient";
+  const canGoBack = swapStep === "preview-intent" || swapStep === "history";
   const handleBack = () => {
     if (swapStep === "history") {
       setSwapStep("idle");
