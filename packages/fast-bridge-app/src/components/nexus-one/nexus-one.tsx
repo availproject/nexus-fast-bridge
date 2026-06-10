@@ -1968,7 +1968,16 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
-  const fromTokensQuoteKey = getSourceTokensQuoteKey(fromTokens);
+  const [fromTokensQuoteKey, setFromTokensQuoteKey] = useState("");
+
+  useEffect(() => {
+    const key = getSourceTokensQuoteKey(
+      activeMode === "swap" && swapType === "exactIn"
+        ? getReadyExactInSourceTokens(fromTokens)
+        : fromTokens
+    );
+    setFromTokensQuoteKey(key);
+  }, [activeMode, swapType, fromTokens]);
   const toTokenQuoteKey = getTokenQuoteKey(toToken);
   const appliedTokenPrefillRef = useRef<string | null>(null);
 

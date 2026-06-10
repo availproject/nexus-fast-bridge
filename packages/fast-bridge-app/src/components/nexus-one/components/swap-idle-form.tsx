@@ -640,6 +640,7 @@ export function SwapIdleForm({
   const [tooltip, setTooltip] = useState<string | null>(null);
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const previousSourceCountRef = useRef(fromTokens.length);
 
   useEffect(() => {
@@ -647,6 +648,12 @@ export function SwapIdleForm({
     if (fromTokens.length > previousSourceCount && previousSourceCount > 0) {
       const newIndex = fromTokens.length - 1;
       requestAnimationFrame(() => {
+        const input = sourceInputRefs.current[newIndex];
+        if (input) {
+          input.focus();
+          input.select();
+        }
+
         const container = sourceListRef.current;
         const row = sourceRowRefs.current[newIndex];
         if (
@@ -1148,6 +1155,9 @@ export function SwapIdleForm({
                           }}
                           onFocus={() => setFocusedRow(index)}
                           placeholder="0"
+                          ref={(element) => {
+                            sourceInputRefs.current[index] = element;
+                          }}
                           style={{
                             boxSizing: "border-box",
                             color: (
