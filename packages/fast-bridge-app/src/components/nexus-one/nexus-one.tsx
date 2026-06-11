@@ -219,6 +219,12 @@ const getTokenQuoteKey = (token?: SwapTokenOption | null) => {
 
 const getSourceTokensQuoteKey = (tokens: SwapTokenOption[]) =>
   tokens
+    .filter((token) => {
+      const amt = token.userAmount ?? "";
+      const cleaned = amt.replaceAll(/[^0-9.]/g, "");
+      const num = Number.parseFloat(cleaned);
+      return !Number.isNaN(num) && num > 0;
+    })
     .map((token) =>
       [
         getTokenSelectionKey(token),
@@ -5000,6 +5006,16 @@ function NexusOneInner({
     }
   };
 
+  const handleFailureBack = () => {
+    clearPendingSwapIntent();
+    setTxError(null);
+    setSwapStep("idle");
+    setCurrentSwapId(null);
+    currentSwapIdRef.current = null;
+    currentSwapStartedAtRef.current = 0;
+    rotateAttempt();
+  };
+
   const resetInputsAfterSuccessfulExecution = () => {
     setAmount("");
     setRecipientAddress("");
@@ -7279,7 +7295,11 @@ function NexusOneInner({
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
                       <SwapReceiptPanel
                         entry={currentSwapEntry}
-                        onDone={handleReset}
+                        onDone={
+                          swapStep === "failed"
+                            ? handleFailureBack
+                            : handleReset
+                        }
                       />
                     </div>
                   )}
