@@ -520,7 +520,7 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   10, // OP
   999, // HyperEVM
   56, // BSC
-  43114, // Avalanche
+  // 43114, // Avalanche
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
