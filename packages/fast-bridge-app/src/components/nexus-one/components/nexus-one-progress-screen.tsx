@@ -824,9 +824,9 @@ export function NexusOneProgressScreen({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "18px",
+            fontSize: "20px",
             fontWeight: 600,
-            lineHeight: "22px",
+            lineHeight: "25px",
             marginTop: "2px",
             textAlign: "center",
           }}
@@ -861,10 +861,10 @@ export function NexusOneProgressScreen({
               color: primary,
               display: "flex",
               fontFamily,
-              fontSize: "17px",
+              fontSize: "19px",
               fontWeight: 600,
               gap: "6px",
-              lineHeight: "22px",
+              lineHeight: "25px",
             }}
           >
             <TokenLogoPair
@@ -953,7 +953,7 @@ export function NexusOneProgressScreen({
                     cursor: canExpand ? "pointer" : "default",
                     display: "flex",
                     fontFamily,
-                    fontSize: "11px",
+                    fontSize: "13px",
                     fontWeight: 400,
                     gap: "8px",
                     minHeight: `${getRowHeight(row)}px`,
@@ -1007,7 +1007,7 @@ export function NexusOneProgressScreen({
                       display: "flex",
                       flexDirection: "column",
                       gap: "3px",
-                      lineHeight: "18px",
+                      lineHeight: "20px",
                       minWidth: 0,
                     }}
                   >

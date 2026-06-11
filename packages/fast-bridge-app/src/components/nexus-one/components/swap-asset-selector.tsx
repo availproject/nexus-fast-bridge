@@ -1710,7 +1710,7 @@ export function SwapAssetSelector({
                       borderRadius: 4,
                       padding: "2px 8px",
                       letterSpacing: "0.04em",
-                      lineHeight: "16px",
+                      lineHeight: "18px",
                     }}
                   >
                     UNIFIED
@@ -2008,7 +2008,7 @@ export function SwapAssetSelector({
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "20px",
                 padding: "2px 0",
               }}
             >
@@ -2110,9 +2110,9 @@ export function SwapAssetSelector({
               style={{
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "16px",
+                lineHeight: "18px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -2295,7 +2295,7 @@ export function SwapAssetSelector({
                           fontWeight: 600,
                           fontSize: 13,
                           color: "#161615",
-                          lineHeight: "18px",
+                          lineHeight: "20px",
                         }}
                       >
                         Tokens below minimum
@@ -2305,7 +2305,7 @@ export function SwapAssetSelector({
                           fontFamily: '"Geist", system-ui, sans-serif',
                           fontSize: 12,
                           color: "#848483",
-                          lineHeight: "16px",
+                          lineHeight: "18px",
                           textAlign: "left",
                         }}
                       >
@@ -2478,7 +2478,7 @@ export function SwapAssetSelector({
                               fontWeight: 500,
                               fontSize: 12,
                               color: "#848483",
-                              lineHeight: "16px",
+                              lineHeight: "18px",
                               minWidth: 0,
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -2495,7 +2495,7 @@ export function SwapAssetSelector({
                             fontSize: 12,
                             color: "#848483",
                             fontWeight: 500,
-                            lineHeight: "16px",
+                            lineHeight: "18px",
                             flexShrink: 0,
                             marginLeft: 12,
                           }}
@@ -2537,7 +2537,7 @@ export function SwapAssetSelector({
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                   }}
                 >
                   Required
@@ -2547,7 +2547,7 @@ export function SwapAssetSelector({
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                   }}
                 >
                   <strong style={{ color: "#161615", fontWeight: 600 }}>

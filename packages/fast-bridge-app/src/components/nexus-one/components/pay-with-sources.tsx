@@ -184,7 +184,7 @@ export function PayWithSources({
         fontSize: "9px",
         fontWeight: 600,
         letterSpacing: "0.04em",
-        lineHeight: "12px",
+        lineHeight: "14px",
         padding: "1px 5px",
       }}
     >
@@ -223,7 +223,7 @@ export function PayWithSources({
             fontWeight: 500,
             gap: "6px",
             letterSpacing: "0.08em",
-            lineHeight: "15px",
+            lineHeight: "17px",
             textTransform: "uppercase",
           }}
         >
@@ -244,7 +244,7 @@ export function PayWithSources({
               color: isSourcePickerDisabled ? "#A8A8A6" : brand,
               cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
               fontFamily: uiFont,
-              fontSize: "11px",
+              fontSize: "13px",
               fontWeight: 500,
               lineHeight: "14px",
               opacity: isSourcePickerDisabled ? 0.75 : 1,
@@ -324,7 +324,7 @@ export function PayWithSources({
                       style={{
                         color: primary,
                         fontFamily: uiFont,
-                        fontSize: "12px",
+                        fontSize: "14px",
                         fontWeight: 600,
                       }}
                     >
@@ -412,7 +412,7 @@ export function PayWithSources({
             color: primary,
             fontFamily: uiFont,
             fontSize: "11.5px",
-            lineHeight: "15px",
+            lineHeight: "17px",
           }}
         >
           Sources will be auto selected
@@ -428,7 +428,7 @@ export function PayWithSources({
             fontFamily: uiFont,
             fontSize: "11.5px",
             gap: "8px",
-            lineHeight: "15px",
+            lineHeight: "17px",
           }}
         >
           <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />

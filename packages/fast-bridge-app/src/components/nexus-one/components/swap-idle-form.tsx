@@ -94,7 +94,7 @@ function PercentButtons({
       style={{
         alignItems: "center",
         backgroundColor: "#F0F3F9",
-        borderRadius: "8px",
+        borderRadius: "6px",
         boxShadow: "#2A388B0F 0px 1px 2px inset",
         boxSizing: "border-box",
         display: "flex",
@@ -105,7 +105,7 @@ function PercentButtons({
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
-        width: "116px",
+        width: "108px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -127,20 +127,20 @@ function PercentButtons({
             style={{
               alignItems: "center",
               backgroundColor: isHovered ? "#FFFFFF" : "transparent",
-              borderRadius: "6px",
+              borderRadius: "4px",
               boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
               boxSizing: "border-box",
               color: isHovered ? "#1F1F1F" : "#8E8E89",
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "11px",
+              fontSize: "10.5px",
               fontWeight: 500,
-              height: "22px",
+              height: "20px",
               justifyContent: "center",
               flex: "1 1 0%",
               minWidth: 0,
-              paddingInline: "4px",
+              paddingInline: "3px",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -231,7 +231,7 @@ function UnifiedTokenLogoBadge({
             fontWeight: 700,
             height: "12px",
             justifyContent: "center",
-            lineHeight: "12px",
+            lineHeight: "14px",
             minWidth: "12px",
             paddingInline: chainCount > 9 ? "3px" : 0,
             position: "absolute",
@@ -289,7 +289,7 @@ function UnifiedTokenLogoBadge({
                 style={{
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
+                  fontSize: "15px",
                   fontWeight: 700,
                   lineHeight: "16px",
                 }}
@@ -333,9 +333,9 @@ function UnifiedTokenLogoBadge({
                       style={{
                         color: "#161615",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "13px",
+                        fontSize: "15px",
                         fontWeight: 500,
-                        lineHeight: "18px",
+                        lineHeight: "20px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -348,9 +348,9 @@ function UnifiedTokenLogoBadge({
                     style={{
                       color: "#161615",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
+                      fontSize: "15px",
                       fontWeight: 600,
-                      lineHeight: "18px",
+                      lineHeight: "20px",
                     }}
                   >
                     {formatAmountInputDisplay(source.balance || "0")}
@@ -638,6 +638,9 @@ export function SwapIdleForm({
   );
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
+    null
+  );
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
@@ -1005,10 +1008,10 @@ export function SwapIdleForm({
               boxSizing: "border-box",
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "20px",
+              lineHeight: "23px",
               textTransform: "uppercase" as const,
             }}
           >
@@ -1034,9 +1037,9 @@ export function SwapIdleForm({
                   ? "pointer"
                   : "not-allowed",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
-              lineHeight: "18px",
+              lineHeight: "20px",
               opacity:
                 fromTokens.length > 0 && !isSourcePickerDisabled ? 1 : 0.75,
             }}
@@ -1046,7 +1049,7 @@ export function SwapIdleForm({
               aria-hidden="true"
               style={{
                 color: "currentColor",
-                fontSize: "16px",
+                fontSize: "18px",
                 lineHeight: "16px",
               }}
             >
@@ -1134,9 +1137,9 @@ export function SwapIdleForm({
                                 : "#9E9E9C",
                               fontFamily:
                                 '"Delight-Medium", "Delight", system-ui, sans-serif',
-                              fontSize: "32px",
+                              fontSize: "36px",
                               fontWeight: 500,
-                              lineHeight: "38px",
+                              lineHeight: "44px",
                               marginRight: "4px",
                             }}
                           >
@@ -1169,9 +1172,9 @@ export function SwapIdleForm({
                               : "#9E9E9C",
                             fontFamily:
                               '"Delight-Medium", "Delight", system-ui, sans-serif',
-                            fontSize: "32px",
+                            fontSize: "36px",
                             fontWeight: 500,
-                            lineHeight: "38px",
+                            lineHeight: "44px",
                             background: "transparent",
                             border: "none",
                             outline: "none",
@@ -1367,6 +1370,7 @@ export function SwapIdleForm({
                     display: "flex",
                     justifyContent: "space-between",
                     width: "100%",
+                    minHeight: "24px",
                   }}
                 >
                   <div
@@ -1374,10 +1378,11 @@ export function SwapIdleForm({
                       display: "flex",
                       justifyContent: "flex-start",
                       alignItems: "center",
+                      flex: 1,
                     }}
                   >
                     {showSourceRouteSkeleton ? (
-                      <SkeletonBar height="18px" width="84px" />
+                      <SkeletonBar height="16px" width="84px" />
                     ) : (
                       (() => {
                         if (!token)
@@ -1387,8 +1392,9 @@ export function SwapIdleForm({
                                 boxSizing: "border-box",
                                 color: "#848483",
                                 fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "13px",
-                                lineHeight: "18px",
+                                fontSize: "11px",
+                                lineHeight: "16px",
+                                whiteSpace: "nowrap",
                               }}
                             >
                               ≈ ${usdValue || "0.00"}
@@ -1434,8 +1440,9 @@ export function SwapIdleForm({
                                 boxSizing: "border-box",
                                 color: "#848483",
                                 fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "13px",
-                                lineHeight: "18px",
+                                fontSize: "11px",
+                                lineHeight: "16px",
+                                whiteSpace: "nowrap",
                               }}
                             >
                               {approxPrefix}
@@ -1452,15 +1459,10 @@ export function SwapIdleForm({
                   <div
                     style={{
                       alignItems: "center",
-                      display: "flex",
+                      display: token && focusedRow === index ? "flex" : "none",
                       justifyContent: "center",
-                      opacity: token && focusedRow === index ? 1 : 0,
-                      visibility:
-                        token && focusedRow === index ? "visible" : "hidden",
                       pointerEvents:
                         token && focusedRow === index ? "auto" : "none",
-                      transition:
-                        "opacity 0.18s ease-out, visibility 0.18s ease-out",
                     }}
                   >
                     {token && (
@@ -1480,14 +1482,23 @@ export function SwapIdleForm({
                       display: "flex",
                       justifyContent: "flex-end",
                       alignItems: "center",
+                      flex: 1,
                     }}
                   >
                     {showSourceRouteSkeleton ? (
-                      <SkeletonBar height="18px" width="124px" />
+                      <SkeletonBar height="16px" width="124px" />
                     ) : token ? (
                       <div
-                        onMouseEnter={() => setTooltip(`asset-send-${index}`)}
-                        onMouseLeave={() => setTooltip(null)}
+                        onMouseEnter={(e) => {
+                          setTooltip(`asset-send-${index}`);
+                          setTooltipTriggerRect(
+                            e.currentTarget.getBoundingClientRect()
+                          );
+                        }}
+                        onMouseLeave={() => {
+                          setTooltip(null);
+                          setTooltipTriggerRect(null);
+                        }}
                         style={{
                           alignItems: "center",
                           boxSizing: "border-box",
@@ -1495,6 +1506,7 @@ export function SwapIdleForm({
                           gap: "4px",
                           position: "relative",
                           cursor: "default",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         <div
@@ -1502,9 +1514,10 @@ export function SwapIdleForm({
                             boxSizing: "border-box",
                             color: "#848483",
                             fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "13px",
+                            fontSize: "11px",
                             fontVariantNumeric: "tabular-nums",
-                            lineHeight: "18px",
+                            lineHeight: "16px",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           Balance ·
@@ -1514,61 +1527,72 @@ export function SwapIdleForm({
                             boxSizing: "border-box",
                             color: "#848483",
                             fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "13px",
+                            fontSize: "11px",
                             fontVariantNumeric: "tabular-nums",
-                            lineHeight: "18px",
+                            lineHeight: "16px",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {formatTokenBalanceLabel(token)}
                         </div>
 
                         {/* Tooltip */}
-                        {tooltip === `asset-send-${index}` && (
-                          <div
-                            style={{
-                              position: "absolute",
-                              right: 0,
-                              ...(showTooltipBelow
-                                ? { top: "calc(100% + 8px)" }
-                                : { bottom: "calc(100% + 8px)" }),
-                              width: "220px",
-                              backgroundColor: "#fff",
-                              border: "1px solid #E8E8E7",
-                              borderRadius: "12px",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                              padding: "14px",
-                              display: "flex",
-                              flexDirection: "column",
-                              zIndex: 10000,
-                              pointerEvents: "none",
-                              textAlign: "left",
-                            }}
-                          >
+                        {tooltip === `asset-send-${index}` &&
+                          tooltipTriggerRect &&
+                          createPortal(
                             <div
                               style={{
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                color: "#848483",
-                                letterSpacing: "0.06em",
-                                textTransform: "uppercase",
-                                marginBottom: "4px",
-                                fontFamily: '"Geist", system-ui, sans-serif',
+                                position: "fixed",
+                                right:
+                                  window.innerWidth - tooltipTriggerRect.right,
+                                ...(showTooltipBelow
+                                  ? { top: tooltipTriggerRect.bottom + 8 }
+                                  : {
+                                      bottom:
+                                        window.innerHeight -
+                                        tooltipTriggerRect.top +
+                                        8,
+                                    }),
+                                width: "220px",
+                                backgroundColor: "#fff",
+                                border: "1px solid #E8E8E7",
+                                borderRadius: "12px",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                                padding: "14px",
+                                display: "flex",
+                                flexDirection: "column",
+                                zIndex: 2147483647,
+                                pointerEvents: "none",
+                                textAlign: "left",
                               }}
                             >
-                              Asset Balance
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "13px",
-                                color: "#161615",
-                                lineHeight: "18px",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                              }}
-                            >
-                              This is your current asset balance on this chain.
-                            </div>
-                          </div>
-                        )}
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  color: "#848483",
+                                  letterSpacing: "0.06em",
+                                  textTransform: "uppercase",
+                                  marginBottom: "4px",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                }}
+                              >
+                                Asset Balance
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "15px",
+                                  color: "#161615",
+                                  lineHeight: "20px",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                }}
+                              >
+                                This is your current asset balance on this
+                                chain.
+                              </div>
+                            </div>,
+                            document.body
+                          )}
                       </div>
                     ) : null}
                   </div>
@@ -1604,10 +1628,10 @@ export function SwapIdleForm({
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               gap: "5px",
-              lineHeight: "18px",
+              lineHeight: "20px",
               marginTop: "-2px",
               padding: 0,
             }}
@@ -1625,9 +1649,9 @@ export function SwapIdleForm({
               color:
                 sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
+              fontSize: "15px",
               fontWeight: 500,
-              lineHeight: "18px",
+              lineHeight: "20px",
               marginTop: "-6px",
             }}
           >
@@ -1649,7 +1673,7 @@ export function SwapIdleForm({
           >
             <span
               style={{
-                fontSize: "17px",
+                fontSize: "19px",
                 fontWeight: 600,
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1659,7 +1683,7 @@ export function SwapIdleForm({
             </span>
             <span
               style={{
-                fontSize: "12px",
+                fontSize: "14px",
                 color: "#848483",
                 fontWeight: 600,
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1697,10 +1721,10 @@ export function SwapIdleForm({
             boxSizing: "border-box",
             color: "#848483",
             fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 500,
             letterSpacing: "0.08em",
-            lineHeight: "20px",
+            lineHeight: "23px",
             textTransform: "uppercase" as const,
             width: "100%",
           }}
@@ -1752,9 +1776,9 @@ export function SwapIdleForm({
                   color: receiveAmountTextColor,
                   fontFamily:
                     '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "32px",
+                  fontSize: "36px",
                   fontWeight: 500,
-                  lineHeight: "38px",
+                  lineHeight: "44px",
                   background: "transparent",
                   border: "none",
                   cursor: "default",
@@ -1844,9 +1868,9 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "15px",
+                  fontSize: "17px",
                   fontWeight: 500,
-                  lineHeight: "22px",
+                  lineHeight: "25px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}
@@ -1864,18 +1888,20 @@ export function SwapIdleForm({
               display: "flex",
               justifyContent: "space-between",
               width: "100%",
+              minHeight: "24px",
             }}
           >
             {isReceiveUsdLoading ? (
-              <SkeletonBar borderRadius="6px" height="18px" width="74px" />
+              <SkeletonBar borderRadius="6px" height="16px" width="74px" />
             ) : (
               <div
                 style={{
                   boxSizing: "border-box",
                   color: "#848483",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "16px",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {receiveAltValue}
@@ -1899,9 +1925,10 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontVariantNumeric: "tabular-nums",
-                    lineHeight: "18px",
+                    lineHeight: "16px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Asset Balance ·
@@ -1911,9 +1938,10 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontVariantNumeric: "tabular-nums",
-                    lineHeight: "18px",
+                    lineHeight: "16px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {receiveBalanceLabel}
@@ -1954,9 +1982,9 @@ export function SwapIdleForm({
                     </div>
                     <div
                       style={{
-                        fontSize: "13px",
+                        fontSize: "15px",
                         color: "#161615",
-                        lineHeight: "18px",
+                        lineHeight: "20px",
                         fontFamily: '"Geist", system-ui, sans-serif',
                       }}
                     >
@@ -1999,10 +2027,10 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#7C7C7A",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
+                  fontSize: "14px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  lineHeight: "20px",
+                  lineHeight: "23px",
                   textTransform: "uppercase" as const,
                 }}
               >
@@ -2024,7 +2052,7 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: recipientColor,
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "15px",
+                    fontSize: "17px",
                     fontVariantNumeric: "tabular-nums",
                     fontWeight: 500,
                     lineHeight: "17px",
@@ -2054,7 +2082,7 @@ export function SwapIdleForm({
                       boxSizing: "border-box",
                       color: "#006BF4",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "12px",
+                      fontSize: "14px",
                       fontWeight: 500,
                       lineHeight: "13px",
                     }}

@@ -740,9 +740,9 @@ export function ReceiveAssetSelector({
               style={{
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "16px",
+                lineHeight: "18px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",

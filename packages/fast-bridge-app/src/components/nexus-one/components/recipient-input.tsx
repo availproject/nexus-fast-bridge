@@ -41,9 +41,9 @@ export function RecipientInput({
           style={{
             color:
               "var(--foreground-primary, var(--foreground-primary, #161615))",
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 400,
-            lineHeight: "15px",
+            lineHeight: "17px",
           }}
         >
           {label}
@@ -66,10 +66,10 @@ export function RecipientInput({
         style={{
           color: "#161615",
           caretColor: "#006BF4",
-          fontSize: "12px",
+          fontSize: "14px",
           fontWeight: 500,
           WebkitTextFillColor: "#161615",
-          lineHeight: "15px",
+          lineHeight: "17px",
         }}
         value={value}
       />

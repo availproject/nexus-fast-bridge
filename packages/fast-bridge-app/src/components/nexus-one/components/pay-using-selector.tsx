@@ -38,7 +38,7 @@ export function PayUsingSelector({
             style={{
               fontFamily: "var(--font-geist-sans), sans-serif",
               fontWeight: 500,
-              fontSize: "11px",
+              fontSize: "13px",
               color:
                 "var(--foreground-primary, var(--foreground-primary, #161615))",
             }}
@@ -48,7 +48,7 @@ export function PayUsingSelector({
           <span
             style={{
               fontFamily: "var(--font-geist-sans), sans-serif",
-              fontSize: "9.5px",
+              fontSize: "11px",
               color:
                 "var(--foreground-muted, var(--foreground-muted, #848483))",
             }}
@@ -69,7 +69,7 @@ export function PayUsingSelector({
           }}
           style={{
             fontFamily: "var(--font-geist-sans), sans-serif",
-            fontSize: "11px",
+            fontSize: "13px",
             fontWeight: 500,
             color:
               "var(--interactive-button-primary-background, var(--foreground-brand, #006BF4))",

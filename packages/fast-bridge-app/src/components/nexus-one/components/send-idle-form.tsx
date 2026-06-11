@@ -189,7 +189,7 @@ function PercentButtons({
       style={{
         alignItems: "center",
         backgroundColor: "#F0F3F9",
-        borderRadius: "8px",
+        borderRadius: "6px",
         boxShadow: "#2A388B0F 0px 1px 2px inset",
         boxSizing: "border-box",
         display: "flex",
@@ -200,7 +200,7 @@ function PercentButtons({
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
-        width: "116px",
+        width: "108px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -222,20 +222,20 @@ function PercentButtons({
             style={{
               alignItems: "center",
               backgroundColor: isHovered ? "#FFFFFF" : "transparent",
-              borderRadius: "6px",
+              borderRadius: "4px",
               boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
               boxSizing: "border-box",
               color: isHovered ? "#1F1F1F" : "#8E8E89",
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "11px",
+              fontSize: "10.5px",
               fontWeight: 500,
-              height: "22px",
+              height: "20px",
               justifyContent: "center",
               flex: "1 1 0%",
               minWidth: 0,
-              paddingInline: "4px",
+              paddingInline: "3px",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -310,7 +310,7 @@ function PayWithSources({
         fontSize: "9px",
         fontWeight: 600,
         letterSpacing: "0.04em",
-        lineHeight: "12px",
+        lineHeight: "14px",
         padding: "1px 5px",
       }}
     >
@@ -345,11 +345,11 @@ function PayWithSources({
             color: muted,
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 500,
             gap: "6px",
             letterSpacing: "0.08em",
-            lineHeight: "18px",
+            lineHeight: "20px",
             textTransform: "uppercase",
           }}
         >
@@ -369,7 +369,7 @@ function PayWithSources({
               color: brand,
               cursor: "pointer",
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               lineHeight: "16px",
               padding: "7px 10px",
@@ -390,7 +390,7 @@ function PayWithSources({
               color: brand,
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "15px",
               gap: "6px",
             }}
           >
@@ -446,7 +446,7 @@ function PayWithSources({
                       style={{
                         color: primary,
                         fontFamily: uiFont,
-                        fontSize: "14px",
+                        fontSize: "16px",
                         fontWeight: 600,
                       }}
                     >
@@ -456,7 +456,7 @@ function PayWithSources({
                       style={{
                         color: muted,
                         fontFamily: uiFont,
-                        fontSize: "12px",
+                        fontSize: "14px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -480,7 +480,7 @@ function PayWithSources({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "15px",
                     }}
                   >
                     {formatToken(token.userAmount || token.balance)}{" "}
@@ -490,7 +490,7 @@ function PayWithSources({
                     style={{
                       color: muted,
                       fontFamily: uiFont,
-                      fontSize: "12px",
+                      fontSize: "14px",
                     }}
                   >
                     {formatUsd(token.userAmountUsd || token.balanceInFiat)}
@@ -533,8 +533,8 @@ function PayWithSources({
           style={{
             color: primary,
             fontFamily: uiFont,
-            fontSize: "13px",
-            lineHeight: "18px",
+            fontSize: "15px",
+            lineHeight: "20px",
           }}
         >
           Sources will be auto selected
@@ -548,9 +548,9 @@ function PayWithSources({
             color: "#D32F2F",
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "13px",
+            fontSize: "15px",
             gap: "8px",
-            lineHeight: "18px",
+            lineHeight: "20px",
           }}
         >
           <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />
@@ -657,7 +657,7 @@ export function SendIdleForm({
               fontSize: "10.5px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "11px",
+              lineHeight: "13px",
               textTransform: "uppercase",
             }}
           >
@@ -679,7 +679,7 @@ export function SendIdleForm({
                 boxSizing: "border-box",
                 color: brand,
                 fontFamily: uiFont,
-                fontSize: "13px",
+                fontSize: "15px",
                 fontVariantNumeric: "tabular-nums",
                 fontWeight: 500,
                 lineHeight: "15px",
@@ -712,7 +712,7 @@ export function SendIdleForm({
                   fontFamily: uiFont,
                   fontSize: "10.5px",
                   fontWeight: 500,
-                  lineHeight: "11px",
+                  lineHeight: "13px",
                 }}
               >
                 Edit
@@ -819,9 +819,9 @@ export function SendIdleForm({
                   flex: "1 1 0%",
                   fontFamily:
                     '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "26px",
+                  fontSize: "30px",
                   fontWeight: 500,
-                  lineHeight: "31px",
+                  lineHeight: "35px",
                   minWidth: 0,
                   outline: "none",
                   padding: 0,
@@ -909,9 +909,9 @@ export function SendIdleForm({
                 style={{
                   color: primary,
                   fontFamily: uiFont,
-                  fontSize: "13px",
+                  fontSize: "15px",
                   fontWeight: 600,
-                  lineHeight: "18px",
+                  lineHeight: "20px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}
@@ -928,6 +928,7 @@ export function SendIdleForm({
               display: "flex",
               justifyContent: "space-between",
               width: "100%",
+              minHeight: "24px",
             }}
           >
             <div
@@ -935,6 +936,7 @@ export function SendIdleForm({
                 display: "flex",
                 justifyContent: "flex-start",
                 alignItems: "center",
+                flex: 1,
               }}
             >
               <div
@@ -952,12 +954,9 @@ export function SendIdleForm({
             <div
               style={{
                 alignItems: "center",
-                display: "flex",
+                display: toToken && isAmountFocused ? "flex" : "none",
                 justifyContent: "center",
-                opacity: toToken && isAmountFocused ? 1 : 0,
-                visibility: toToken && isAmountFocused ? "visible" : "hidden",
                 pointerEvents: toToken && isAmountFocused ? "auto" : "none",
-                transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
               }}
             >
               {toToken && (
@@ -974,6 +973,7 @@ export function SendIdleForm({
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: "5px",
+                flex: 1,
               }}
             >
               {toToken && (

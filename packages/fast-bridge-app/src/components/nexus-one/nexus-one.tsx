@@ -426,10 +426,10 @@ function QuoteRefreshCountdown({
             boxShadow: "0 6px 18px rgba(22,22,21,0.10)",
             color: tooltipText,
             fontFamily: uiFont,
-            fontSize: "11px",
+            fontSize: "13px",
             fontWeight: 500,
             maxWidth: "190px",
-            lineHeight: "15px",
+            lineHeight: "17px",
             padding: "7px 9px",
             pointerEvents: "none",
             position: "absolute",
@@ -699,9 +699,9 @@ function TruncatedAddress({
         color,
         display: "inline-flex",
         fontFamily: uiFont,
-        fontSize: "13px",
+        fontSize: "15px",
         fontWeight: 500,
-        lineHeight: "18px",
+        lineHeight: "20px",
         outline: "none",
         position: "relative",
       }}
@@ -717,9 +717,9 @@ function TruncatedAddress({
             boxShadow: "0 6px 18px rgba(22,22,21,0.10)",
             color: "#161615",
             fontFamily: uiFont,
-            fontSize: "11px",
+            fontSize: "13px",
             fontWeight: 500,
-            lineHeight: "15px",
+            lineHeight: "17px",
             padding: "7px 9px",
             pointerEvents: "none",
             position: "absolute",
@@ -954,7 +954,7 @@ function SourceRowsList({
                   style={{
                     color: "#161615",
                     fontFamily: uiFont,
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 600,
                   }}
                 >
@@ -964,7 +964,7 @@ function SourceRowsList({
                   style={{
                     color: "#848483",
                     fontFamily: uiFont,
-                    fontSize: "12px",
+                    fontSize: "14px",
                   }}
                 >
                   on {row.chainName || "Unknown chain"}
@@ -984,7 +984,7 @@ function SourceRowsList({
                 style={{
                   color: "#161615",
                   fontFamily: uiFont,
-                  fontSize: "13px",
+                  fontSize: "15px",
                 }}
               >
                 {formatTokenDisplay(row.amount)} {row.symbol}
@@ -993,7 +993,7 @@ function SourceRowsList({
                 style={{
                   color: "#848483",
                   fontFamily: uiFont,
-                  fontSize: "12px",
+                  fontSize: "14px",
                 }}
               >
                 {formatUsdDisplay(row.value)}
@@ -1135,7 +1135,7 @@ function SwapReceiptPanel({
               color: "#FFFFFE",
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "15px",
+              fontSize: "17px",
               fontWeight: 700,
               height: "22px",
               justifyContent: "center",
@@ -1147,7 +1147,7 @@ function SwapReceiptPanel({
             {isFailed ? "x" : "✓"}
           </div>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}>
           {isFailed
             ? failureHeadline
             : isDeposit
@@ -1162,7 +1162,7 @@ function SwapReceiptPanel({
             color: "#161615",
             display: "flex",
             fontFamily: '"Delight-Medium", "Delight", system-ui, sans-serif',
-            fontSize: "42px",
+            fontSize: "48px",
             fontWeight: 500,
             gap: "8px",
             justifyContent: "center",
@@ -1172,12 +1172,12 @@ function SwapReceiptPanel({
         >
           {displayAmount ? formatTokenDisplay(displayAmount) : "--"}
           <span
-            style={{ fontFamily: uiFont, fontSize: "15px", fontWeight: 600 }}
+            style={{ fontFamily: uiFont, fontSize: "17px", fontWeight: 600 }}
           >
             {tokenSymbol}
           </span>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}>
           ≈ {formatUsdDisplay(value)}
         </div>
         {receiptSummary && (
@@ -1185,7 +1185,7 @@ function SwapReceiptPanel({
             style={{
               color: "#848483",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "15px",
               marginTop: "14px",
             }}
           >
@@ -1212,7 +1212,7 @@ function SwapReceiptPanel({
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}
           >
             {isDeposit || isSend ? "You Paid" : "You Swapped"}
           </span>
@@ -1229,7 +1229,7 @@ function SwapReceiptPanel({
               style={{
                 color: "#161615",
                 fontFamily: uiFont,
-                fontSize: "14px",
+                fontSize: "16px",
                 fontWeight: 700,
               }}
             >
@@ -1245,7 +1245,7 @@ function SwapReceiptPanel({
                 cursor: "pointer",
                 display: "inline-flex",
                 fontFamily: uiFont,
-                fontSize: "12px",
+                fontSize: "14px",
                 gap: "4px",
                 padding: 0,
               }}
@@ -1298,7 +1298,7 @@ function SwapReceiptPanel({
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
             >
               Recipient
             </span>
@@ -1316,14 +1316,14 @@ function SwapReceiptPanel({
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
             >
               Intent Explorer
             </span>
             <a
               href={entry.intentExplorerUrl ?? undefined}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "15px" }}
               target="_blank"
             >
               {intentLabel} ↗
@@ -1341,14 +1341,14 @@ function SwapReceiptPanel({
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
             >
               Final Transaction
             </span>
             <a
               href={entry.finalExplorerUrl}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "15px" }}
               target="_blank"
             >
               View Explorer ↗
@@ -1365,12 +1365,12 @@ function SwapReceiptPanel({
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
           >
             Total Fees
           </span>
           <span
-            style={{ color: "#161615", fontFamily: uiFont, fontSize: "13px" }}
+            style={{ color: "#161615", fontFamily: uiFont, fontSize: "15px" }}
           >
             {formatUsdDisplay(entry.feeUsd)}
           </span>
@@ -1389,7 +1389,7 @@ function SwapReceiptPanel({
           cursor: "pointer",
           display: "flex",
           fontFamily: uiFont,
-          fontSize: "14px",
+          fontSize: "16px",
           fontWeight: 600,
           height: "48px",
           justifyContent: "center",
@@ -1430,7 +1430,7 @@ function HistoryStatusPill({ status }: { status: SwapHistoryStatus }) {
         borderRadius: "999px",
         color: config.fg,
         fontFamily: uiFont,
-        fontSize: "12px",
+        fontSize: "14px",
         fontWeight: 600,
         padding: "4px 9px",
       }}
@@ -1477,7 +1477,7 @@ function SwapHistoryPanel({
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "22px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "25px" }}
           >
             ↻
           </span>
@@ -1486,7 +1486,7 @@ function SwapHistoryPanel({
           style={{
             color: "#161615",
             fontFamily: uiFont,
-            fontSize: "16px",
+            fontSize: "18px",
             fontWeight: 500,
           }}
         >
@@ -1496,7 +1496,7 @@ function SwapHistoryPanel({
           style={{
             color: "#848483",
             fontFamily: uiFont,
-            fontSize: "14px",
+            fontSize: "16px",
             maxWidth: "280px",
             textAlign: "center",
           }}
@@ -1589,7 +1589,7 @@ function SwapHistoryPanel({
                       color: "#161615",
                       display: "flex",
                       fontFamily: uiFont,
-                      fontSize: "19px",
+                      fontSize: "22px",
                       fontWeight: 700,
                       gap: "6px",
                     }}
@@ -1600,7 +1600,7 @@ function SwapHistoryPanel({
                     <span
                       style={{
                         color: "#848483",
-                        fontSize: "12px",
+                        fontSize: "14px",
                         fontWeight: 600,
                       }}
                     >
@@ -1611,7 +1611,7 @@ function SwapHistoryPanel({
                     style={{
                       color: "#848483",
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "15px",
                     }}
                   >
                     ≈ {formatUsdDisplay(destinationValue)}
@@ -1631,7 +1631,7 @@ function SwapHistoryPanel({
                   style={{
                     color: "#848483",
                     fontFamily: uiFont,
-                    fontSize: "12px",
+                    fontSize: "14px",
                   }}
                 >
                   {getRelativeTime(entry.createdAt ?? entry.startedAt, now)}
@@ -1655,7 +1655,7 @@ function SwapHistoryPanel({
                   style={{
                     color: "#161615",
                     fontFamily: uiFont,
-                    fontSize: "13px",
+                    fontSize: "15px",
                   }}
                 >
                   Refund Initiated
@@ -1670,7 +1670,7 @@ function SwapHistoryPanel({
                     color: "#FFFFFE",
                     cursor: entry.intentId ? "pointer" : "not-allowed",
                     fontFamily: uiFont,
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 600,
                     opacity: entry.intentId ? 1 : 0.5,
                     padding: "8px 14px",
@@ -1712,7 +1712,7 @@ function SwapHistoryPanel({
                   style={{
                     color: "#848483",
                     fontFamily: uiFont,
-                    fontSize: "13px",
+                    fontSize: "15px",
                   }}
                 >
                   →
@@ -1729,7 +1729,7 @@ function SwapHistoryPanel({
                     style={{
                       color: "#848483",
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "15px",
                     }}
                   >
                     Intent #{entry.intentId}
@@ -1739,7 +1739,7 @@ function SwapHistoryPanel({
                     style={{
                       color: "#848483",
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "15px",
                     }}
                   >
                     Final transaction
@@ -1753,7 +1753,7 @@ function SwapHistoryPanel({
                   style={{
                     color: "#006BF4",
                     fontFamily: uiFont,
-                    fontSize: "13px",
+                    fontSize: "15px",
                   }}
                   target="_blank"
                 >
@@ -1798,11 +1798,11 @@ export function NexusOne(props: NexusOneProps) {
             fontFamily: '"Geist", system-ui, sans-serif',
           }}
         >
-          <div style={{ color: "#D32F2F", fontSize: "16px", fontWeight: 600 }}>
+          <div style={{ color: "#D32F2F", fontSize: "18px", fontWeight: 600 }}>
             Something went wrong
           </div>
           <div
-            style={{ color: "#848483", fontSize: "13px", lineHeight: "18px" }}
+            style={{ color: "#848483", fontSize: "15px", lineHeight: "20px" }}
           >
             An unexpected error occurred. Please refresh the page or try
             resetting the widget.
@@ -1815,7 +1815,7 @@ export function NexusOne(props: NexusOneProps) {
               borderRadius: "8px",
               color: "#FFFFFE",
               cursor: "pointer",
-              fontSize: "13px",
+              fontSize: "15px",
               fontWeight: 500,
               padding: "8px 16px",
               transition: "background-color 0.15s ease-out",
@@ -6960,7 +6960,7 @@ function NexusOneInner({
         display: "flex",
         flexDirection: "column",
         fontFeatureSettings: '"tnum"',
-        fontSize: "11px",
+        fontSize: "13px",
         fontSynthesis: "none",
         fontVariantNumeric: "tabular-nums",
         gap: "10px",
@@ -6969,7 +6969,7 @@ function NexusOneInner({
             ? `${rootContentHeight + 40}px`
             : "fit-content",
         maxHeight: "90dvh",
-        lineHeight: "16px",
+        lineHeight: "18px",
         margin: "auto",
         overflowX: "hidden",
         overflowY: isDrawerOverlayActive ? "hidden" : "auto",
@@ -6984,7 +6984,7 @@ function NexusOneInner({
             ? `height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`
             : undefined,
         willChange: "height",
-        width: "400px",
+        width: "480px",
         maxWidth: "100%",
         minWidth: "320px",
         WebkitFontSmoothing: "antialiased",
@@ -7056,7 +7056,7 @@ function NexusOneInner({
                   style={{
                     color: theme.colors.muted,
                     fontFamily: theme.fonts.sans,
-                    fontSize: "13px",
+                    fontSize: "15px",
                     marginLeft: "8px",
                   }}
                 >
@@ -7860,7 +7860,7 @@ function NexusOneInner({
                   style={{
                     color: theme.colors.textStrong,
                     fontFamily: theme.fonts.display,
-                    fontSize: "18px",
+                    fontSize: "20px",
                     fontWeight: 500,
                     lineHeight: "24px",
                   }}
@@ -7888,9 +7888,9 @@ function NexusOneInner({
                   style={{
                     color: theme.colors.muted,
                     fontFamily: theme.fonts.sans,
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 500,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                   }}
                 >
                   Wallet Address
@@ -7905,9 +7905,9 @@ function NexusOneInner({
                       color: theme.colors.primary,
                       cursor: "pointer",
                       fontFamily: theme.fonts.sans,
-                      fontSize: "12px",
+                      fontSize: "14px",
                       fontWeight: 500,
-                      lineHeight: "16px",
+                      lineHeight: "18px",
                       padding: "8px 12px",
                     }}
                     type="button"
@@ -7932,9 +7932,9 @@ function NexusOneInner({
                   style={{
                     color: "#E35454",
                     fontFamily: theme.fonts.sans,
-                    fontSize: "13px",
+                    fontSize: "15px",
                     fontWeight: 500,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                     marginTop: "10px",
                   }}
                 >
@@ -7946,8 +7946,8 @@ function NexusOneInner({
                   style={{
                     color: theme.colors.textSubtle,
                     fontFamily: theme.fonts.sans,
-                    fontSize: "13px",
-                    lineHeight: "18px",
+                    fontSize: "15px",
+                    lineHeight: "20px",
                     marginTop: "10px",
                   }}
                 >
@@ -7966,7 +7966,7 @@ function NexusOneInner({
                   cursor: "pointer",
                   display: "flex",
                   fontFamily: theme.fonts.sans,
-                  fontSize: "16px",
+                  fontSize: "18px",
                   fontWeight: 500,
                   height: "48px",
                   justifyContent: "center",

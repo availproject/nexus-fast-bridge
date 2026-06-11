@@ -311,7 +311,7 @@ function DetailToggle({
         cursor: "pointer",
         display: "flex",
         fontFamily,
-        fontSize: "13px",
+        fontSize: "15px",
         gap: "4px",
         lineHeight: "17px",
         padding: 0,
@@ -348,7 +348,7 @@ function TruncatedAddress({ address }: { address: string }) {
         color: brand,
         display: "inline-flex",
         fontFamily,
-        fontSize: "13px",
+        fontSize: "15px",
         fontWeight: 500,
         lineHeight: "17px",
         outline: "none",
@@ -367,9 +367,9 @@ function TruncatedAddress({ address }: { address: string }) {
             boxShadow: "0 6px 18px rgba(22,22,21,0.10)",
             color: primary,
             fontFamily,
-            fontSize: "11px",
+            fontSize: "13px",
             fontWeight: 500,
-            lineHeight: "15px",
+            lineHeight: "17px",
             padding: "7px 9px",
             pointerEvents: "none",
             position: "absolute",
@@ -401,9 +401,9 @@ function RecipientRow({ address }: { address: string }) {
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
+            fontSize: "16px",
             fontWeight: 600,
-            lineHeight: "18px",
+            lineHeight: "20px",
           }}
         >
           Recipient
@@ -412,7 +412,7 @@ function RecipientRow({ address }: { address: string }) {
           style={{
             color: muted,
             fontFamily,
-            fontSize: "13px",
+            fontSize: "15px",
             lineHeight: "17px",
           }}
         >
@@ -456,9 +456,9 @@ function InlineInfoTooltip({ message }: { message: string }) {
             boxShadow: "0 6px 18px rgba(22,22,21,0.10)",
             color: primary,
             fontFamily,
-            fontSize: "11px",
+            fontSize: "13px",
             fontWeight: 500,
-            lineHeight: "15px",
+            lineHeight: "17px",
             padding: "7px 9px",
             pointerEvents: "none",
             position: "absolute",
@@ -504,9 +504,9 @@ function Row({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
+            fontSize: "16px",
             fontWeight: 600,
-            lineHeight: "18px",
+            lineHeight: "20px",
           }}
         >
           {title}
@@ -515,7 +515,7 @@ function Row({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "13px",
+            fontSize: "15px",
             lineHeight: "17px",
           }}
         >
@@ -535,9 +535,9 @@ function Row({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
+            fontSize: "16px",
             fontWeight: 600,
-            lineHeight: "18px",
+            lineHeight: "20px",
           }}
         >
           {value}
@@ -547,7 +547,7 @@ function Row({
             style={{
               color: muted,
               fontFamily,
-              fontSize: "13px",
+              fontSize: "15px",
               lineHeight: "17px",
             }}
           >
@@ -1258,7 +1258,7 @@ export function SwapIntentPreview({
                 fontFamily,
                 fontSize: getFontSize(sourceHeaderAmount, sourceHeaderUnit),
                 fontWeight: 600,
-                lineHeight: "22px",
+                lineHeight: "25px",
               }}
             >
               {sourceHeaderAmount}
@@ -1321,7 +1321,7 @@ export function SwapIntentPreview({
                 fontFamily,
                 fontSize: getFontSize(destinationHeaderAmount, destTokenSymbol),
                 fontWeight: 600,
-                lineHeight: "22px",
+                lineHeight: "25px",
               }}
             >
               {destinationHeaderAmount}
@@ -1454,7 +1454,7 @@ export function SwapIntentPreview({
                             style={{
                               color: primary,
                               fontFamily,
-                              fontSize: "13px",
+                              fontSize: "15px",
                               fontWeight: 600,
                               lineHeight: "17px",
                             }}
@@ -1465,8 +1465,8 @@ export function SwapIntentPreview({
                             style={{
                               color: muted,
                               fontFamily,
-                              fontSize: "12px",
-                              lineHeight: "16px",
+                              fontSize: "14px",
+                              lineHeight: "18px",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
@@ -1490,7 +1490,7 @@ export function SwapIntentPreview({
                           style={{
                             color: primary,
                             fontFamily,
-                            fontSize: "12px",
+                            fontSize: "14px",
                           }}
                         >
                           {source.tokenAmount}
@@ -1500,7 +1500,7 @@ export function SwapIntentPreview({
                             style={{
                               color: muted,
                               fontFamily,
-                              fontSize: "12px",
+                              fontSize: "14px",
                             }}
                           >
                             {source.usdAmount}
@@ -1552,7 +1552,7 @@ export function SwapIntentPreview({
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                   {pendingLabel}
                 </span>
               </div>
@@ -1599,10 +1599,10 @@ export function SwapIntentPreview({
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                   {row.label}
                 </span>
-                <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
                   {formatUsdValue(row.value)}
                 </span>
               </div>
@@ -1615,10 +1615,10 @@ export function SwapIntentPreview({
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+              <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                 Network & protocol
               </span>
-              <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+              <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
                 {pendingValue}
               </span>
             </div>
@@ -1649,7 +1649,7 @@ export function SwapIntentPreview({
               justifyContent: "space-between",
             }}
           >
-            <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
               Swap Impact
             </span>
             <span
@@ -1661,7 +1661,7 @@ export function SwapIntentPreview({
                     ? "#168A47"
                     : primary,
                 fontFamily,
-                fontSize: "12px",
+                fontSize: "14px",
               }}
             >
               {impactPercent}
@@ -1674,10 +1674,10 @@ export function SwapIntentPreview({
               justifyContent: "space-between",
             }}
           >
-            <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
               Max. Slippage
             </span>
-            <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
               Auto
             </span>
           </div>
@@ -1748,7 +1748,7 @@ export function SwapIntentPreview({
           boxShadow: "0px 1px 4px 0px #5555550D",
           color: "#FFFFFE",
           fontFamily,
-          fontSize: "13px",
+          fontSize: "15px",
           fontWeight: 500,
           height: "52px",
           transformOrigin: "center",
