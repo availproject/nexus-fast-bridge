@@ -31,6 +31,7 @@ export default defineConfig({
   },
   envPrefix: ["VITE_"],
   build: {
+    target: "es2022",
     outDir: "apps/root/dist",
     emptyOutDir: true,
   },
