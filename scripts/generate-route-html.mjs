@@ -121,7 +121,19 @@ const CHAIN_META = [
     imageUrl:
       "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/op-mainnet",
-    themeColor: "#FF0421",
+    themeColor: "#FF0420",
+    faviconUrl: "/avail_logo.svg",
+  },
+  {
+    slug: "optimism",
+    title:
+      "Optimism FastBridge by Avail | Unified Cross-Chain Swaps and Transfers on Optimism",
+    description:
+      "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to Optimism in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus.",
+    imageUrl:
+      "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
+    canonicalUrl: "https://fastbridge.availproject.org/optimism",
+    themeColor: "#FF0420",
     faviconUrl: "/avail_logo.svg",
   },
   {

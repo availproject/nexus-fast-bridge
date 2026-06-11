@@ -39,6 +39,7 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { useRuntime } from "@/providers/runtime-context";
 import { ErrorBoundary } from "../common/components/error-boundary";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
 import { getShortChainName } from "../common/utils/constant";
@@ -1847,6 +1848,7 @@ function NexusOneInner({
   onClose,
   onConnectWallet,
 }: NexusOneProps) {
+  const { appConfig } = useRuntime();
   const {
     nexusSDK,
     bridgableBalance,
@@ -6955,7 +6957,7 @@ function NexusOneInner({
         backgroundPositionY: "center",
         backgroundSize: "cover",
         borderRadius: theme.radius.modal,
-        boxShadow: theme.shadows.root,
+        boxShadow: appConfig.boxShadow || theme.shadows.root,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -6979,10 +6981,14 @@ function NexusOneInner({
         scrollbarGutter: "stable",
         scrollbarWidth: "thin",
         position: "relative",
-        transition:
-          hasMeasuredRootContent && shouldAnimateRootHeight
-            ? `height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`
-            : undefined,
+        transition: (() => {
+          const transitions = [];
+          if (hasMeasuredRootContent && shouldAnimateRootHeight) {
+            transitions.push(`height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`);
+          }
+          transitions.push("box-shadow 0.5s ease-in-out");
+          return transitions.join(", ");
+        })(),
         willChange: "height",
         width: "480px",
         maxWidth: "100%",

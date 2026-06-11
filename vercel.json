@@ -1,11 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)",
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|optimism|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)",
       "destination": "/:slug/index.html"
     },
     {
-      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)/(.*)",
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|op-mainnet|optimism|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)/(.*)",
       "destination": "/:slug/index.html"
     },
     {
@@ -16,6 +16,15 @@
   "headers": [
     {
       "source": "/landing-assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/landing-new/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

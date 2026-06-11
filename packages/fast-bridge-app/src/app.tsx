@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import Navbar from "@/components/navbar";
@@ -135,13 +136,78 @@ function FastBridgeAppFooter() {
   );
 }
 
+const GRADIENT_ASSETS = [
+  "/landing-new/assets/chain-gradients/citrea-ribbon.png",
+  "/landing-new/assets/chain-gradients/ethereum-ribbon.png",
+  "/landing-new/assets/chain-gradients/optimism-ribbon.png",
+  "/landing-new/assets/chain-gradients/polygon-ribbon.png",
+  "/landing-new/assets/chain-gradients/arbitrum-ribbon.png",
+  "/landing-new/assets/chain-gradients/avalanche-ribbon.png",
+  "/landing-new/assets/chain-gradients/hyperevm-ribbon.png",
+  "/landing-new/assets/chain-gradients/kaia-ribbon.png",
+  "/landing-new/assets/chain-gradients/monad-ribbon.png",
+  "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
+  "/landing-new/assets/chain-gradients/base-ribbon.png",
+  "/landing-new/assets/chain-gradients/scroll-ribbon.png",
+  "/landing-new/assets/chain-gradients/bnb-ribbon.png",
+];
+
 export default function App() {
   const { appConfig } = useRuntime();
+  const activeBg =
+    appConfig.ribbonPng ||
+    "/landing-new/assets/chain-gradients/ethereum-ribbon.png";
+
+  const [bg1, setBg1] = useState(activeBg);
+  const [bg2, setBg2] = useState("");
+  const [showBg1, setShowBg1] = useState(true);
+
+  // Preload all gradients in background on mount
+  useEffect(() => {
+    for (const url of GRADIENT_ASSETS) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, []);
+
+  // Double-buffered transition for backgrounds
+  useEffect(() => {
+    if (activeBg === bg1 || activeBg === bg2) {
+      if (activeBg === bg1) {
+        setShowBg1(true);
+      } else {
+        setShowBg1(false);
+      }
+      return;
+    }
+
+    if (showBg1) {
+      setBg2(activeBg);
+      setShowBg1(false);
+    } else {
+      setBg1(activeBg);
+      setShowBg1(true);
+    }
+  }, [activeBg, bg1, bg2, showBg1]);
 
   return (
     <Web3Provider appConfig={appConfig}>
       <NexusProvider config={NEXUS_PROVIDER_CONFIG}>
         <div className="fastbridge-app-shell">
+          <div
+            className="fastbridge-app-bg"
+            style={{
+              backgroundImage: `url(${bg1})`,
+              opacity: showBg1 ? 1 : 0,
+            }}
+          />
+          <div
+            className="fastbridge-app-bg"
+            style={{
+              backgroundImage: bg2 ? `url(${bg2})` : "none",
+              opacity: showBg1 ? 0 : 1,
+            }}
+          />
           <Navbar />
           <main className="fastbridge-app-main">
             <FastBridgeShowcase />

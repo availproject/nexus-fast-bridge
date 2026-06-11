@@ -78,10 +78,20 @@ body,
   min-height: 100svh;
   overflow: hidden;
   color: #161615;
-  background-image: url("/ethereum-ribbon.png");
+}
+
+.fastbridge-app-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
   background-repeat: no-repeat;
   background-position: right center;
   background-size: 109% 100%;
+  transition: opacity 0.8s ease-in-out;
 }
 
 .fastbridge-app-nav {
