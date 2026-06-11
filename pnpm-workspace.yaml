@@ -1,4 +1,5 @@
 allowBuilds:
+  "@avail-project/nexus-core": true
   "@reown/appkit": true
   bufferutil: true
   core-js: true
