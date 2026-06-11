@@ -973,6 +973,7 @@ export function SwapIdleForm({
       )}
       {/* ─── SEND PANEL ─── */}
       <div
+        className="nexus-focus-container"
         style={{
           alignItems: "center",
           backgroundColor: "#FFFFFE",

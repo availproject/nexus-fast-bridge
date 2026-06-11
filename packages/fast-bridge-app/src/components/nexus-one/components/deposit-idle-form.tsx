@@ -626,6 +626,7 @@ export function DepositIdleForm({
       }}
     >
       <div
+        className="nexus-focus-container"
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: border,

@@ -72,7 +72,7 @@ export function AmountInputUnified({
 
   return (
     <div
-      className="w-full flex flex-col bg-white min-h-[136px]"
+      className="w-full flex flex-col bg-white min-h-[136px] nexus-focus-container"
       style={{
         borderRadius: "10px",
         border: "1px solid var(--border-default, #E8E8E7)",

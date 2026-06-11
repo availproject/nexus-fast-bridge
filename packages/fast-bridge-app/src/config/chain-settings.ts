@@ -11,7 +11,7 @@ export interface ChainSettings {
   slug: string;
 }
 
-export const DEFAULT_CHAIN_SLUG = "megaeth";
+export const DEFAULT_CHAIN_SLUG = "ethereum";
 
 // ---------------------------------------------------------------------------
 // Registry
@@ -482,10 +482,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
 
   // ── OP Mainnet ──────────────────────────────────────────────────────────
   "op-mainnet": {
-    slug: "op-mainnet",
+    slug: "optimism",
     appConfig: {
       chainId: 10,
-      chainName: "OP Mainnet",
+      chainName: "Optimism",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
       chainRpcUrl: "https://mainnet.optimism.io",
       chainBlockExplorerUrl: "https://optimistic.etherscan.io",

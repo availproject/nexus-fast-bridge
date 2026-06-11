@@ -449,3 +449,13 @@ body,
     @apply bg-background text-foreground;
   }
 }
+
+.nexus-focus-container {
+  transition:
+    background-color 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+}
+.nexus-focus-container:focus-within {
+  background-color: #fafafc !important;
+  box-shadow: #3c28640f 0px 1px 2px inset !important;
+}

@@ -723,6 +723,7 @@ export function SendIdleForm({
       </div>
 
       <div
+        className="nexus-focus-container"
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: border,
