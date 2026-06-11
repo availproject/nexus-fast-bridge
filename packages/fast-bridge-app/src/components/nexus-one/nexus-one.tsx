@@ -826,6 +826,8 @@ const getFailureMessageForProgressStep = (
   const type = getProgressStepType(step);
   if (
     type.includes("CREATE_PERMIT_FOR_SOURCE_SWAP") ||
+    type.includes("CREATE_PERMIT_EOA_TO_EPHEMERAL") ||
+    type.includes("EOA_EXECUTE_CALL") ||
     type.includes("SOURCE_SWAP") ||
     type.includes("COLLECTION")
   ) {
