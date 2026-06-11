@@ -22,6 +22,7 @@ import {
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -930,8 +931,9 @@ export function SwapAssetSelector({
   const [selectedChainFilter, setSelectedChainFilter] = useState<number | null>(
     null
   );
-  const [draftChainFilter, setDraftChainFilter] = useState<number | null>(null);
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
+  const stableListHeightRef = useRef(0);
+  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const lockedSelectedTokens = useMemo(
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
@@ -989,6 +991,31 @@ export function SwapAssetSelector({
       listRef.current.scrollTop = 0;
     }
   }, [query, activeTab, selectedChainFilter]);
+
+  const preserveListHeight = useCallback(() => {
+    const listEl = listRef.current;
+    if (!listEl) return;
+
+    const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
+    if (nextHeight <= stableListHeightRef.current) return;
+
+    stableListHeightRef.current = nextHeight;
+    setStableListHeight(nextHeight);
+  }, []);
+
+  useLayoutEffect(() => {
+    preserveListHeight();
+
+    const listEl = listRef.current;
+    if (!listEl || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      preserveListHeight();
+    });
+    observer.observe(listEl);
+
+    return () => observer.disconnect();
+  }, [preserveListHeight]);
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const baseTokens = staticOptions
@@ -1832,7 +1859,6 @@ export function SwapAssetSelector({
       clearTimeout(chainCloseTimerRef.current);
       chainCloseTimerRef.current = null;
     }
-    setDraftChainFilter(selectedChainFilter);
     setChainQuery("");
     setIsChainSelectorClosing(false);
     setShowChainSelector(true);
@@ -2169,7 +2195,7 @@ export function SwapAssetSelector({
         ref={listRef}
         style={{
           flex: "1 1 auto",
-          minHeight: 0,
+          minHeight: stableListHeight ? `${stableListHeight}px` : 0,
           overflowY: "auto",
           paddingBottom: 6,
         }}
@@ -2788,7 +2814,10 @@ export function SwapAssetSelector({
                     }}
                   >
                     <button
-                      onClick={() => setDraftChainFilter(null)}
+                      onClick={() => {
+                        setSelectedChainFilter(null);
+                        closeChainSelector();
+                      }}
                       style={{
                         width: "100%",
                         display: "flex",
@@ -2801,7 +2830,7 @@ export function SwapAssetSelector({
                         boxSizing: "border-box",
                       }}
                     >
-                      <RadioDot selected={draftChainFilter === null} />
+                      <RadioDot selected={selectedChainFilter === null} />
                       <Globe
                         style={{
                           marginLeft: 10,
@@ -2834,7 +2863,10 @@ export function SwapAssetSelector({
                       .map((t) => (
                         <button
                           key={`chain-${t.chainId}`}
-                          onClick={() => setDraftChainFilter(t.chainId!)}
+                          onClick={() => {
+                            setSelectedChainFilter(t.chainId!);
+                            closeChainSelector();
+                          }}
                           style={{
                             width: "100%",
                             display: "flex",
@@ -2847,7 +2879,9 @@ export function SwapAssetSelector({
                             boxSizing: "border-box",
                           }}
                         >
-                          <RadioDot selected={draftChainFilter === t.chainId} />
+                          <RadioDot
+                            selected={selectedChainFilter === t.chainId}
+                          />
                           <img
                             alt={t.chainName}
                             src={t.chainLogo}
@@ -2874,30 +2908,6 @@ export function SwapAssetSelector({
                       ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedChainFilter(draftChainFilter);
-                    closeChainSelector();
-                  }}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#1F1F1F",
-                    border: "none",
-                    borderRadius: 10,
-                    color: "#FFFFFE",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexShrink: 0,
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    height: 44,
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
-                  Done
-                </button>
               </div>
             </div>
           );

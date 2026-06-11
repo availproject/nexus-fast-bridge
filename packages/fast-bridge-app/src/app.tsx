@@ -137,6 +137,7 @@ function FastBridgeAppFooter() {
 }
 
 const GRADIENT_ASSETS = [
+  "/landing-new/assets/chain-gradients/universal-ribbon.png",
   "/landing-new/assets/chain-gradients/citrea-ribbon.png",
   "/landing-new/assets/chain-gradients/ethereum-ribbon.png",
   "/landing-new/assets/chain-gradients/optimism-ribbon.png",
@@ -156,7 +157,7 @@ export default function App() {
   const { appConfig } = useRuntime();
   const activeBg =
     appConfig.ribbonPng ||
-    "/landing-new/assets/chain-gradients/ethereum-ribbon.png";
+    "/landing-new/assets/chain-gradients/universal-ribbon.png";
 
   const [bg1, setBg1] = useState(activeBg);
   const [bg2, setBg2] = useState("");

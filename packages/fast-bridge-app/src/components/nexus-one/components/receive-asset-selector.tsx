@@ -256,7 +256,6 @@ export function ReceiveAssetSelector({
   const [showChainSelector, setShowChainSelector] = useState(false);
   const [isChainSelectorClosing, setIsChainSelectorClosing] = useState(false);
   const [chainQuery, setChainQuery] = useState("");
-  const [draftChainFilter, setDraftChainFilter] = useState<number | null>(null);
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
   const [selectedTokenHash, setSelectedTokenHash] = useState<string | null>(
     null
@@ -299,7 +298,6 @@ export function ReceiveAssetSelector({
       clearTimeout(chainCloseTimerRef.current);
       chainCloseTimerRef.current = null;
     }
-    setDraftChainFilter(selectedChainFilter);
     setChainQuery("");
     setIsChainSelectorClosing(false);
     setShowChainSelector(true);
@@ -852,6 +850,7 @@ export function ReceiveAssetSelector({
                   onClick={() => {
                     setSelectedTokenHash(hash);
                     setSelectedTokenFull(t);
+                    onSelect(t);
                   }}
                   onMouseEnter={() => setHoveredHash(hash)}
                   onMouseLeave={() => setHoveredHash(null)}
@@ -1040,37 +1039,6 @@ export function ReceiveAssetSelector({
         )}
       </div>
 
-      {/* Done Button Footer */}
-      <div
-        style={{
-          padding: "0 0 6px",
-          backgroundColor: "#FFFFFE",
-          flexShrink: 0,
-          zIndex: 10,
-        }}
-      >
-        <button
-          disabled={!selectedTokenFull}
-          onClick={() => {
-            if (selectedTokenFull) onSelect(selectedTokenFull);
-          }}
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: 12,
-            backgroundColor: selectedTokenFull ? "#1F1F1F" : "#C8C8C7",
-            color: "#FFFFFE",
-            border: "none",
-            cursor: selectedTokenFull ? "pointer" : "not-allowed",
-            fontFamily: '"Geist", system-ui, sans-serif',
-            fontWeight: 600,
-            fontSize: 16,
-          }}
-        >
-          Done
-        </button>
-      </div>
-
       {/* Chain Selector Modal */}
       {showChainSelector &&
         (() => {
@@ -1252,7 +1220,10 @@ export function ReceiveAssetSelector({
                     }}
                   >
                     <button
-                      onClick={() => setDraftChainFilter(null)}
+                      onClick={() => {
+                        setSelectedChainFilter(null);
+                        closeChainSelector();
+                      }}
                       style={{
                         width: "100%",
                         display: "flex",
@@ -1265,7 +1236,7 @@ export function ReceiveAssetSelector({
                         boxSizing: "border-box",
                       }}
                     >
-                      <RadioDot selected={draftChainFilter === null} />
+                      <RadioDot selected={selectedChainFilter === null} />
                       <div
                         style={{
                           display: "flex",
@@ -1307,7 +1278,10 @@ export function ReceiveAssetSelector({
                         return (
                           <button
                             key={id}
-                            onClick={() => setDraftChainFilter(id)}
+                            onClick={() => {
+                              setSelectedChainFilter(id);
+                              closeChainSelector();
+                            }}
                             style={{
                               width: "100%",
                               display: "flex",
@@ -1320,7 +1294,7 @@ export function ReceiveAssetSelector({
                               boxSizing: "border-box",
                             }}
                           >
-                            <RadioDot selected={draftChainFilter === id} />
+                            <RadioDot selected={selectedChainFilter === id} />
                             <div
                               style={{
                                 display: "flex",
@@ -1354,30 +1328,6 @@ export function ReceiveAssetSelector({
                       })}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedChainFilter(draftChainFilter);
-                    closeChainSelector();
-                  }}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#1F1F1F",
-                    border: "none",
-                    borderRadius: 10,
-                    color: "#FFFFFE",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexShrink: 0,
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    height: 44,
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
-                  Done
-                </button>
               </div>
             </div>
           );

@@ -8050,7 +8050,7 @@ function NexusOneInner({
               style={{
                 ...modalHeightTransitionStyle,
                 bottom: 0,
-                height: "auto",
+                height: "90%",
                 left: 0,
                 maxHeight: "90%",
                 position: "absolute",
@@ -8404,7 +8404,7 @@ function NexusOneInner({
               style={{
                 ...modalHeightTransitionStyle,
                 bottom: 0,
-                height: "auto",
+                height: "90%",
                 left: 0,
                 maxHeight: "90%",
                 position: "absolute",
