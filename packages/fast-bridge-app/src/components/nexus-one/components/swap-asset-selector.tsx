@@ -567,8 +567,12 @@ const UNIFIED_MAINNET_CHAIN_IDS = new Set([
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) =>
-  Number(String(token.balanceInFiat ?? "").replace(/[^0-9.]/g, "") || 0);
+const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) => {
+  const parsed = Number(
+    String(token.balanceInFiat ?? "").replace(/[^0-9.]/g, "") || 0
+  );
+  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+};
 
 const formatBalanceWithSymbol = (
   token: Pick<SwapTokenOption, "balance" | "symbol">
@@ -1203,16 +1207,30 @@ export function SwapAssetSelector({
         let totalFiatVal = 0;
         let totalBalVal = 0;
         for (const t of group) {
-          totalFiatVal += getTokenFiatValue(t);
-          totalBalVal += Number(t.balance.replace(/[^0-9.]/g, "") || 0);
+          const fiatVal = getTokenFiatValue(t);
+          totalFiatVal += isNaN(fiatVal) || !isFinite(fiatVal) ? 0 : fiatVal;
+          const balStr = String(t.balance ?? "").replace(/[^0-9.]/g, "");
+          const balVal = Number(balStr || 0);
+          totalBalVal += isNaN(balVal) || !isFinite(balVal) ? 0 : balVal;
         }
         const unifiedSym = allowUnified ? getUnifiedSymbol(group[0]) : null;
+        const symbol = unifiedSym ?? group[0].symbol;
+        const isStable = ["USDC", "USDT", "DAI", "USDM", "CTUSD"].includes(
+          symbol.toUpperCase()
+        );
+        const maxDigits = isStable ? 2 : 6;
+        const formattedBal = totalBalVal.toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: maxDigits,
+        });
+
         return {
-          symbol: unifiedSym ?? group[0].symbol,
+          symbol,
           logo: group[0].logo,
           totalFiat: totalFiatVal,
           totalFiatStr: `$${totalFiatVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
-          totalBalStr: `${totalBalVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${unifiedSym ?? group[0].symbol}`,
+          totalBalStr: `${formattedBal} ${symbol}`,
+          totalBalRaw: totalBalVal,
           tokens: group,
           isUnifiedCandidate: Boolean(unifiedSym && group.length > 1),
         };
@@ -1612,7 +1630,7 @@ export function SwapAssetSelector({
       !isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent);
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
-      balance: group.totalBalStr.split(" ")[0] ?? group.tokens[0].balance,
+      balance: String(group.totalBalRaw),
       balanceInFiat: group.totalFiatStr,
       chainId: undefined,
       chainName: "All Chains",

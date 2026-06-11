@@ -2393,6 +2393,7 @@ function NexusOneInner({
     swapIntentRef.current?.deny();
     swapIntentRef.current = null;
     setIntentLoading(false);
+    setTxError(null);
     if (!options.keepQuoteRefreshing) {
       setQuoteRefreshing(false);
     }
@@ -4457,6 +4458,7 @@ function NexusOneInner({
 
   useEffect(() => {
     activeQuoteInputKeyRef.current = activeQuoteInputKey;
+    setTxError(null);
   }, [activeQuoteInputKey]);
   const hasCurrentQuoteIntent = Boolean(
     intentData &&
@@ -6936,7 +6938,9 @@ function NexusOneInner({
         ).toNumber()
       : 0;
   const isIdleSwapQuoteLoading =
-    activeMode === "swap" && swapStep === "idle" && quoteRefreshing;
+    activeMode === "swap" &&
+    swapStep === "idle" &&
+    (quoteRefreshing || intentLoading);
   const isReceiveAmountLoading =
     receiveMaxCalculating ||
     (isIdleSwapQuoteLoading &&
