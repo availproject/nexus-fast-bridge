@@ -9,13 +9,13 @@ import {
   arbitrum,
   avalanche,
   base,
+  bsc,
   type Chain,
   kaia,
   mainnet,
   optimism,
   polygon,
   scroll,
-  sophon,
 } from "wagmi/chains";
 import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
@@ -103,18 +103,17 @@ const staticTransports = {
   [polygon.id]: http(rpcConfig.polygon || undefined),
   [scroll.id]: http(rpcConfig.scroll || undefined),
   [avalanche.id]: http(rpcConfig.avalanche || undefined),
-  [sophon.id]: http(rpcConfig.sophon || undefined),
   [kaia.id]: http(rpcConfig.kaia || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
+  [bsc.id]: http(rpcConfig.bsc || undefined),
 };
 
 const staticChains = [
   mainnet,
   base,
-  sophon,
   kaia,
   arbitrum,
   avalanche,
@@ -125,6 +124,7 @@ const staticChains = [
   megaeth,
   citrea,
   hyperevm,
+  bsc,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();
