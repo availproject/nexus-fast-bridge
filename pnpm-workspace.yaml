@@ -8,6 +8,7 @@ allowBuilds:
   protobufjs: true
   utf-8-validate: true
   "@avail-project/nexus-core": true
+  "@avail-project/ca-common": true
 
 minimumReleaseAgeExclude:
   - axios@1.17.0
