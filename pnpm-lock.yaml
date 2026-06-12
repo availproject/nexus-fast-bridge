@@ -24,8 +24,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#6915c1db96d5e84c559e8296747a89f76ed1a34b
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/6915c1db96d5e84c559e8296747a89f76ed1a34b(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: github:availproject/nexus-sdk#24b47cad25d92967572bfc1cb59b595d75b3cba1
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/24b47cad25d92967572bfc1cb59b595d75b3cba1(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -166,8 +166,8 @@ packages:
       msgpackr: 2.0.2
       viem: 2.51.0
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/6915c1db96d5e84c559e8296747a89f76ed1a34b':
-    resolution: {gitHosted: true, integrity: sha512-hsEbMcQqlcZWWmKLgwnr+OcU/6dp6SGkOiafRsjxjJnrhIs6t/9zTeAa8rttW6y+pK9zMVzrQP31P8LYp83I0g==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/6915c1db96d5e84c559e8296747a89f76ed1a34b}
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/24b47cad25d92967572bfc1cb59b595d75b3cba1':
+    resolution: {gitHosted: true, integrity: sha512-RLEeKzFOvBTwnfnA9Pz49XmAG7S5cV/s+RvV9tKEIJTlAck7iaU3lqkLJGwQwPFPmeTneHl81wA0OFy6neyQpw==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/24b47cad25d92967572bfc1cb59b595d75b3cba1}
     version: 1.5.0
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
@@ -4607,7 +4607,7 @@ snapshots:
     transitivePeerDependencies:
       - google-protobuf
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/6915c1db96d5e84c559e8296747a89f76ed1a34b(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/24b47cad25d92967572bfc1cb59b595d75b3cba1(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       '@avail-project/ca-common': https://codeload.github.com/availproject/ca-common/tar.gz/a4b2a981ab4fa3798d518ddb887060b992dc5e4b(axios@1.17.0)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@2.0.2)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@metamask/safe-event-emitter': 3.1.2
