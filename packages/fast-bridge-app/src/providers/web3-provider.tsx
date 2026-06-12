@@ -1,5 +1,26 @@
 "use client";
 
+if (typeof window !== "undefined") {
+  const originalAttachShadow = HTMLElement.prototype.attachShadow;
+  HTMLElement.prototype.attachShadow = function (init) {
+    const shadowRoot = originalAttachShadow.call(this, init);
+    const hostTagName = this.tagName.toLowerCase();
+    if (hostTagName.startsWith("w3m-") || hostTagName.startsWith("wui-")) {
+      const style = document.createElement("style");
+      style.textContent = `
+        .balance-container {
+          display: none !important;
+        }
+        wui-balance {
+          display: none !important;
+        }
+      `;
+      shadowRoot.appendChild(style);
+    }
+    return shadowRoot;
+  };
+}
+
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -168,6 +189,11 @@ export function initGlobalAppKit() {
         analytics: true,
         email: false,
         socials: false,
+        swaps: false,
+        onramp: false,
+        send: false,
+        receive: false,
+        history: false,
       },
       allWallets: "SHOW",
       enableEIP6963: true,
