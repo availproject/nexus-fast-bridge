@@ -1,4 +1,6 @@
 allowBuilds:
+  "@avail-project/ca-common": false
+  "@avail-project/nexus-core": false
   "@reown/appkit": true
   bufferutil: true
   core-js: true
@@ -7,11 +9,11 @@ allowBuilds:
   msgpackr-extract: true
   protobufjs: true
   utf-8-validate: true
-  "@avail-project/nexus-core": true
-  "@avail-project/ca-common": true
 
 minimumReleaseAgeExclude:
   - axios@1.17.0
+  - "@avail-project/ca-common@3.0.0"
+  - "@avail-project/nexus-core@1.6.0"
 
 overrides:
   "@protobufjs/utf8": "1.1.1"

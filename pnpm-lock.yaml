@@ -24,8 +24,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#305e08b92c39a56b7883f9b98a4f1147e52a8cb5
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/305e08b92c39a56b7883f9b98a4f1147e52a8cb5(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+        specifier: 1.6.0
+        version: 1.6.0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -156,9 +156,8 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/a4b2a981ab4fa3798d518ddb887060b992dc5e4b':
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/availproject/ca-common/tar.gz/a4b2a981ab4fa3798d518ddb887060b992dc5e4b}
-    version: 2.3.0
+  '@avail-project/ca-common@3.0.0':
+    resolution: {integrity: sha512-ydp5JnE5dhlRBuHa3gTnxMv53GL08aC82nV0cW/hHEN8DXQPtem1uSH5LRT5Z3KZ4rF0/SVPmm68IH/SjVN+tQ==}
     peerDependencies:
       axios: 1.17.0
       decimal.js: 10.6.0
@@ -166,9 +165,8 @@ packages:
       msgpackr: 2.0.2
       viem: 2.51.0
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/305e08b92c39a56b7883f9b98a4f1147e52a8cb5':
-    resolution: {gitHosted: true, integrity: sha512-zj+m2E1pP1ucd9FVt/1Uas+mU1ZfPlVZVSD7wmcv88RRKH5Ko9mUNzlLwe6HlS1VTfmxC/z69qx7l72xwvcokA==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/305e08b92c39a56b7883f9b98a4f1147e52a8cb5}
-    version: 1.5.0
+  '@avail-project/nexus-core@1.6.0':
+    resolution: {integrity: sha512-69idNCZUecmAWZazdMc1eEd8d/XlWQ1LAiEWDEOyDPbkfbVGrzWpmzF1QZIiQ2HUYsLdN5/X1DTck7Pcqa1RlQ==}
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@babel/code-frame@7.29.0':
@@ -4588,7 +4586,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/ca-common@https://codeload.github.com/availproject/ca-common/tar.gz/a4b2a981ab4fa3798d518ddb887060b992dc5e4b(axios@1.17.0)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@2.0.2)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@avail-project/ca-common@3.0.0(axios@1.17.0)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@2.0.2)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@bufbuild/protobuf': 2.12.0
       '@improbable-eng/grpc-web': 0.15.0(google-protobuf@3.21.4)
@@ -4607,9 +4605,9 @@ snapshots:
     transitivePeerDependencies:
       - google-protobuf
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/305e08b92c39a56b7883f9b98a4f1147e52a8cb5(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@avail-project/nexus-core@1.6.0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(google-protobuf@3.21.4)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@avail-project/ca-common': https://codeload.github.com/availproject/ca-common/tar.gz/a4b2a981ab4fa3798d518ddb887060b992dc5e4b(axios@1.17.0)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@2.0.2)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@avail-project/ca-common': 3.0.0(axios@1.17.0)(decimal.js@10.6.0)(google-protobuf@3.21.4)(long@5.3.2)(msgpackr@2.0.2)(viem@2.51.0(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@metamask/safe-event-emitter': 3.1.2
       '@opentelemetry/api-logs': 0.208.0
       '@opentelemetry/exporter-logs-otlp-http': 0.208.0(@opentelemetry/api@1.9.1)
