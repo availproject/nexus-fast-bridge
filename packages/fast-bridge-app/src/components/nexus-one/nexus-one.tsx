@@ -511,8 +511,7 @@ const formatUsdDisplay = (value: unknown) => {
 
 const formatTokenDisplay = (value: unknown) => {
   const amount = parseDecimalLoose(value) ?? new Decimal(0);
-  const max = amount.abs().gte(1) ? 6 : 8;
-  return formatDecimalDisplay(amount, { max });
+  return formatDecimalDisplay(amount, { max: 8 });
 };
 
 const getSwapTokenUsdValue = (token: SwapTokenOption) =>

@@ -28,8 +28,7 @@ const parseDecimal = (value: unknown) => {
 
 const formatToken = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  const max = amount.abs().gte(1) ? 6 : 8;
-  return amount.toDecimalPlaces(max).toFixed();
+  return amount.toDecimalPlaces(8).toFixed();
 };
 
 const formatUsd = (value: unknown) => {

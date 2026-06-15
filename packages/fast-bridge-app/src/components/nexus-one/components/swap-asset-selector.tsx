@@ -353,9 +353,11 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {String(chain.balance || "").replace(/\s+[^\s]+$/, "") ||
-                    chain.balanceInFiat ||
-                    "0"}
+                  {chain.balance
+                    ? formatTokenAmountDisplay(
+                        String(chain.balance).replace(/\s+[^\s]+$/, "")
+                      )
+                    : chain.balanceInFiat || "0"}
                 </span>
               </div>
             ))}
@@ -577,13 +579,17 @@ const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) => {
 const formatBalanceWithSymbol = (
   token: Pick<SwapTokenOption, "balance" | "symbol">
 ) => {
-  const balance = String(token.balance ?? "").trim();
-  const symbol = token.symbol?.trim();
-  if (!symbol) return balance || "0";
-  if (new RegExp(`(?:^|\\s)${escapeRegExp(symbol)}$`, "i").test(balance)) {
-    return balance || `0 ${symbol}`;
+  const symbol = token.symbol?.trim() || "";
+  const balanceStr = String(token.balance ?? "").trim();
+  let cleanBalance = balanceStr;
+  if (symbol) {
+    cleanBalance = balanceStr.replace(
+      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
+      ""
+    );
   }
-  return `${balance || "0"} ${symbol}`;
+  const formatted = formatTokenAmountDisplay(cleanBalance);
+  return symbol ? `${formatted} ${symbol}` : formatted;
 };
 
 const parseTokenAmount = (value: unknown) => {
