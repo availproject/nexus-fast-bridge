@@ -10,8 +10,6 @@ allowBuilds:
   protobufjs: true
   utf-8-validate: true
 
-blockExoticSubdeps: false
-
 minimumReleaseAgeExclude:
   - axios@1.17.0
   - "@avail-project/ca-common@3.0.0"
@@ -30,4 +28,5 @@ overrides:
   protobufjs: "8.5.0"
   qs: "6.15.2"
   uuid: "14.0.0"
+  viem: "2.52.2"
   ws: "8.21.0"
