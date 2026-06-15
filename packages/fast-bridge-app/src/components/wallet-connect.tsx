@@ -223,7 +223,7 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
   ]);
 
   return (
-    <div className="relative flex min-h-[400px] items-center justify-center">
+    <div className="relative flex min-h-[400px] w-full max-w-full items-center justify-center">
       {children}
     </div>
   );

@@ -292,15 +292,70 @@ body,
 
   .fastbridge-app-footer {
     flex-direction: column;
+    gap: 16px;
     align-items: flex-start;
     width: calc(100% - 40px);
-    padding: 0 0 28px;
+    padding: 0 0 16px;
   }
 
   .fastbridge-app-footer-left,
   .fastbridge-app-footer-right {
     flex-wrap: wrap;
     gap: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fastbridge-app-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 8px 12px !important;
+  }
+
+  .fastbridge-app-nav-inner {
+    width: calc(100% - 24px) !important;
+  }
+
+  .fastbridge-app-logo-image {
+    width: 130px !important;
+  }
+
+  .fastbridge-wallet-button {
+    width: 116px !important;
+    height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 13px !important;
+  }
+
+  .fastbridge-app-footer {
+    gap: 12px !important;
+    width: calc(100% - 24px) !important;
+  }
+
+  .fastbridge-footer-copy {
+    white-space: normal !important;
+  }
+
+  [data-nexus-one-root] {
+    gap: 8px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  [data-nexus-one-root] div[style*="border-top"] {
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+  }
+
+  [data-nexus-one-root] div[style*="linear-gradient"] {
+    padding: 18px 10px 14px !important;
+  }
+
+  [data-nexus-one-root] button[style*="height: 52px"],
+  [data-nexus-one-root] button[style*="height:52px"],
+  [data-nexus-one-root] button[style*="height: 48px"],
+  [data-nexus-one-root] button[style*="height:48px"] {
+    height: 44px !important;
   }
 }
 

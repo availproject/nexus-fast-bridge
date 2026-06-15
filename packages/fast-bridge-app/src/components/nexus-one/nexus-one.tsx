@@ -7015,7 +7015,7 @@ function NexusOneInner({
         willChange: "height",
         width: "480px",
         maxWidth: "100%",
-        minWidth: "320px",
+        minWidth: "280px",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
       }}
