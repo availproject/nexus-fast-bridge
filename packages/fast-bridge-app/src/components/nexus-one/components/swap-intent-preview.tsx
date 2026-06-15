@@ -69,6 +69,7 @@ export interface SwapIntentPreviewProps {
   mode?: NexusOneMode;
   onAccept: () => void;
   onReject: () => void;
+  onTransitionChange?: (isTransitioning: boolean) => void;
   opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
   steps?: Array<{ id: number; completed: boolean; step: SwapStepType }>;
@@ -311,9 +312,9 @@ function DetailToggle({
         cursor: "pointer",
         display: "flex",
         fontFamily,
-        fontSize: "15px",
-        gap: "4px",
-        lineHeight: "17px",
+        fontSize: "12px",
+        gap: "3px",
+        lineHeight: "14px",
         padding: 0,
       }}
       type="button"
@@ -321,10 +322,10 @@ function DetailToggle({
       {expanded ? "Hide Details" : "View Details"}
       <ChevronDown
         style={{
-          height: 14,
+          height: 12,
           transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
           transition: "transform 180ms ease",
-          width: 14,
+          width: 12,
         }}
       />
     </button>
@@ -348,9 +349,9 @@ function TruncatedAddress({ address }: { address: string }) {
         color: brand,
         display: "inline-flex",
         fontFamily,
-        fontSize: "15px",
+        fontSize: "13px",
         fontWeight: 500,
-        lineHeight: "17px",
+        lineHeight: "15px",
         outline: "none",
         position: "relative",
       }}
@@ -412,8 +413,8 @@ function RecipientRow({ address }: { address: string }) {
           style={{
             color: muted,
             fontFamily,
-            fontSize: "15px",
-            lineHeight: "17px",
+            fontSize: "13px",
+            lineHeight: "15px",
           }}
         >
           Wallet address
@@ -515,8 +516,8 @@ function Row({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "15px",
-            lineHeight: "17px",
+            fontSize: "13px",
+            lineHeight: "15px",
           }}
         >
           {subtitle}
@@ -547,8 +548,8 @@ function Row({
             style={{
               color: muted,
               fontFamily,
-              fontSize: "15px",
-              lineHeight: "17px",
+              fontSize: "13px",
+              lineHeight: "15px",
             }}
           >
             {secondaryValue}
@@ -628,11 +629,39 @@ export function SwapIntentPreview({
   steps,
   explorerUrls,
   onAccept,
+  onTransitionChange,
 }: SwapIntentPreviewProps) {
   const [showSourceDetails, setShowSourceDetails] = useState(false);
   const [showFeeDetails, setShowFeeDetails] = useState(false);
   const [showImpactDetails, setShowImpactDetails] = useState(false);
   const sourceDetailsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [transitionTimeoutId, setTransitionTimeoutId] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  const startTransition = () => {
+    if (onTransitionChange) {
+      onTransitionChange(true);
+    }
+    if (transitionTimeoutId) {
+      clearTimeout(transitionTimeoutId);
+    }
+    const id = setTimeout(() => {
+      if (onTransitionChange) {
+        onTransitionChange(false);
+      }
+      setTransitionTimeoutId(null);
+    }, 280);
+    setTransitionTimeoutId(id);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (transitionTimeoutId) {
+        clearTimeout(transitionTimeoutId);
+      }
+    };
+  }, [transitionTimeoutId]);
 
   const flowMode = mode ?? activeMode ?? "swap";
   const isDepositMode = flowMode === "deposit";
@@ -1356,7 +1385,10 @@ export function SwapIntentPreview({
           >
             <DetailToggle
               expanded={showSourceDetails}
-              onClick={() => setShowSourceDetails((value) => !value)}
+              onClick={() => {
+                startTransition();
+                setShowSourceDetails((value) => !value);
+              }}
             />
           </Row>
         )}
@@ -1579,7 +1611,10 @@ export function SwapIntentPreview({
         <Row subtitle="Network & protocol" title="Total Fees" value={feeUsd}>
           <DetailToggle
             expanded={showFeeDetails}
-            onClick={() => setShowFeeDetails((value) => !value)}
+            onClick={() => {
+              startTransition();
+              setShowFeeDetails((value) => !value);
+            }}
           />
         </Row>
 
@@ -1627,7 +1662,10 @@ export function SwapIntentPreview({
         >
           <DetailToggle
             expanded={showImpactDetails}
-            onClick={() => setShowImpactDetails((value) => !value)}
+            onClick={() => {
+              startTransition();
+              setShowImpactDetails((value) => !value);
+            }}
           />
         </Row>
 

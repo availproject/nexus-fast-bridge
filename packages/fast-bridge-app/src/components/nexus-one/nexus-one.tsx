@@ -1965,6 +1965,7 @@ function NexusOneInner({
   const rootContentHeightRef = useRef<number | null>(null);
   const [hasMeasuredRootContent, setHasMeasuredRootContent] = useState(false);
   const [shouldAnimateRootHeight, setShouldAnimateRootHeight] = useState(false);
+  const [isPreviewTransitioning, setIsPreviewTransitioning] = useState(false);
   const rootHeightTransitionTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -7235,10 +7236,11 @@ function NexusOneInner({
                       maxHeight: "calc(90dvh - 72px)",
                       minHeight: 0,
                       overflowX: "hidden",
-                      overflowY: "auto",
+                      overflowY: isPreviewTransitioning ? "hidden" : "auto",
                       overscrollBehavior: "contain",
                       paddingRight: "2px",
                       scrollbarColor: "#C8C8C7 transparent",
+                      scrollbarGutter: "stable",
                       scrollbarWidth: "thin",
                       width: "100%",
                     }}
@@ -7260,6 +7262,7 @@ function NexusOneInner({
                         clearPendingSwapIntent();
                         setSwapStep("idle");
                       }}
+                      onTransitionChange={setIsPreviewTransitioning}
                       opportunity={selectedOpportunity}
                       recipientAddress={transferRecipientAddress}
                       steps={steps}
