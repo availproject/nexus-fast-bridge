@@ -160,13 +160,28 @@ let rawTokensCache: any = null;
 let rawTokensPromise: Promise<any> | null = null;
 
 export const preloadReceiveTokens = () => {
-  if (typeof window === "undefined") return null;
+  console.log(
+    "[preloadReceiveTokens] Function invoked. Current state: hasCache =",
+    !!rawTokensCache,
+    "hasPromise =",
+    !!rawTokensPromise
+  );
+  if (typeof window === "undefined") {
+    console.log(
+      "[preloadReceiveTokens] Aborted preload: window is undefined (SSR)."
+    );
+    return null;
+  }
   if (!rawTokensPromise) {
+    console.log(
+      "[preloadReceiveTokens] No active promise found. Creating a new promise to load tokens..."
+    );
     rawTokensPromise = (async () => {
       const CACHE_KEY = "nexus_receive_tokens_cache_v2";
       const CACHE_TIME_KEY = "nexus_receive_tokens_time_v2";
 
       try {
+        console.log("[preloadReceiveTokens] Checking localStorage cache...");
         const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
         const cachedData = localStorage.getItem(CACHE_KEY);
         if (
@@ -176,51 +191,138 @@ export const preloadReceiveTokens = () => {
         ) {
           const data = JSON.parse(cachedData);
           rawTokensCache = data;
+          console.log(
+            "[preloadReceiveTokens] Cache hit! Retrieved cached tokens from localStorage. Token chains count:",
+            Object.keys(data.tokens || {}).length,
+            "stables count:",
+            data.stableSymbols?.length
+          );
           return data;
         }
-      } catch (err) {}
+        console.log(
+          "[preloadReceiveTokens] Cache miss or expired. Proceeding to network fetch."
+        );
+      } catch (err) {
+        console.error(
+          "[preloadReceiveTokens] Error reading or parsing cache from localStorage:",
+          err
+        );
+      }
 
       let data: any = { tokens: {}, stableSymbols: [] };
       try {
+        console.log(
+          "[preloadReceiveTokens] Initiating network request to li.quest..."
+        );
         const [resAll, resStables] = await Promise.all([
           fetch("https://li.quest/v1/tokens"),
           fetch("https://li.quest/v1/tokens?tags=stablecoin"),
         ]);
 
+        console.log(
+          "[preloadReceiveTokens] li.quest APIs responded. Status resAll =",
+          resAll.status,
+          "status resStables =",
+          resStables.status
+        );
+
         let allTokens = {};
         if (resAll.ok) {
-          const allData = await resAll.json();
-          allTokens = allData.tokens || {};
+          try {
+            const allData = await resAll.json();
+            allTokens = allData.tokens || {};
+            console.log(
+              "[preloadReceiveTokens] Successfully parsed all tokens. Count of chains =",
+              Object.keys(allTokens).length
+            );
+          } catch (jsonErr) {
+            console.error(
+              "[preloadReceiveTokens] Failed to parse all tokens JSON response:",
+              jsonErr
+            );
+          }
+        } else {
+          console.warn(
+            "[preloadReceiveTokens] resAll response was not ok:",
+            resAll.status,
+            resAll.statusText
+          );
         }
 
         const stableSymbols = new Set<string>();
         if (resStables.ok) {
-          const stablesData = await resStables.json();
-          const stableChains = stablesData.tokens || {};
-          for (const chainId of Object.keys(stableChains)) {
-            for (const t of stableChains[chainId]) {
-              stableSymbols.add(t.symbol);
+          try {
+            const stablesData = await resStables.json();
+            const stableChains = stablesData.tokens || {};
+            for (const chainId of Object.keys(stableChains)) {
+              for (const t of stableChains[chainId]) {
+                stableSymbols.add(t.symbol);
+              }
             }
+            console.log(
+              "[preloadReceiveTokens] Successfully parsed stable tokens. Stable symbols count =",
+              stableSymbols.size
+            );
+          } catch (jsonErr) {
+            console.error(
+              "[preloadReceiveTokens] Failed to parse stable tokens JSON response:",
+              jsonErr
+            );
           }
+        } else {
+          console.warn(
+            "[preloadReceiveTokens] resStables response was not ok:",
+            resStables.status,
+            resStables.statusText
+          );
         }
 
         data = {
           tokens: allTokens,
           stableSymbols: Array.from(stableSymbols),
         };
+        console.log(
+          "[preloadReceiveTokens] Finished composing network token data.",
+          {
+            chainsCount: Object.keys(data.tokens).length,
+            stablesCount: data.stableSymbols.length,
+          }
+        );
       } catch (err) {
-        console.error("Failed to fetch tokens from li.quest", err);
+        console.error(
+          "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest:",
+          err
+        );
       }
 
       rawTokensCache = data;
 
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-      } catch (err) {}
+      if (Object.keys(data.tokens).length > 0) {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+          console.log(
+            "[preloadReceiveTokens] Successfully saved non-empty token data to localStorage cache."
+          );
+        } catch (err) {
+          console.error(
+            "[preloadReceiveTokens] Error writing token data to localStorage cache:",
+            err
+          );
+        }
+      } else {
+        console.warn(
+          "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Skipping cache write and resetting rawTokensPromise to allow retry."
+        );
+        rawTokensPromise = null;
+      }
 
       return data;
     })();
+  } else {
+    console.log(
+      "[preloadReceiveTokens] Using existing promise (single-flight / in-flight request)."
+    );
   }
   return rawTokensPromise;
 };
@@ -228,6 +330,9 @@ export const preloadReceiveTokens = () => {
 // Start preloading immediately in the background
 if (typeof window !== "undefined") {
   setTimeout(() => {
+    console.log(
+      "[preloadReceiveTokens] Calling preloadReceiveTokens from initial background timeout (1s)"
+    );
     preloadReceiveTokens();
   }, 1000);
 }
@@ -440,6 +545,9 @@ export function ReceiveAssetSelector({
     const fetchTokens = async () => {
       try {
         setIsLoading(true);
+        console.log(
+          "[preloadReceiveTokens] Calling preloadReceiveTokens from ReceiveAssetSelector useEffect (fetchTokens)"
+        );
         preloadReceiveTokens();
 
         const data = await rawTokensPromise;
