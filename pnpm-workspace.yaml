@@ -1,6 +1,6 @@
 allowBuilds:
-  "@avail-project/ca-common": false
-  "@avail-project/nexus-core": false
+  "@avail-project/ca-common": true
+  "@avail-project/nexus-core": true
   "@reown/appkit": true
   bufferutil: true
   core-js: true

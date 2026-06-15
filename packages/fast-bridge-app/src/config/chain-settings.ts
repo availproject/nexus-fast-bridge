@@ -743,7 +743,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     appConfig: {
       chainId: 999,
       chainName: "HyperEVM",
-      chainNativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+      chainNativeCurrency: { name: "Hype", symbol: "HYPE", decimals: 18 },
       chainRpcUrl: "https://rpc.hyperliquid.xyz/evm",
       chainBlockExplorerUrl: "https://purrsec.com",
       chainTestnet: false,

@@ -40,6 +40,7 @@ export default defineConfig({
     },
   },
   build: {
+    target: "es2022",
     outDir: "apps/root/dist",
     emptyOutDir: true,
     target: "es2022",
