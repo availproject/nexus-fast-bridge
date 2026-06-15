@@ -1,7 +1,9 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
-import type { SwapTokenOption } from "./swap-asset-selector";
+import { type SwapTokenOption } from "./swap-asset-selector";
 
 const uiFont = '"Geist", system-ui, sans-serif';
 const primary = "#161615";
@@ -10,12 +12,8 @@ const border = "#E8E8E7";
 const brand = "#006BF4";
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -30,15 +28,12 @@ const parseDecimal = (value: unknown) => {
 
 const formatToken = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  const max = amount.abs().gte(1) ? 6 : 8;
-  return amount.toDecimalPlaces(max).toFixed();
+  return amount.toDecimalPlaces(8).toFixed();
 };
 
 const formatUsd = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
   return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 
@@ -163,12 +158,16 @@ export function PayWithSources({
   routeStatus,
   routeMessage,
   showAutoBadge = true,
+  isSourcePickerDisabled = false,
+  reserveSourceRows = false,
 }: {
   fromTokens: SwapTokenOption[];
   onOpenSourcePicker: () => void;
   routeStatus?: "loading" | "insufficient";
   routeMessage?: string;
   showAutoBadge?: boolean;
+  isSourcePickerDisabled?: boolean;
+  reserveSourceRows?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const isRouteLoading = routeStatus === "loading";
@@ -184,7 +183,7 @@ export function PayWithSources({
         fontSize: "9px",
         fontWeight: 600,
         letterSpacing: "0.04em",
-        lineHeight: "12px",
+        lineHeight: "14px",
         padding: "1px 5px",
       }}
     >
@@ -197,13 +196,13 @@ export function PayWithSources({
       style={{
         backgroundColor: "#FFFFFE",
         border: `1px solid ${border}`,
-        borderRadius: "12px",
+        borderRadius: "10px",
         boxShadow: "#1616150A 0px 1px 2px",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
-        padding: "14px",
+        gap: "8px",
+        padding: "11px",
       }}
     >
       <div
@@ -219,11 +218,11 @@ export function PayWithSources({
             color: muted,
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "12px",
+            fontSize: "10.5px",
             fontWeight: 500,
             gap: "6px",
             letterSpacing: "0.08em",
-            lineHeight: "18px",
+            lineHeight: "17px",
             textTransform: "uppercase",
           }}
         >
@@ -235,18 +234,20 @@ export function PayWithSources({
         </div>
         {shouldShowSourceSummary && (
           <button
+            disabled={isSourcePickerDisabled}
             onClick={onOpenSourcePicker}
             style={{
-              backgroundColor: "#F4F7FE",
+              backgroundColor: isSourcePickerDisabled ? "#F4F4F3" : "#F4F7FE",
               border: "none",
-              borderRadius: "6px",
-              color: brand,
-              cursor: "pointer",
+              borderRadius: "5px",
+              color: isSourcePickerDisabled ? "#A8A8A6" : brand,
+              cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "13px",
               fontWeight: 500,
-              lineHeight: "16px",
-              padding: "7px 10px",
+              lineHeight: "14px",
+              opacity: isSourcePickerDisabled ? 0.75 : 1,
+              padding: "5.5px 8px",
             }}
             type="button"
           >
@@ -264,7 +265,7 @@ export function PayWithSources({
               color: brand,
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "11.5px",
               gap: "6px",
             }}
           >
@@ -283,6 +284,8 @@ export function PayWithSources({
               display: "flex",
               flexDirection: "column",
               maxHeight: shouldScroll ? "184px" : undefined,
+              minHeight:
+                reserveSourceRows && !shouldScroll ? "156px" : undefined,
               overflowY: shouldScroll ? "auto" : undefined,
               paddingRight: shouldScroll ? "6px" : 0,
             }}
@@ -330,7 +333,7 @@ export function PayWithSources({
                       style={{
                         color: muted,
                         fontFamily: uiFont,
-                        fontSize: "12px",
+                        fontSize: "10.5px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -354,7 +357,7 @@ export function PayWithSources({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "11.5px",
                     }}
                   >
                     {formatToken(token.userAmount || token.balance)}{" "}
@@ -364,7 +367,7 @@ export function PayWithSources({
                     style={{
                       color: muted,
                       fontFamily: uiFont,
-                      fontSize: "12px",
+                      fontSize: "10.5px",
                     }}
                   >
                     {formatUsd(token.userAmountUsd || token.balanceInFiat)}
@@ -407,8 +410,8 @@ export function PayWithSources({
           style={{
             color: primary,
             fontFamily: uiFont,
-            fontSize: "13px",
-            lineHeight: "18px",
+            fontSize: "11.5px",
+            lineHeight: "17px",
           }}
         >
           Sources will be auto selected
@@ -422,9 +425,9 @@ export function PayWithSources({
             color: "#D32F2F",
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "13px",
+            fontSize: "11.5px",
             gap: "8px",
-            lineHeight: "18px",
+            lineHeight: "17px",
           }}
         >
           <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />

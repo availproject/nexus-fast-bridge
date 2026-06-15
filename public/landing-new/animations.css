@@ -1,0 +1,151 @@
+/* FastBridge — scroll animations (preview / opt-in) */
+
+:root {
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-duration: 0.75s;
+  --motion-stagger: 0.08s;
+}
+
+/* ========== 3. SECTION REVEALS ========== */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity var(--motion-duration) var(--motion-ease-out),
+    transform var(--motion-duration) var(--motion-ease-out),
+    filter var(--motion-duration) var(--motion-ease-out);
+  will-change: opacity, transform;
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+[data-reveal="fade"] {
+  transform: none;
+}
+
+[data-reveal="slide-left"] {
+  transform: translateX(48px);
+}
+
+[data-reveal="slide-right"] {
+  transform: translateX(-48px);
+}
+
+[data-reveal="scale"] {
+  transform: scale(0.94);
+}
+
+/* ========== 4. STAGGERED LISTS ========== */
+
+[data-reveal-stagger] > [data-reveal-child] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity var(--motion-duration) var(--motion-ease-out),
+    transform var(--motion-duration) var(--motion-ease-out);
+}
+
+[data-reveal-stagger].is-revealed > [data-reveal-child] {
+  opacity: 1;
+  transform: none;
+}
+
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(1) {
+  transition-delay: calc(var(--motion-stagger) * 0);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(2) {
+  transition-delay: calc(var(--motion-stagger) * 1);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(3) {
+  transition-delay: calc(var(--motion-stagger) * 2);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(4) {
+  transition-delay: calc(var(--motion-stagger) * 3);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(5) {
+  transition-delay: calc(var(--motion-stagger) * 4);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(6) {
+  transition-delay: calc(var(--motion-stagger) * 5);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(n + 7) {
+  transition-delay: calc(var(--motion-stagger) * 6);
+}
+
+/* ========== 1. HERO ENTRANCE ========== */
+
+html.has-enhanced-animations [data-hero-animate] .hero__header,
+html.has-enhanced-animations [data-hero-animate] .hero__title-line,
+html.has-enhanced-animations [data-hero-animate] .hero__desc,
+html.has-enhanced-animations [data-hero-animate] .hero__actions {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: hero-enter 0.9s var(--motion-ease-out) forwards;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__header {
+  animation-delay: 0.15s;
+}
+
+html.has-enhanced-animations
+  [data-hero-animate]
+  .hero__title-line:nth-child(1) {
+  animation-delay: 0.35s;
+}
+
+html.has-enhanced-animations
+  [data-hero-animate]
+  .hero__title-line:nth-child(2) {
+  animation-delay: 0.48s;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__title-tablet,
+html.has-enhanced-animations [data-hero-animate] .hero__title-mobile {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: hero-enter 0.9s var(--motion-ease-out) 0.35s forwards;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__desc {
+  animation-delay: 0.62s;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__actions {
+  animation-delay: 0.78s;
+}
+
+@keyframes hero-enter {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ========== 2. HERO PARALLAX ========== */
+
+html.has-enhanced-animations [data-hero-animate] .hero__gradient-wrap {
+  transition: transform 0.1s linear;
+  will-change: transform;
+}
+
+/* ========== REDUCED MOTION ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-stagger] > [data-reveal-child],
+  html.has-enhanced-animations [data-hero-animate] .hero__header,
+  html.has-enhanced-animations [data-hero-animate] .hero__title-line,
+  html.has-enhanced-animations [data-hero-animate] .hero__desc,
+  html.has-enhanced-animations [data-hero-animate] .hero__actions {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

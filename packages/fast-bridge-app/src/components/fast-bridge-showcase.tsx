@@ -1,27 +1,90 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useAppKit } from "@reown/appkit/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Address } from "viem";
 import { useAccount, useChains, useSwitchChain } from "wagmi";
-import { CHAIN_REGISTRY } from "@/config/chain-settings";
-import { useRuntime } from "@/providers/runtime-context";
-import { readBridgeParams, writeBridgeParams } from "../lib/url-params";
+import { getChainSlugById, getChainSlugByName } from "@/config/chain-settings";
+import { readBridgeParams } from "../lib/url-params";
+import { useRuntime } from "../providers/runtime-context";
 import { TOKEN_CONTRACT_ADDRESSES } from "./common/utils/constant";
-import type { SwapTokenOption } from "./nexus-one/components/swap-asset-selector";
-import { NexusOne } from "./nexus-one/nexus-one";
+import NexusOne from "./nexus-one/nexus-one";
+import type { NexusOneConfig } from "./nexus-one/types";
+import { findCitreaReceiveToken } from "./nexus-one/utils/citrea-tokens";
 import { PreviewPanel } from "./wallet-connect";
+
+const DESTINATION_TOKEN_BY_CHAIN_SLUG: Record<string, string> = {
+  citrea: "ctUSD",
+  megaeth: "USDM",
+};
+
+interface ReceiveAsset {
+  chainId?: number;
+  chainName?: string;
+  contractAddress: string;
+  symbol: string;
+}
+
+type DestinationPair = NonNullable<
+  NonNullable<NexusOneConfig["prefill"]>["destination"]
+>;
+
+const tokenAddresses = TOKEN_CONTRACT_ADDRESSES as Record<
+  string,
+  Partial<Record<number, Address>>
+>;
+
+function getReceiveAssetKey(asset: ReceiveAsset | null): string {
+  if (!asset) {
+    return "";
+  }
+  return `${asset.chainId ?? asset.chainName ?? "unknown"}:${asset.contractAddress.toLowerCase()}:${asset.symbol.toUpperCase()}`;
+}
+
+function getReceiveTokenAddress(
+  chainId: number,
+  symbol: string
+): Address | undefined {
+  if (symbol.toLowerCase() === "ctusd") {
+    return findCitreaReceiveToken({ chainId, symbol })?.contractAddress as
+      | Address
+      | undefined;
+  }
+
+  return tokenAddresses[symbol.toUpperCase()]?.[chainId];
+}
+
+function getPreferredDestinationPair(
+  chainSlug: string,
+  chainId: number,
+  fallbackSymbol: string
+): DestinationPair | undefined {
+  const preferredSymbols = Array.from(
+    new Set([
+      DESTINATION_TOKEN_BY_CHAIN_SLUG[chainSlug] ?? "USDC",
+      fallbackSymbol,
+      "USDC",
+      "USDT",
+      "USDM",
+    ])
+  );
+
+  for (const symbol of preferredSymbols) {
+    const token = getReceiveTokenAddress(chainId, symbol);
+    if (token) {
+      return { chain: chainId, token };
+    }
+  }
+}
 
 const FastBridgeShowcase = () => {
   const { address, isConnected, chainId } = useAccount();
+  const { open } = useAppKit();
   const chains = useChains();
   const { switchChain } = useSwitchChain();
-  const { chainSlug, setChain } = useRuntime();
-  const location = useLocation();
-  const [params, setParams] = useState(readBridgeParams());
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: location is needed to trigger readBridgeParams on route updates
-  useEffect(() => {
-    setParams(readBridgeParams());
-  }, [location]);
+  const { appConfig, chainSlug, setChain } = useRuntime();
+  const [params] = useState(() => readBridgeParams());
+  const [receiveAssetOverride, setReceiveAssetOverride] =
+    useState<ReceiveAsset | null>(null);
 
   useEffect(() => {
     if (isConnected && chainId && switchChain) {
@@ -33,68 +96,72 @@ const FastBridgeShowcase = () => {
     }
   }, [isConnected, chainId, chains, switchChain]);
 
-  const handleDestinationTokenChange = useCallback(
-    (token: SwapTokenOption) => {
-      if (!token.chainId) {
-        return;
-      }
-      const targetSlug = Object.values(CHAIN_REGISTRY).find(
-        (c) => c.appConfig.chainId === token.chainId
-      )?.slug;
-
-      if (!targetSlug) {
-        return;
-      }
-
-      const nextToken = token.symbol.toUpperCase() as typeof params.token;
-      const isSameDestination =
-        params.to === token.chainId && params.token === nextToken;
-
-      if (targetSlug !== chainSlug) {
-        setChain(targetSlug);
-      }
-
-      if (isSameDestination) {
-        return;
-      }
-
-      const newParams = {
-        ...params,
-        to: token.chainId as typeof params.to,
-        token: nextToken,
-      } as typeof params;
-      writeBridgeParams(newParams);
-      setParams(newParams);
-    },
-    [chainSlug, params, setChain]
+  const receiveAssetOverrideKey = useMemo(
+    () => getReceiveAssetKey(receiveAssetOverride),
+    [receiveAssetOverride]
   );
 
-  const tokenAddress =
-    params.token && params.to
-      ? ((TOKEN_CONTRACT_ADDRESSES as Record<string, Record<number, string>>)[
-          params.token.toUpperCase()
-        ]?.[params.to] as `0x${string}`)
-      : undefined;
+  const receiveDestination = useMemo(() => {
+    if (receiveAssetOverrideKey) {
+      return undefined;
+    }
+
+    return getPreferredDestinationPair(
+      chainSlug,
+      appConfig.chainId,
+      appConfig.nexusPrimaryToken
+    );
+  }, [
+    appConfig.chainId,
+    appConfig.nexusPrimaryToken,
+    chainSlug,
+    receiveAssetOverrideKey,
+  ]);
+
+  const nexusConfig = useMemo<NexusOneConfig>(() => {
+    const prefill: NexusOneConfig["prefill"] = {};
+    if (receiveDestination) {
+      prefill.destination = receiveDestination;
+    }
+    if (params.amount) {
+      prefill.amount = params.amount;
+    }
+    if (params.recipient) {
+      prefill.recipient = params.recipient;
+    }
+
+    return {
+      mode: "swap",
+      prefill,
+    };
+  }, [params.amount, params.recipient, receiveDestination]);
+
+  const handleReceiveAssetChange = useCallback(
+    (asset: ReceiveAsset) => {
+      setReceiveAssetOverride((current) =>
+        getReceiveAssetKey(current) === getReceiveAssetKey(asset)
+          ? current
+          : asset
+      );
+      const slug =
+        (asset.chainId ? getChainSlugById(asset.chainId) : undefined) ??
+        getChainSlugByName(asset.chainName);
+      if (slug && slug !== chainSlug) {
+        setChain(slug);
+      }
+    },
+    [chainSlug, setChain]
+  );
 
   return (
     <PreviewPanel>
       <NexusOne
-        config={{
-          mode: "swap",
-          prefill: {
-            amount: params.amount,
-            recipient: params.recipient,
-            destination:
-              params.to && tokenAddress
-                ? {
-                    chain: params.to,
-                    token: tokenAddress,
-                  }
-                : undefined,
-          },
-        }}
+        config={nexusConfig}
         connectedAddress={address}
-        onDestinationTokenChange={handleDestinationTokenChange}
+        onConnectWallet={() => {
+          open({ view: "Connect" });
+        }}
+        onReceiveAssetChange={handleReceiveAssetChange}
       />
     </PreviewPanel>
   );

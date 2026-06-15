@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 import { useRuntime } from "@/providers/runtime-context";
 import type { ChainFeatures } from "@/types/runtime";
 import { TOKEN_IMAGES } from "../common/utils/constant";
-import useViewHistory, { type RFF } from "./hooks/use-view-history";
+import useViewHistory, {
+  type IntentHistoryItem,
+} from "./hooks/use-view-history";
 
 const getDestinationTokenImage = (
   tokenSymbol: string,
@@ -29,12 +31,19 @@ const getDestinationTokenImage = (
   return override ?? TOKEN_IMAGES[tokenSymbol];
 };
 
-const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
+const SourceChains = ({
+  sources,
+}: {
+  sources: IntentHistoryItem["sources"];
+}) => {
   const sourceList = sources ?? [];
   return (
     <div className="flex items-center">
       {sourceList.map(
-        (source: NonNullable<RFF["sources"]>[number], index: number) => (
+        (
+          source: NonNullable<IntentHistoryItem["sources"]>[number],
+          index: number
+        ) => (
           <div
             className={cn(
               "rounded-full transition-transform hover:scale-110",
@@ -68,6 +77,9 @@ const StatusBadge = ({ status }: { status: string }) => {
     if (status === "Refunded") {
       return "outline";
     }
+    if (status === "Created" || status === "Expired") {
+      return "outline";
+    }
     if (status === "Failed") {
       return "destructive";
     }
@@ -84,13 +96,16 @@ const StatusBadge = ({ status }: { status: string }) => {
 const DestinationToken = ({
   destination,
 }: {
-  destination: RFF["destinations"];
+  destination: IntentHistoryItem["destinations"];
 }) => {
   const { chainFeatures } = useRuntime();
   return (
     <div className="flex items-center">
       {destination.map(
-        (dest: NonNullable<RFF["destinations"]>[number], index: number) => (
+        (
+          dest: NonNullable<IntentHistoryItem["destinations"]>[number],
+          index: number
+        ) => (
           <div
             className={cn(
               "rounded-full transition-transform hover:scale-110",

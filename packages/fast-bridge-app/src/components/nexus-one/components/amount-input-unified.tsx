@@ -1,7 +1,8 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
-import type React from "react";
-import { useMemo } from "react";
-import type { UserAssetDatum } from "../../nexus/nexus-provider";
+import React, { useMemo } from "react";
+import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   formatTokenAmountDisplay,
   formatUsdBalanceLabel,
@@ -17,7 +18,7 @@ interface AmountInputUnifiedProps {
   tokenIcon?: React.ReactNode;
   /** Label shown beside Balance text, e.g. "USDC" */
   tokenSymbol?: string;
-  unifiedBalances?: UserAssetDatum[];
+  unifiedBalances?: UserAsset[];
   usdValue?: string;
 }
 
@@ -34,18 +35,14 @@ export function AmountInputUnified({
   header,
 }: AmountInputUnifiedProps) {
   const handleMax = () => {
-    if (!totalBalanceValue) {
-      return;
-    }
+    if (!totalBalanceValue) return;
     onChange(totalBalanceValue);
     onCommit?.(totalBalanceValue);
   };
 
   const isUsdMode = !tokenSymbol;
   const totalBalanceValue = useMemo(() => {
-    if (!(unifiedBalances && unifiedBalances.length)) {
-      return "";
-    }
+    if (!unifiedBalances || !unifiedBalances.length) return "";
     if (isUsdMode) {
       return unifiedBalances
         .reduce((acc, curr) => acc.add(curr.balanceInFiat ?? 0), new Decimal(0))
@@ -58,9 +55,7 @@ export function AmountInputUnified({
       .toFixed();
   }, [isUsdMode, unifiedBalances]);
   const totalBalanceLabel = useMemo(() => {
-    if (!(unifiedBalances && unifiedBalances.length)) {
-      return "0";
-    }
+    if (!unifiedBalances || !unifiedBalances.length) return "0";
     if (isUsdMode) {
       const fiatAmount = unifiedBalances.reduce(
         (acc, curr) => acc.add(curr.balanceInFiat ?? 0),
@@ -77,36 +72,36 @@ export function AmountInputUnified({
 
   return (
     <div
-      className="w-full flex flex-col bg-white min-h-[168px]"
+      className="w-full flex flex-col bg-white min-h-[136px] nexus-focus-container"
       style={{
-        borderRadius: "12px",
+        borderRadius: "10px",
         border: "1px solid var(--border-default, #E8E8E7)",
         boxShadow: "0px 1px 12px 0px #5B5B5B0D",
         background: "#FFFFFF",
       }}
     >
       {header && (
-        <div className="w-full border-b border-[#E8E8E7] px-4 py-3">
+        <div className="w-full border-b border-[#E8E8E7] px-3.5 py-2.5">
           {header}
         </div>
       )}
-      <div className="flex-1 w-full flex flex-col items-center justify-center p-4 relative">
+      <div className="flex-1 w-full flex flex-col items-center justify-center p-3.5 relative">
         {/* Central Input row: large amount + MAX button inline */}
-        <div className="flex items-center justify-center w-full gap-x-2 mb-1.5">
+        <div className="flex items-center justify-center w-full gap-x-1.5 mb-1">
           <div
             className="flex items-center justify-center text-center"
             style={{
-              fontSize: "34px",
+              fontSize: "28px",
               fontWeight: 500,
               gap: "2px",
             }}
           >
             {tokenIcon ? (
-              <div className="flex items-center justify-center mr-3">
+              <div className="flex items-center justify-center mr-2">
                 {tokenIcon}
               </div>
             ) : (
-              <span className="leading-none text-gray-800 mr-1.5">$</span>
+              <span className="leading-none text-gray-800 mr-1">$</span>
             )}
             <input
               className="min-w-0 text-start bg-transparent border-none outline-none p-0 focus:ring-0 placeholder:text-gray-300 truncate tabular-nums"
@@ -116,26 +111,21 @@ export function AmountInputUnified({
               onChange={(e) => {
                 let next = e.target.value.replaceAll(/[^0-9.]/g, "");
                 const parts = next.split(".");
-                if (parts.length > 2) {
+                if (parts.length > 2)
                   next = parts[0] + "." + parts.slice(1).join("");
-                }
-                if (next === ".") {
-                  next = "0.";
-                }
+                if (next === ".") next = "0.";
                 onChange(next);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  onCommit?.(amount);
-                }
+                if (e.key === "Enter") onCommit?.(amount);
               }}
               placeholder="0"
               style={{
                 fontFamily: "'Delight', sans-serif",
                 fontWeight: 500,
-                fontSize: "34px",
+                fontSize: "28px",
                 lineHeight: "100%",
-                height: "34px",
+                height: "28px",
                 letterSpacing: "2%",
                 color: "var(--foreground-primary, #161615)",
                 fieldSizing: "content",
@@ -153,15 +143,15 @@ export function AmountInputUnified({
             onClick={handleMax}
             style={{
               background: "var(--background-tertiary, #F0F0EF)",
-              width: "40px",
-              height: "22px",
-              borderRadius: "6px",
-              padding: "3px 7px",
+              width: "36px",
+              height: "20px",
+              borderRadius: "5px",
+              padding: "2px 6px",
               color: "var(--foreground-muted, #848483)",
               fontFamily:
                 "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
               fontWeight: 400,
-              fontSize: "10px",
+              fontSize: "9px",
               lineHeight: "100%",
             }}
           >
@@ -171,14 +161,14 @@ export function AmountInputUnified({
 
         {/* Balance display — below amount + MAX row */}
         {(totalBalanceValue || maxAvailableAmount) && (
-          <div className="absolute bottom-4 left-0 w-full flex justify-center">
+          <div className="absolute bottom-3 left-0 w-full flex justify-center">
             <p
               style={{
                 color: "var(--widget-card-foreground-muted, #848483)",
                 fontFamily:
                   "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
                 fontWeight: 400,
-                fontSize: "12px",
+                fontSize: "10.5px",
                 lineHeight: "100%",
                 textAlign: "center",
               }}

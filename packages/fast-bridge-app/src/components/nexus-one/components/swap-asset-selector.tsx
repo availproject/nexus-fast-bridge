@@ -1,3 +1,5 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-sdk-v2";
 import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
@@ -13,8 +15,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import type React from "react";
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -23,7 +24,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { CHAIN_METADATA } from "../../common";
+import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 const tabularNums: React.CSSProperties = {
@@ -55,12 +56,15 @@ interface SwapAssetSelectorProps {
   allowUnified?: boolean;
   autoSelectFilterTabs?: boolean;
   editingAssetIndex?: number | null;
+  filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
+  initialFilterTab?: FilterTab;
   isMulti?: boolean;
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
   onClearSelection?: () => void;
   onDone?: () => void;
+  onFilterTabSelect?: (tab: Exclude<FilterTab, "custom">) => void;
   onSelect: (token: SwapTokenOption) => void;
   onSelectionChange?: (tokens: SwapTokenOption[]) => void;
   onToggle?: (token: SwapTokenOption) => void;
@@ -79,9 +83,7 @@ export function deriveTokenOptions(
   const tokens: SwapTokenOption[] = [];
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
-      if (Number.parseFloat(bd.balance ?? "0") <= 0) {
-        continue;
-      }
+      if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       tokens.push({
         contractAddress: bd.contractAddress,
@@ -89,17 +91,16 @@ export function deriveTokenOptions(
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
         decimals: bd.decimals ?? asset.decimals ?? 18,
-        balance:
-          formatTokenBalance(bd.balance, {
-            symbol: bd.symbol ?? asset.symbol,
-            decimals: bd.decimals ?? asset.decimals ?? 18,
-          }) ?? bd.balance,
+        balance: bd.balance,
         balanceInFiat:
           bd.balanceInFiat != null
             ? `$${Number(bd.balanceInFiat).toFixed(2)}`
             : "$0.00",
         chainId: bd.chain?.id,
-        chainName: chainMeta?.name ?? bd.chain?.name,
+        chainName: getShortChainName(
+          bd.chain?.id,
+          chainMeta?.name ?? bd.chain?.name
+        ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
       });
     }
@@ -149,9 +150,7 @@ const SelectionControl = ({
   indeterminate?: boolean;
   multi: boolean;
 }) => {
-  if (!multi) {
-    return <RadioDot selected={selected} />;
-  }
+  if (!multi) return <RadioDot selected={selected} />;
 
   const isActive = selected || indeterminate;
 
@@ -201,7 +200,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
         out.push({
           id: t.chainId,
           logo: t.chainLogo,
-          name: t.chainName,
+          name: getShortChainName(t.chainId, t.chainName),
           balance: t.balance,
           balanceInFiat: t.balanceInFiat,
         });
@@ -221,9 +220,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
     setShowTooltip(true);
   };
   const closeTooltip = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-    }
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     closeTimerRef.current = setTimeout(() => {
       setShowTooltip(false);
       closeTimerRef.current = null;
@@ -231,9 +228,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
   };
   useEffect(() => {
     return () => {
-      if (closeTimerRef.current) {
-        clearTimeout(closeTimerRef.current);
-      }
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, []);
   const showTooltipAbove = tooltipRect ? tooltipRect.top > 240 : true;
@@ -263,7 +258,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                 ? tooltipRect.top - 12
                 : tooltipRect.bottom + 8,
               transform: showTooltipAbove ? "translateY(-100%)" : "none",
-              zIndex: 2_147_483_647,
+              zIndex: 2147483647,
             }}
           >
             <div
@@ -355,9 +350,11 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {String(chain.balance || "").replace(/\s+[^\s]+$/, "") ||
-                    chain.balanceInFiat ||
-                    "0"}
+                  {chain.balance
+                    ? formatTokenAmountDisplay(
+                        String(chain.balance).replace(/\s+[^\s]+$/, "")
+                      )
+                    : chain.balanceInFiat || "0"}
                 </span>
               </div>
             ))}
@@ -421,6 +418,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
 
 /* ── Filter tabs ── */
 type FilterTab = "all" | "native" | "stables" | "custom";
+type FilterTabBehavior = "select-all" | "source-pool";
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "all", label: "All" },
   { key: "native", label: "Native" },
@@ -480,56 +478,33 @@ const isStableToken = (token: SwapTokenOption) =>
   STABLE_SYMBOL_KEYS.has(token.symbol.trim().toUpperCase());
 
 function isNativeToken(t: SwapTokenOption) {
-  if (isNativeLikeAddress(t.contractAddress)) {
-    return true;
-  }
+  if (isNativeLikeAddress(t.contractAddress)) return true;
 
   const sym = t.symbol.toUpperCase();
   const chain = (t.chainName || "").toLowerCase();
 
-  if (sym === "ETH") {
-    return !(
-      chain.includes("bnb") ||
-      chain.includes("bsc") ||
-      chain.includes("polygon") ||
-      chain.includes("monad") ||
-      chain.includes("hyperevm")
+  if (sym === "ETH")
+    return (
+      !chain.includes("bnb") &&
+      !chain.includes("bsc") &&
+      !chain.includes("polygon") &&
+      !chain.includes("monad") &&
+      !chain.includes("hyperevm")
     );
-  }
-  if (sym === "POL" || sym === "MATIC") {
-    return chain.includes("polygon");
-  }
-  if (sym === "HYPE") {
-    return chain.includes("hyperevm");
-  }
-  if (sym === "MON") {
-    return chain.includes("monad");
-  }
-  if (sym === "BNB") {
-    return chain.includes("bnb") || chain.includes("bsc");
-  }
-  if (sym === "AVAX") {
-    return chain.includes("avalanche");
-  }
-  if (sym === "FTM") {
-    return chain.includes("fantom");
-  }
-  if (sym === "CELO") {
-    return chain.includes("celo");
-  }
-  if (sym === "SUI") {
-    return chain.includes("sui");
-  }
-  if (sym === "APT") {
-    return chain.includes("aptos");
-  }
-  if (sym === "SOL") {
-    return chain.includes("solana");
-  }
+  if (sym === "POL" || sym === "MATIC") return chain.includes("polygon");
+  if (sym === "HYPE") return chain.includes("hyperevm");
+  if (sym === "MON") return chain.includes("monad");
+  if (sym === "BNB") return chain.includes("bnb") || chain.includes("bsc");
+  if (sym === "AVAX") return chain.includes("avalanche");
+  if (sym === "FTM") return chain.includes("fantom");
+  if (sym === "CELO") return chain.includes("celo");
+  if (sym === "SUI") return chain.includes("sui");
+  if (sym === "APT") return chain.includes("aptos");
+  if (sym === "SOL") return chain.includes("solana");
   return false;
 }
 
-const MIN_FIAT_THRESHOLD = 1;
+const MIN_FIAT_THRESHOLD = 0;
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
@@ -538,17 +513,18 @@ const modalHeightTransitionStyle = {
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 export const SWAP_CHAIN_DISPLAY_ORDER = [
   1, // Ethereum
-  42_161, // Arbitrum
+  42161, // Arbitrum
   8453, // Base
   137, // Polygon
   10, // OP
   999, // HyperEVM
   56, // BSC
-  43_114, // Avalanche
+  // 43114, // Avalanche
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
   8217, // Kaia
+  534352, // Scroll
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
   SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])
@@ -562,9 +538,7 @@ export const sortChainIdsBySwapDisplayOrder = (chainIds: number[]) =>
       SWAP_CHAIN_DISPLAY_ORDER_RANK.get(a) ?? Number.MAX_SAFE_INTEGER;
     const bRank =
       SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b) ?? Number.MAX_SAFE_INTEGER;
-    if (aRank !== bRank) {
-      return aRank - bRank;
-    }
+    if (aRank !== bRank) return aRank - bRank;
 
     const aName = CHAIN_METADATA[a]?.name ?? String(a);
     const bName = CHAIN_METADATA[b]?.name ?? String(b);
@@ -582,42 +556,42 @@ export const compareChainsBySwapDisplayOrder = <
   const bRank =
     SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b.chainId ?? -1) ??
     Number.MAX_SAFE_INTEGER;
-  if (aRank !== bRank) {
-    return aRank - bRank;
-  }
+  if (aRank !== bRank) return aRank - bRank;
   return (a.chainName ?? "").localeCompare(b.chainName ?? "");
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42_161, 43_114, 534_352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) =>
-  Number(String(token.balanceInFiat ?? "").replace(/[^0-9.]/g, "") || 0);
+const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) => {
+  const parsed = Number(
+    String(token.balanceInFiat ?? "").replace(/[^0-9.]/g, "") || 0
+  );
+  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+};
 
 const formatBalanceWithSymbol = (
   token: Pick<SwapTokenOption, "balance" | "symbol">
 ) => {
-  const balance = String(token.balance ?? "").trim();
-  const symbol = token.symbol?.trim();
-  if (!symbol) {
-    return balance || "0";
+  const symbol = token.symbol?.trim() || "";
+  const balanceStr = String(token.balance ?? "").trim();
+  let cleanBalance = balanceStr;
+  if (symbol) {
+    cleanBalance = balanceStr.replace(
+      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
+      ""
+    );
   }
-  if (new RegExp(`(?:^|\\s)${escapeRegExp(symbol)}$`, "i").test(balance)) {
-    return balance || `0 ${symbol}`;
-  }
-  return `${balance || "0"} ${symbol}`;
+  const formatted = formatTokenAmountDisplay(cleanBalance);
+  return symbol ? `${formatted} ${symbol}` : formatted;
 };
 
 const parseTokenAmount = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -634,9 +608,7 @@ export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
   const abs = amount.abs();
 
-  if (amount.isZero()) {
-    return "0";
-  }
+  if (amount.isZero()) return "0";
 
   const compactUnits = [
     { suffix: "T", value: new Decimal(1_000_000_000_000) },
@@ -653,12 +625,12 @@ export const formatTokenAmountDisplay = (value: unknown) => {
     }
   }
 
-  const minDisplay = new Decimal("0.00001");
+  const minDisplay = new Decimal("0.00000001");
   if (amount.gt(0) && amount.lt(minDisplay)) {
     return `>${minDisplay.toFixed()}`;
   }
 
-  return amount.toDecimalPlaces(5, Decimal.ROUND_DOWN).toFixed();
+  return amount.toDecimalPlaces(8, Decimal.ROUND_DOWN).toFixed();
 };
 
 const addThousandsSeparators = (value: string) => {
@@ -673,12 +645,8 @@ export const formatUsdBalanceLabel = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
   const abs = amount.abs();
 
-  if (amount.isZero()) {
-    return "$0.00";
-  }
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.isZero()) return "$0.00";
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
 
   const compactUnits = [
     { suffix: "T", value: new Decimal(1_000_000_000_000) },
@@ -701,9 +669,7 @@ export const formatUsdBalanceLabel = (value: unknown) => {
 export const formatSelectedTokenBalanceLabel = (
   token?: Pick<SwapTokenOption, "balance" | "symbol">
 ) => {
-  if (!token) {
-    return "";
-  }
+  if (!token) return "";
   const symbol = token.symbol || "";
   const formatted = formatTokenAmountDisplay(token.balance);
   return symbol ? `${formatted} ${symbol}` : formatted;
@@ -729,9 +695,7 @@ export const getTokenSearchRank = (
   query: string
 ) => {
   const terms = getSearchTerms(query);
-  if (terms.length === 0) {
-    return null;
-  }
+  if (terms.length === 0) return null;
 
   let matchedTerms = 0;
   let symbolExactTerms = 0;
@@ -761,48 +725,22 @@ export const getTokenSearchRank = (
     const chainInclude = chainPrefix || includesTerm(token.chainName, term);
     const addressMatch = includesTerm(token.contractAddress, term);
 
-    if (tokenInclude || chainInclude || addressMatch) {
-      matchedTerms += 1;
-    }
-    if (symbolExact) {
-      symbolExactTerms += 1;
-    }
-    if (symbolPrefix) {
-      symbolPrefixTerms += 1;
-    }
-    if (symbolInclude) {
-      symbolIncludeTerms += 1;
-    }
-    if (namePrefix) {
-      namePrefixTerms += 1;
-    }
-    if (tokenExact) {
-      tokenExactTerms += 1;
-    }
-    if (tokenPrefix) {
-      tokenPrefixTerms += 1;
-    }
-    if (tokenInclude) {
-      tokenIncludeTerms += 1;
-    }
-    if (chainExact) {
-      chainExactTerms += 1;
-    }
-    if (chainPrefix) {
-      chainPrefixTerms += 1;
-    }
-    if (chainInclude) {
-      chainIncludeTerms += 1;
-    }
-    if (addressMatch) {
-      addressTerms += 1;
-    }
+    if (tokenInclude || chainInclude || addressMatch) matchedTerms += 1;
+    if (symbolExact) symbolExactTerms += 1;
+    if (symbolPrefix) symbolPrefixTerms += 1;
+    if (symbolInclude) symbolIncludeTerms += 1;
+    if (namePrefix) namePrefixTerms += 1;
+    if (tokenExact) tokenExactTerms += 1;
+    if (tokenPrefix) tokenPrefixTerms += 1;
+    if (tokenInclude) tokenIncludeTerms += 1;
+    if (chainExact) chainExactTerms += 1;
+    if (chainPrefix) chainPrefixTerms += 1;
+    if (chainInclude) chainIncludeTerms += 1;
+    if (addressMatch) addressTerms += 1;
   }
 
   const allTermsMatched = matchedTerms === terms.length;
-  if (!allTermsMatched) {
-    return null;
-  }
+  if (!allTermsMatched) return null;
 
   if (
     terms.length > 1 &&
@@ -820,42 +758,23 @@ export const getTokenSearchRank = (
 
   let score = 20;
   if (isTokenChainMatch) {
-    if (symbolExactTerms > 0 && chainExactTerms > 0) {
-      score = 0;
-    } else if (symbolExactTerms > 0 && chainPrefixTerms > 0) {
-      score = 1;
-    } else if (symbolExactTerms > 0 && chainIncludeTerms > 0) {
-      score = 2;
-    } else if (symbolPrefixTerms > 0 && chainIncludeTerms > 0) {
-      score = 3;
-    } else if (symbolIncludeTerms > 0 && chainIncludeTerms > 0) {
-      score = 4;
-    } else if (namePrefixTerms > 0 && chainIncludeTerms > 0) {
-      score = 5;
-    } else {
-      score = 6;
-    }
-  } else if (symbolExactTerms > 0) {
-    score = 7;
-  } else if (symbolPrefixTerms > 0) {
-    score = 8;
-  } else if (symbolIncludeTerms > 0) {
-    score = 9;
-  } else if (tokenExactTerms > 0) {
-    score = 10;
-  } else if (tokenPrefixTerms > 0) {
-    score = 11;
-  } else if (tokenIncludeTerms > 0) {
-    score = 12;
-  } else if (chainExactTerms > 0) {
-    score = 13;
-  } else if (chainPrefixTerms > 0) {
-    score = 14;
-  } else if (chainIncludeTerms > 0) {
-    score = 15;
-  } else if (addressTerms > 0) {
-    score = 16;
-  }
+    if (symbolExactTerms > 0 && chainExactTerms > 0) score = 0;
+    else if (symbolExactTerms > 0 && chainPrefixTerms > 0) score = 1;
+    else if (symbolExactTerms > 0 && chainIncludeTerms > 0) score = 2;
+    else if (symbolPrefixTerms > 0 && chainIncludeTerms > 0) score = 3;
+    else if (symbolIncludeTerms > 0 && chainIncludeTerms > 0) score = 4;
+    else if (namePrefixTerms > 0 && chainIncludeTerms > 0) score = 5;
+    else score = 6;
+  } else if (symbolExactTerms > 0) score = 7;
+  else if (symbolPrefixTerms > 0) score = 8;
+  else if (symbolIncludeTerms > 0) score = 9;
+  else if (tokenExactTerms > 0) score = 10;
+  else if (tokenPrefixTerms > 0) score = 11;
+  else if (tokenIncludeTerms > 0) score = 12;
+  else if (chainExactTerms > 0) score = 13;
+  else if (chainPrefixTerms > 0) score = 14;
+  else if (chainIncludeTerms > 0) score = 15;
+  else if (addressTerms > 0) score = 16;
 
   return {
     allTermsMatched,
@@ -886,21 +805,15 @@ const compareTokensBySearch = (
   const bRank = getTokenSearchRank(b, query);
   const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
   const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
-  if (aScore !== bScore) {
-    return aScore - bScore;
-  }
+  if (aScore !== bScore) return aScore - bScore;
 
   const aMatched = aRank?.matchedTerms ?? 0;
   const bMatched = bRank?.matchedTerms ?? 0;
-  if (aMatched !== bMatched) {
-    return bMatched - aMatched;
-  }
+  if (aMatched !== bMatched) return bMatched - aMatched;
 
   const aFiat = getTokenFiatValue(a);
   const bFiat = getTokenFiatValue(b);
-  if (aFiat !== bFiat) {
-    return bFiat - aFiat;
-  }
+  if (aFiat !== bFiat) return bFiat - aFiat;
 
   return `${a.symbol} ${a.chainName}`.localeCompare(
     `${b.symbol} ${b.chainName}`
@@ -913,22 +826,14 @@ function getUnifiedSymbol(token: Pick<SwapTokenOption, "symbol" | "chainId">) {
   }
 
   const symbol = token.symbol.toUpperCase();
-  if (symbol.includes("USDC") || symbol === "USDM") {
-    return "USDC" as const;
-  }
-  if (symbol.includes("USDT")) {
-    return "USDT" as const;
-  }
-  if (symbol === "ETH") {
-    return "ETH" as const;
-  }
+  if (symbol.includes("USDC") || symbol === "USDM") return "USDC" as const;
+  if (symbol.includes("USDT")) return "USDT" as const;
+  if (symbol === "ETH") return "ETH" as const;
   return null;
 }
 
 function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
-  if (!(a && b)) {
-    return false;
-  }
+  if (!a || !b) return false;
   if (a.isUnified || b.isUnified) {
     return Boolean(
       a.isUnified && b.isUnified && a.unifiedSymbol === b.unifiedSymbol
@@ -975,21 +880,15 @@ function isNativeLikeAddress(address?: string) {
 
 function addressTail(address?: string) {
   const normalized = (address ?? "").toLowerCase();
-  if (!normalized.startsWith("0x")) {
-    return normalized;
-  }
+  if (!normalized.startsWith("0x")) return normalized;
   return normalized.slice(-40);
 }
 
 function sameContractAddress(a?: string, b?: string) {
   const normalizedA = (a ?? "").toLowerCase();
   const normalizedB = (b ?? "").toLowerCase();
-  if (!(normalizedA && normalizedB)) {
-    return normalizedA === normalizedB;
-  }
-  if (normalizedA === normalizedB) {
-    return true;
-  }
+  if (!normalizedA || !normalizedB) return normalizedA === normalizedB;
+  if (normalizedA === normalizedB) return true;
   if (isNativeLikeAddress(normalizedA) && isNativeLikeAddress(normalizedB)) {
     return true;
   }
@@ -1014,18 +913,23 @@ export function SwapAssetSelector({
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
+  initialFilterTab = "all",
+  filterTabBehavior = "select-all",
+  onFilterTabSelect,
   lockedTokens = [],
   onSelectionChange,
   requiredUsd,
 }: SwapAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const stableListHeightRef = useRef(0);
   const chainCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const normalizedInitialFilterTab =
+    hideCustomTab && initialFilterTab === "custom" ? "all" : initialFilterTab;
+  const [activeTab, setActiveTab] = useState<FilterTab>(
+    normalizedInitialFilterTab
+  );
   const [showBelowMin, setShowBelowMin] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showChainSelector, setShowChainSelector] = useState(false);
@@ -1034,8 +938,9 @@ export function SwapAssetSelector({
   const [selectedChainFilter, setSelectedChainFilter] = useState<number | null>(
     null
   );
-  const [draftChainFilter, setDraftChainFilter] = useState<number | null>(null);
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
+  const stableListHeightRef = useRef(0);
+  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const lockedSelectedTokens = useMemo(
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
@@ -1049,9 +954,7 @@ export function SwapAssetSelector({
     SwapTokenOption[]
   >(() => mergeTokenOptions(selectedTokens, lockedSelectedTokens));
   useEffect(() => {
-    if (!isMulti) {
-      return;
-    }
+    if (!isMulti) return;
     setDraftSelectedTokens(
       mergeTokenOptions(selectedTokens, lockedSelectedTokens)
     );
@@ -1083,6 +986,14 @@ export function SwapAssetSelector({
   }, [activeTab, hideCustomTab]);
 
   useEffect(() => {
+    setActiveTab((current) =>
+      current === normalizedInitialFilterTab
+        ? current
+        : normalizedInitialFilterTab
+    );
+  }, [normalizedInitialFilterTab]);
+
+  useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
@@ -1090,14 +1001,10 @@ export function SwapAssetSelector({
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;
-    if (!listEl) {
-      return;
-    }
+    if (!listEl) return;
 
     const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) {
-      return;
-    }
+    if (nextHeight <= stableListHeightRef.current) return;
 
     stableListHeightRef.current = nextHeight;
     setStableListHeight(nextHeight);
@@ -1107,9 +1014,7 @@ export function SwapAssetSelector({
     preserveListHeight();
 
     const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") {
-      return;
-    }
+    if (!listEl || typeof ResizeObserver === "undefined") return;
 
     const observer = new ResizeObserver(() => {
       preserveListHeight();
@@ -1166,9 +1071,8 @@ export function SwapAssetSelector({
           (token) => token.chainId === selectedChainFilter
         );
       }
-      if (tab === "native") {
-        result = result.filter(isNativeToken);
-      } else if (tab === "stables") {
+      if (tab === "native") result = result.filter(isNativeToken);
+      else if (tab === "stables") {
         result = result.filter(isStableToken);
       }
 
@@ -1186,9 +1090,7 @@ export function SwapAssetSelector({
 
   const selectionMatchesFilterTab = useCallback(
     (tab: FilterTab) => {
-      if (tab === "custom") {
-        return true;
-      }
+      if (tab === "custom") return true;
       const expected = getFilterTabTokens(tab);
       const selected = mergeTokenOptions(
         activeSelectedTokens,
@@ -1207,15 +1109,15 @@ export function SwapAssetSelector({
   );
 
   useEffect(() => {
-    if (!(autoSelectFilterTabs && isMulti) || activeTab === "custom") {
-      return;
-    }
     if (
-      activeSelectedTokens.length === 0 &&
-      lockedSelectedTokens.length === 0
-    ) {
+      !autoSelectFilterTabs ||
+      filterTabBehavior === "source-pool" ||
+      !isMulti ||
+      activeTab === "custom"
+    )
       return;
-    }
+    if (activeSelectedTokens.length === 0 && lockedSelectedTokens.length === 0)
+      return;
     if (!selectionMatchesFilterTab(activeTab)) {
       setActiveTab("custom");
     }
@@ -1223,6 +1125,7 @@ export function SwapAssetSelector({
     activeTab,
     activeSelectedTokens.length,
     autoSelectFilterTabs,
+    filterTabBehavior,
     isMulti,
     lockedSelectedTokens.length,
     selectionMatchesFilterTab,
@@ -1239,21 +1142,16 @@ export function SwapAssetSelector({
         .filter((t) => getTokenSearchRank(t, query) !== null)
         .sort((a, b) => compareTokensBySearch(a, b, query));
     }
-    if (activeTab === "native") {
-      result = result.filter(isNativeToken);
-    } else if (activeTab === "stables") {
-      result = result.filter(isStableToken);
-    } else if (activeTab === "custom" && !autoSelectFilterTabs) {
-      result = result.filter((t) => !(isNativeToken(t) || isStableToken(t)));
-    }
+    if (activeTab === "native") result = result.filter(isNativeToken);
+    else if (activeTab === "stables") result = result.filter(isStableToken);
+    else if (activeTab === "custom" && !autoSelectFilterTabs)
+      result = result.filter((t) => !isNativeToken(t) && !isStableToken(t));
     return result;
   }, [activeTab, allTokens, autoSelectFilterTabs, query, selectedChainFilter]);
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
-      if (!preserveSelectedBelowMinimum) {
-        return false;
-      }
+      if (!preserveSelectedBelowMinimum) return false;
 
       return activeSelectedTokens.some(
         (selected) =>
@@ -1288,11 +1186,9 @@ export function SwapAssetSelector({
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
         isPrioritySearchMatch(t, query)
-      ) {
+      )
         above.push(t);
-      } else {
-        below.push(t);
-      }
+      else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
   }, [filtered, isTokenSelectedForVisibility, query]);
@@ -1306,9 +1202,7 @@ export function SwapAssetSelector({
         continue;
       }
       const key = unifiedSym ?? `${token.contractAddress}-${token.chainId}`;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
+      if (!groups[key]) groups[key] = [];
       groups[key].push(token);
     }
     return Object.values(groups)
@@ -1316,16 +1210,30 @@ export function SwapAssetSelector({
         let totalFiatVal = 0;
         let totalBalVal = 0;
         for (const t of group) {
-          totalFiatVal += getTokenFiatValue(t);
-          totalBalVal += Number(t.balance.replace(/[^0-9.]/g, "") || 0);
+          const fiatVal = getTokenFiatValue(t);
+          totalFiatVal += isNaN(fiatVal) || !isFinite(fiatVal) ? 0 : fiatVal;
+          const balStr = String(t.balance ?? "").replace(/[^0-9.]/g, "");
+          const balVal = Number(balStr || 0);
+          totalBalVal += isNaN(balVal) || !isFinite(balVal) ? 0 : balVal;
         }
         const unifiedSym = allowUnified ? getUnifiedSymbol(group[0]) : null;
+        const symbol = unifiedSym ?? group[0].symbol;
+        const isStable = ["USDC", "USDT", "DAI", "USDM", "CTUSD"].includes(
+          symbol.toUpperCase()
+        );
+        const maxDigits = isStable ? 2 : 6;
+        const formattedBal = totalBalVal.toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: maxDigits,
+        });
+
         return {
-          symbol: unifiedSym ?? group[0].symbol,
+          symbol,
           logo: group[0].logo,
           totalFiat: totalFiatVal,
           totalFiatStr: `$${totalFiatVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
-          totalBalStr: `${totalBalVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${unifiedSym ?? group[0].symbol}`,
+          totalBalStr: `${formattedBal} ${symbol}`,
+          totalBalRaw: totalBalVal,
           tokens: group,
           isUnifiedCandidate: Boolean(unifiedSym && group.length > 1),
         };
@@ -1369,9 +1277,7 @@ export function SwapAssetSelector({
                 Number.MAX_SAFE_INTEGER
             )
           );
-          if (aScore !== bScore) {
-            return aScore - bScore;
-          }
+          if (aScore !== bScore) return aScore - bScore;
         }
         return b.totalFiat - a.totalFiat;
       });
@@ -1389,11 +1295,8 @@ export function SwapAssetSelector({
     e.stopPropagation();
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(symbol)) {
-        next.delete(symbol);
-      } else {
-        next.add(symbol);
-      }
+      if (next.has(symbol)) next.delete(symbol);
+      else next.add(symbol);
       return next;
     });
   };
@@ -1425,9 +1328,7 @@ export function SwapAssetSelector({
           )
       );
     }
-    if (editingAssetIndex === null) {
-      return false;
-    }
+    if (editingAssetIndex === null) return false;
     const st = activeSelectedTokens[editingAssetIndex];
     return sameTokenOption(st, token);
   };
@@ -1435,9 +1336,7 @@ export function SwapAssetSelector({
   const isGroupUnifiedSelectedInOtherSlot = (
     group: (typeof groupedFiltered)[0]
   ) => {
-    if (allowSelectedTokenRemoval) {
-      return false;
-    }
+    if (allowSelectedTokenRemoval) return false;
     const relevantTokens = isMulti
       ? activeSelectedTokens
       : activeSelectedTokens.filter((_, idx) => idx !== editingAssetIndex);
@@ -1454,9 +1353,7 @@ export function SwapAssetSelector({
         (st) => st.isUnified && st.unifiedSymbol === group.symbol
       );
     }
-    if (editingAssetIndex === null) {
-      return false;
-    }
+    if (editingAssetIndex === null) return false;
     const st = activeSelectedTokens[editingAssetIndex];
     return Boolean(st?.isUnified && st.unifiedSymbol === group.symbol);
   };
@@ -1464,9 +1361,7 @@ export function SwapAssetSelector({
   const isAnyTokenInGroupSelectedInOtherSlot = (
     group: (typeof groupedFiltered)[0]
   ) => {
-    if (allowSelectedTokenRemoval) {
-      return false;
-    }
+    if (allowSelectedTokenRemoval) return false;
     const relevantTokens = isMulti
       ? activeSelectedTokens
       : activeSelectedTokens.filter((_, idx) => idx !== editingAssetIndex);
@@ -1479,12 +1374,12 @@ export function SwapAssetSelector({
 
   const handleFilterTabClick = (tab: FilterTab) => {
     setActiveTab(tab);
-    if (
-      autoSelectFilterTabs &&
-      isMulti &&
-      tab !== "custom" &&
-      onSelectionChange
-    ) {
+    if (autoSelectFilterTabs && isMulti && tab !== "custom") {
+      if (filterTabBehavior === "source-pool") {
+        onFilterTabSelect?.(tab);
+        return;
+      }
+      if (!onSelectionChange) return;
       emitSelectionChange(getFilterTabTokens(tab));
     }
   };
@@ -1499,7 +1394,7 @@ export function SwapAssetSelector({
   };
 
   const handleMultiTokenToggle = (token: SwapTokenOption) => {
-    if (!(autoSelectFilterTabs && isMulti && onSelectionChange)) {
+    if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
       onToggle?.(token);
       return;
     }
@@ -1514,9 +1409,7 @@ export function SwapAssetSelector({
         ? token.sourceTokens
         : [token];
     const unlockedTargets = targets.filter((target) => !isLockedToken(target));
-    if (unlockedTargets.length === 0) {
-      return;
-    }
+    if (unlockedTargets.length === 0) return;
 
     const allTargetsSelected = unlockedTargets.every((target) =>
       current.some((item) => sameTokenOption(item, target))
@@ -1534,9 +1427,7 @@ export function SwapAssetSelector({
     isDisabledByUnified = false
   ) => {
     const selectedInOther = !isMulti && isTokenSelectedInOtherSlot(token);
-    if (selectedInOther) {
-      return null;
-    }
+    if (selectedInOther) return null;
 
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
@@ -1546,9 +1437,7 @@ export function SwapAssetSelector({
         disabled={disabled}
         key={`${token.contractAddress}-${token.chainId}`}
         onClick={() => {
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           if (isMulti) {
             handleMultiTokenToggle(token);
           } else if (
@@ -1557,9 +1446,7 @@ export function SwapAssetSelector({
             onToggle
           ) {
             onToggle(token);
-          } else {
-            onSelect(token);
-          }
+          } else onSelect(token);
         }}
         style={{
           width: "100%",
@@ -1705,9 +1592,7 @@ export function SwapAssetSelector({
 
     const unifiedSelectedInOther =
       !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
-    if (unifiedSelectedInOther) {
-      return null;
-    }
+    if (unifiedSelectedInOther) return null;
 
     const individualTokens = group.tokens.filter(
       (token) =>
@@ -1722,9 +1607,7 @@ export function SwapAssetSelector({
     const visibleTokensCount = individualTokens.filter(
       (t) => !isTokenSelectedInOtherSlot(t)
     ).length;
-    if (!hasVisibleUnifiedRow && visibleTokensCount === 0) {
-      return null;
-    }
+    if (!hasVisibleUnifiedRow && visibleTokensCount === 0) return null;
 
     const isExpanded = expandedGroups.has(group.symbol);
     const unifiedSelectedInCurrent = isGroupUnifiedSelectedInCurrentSlot(group);
@@ -1750,7 +1633,7 @@ export function SwapAssetSelector({
       !isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent);
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
-      balance: group.totalBalStr.split(" ")[0] ?? group.tokens[0].balance,
+      balance: String(group.totalBalRaw),
       balanceInFiat: group.totalFiatStr,
       chainId: undefined,
       chainName: "All Chains",
@@ -1794,11 +1677,8 @@ export function SwapAssetSelector({
               <div
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (isMulti) {
-                    handleMultiTokenToggle(unifiedToken);
-                  } else {
-                    onSelect(unifiedToken);
-                  }
+                  if (isMulti) handleMultiTokenToggle(unifiedToken);
+                  else onSelect(unifiedToken);
                 }}
                 style={{ cursor: "pointer" }}
               >
@@ -1879,7 +1759,7 @@ export function SwapAssetSelector({
                       borderRadius: 4,
                       padding: "2px 8px",
                       letterSpacing: "0.04em",
-                      lineHeight: "16px",
+                      lineHeight: "18px",
                     }}
                   >
                     UNIFIED
@@ -2000,7 +1880,6 @@ export function SwapAssetSelector({
       clearTimeout(chainCloseTimerRef.current);
       chainCloseTimerRef.current = null;
     }
-    setDraftChainFilter(selectedChainFilter);
     setChainQuery("");
     setIsChainSelectorClosing(false);
     setShowChainSelector(true);
@@ -2022,24 +1901,22 @@ export function SwapAssetSelector({
     const options = new Map<number, SwapTokenOption>();
 
     for (const chain of swapSupportedChains ?? []) {
-      if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) {
-        continue;
-      }
+      if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) continue;
       options.set(chain.id, {
         contractAddress: "",
         symbol: "",
-        name: chain.name,
+        name: getShortChainName(chain.id, chain.name),
         decimals: 18,
         balance: "0",
         balanceInFiat: "$0.00",
         chainId: chain.id,
-        chainName: chain.name,
+        chainName: getShortChainName(chain.id, chain.name),
         chainLogo: chain.logo,
       });
     }
 
     for (const token of allTokens) {
-      if (!(token.chainId && SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId))) {
+      if (!token.chainId || !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId)) {
         continue;
       }
       if (!options.has(token.chainId)) {
@@ -2179,7 +2056,7 @@ export function SwapAssetSelector({
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "20px",
                 padding: "2px 0",
               }}
             >
@@ -2281,9 +2158,9 @@ export function SwapAssetSelector({
               style={{
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "16px",
+                lineHeight: "18px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -2466,7 +2343,7 @@ export function SwapAssetSelector({
                           fontWeight: 600,
                           fontSize: 13,
                           color: "#161615",
-                          lineHeight: "18px",
+                          lineHeight: "20px",
                         }}
                       >
                         Tokens below minimum
@@ -2476,7 +2353,7 @@ export function SwapAssetSelector({
                           fontFamily: '"Geist", system-ui, sans-serif',
                           fontSize: 12,
                           color: "#848483",
-                          lineHeight: "16px",
+                          lineHeight: "18px",
                           textAlign: "left",
                         }}
                       >
@@ -2649,7 +2526,7 @@ export function SwapAssetSelector({
                               fontWeight: 500,
                               fontSize: 12,
                               color: "#848483",
-                              lineHeight: "16px",
+                              lineHeight: "18px",
                               minWidth: 0,
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -2666,7 +2543,7 @@ export function SwapAssetSelector({
                             fontSize: 12,
                             color: "#848483",
                             fontWeight: 500,
-                            lineHeight: "16px",
+                            lineHeight: "18px",
                             flexShrink: 0,
                             marginLeft: 12,
                           }}
@@ -2685,7 +2562,7 @@ export function SwapAssetSelector({
 
       {/* Done button */}
       {isMulti && (
-        <div style={{ paddingBottom: 6, marginTop: "auto" }}>
+        <div style={{ flexShrink: 0, paddingBottom: 6, marginTop: "auto" }}>
           {shouldShowSelectionProgress && requiredUsdAmount && (
             <div
               style={{
@@ -2708,7 +2585,7 @@ export function SwapAssetSelector({
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                   }}
                 >
                   Required
@@ -2718,7 +2595,7 @@ export function SwapAssetSelector({
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: 13,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                   }}
                 >
                   <strong style={{ color: "#161615", fontWeight: 600 }}>
@@ -2757,7 +2634,7 @@ export function SwapAssetSelector({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: "#006BF4",
+                backgroundColor: "#1F1F1F",
                 color: "#FFFFFE",
                 border: "none",
                 borderRadius: 14,
@@ -2958,7 +2835,10 @@ export function SwapAssetSelector({
                     }}
                   >
                     <button
-                      onClick={() => setDraftChainFilter(null)}
+                      onClick={() => {
+                        setSelectedChainFilter(null);
+                        closeChainSelector();
+                      }}
                       style={{
                         width: "100%",
                         display: "flex",
@@ -2971,7 +2851,7 @@ export function SwapAssetSelector({
                         boxSizing: "border-box",
                       }}
                     >
-                      <RadioDot selected={draftChainFilter === null} />
+                      <RadioDot selected={selectedChainFilter === null} />
                       <Globe
                         style={{
                           marginLeft: 10,
@@ -3004,7 +2884,10 @@ export function SwapAssetSelector({
                       .map((t) => (
                         <button
                           key={`chain-${t.chainId}`}
-                          onClick={() => setDraftChainFilter(t.chainId!)}
+                          onClick={() => {
+                            setSelectedChainFilter(t.chainId!);
+                            closeChainSelector();
+                          }}
                           style={{
                             width: "100%",
                             display: "flex",
@@ -3017,7 +2900,9 @@ export function SwapAssetSelector({
                             boxSizing: "border-box",
                           }}
                         >
-                          <RadioDot selected={draftChainFilter === t.chainId} />
+                          <RadioDot
+                            selected={selectedChainFilter === t.chainId}
+                          />
                           <img
                             alt={t.chainName}
                             src={t.chainLogo}
@@ -3044,30 +2929,6 @@ export function SwapAssetSelector({
                       ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedChainFilter(draftChainFilter);
-                    closeChainSelector();
-                  }}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#006BF4",
-                    border: "none",
-                    borderRadius: 10,
-                    color: "#FFFFFE",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexShrink: 0,
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    height: 44,
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
-                  Done
-                </button>
               </div>
             </div>
           );

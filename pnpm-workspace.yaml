@@ -11,7 +11,6 @@ allowBuilds:
   "@avail-project/ca-common": true
   "@avail-project/nexus-sdk-v2": true
   "@avail-project/nexus-types": true
-  "@avail-project/nexus-core": true
   msw: true
   sharp: true
   unrs-resolver: true

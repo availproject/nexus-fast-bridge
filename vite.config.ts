@@ -32,10 +32,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./packages/fast-bridge-app/src"),
-      "@avail-project/nexus-core": path.resolve(
-        __dirname,
-        "./node_modules/@avail-project/nexus-core"
-      ),
       buffer: bufferShimPath,
       "safe-buffer": path.resolve(
         __dirname,

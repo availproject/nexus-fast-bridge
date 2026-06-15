@@ -25,7 +25,6 @@ export type UserAsset = TokenBalance & {
   balanceInFiat?: number;
 };
 
-export type UserAssetDatum = UserAsset;
 type SupportedChainsResult = SupportedChainsAndTokensResult;
 
 import {

@@ -1,3 +1,5 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -19,6 +21,7 @@ interface SwapIdleFormProps {
   fromTokens: SwapTokenOption[];
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
+  isSourcePickerDisabled?: boolean;
   onAmountChange: (val: string, panel: "send" | "receive") => void;
   onOpenDestPicker: () => void;
   onOpenRecipientPicker?: () => void;
@@ -78,41 +81,74 @@ const ArrowUpDownIcon = () => (
 function PercentButtons({
   visible,
   onSelect,
-  maxLabel = "MAX",
+  maxLabel = "Max",
 }: {
   visible: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
 }) {
-  if (!visible) {
-    return null;
-  }
+  const [hoveredPct, setHoveredPct] = useState<number | null>(null);
 
   return (
     <div
       style={{
         alignItems: "center",
+        backgroundColor: "#F0F3F9",
+        borderRadius: "6px",
+        boxShadow: "#2A388B0F 0px 1px 2px inset",
         boxSizing: "border-box",
         display: "flex",
-        gap: "5px",
-        height: "24px",
-        minHeight: "24px",
-        opacity: 1,
-        overflow: "hidden",
-        pointerEvents: "auto",
-        transition: "opacity 0.18s ease-out",
-        width: "100%",
+        flexShrink: 0,
+        gap: "2px",
+        padding: "2px",
+        opacity: visible ? 1 : 0,
+        visibility: visible ? "visible" : "hidden",
+        pointerEvents: visible ? "auto" : "none",
+        transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
+        width: "108px",
       }}
     >
-      {[25, 50, 75, 100].map((pct) => {
+      {[20, 50, 100].map((pct) => {
         const label = pct === 100 ? maxLabel : `${pct}%`;
+        const isHovered = hoveredPct === pct;
+
         return (
-          <PercentHoverButton
+          <button
             key={pct}
-            label={label}
-            onClick={() => onSelect(pct)}
-            tabIndex={0}
-          />
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(pct);
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+            }}
+            onMouseEnter={() => setHoveredPct(pct)}
+            onMouseLeave={() => setHoveredPct(null)}
+            style={{
+              alignItems: "center",
+              backgroundColor: isHovered ? "#FFFFFF" : "transparent",
+              borderRadius: "4px",
+              boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
+              boxSizing: "border-box",
+              color: isHovered ? "#1F1F1F" : "#8E8E89",
+              cursor: "pointer",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "10.5px",
+              fontWeight: 500,
+              height: "20px",
+              justifyContent: "center",
+              flex: "1 1 0%",
+              minWidth: 0,
+              paddingInline: "3px",
+              border: "none",
+              transition: "all 0.15s ease-out",
+            }}
+            tabIndex={-1}
+            type="button"
+          >
+            {label}
+          </button>
         );
       })}
     </div>
@@ -143,9 +179,7 @@ function UnifiedTokenLogoBadge({
 
   const showPopover = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect || typeof window === "undefined") {
-      return;
-    }
+    if (!rect || typeof window === "undefined") return;
     const width = 250;
     const maxHeight = 260;
     const viewportPadding = 8;
@@ -197,7 +231,7 @@ function UnifiedTokenLogoBadge({
             fontWeight: 700,
             height: "12px",
             justifyContent: "center",
-            lineHeight: "12px",
+            lineHeight: "14px",
             minWidth: "12px",
             paddingInline: chainCount > 9 ? "3px" : 0,
             position: "absolute",
@@ -227,7 +261,7 @@ function UnifiedTokenLogoBadge({
               position: "fixed",
               top: popover.top,
               width: popover.width,
-              zIndex: 2_147_483_647,
+              zIndex: 2147483647,
             }}
           >
             <div
@@ -255,7 +289,7 @@ function UnifiedTokenLogoBadge({
                 style={{
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
+                  fontSize: "15px",
                   fontWeight: 700,
                   lineHeight: "16px",
                 }}
@@ -299,9 +333,9 @@ function UnifiedTokenLogoBadge({
                       style={{
                         color: "#161615",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "13px",
+                        fontSize: "15px",
                         fontWeight: 500,
-                        lineHeight: "18px",
+                        lineHeight: "20px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -314,9 +348,9 @@ function UnifiedTokenLogoBadge({
                     style={{
                       color: "#161615",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
+                      fontSize: "15px",
                       fontWeight: 600,
-                      lineHeight: "18px",
+                      lineHeight: "20px",
                     }}
                   >
                     {formatAmountInputDisplay(source.balance || "0")}
@@ -381,9 +415,7 @@ function PercentHoverButton({
       }}
       onMouseUp={() => setActive(false)}
       onPointerDown={(event) => {
-        if (event.pointerType === "mouse") {
-          return;
-        }
+        if (event.pointerType === "mouse") return;
         event.preventDefault();
         if (pointerResetTimerRef.current) {
           clearTimeout(pointerResetTimerRef.current);
@@ -535,9 +567,7 @@ const sameAddress = (a?: string, b?: string) =>
   Boolean(a && b && a.toLowerCase() === b.toLowerCase());
 
 const formatShortAddress = (address?: string) => {
-  if (!address) {
-    return "";
-  }
+  if (!address) return "";
   return address.length > 12
     ? `${address.slice(0, 6)}…${address.slice(-4)}`
     : address;
@@ -546,12 +576,8 @@ const formatShortAddress = (address?: string) => {
 const formatTokenBalanceLabel = formatSelectedTokenBalanceLabel;
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -574,9 +600,7 @@ const getTokenInputDecimals = (token?: Pick<SwapTokenOption, "decimals">) => {
 };
 
 const formatAmountInputDisplay = (value: string) => {
-  if (!value) {
-    return "";
-  }
+  if (!value) return "";
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -607,14 +631,19 @@ export function SwapIdleForm({
   swapType,
   allowOverBalanceAmounts = false,
   onUpdateTokens,
+  isSourcePickerDisabled = false,
 }: SwapIdleFormProps) {
   const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
     null
   );
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
+    null
+  );
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const previousSourceCountRef = useRef(fromTokens.length);
 
   useEffect(() => {
@@ -622,10 +651,17 @@ export function SwapIdleForm({
     if (fromTokens.length > previousSourceCount && previousSourceCount > 0) {
       const newIndex = fromTokens.length - 1;
       requestAnimationFrame(() => {
+        const input = sourceInputRefs.current[newIndex];
+        if (input) {
+          input.focus();
+          input.select();
+        }
+
         const container = sourceListRef.current;
         const row = sourceRowRefs.current[newIndex];
         if (
-          !(container && row) ||
+          !container ||
+          !row ||
           container.scrollHeight <= container.clientHeight
         ) {
           return;
@@ -648,37 +684,25 @@ export function SwapIdleForm({
   const sanitizeInput = (raw: string, maxDecimals = 18): string => {
     let next = raw.replaceAll(/[^0-9.]/g, "");
     const parts = next.split(".");
-    if (parts.length > 2) {
-      next = parts[0] + "." + parts.slice(1).join("");
-    }
+    if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
     const [integerPart, decimalPart] = next.split(".");
     if (decimalPart !== undefined) {
       next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
     }
-    if (next === ".") {
-      next = "0.";
-    }
+    if (next === ".") next = "0.";
     // Strip leading zeros
     if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
       next = next.replace(/^0+/, "");
-      if (next === "") {
-        next = "0";
-      }
-      if (next.startsWith(".")) {
-        next = "0" + next;
-      }
+      if (next === "") next = "0";
+      if (next.startsWith(".")) next = "0" + next;
     }
     return next;
   };
 
   const handleBlurAmount = (index: number) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!(token && token.userAmount)) {
-      return;
-    }
+    if (!token || !token.userAmount) return;
     if (token.userAmount.includes(".")) {
       const stripped = token.userAmount.replace(/0+$/, "").replace(/\.$/, "");
       if (stripped !== token.userAmount) {
@@ -698,13 +722,9 @@ export function SwapIdleForm({
   };
 
   const handleTokenAmountChange = (index: number, val: string) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     let sanitized = sanitizeInput(
       val,
@@ -739,22 +759,16 @@ export function SwapIdleForm({
   };
 
   const handleToggleMode = (index: number) => {
-    if (!onUpdateTokens) {
-      return;
-    }
+    if (!onUpdateTokens) return;
     const token = fromTokens[index];
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     const tokenBalance =
       Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
     const fiatBalance =
       Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
     const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-    if (price === 0) {
-      return;
-    }
+    if (price === 0) return;
 
     const currentVal = Number(token.userAmount || 0);
     const next = [...fromTokens];
@@ -775,25 +789,17 @@ export function SwapIdleForm({
   };
 
   const getSourceUsdValue = React.useCallback((token: SwapTokenOption) => {
-    if (!(token && token.userAmount)) {
-      return 0;
-    }
+    if (!token || !token.userAmount) return 0;
     const quotedUsd = parseDecimal(token.userAmountUsd);
-    if (quotedUsd && quotedUsd.gte(0)) {
-      return quotedUsd.toNumber();
-    }
+    if (quotedUsd && quotedUsd.gte(0)) return quotedUsd.toNumber();
     const tokenBalance =
       Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
     const fiatBalance =
       Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
     const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
     const amountNumber = Number(token.userAmount || 0);
-    if (!Number.isFinite(amountNumber)) {
-      return 0;
-    }
-    if (token.userAmountMode === "usd") {
-      return amountNumber;
-    }
+    if (!Number.isFinite(amountNumber)) return 0;
+    if (token.userAmountMode === "usd") return amountNumber;
     return amountNumber * price;
   }, []);
 
@@ -805,7 +811,7 @@ export function SwapIdleForm({
   const [isSourceListAtBottom, setIsSourceListAtBottom] = useState(false);
   const updateSourceListScrollState = React.useCallback(() => {
     const element = sourceListRef.current;
-    if (!(element && hasSourceOverflow)) {
+    if (!element || !hasSourceOverflow) {
       setIsSourceListAtBottom(false);
       return;
     }
@@ -884,18 +890,14 @@ export function SwapIdleForm({
     pct: number,
     token: SwapTokenOption
   ) => {
-    if (!(token.balance && onUpdateTokens)) {
-      return;
-    }
+    if (!token.balance || !onUpdateTokens) return;
     let finalVal = "";
     const isUsdMode = token.userAmountMode === "usd";
 
     if (isUsdMode) {
       const fiatBalStr = String(token.balanceInFiat || "0");
       const fiatBalance = parseDecimal(fiatBalStr);
-      if (!fiatBalance) {
-        return;
-      }
+      if (!fiatBalance) return;
       if (pct === 100) {
         finalVal = fiatBalance
           .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -910,9 +912,7 @@ export function SwapIdleForm({
     } else {
       const balanceStr = String(token.balance || "0");
       const tokenBalance = parseDecimal(balanceStr);
-      if (!tokenBalance) {
-        return;
-      }
+      if (!tokenBalance) return;
       const tokenDecimals = getTokenInputDecimals(token);
       if (pct === 100) {
         finalVal = tokenBalance
@@ -939,13 +939,9 @@ export function SwapIdleForm({
   };
 
   const handleSendPercent = (pct: number) => {
-    if (!totalBalance) {
-      return;
-    }
-    const bal = Number.parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
-    if (isNaN(bal)) {
-      return;
-    }
+    if (!totalBalance) return;
+    const bal = parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
+    if (isNaN(bal)) return;
     const val = bal * (pct / 100);
     // If there's only one token, or no tokens, update the main amount
     if (fromTokens.length <= 1) {
@@ -977,6 +973,7 @@ export function SwapIdleForm({
       )}
       {/* ─── SEND PANEL ─── */}
       <div
+        className="nexus-focus-container"
         style={{
           alignItems: "center",
           backgroundColor: "#FFFFFE",
@@ -989,10 +986,10 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
+          gap: "8px",
           justifyContent: "center",
-          paddingBlock: "14px",
-          paddingInline: "14px",
+          paddingBlock: "11px",
+          paddingInline: "11px",
           width: "100%",
         }}
       >
@@ -1012,17 +1009,17 @@ export function SwapIdleForm({
               boxSizing: "border-box",
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "20px",
+              lineHeight: "23px",
               textTransform: "uppercase" as const,
             }}
           >
             Send
           </div>
           <button
-            disabled={fromTokens.length === 0}
+            disabled={fromTokens.length === 0 || isSourcePickerDisabled}
             onClick={() => onOpenSourcePicker()}
             style={{
               alignItems: "center",
@@ -1032,13 +1029,20 @@ export function SwapIdleForm({
               display: "flex",
               gap: "5px",
               padding: "2px 0",
-              color: fromTokens.length > 0 ? "#006BF4" : "#A8A8A6",
-              cursor: fromTokens.length > 0 ? "pointer" : "not-allowed",
+              color:
+                fromTokens.length > 0 && !isSourcePickerDisabled
+                  ? "#006BF4"
+                  : "#A8A8A6",
+              cursor:
+                fromTokens.length > 0 && !isSourcePickerDisabled
+                  ? "pointer"
+                  : "not-allowed",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
-              lineHeight: "18px",
-              opacity: fromTokens.length > 0 ? 1 : 0.75,
+              lineHeight: "20px",
+              opacity:
+                fromTokens.length > 0 && !isSourcePickerDisabled ? 1 : 0.75,
             }}
             type="button"
           >
@@ -1046,7 +1050,7 @@ export function SwapIdleForm({
               aria-hidden="true"
               style={{
                 color: "currentColor",
-                fontSize: "16px",
+                fontSize: "18px",
                 lineHeight: "16px",
               }}
             >
@@ -1134,9 +1138,9 @@ export function SwapIdleForm({
                                 : "#9E9E9C",
                               fontFamily:
                                 '"Delight-Medium", "Delight", system-ui, sans-serif',
-                              fontSize: "32px",
+                              fontSize: "36px",
                               fontWeight: 500,
-                              lineHeight: "38px",
+                              lineHeight: "44px",
                               marginRight: "4px",
                             }}
                           >
@@ -1145,20 +1149,19 @@ export function SwapIdleForm({
                         )}
                         <input
                           onBlur={() => {
-                            if (token) {
-                              handleBlurAmount(index);
-                            }
+                            if (token) handleBlurAmount(index);
                             setFocusedRow(null);
                           }}
                           onChange={(e) => {
-                            if (token) {
+                            if (token)
                               handleTokenAmountChange(index, e.target.value);
-                            } else {
-                              handleSendInput(e);
-                            }
+                            else handleSendInput(e);
                           }}
                           onFocus={() => setFocusedRow(index)}
                           placeholder="0"
+                          ref={(element) => {
+                            sourceInputRefs.current[index] = element;
+                          }}
                           style={{
                             boxSizing: "border-box",
                             color: (
@@ -1170,9 +1173,9 @@ export function SwapIdleForm({
                               : "#9E9E9C",
                             fontFamily:
                               '"Delight-Medium", "Delight", system-ui, sans-serif',
-                            fontSize: "32px",
+                            fontSize: "36px",
                             fontWeight: 500,
-                            lineHeight: "38px",
+                            lineHeight: "44px",
                             background: "transparent",
                             border: "none",
                             outline: "none",
@@ -1225,6 +1228,7 @@ export function SwapIdleForm({
                       </div>
                     ) : (
                       <button
+                        disabled={isSourcePickerDisabled}
                         onClick={() => onOpenSourcePicker(index)}
                         style={{
                           alignItems: "center",
@@ -1241,8 +1245,11 @@ export function SwapIdleForm({
                           paddingLeft: token ? "4px" : "8px",
                           paddingRight: "9px",
                           paddingTop: "4px",
-                          cursor: "pointer",
+                          cursor: isSourcePickerDisabled
+                            ? "not-allowed"
+                            : "pointer",
                           flexShrink: 0,
+                          opacity: isSourcePickerDisabled ? 0.72 : 1,
                         }}
                       >
                         {token ? (
@@ -1314,9 +1321,7 @@ export function SwapIdleForm({
                     {token && fromTokens.length > 1 && (
                       <button
                         onClick={() => {
-                          if (!onUpdateTokens) {
-                            return;
-                          }
+                          if (!onUpdateTokens) return;
                           const next = [...fromTokens];
                           next.splice(index, 1);
                           onUpdateTokens(next);
@@ -1349,8 +1354,8 @@ export function SwapIdleForm({
                           viewBox="0 0 24 24"
                           width="10"
                         >
-                          <line x1="18" x2="6" y1="6" y2="18" />
-                          <line x1="6" x2="18" y1="6" y2="18" />
+                          <line x1="18" x2="6" y1="6" y2="18"></line>
+                          <line x1="6" x2="18" y1="6" y2="18"></line>
                         </svg>
                       </button>
                     )}
@@ -1366,177 +1371,235 @@ export function SwapIdleForm({
                     display: "flex",
                     justifyContent: "space-between",
                     width: "100%",
+                    minHeight: "24px",
                   }}
                 >
-                  {showSourceRouteSkeleton ? (
-                    <SkeletonBar height="18px" width="84px" />
-                  ) : (
-                    (() => {
-                      if (!token) {
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-start",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    {showSourceRouteSkeleton ? (
+                      <SkeletonBar height="16px" width="84px" />
+                    ) : (
+                      (() => {
+                        if (!token)
+                          return (
+                            <div
+                              style={{
+                                boxSizing: "border-box",
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "11px",
+                                lineHeight: "16px",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              ≈ ${usdValue || "0.00"}
+                            </div>
+                          );
+                        const tokenBalance =
+                          Number(
+                            String(token.balance).replace(/[^0-9.]/g, "")
+                          ) || 0;
+                        const fiatBalance =
+                          Number(
+                            String(token.balanceInFiat).replace(/[^0-9.]/g, "")
+                          ) || 0;
+                        const price =
+                          tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
+                        const isUsdMode = token.userAmountMode === "usd";
+                        const userAmtNum = Number(token.userAmount || 0);
+                        const quotedUsd = parseDecimal(token.userAmountUsd);
+                        const approxValue = isUsdMode
+                          ? price > 0
+                            ? (userAmtNum / price).toFixed(6)
+                            : "0.000000"
+                          : quotedUsd
+                            ? quotedUsd.toDecimalPlaces(2).toFixed()
+                            : (userAmtNum * price).toFixed(2);
+                        const approxPrefix = isUsdMode ? "≈" : "≈ $";
+                        const approxSuffix = isUsdMode
+                          ? ` ${token.symbol}`
+                          : "";
+
                         return (
                           <div
+                            onClick={() => handleToggleMode(index)}
                             style={{
-                              boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
-                              lineHeight: "18px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              cursor: price > 0 ? "pointer" : "default",
                             }}
                           >
-                            ≈ ${usdValue || "0.00"}
+                            <div
+                              style={{
+                                boxSizing: "border-box",
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "11px",
+                                lineHeight: "16px",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {approxPrefix}
+                              {approxValue}
+                              {approxSuffix}
+                            </div>
+                            {price > 0 && <ArrowUpDownIcon />}
                           </div>
                         );
-                      }
-                      const tokenBalance =
-                        Number(String(token.balance).replace(/[^0-9.]/g, "")) ||
-                        0;
-                      const fiatBalance =
-                        Number(
-                          String(token.balanceInFiat).replace(/[^0-9.]/g, "")
-                        ) || 0;
-                      const price =
-                        tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-                      const isUsdMode = token.userAmountMode === "usd";
-                      const userAmtNum = Number(token.userAmount || 0);
-                      const quotedUsd = parseDecimal(token.userAmountUsd);
-                      const approxValue = isUsdMode
-                        ? price > 0
-                          ? (userAmtNum / price).toFixed(6)
-                          : "0.000000"
-                        : quotedUsd
-                          ? quotedUsd.toDecimalPlaces(2).toFixed()
-                          : (userAmtNum * price).toFixed(2);
-                      const approxPrefix = isUsdMode ? "≈" : "≈ $";
-                      const approxSuffix = isUsdMode ? ` ${token.symbol}` : "";
+                      })()
+                    )}
+                  </div>
 
-                      return (
-                        <div
-                          onClick={() => handleToggleMode(index)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            cursor: price > 0 ? "pointer" : "default",
-                          }}
-                        >
-                          <div
-                            style={{
-                              boxSizing: "border-box",
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: "13px",
-                              lineHeight: "18px",
-                            }}
-                          >
-                            {approxPrefix}
-                            {approxValue}
-                            {approxSuffix}
-                          </div>
-                          {price > 0 && <ArrowUpDownIcon />}
-                        </div>
-                      );
-                    })()
-                  )}
-                  {showSourceRouteSkeleton ? (
-                    <SkeletonBar height="18px" width="124px" />
-                  ) : token && focusedRow === index ? (
-                    <div
-                      onMouseEnter={() => setTooltip(`asset-send-${index}`)}
-                      onMouseLeave={() => setTooltip(null)}
-                      style={{
-                        alignItems: "center",
-                        boxSizing: "border-box",
-                        display: "flex",
-                        gap: "5px",
-                        position: "relative",
-                        cursor: "default",
-                      }}
-                    >
+                  <div
+                    style={{
+                      alignItems: "center",
+                      display: token && focusedRow === index ? "flex" : "none",
+                      justifyContent: "center",
+                      pointerEvents:
+                        token && focusedRow === index ? "auto" : "none",
+                    }}
+                  >
+                    {token && (
+                      <PercentButtons
+                        onSelect={(pct) =>
+                          token
+                            ? handleSendPercentForToken(index, pct, token)
+                            : handleSendPercent(pct)
+                        }
+                        visible={Boolean(token) && focusedRow === index}
+                      />
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    {showSourceRouteSkeleton ? (
+                      <SkeletonBar height="16px" width="124px" />
+                    ) : token ? (
                       <div
+                        onMouseEnter={(e) => {
+                          setTooltip(`asset-send-${index}`);
+                          setTooltipTriggerRect(
+                            e.currentTarget.getBoundingClientRect()
+                          );
+                        }}
+                        onMouseLeave={() => {
+                          setTooltip(null);
+                          setTooltipTriggerRect(null);
+                        }}
                         style={{
+                          alignItems: "center",
                           boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
+                          display: "flex",
+                          gap: "4px",
+                          position: "relative",
+                          cursor: "default",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        Asset Balance ·
-                      </div>
-                      <div
-                        style={{
-                          boxSizing: "border-box",
-                          color: "#848483",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontVariantNumeric: "tabular-nums",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        {formatTokenBalanceLabel(token)}
-                      </div>
-
-                      {/* Tooltip */}
-                      {tooltip === `asset-send-${index}` && (
                         <div
                           style={{
-                            position: "absolute",
-                            right: 0,
-                            ...(showTooltipBelow
-                              ? { top: "calc(100% + 8px)" }
-                              : { bottom: "calc(100% + 8px)" }),
-                            width: "220px",
-                            backgroundColor: "#fff",
-                            border: "1px solid #E8E8E7",
-                            borderRadius: "12px",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                            padding: "14px",
-                            display: "flex",
-                            flexDirection: "column",
-                            zIndex: 10_000,
-                            pointerEvents: "none",
-                            textAlign: "left",
+                            boxSizing: "border-box",
+                            color: "#848483",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "11px",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: "16px",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              color: "#848483",
-                              letterSpacing: "0.06em",
-                              textTransform: "uppercase",
-                              marginBottom: "4px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                            }}
-                          >
-                            Asset Balance
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#161615",
-                              lineHeight: "18px",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                            }}
-                          >
-                            This is your current asset balance on this chain.
-                          </div>
+                          Balance ·
                         </div>
-                      )}
-                    </div>
-                  ) : null}
+                        <div
+                          style={{
+                            boxSizing: "border-box",
+                            color: "#848483",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "11px",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: "16px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {formatTokenBalanceLabel(token)}
+                        </div>
+
+                        {/* Tooltip */}
+                        {tooltip === `asset-send-${index}` &&
+                          tooltipTriggerRect &&
+                          createPortal(
+                            <div
+                              style={{
+                                position: "fixed",
+                                right:
+                                  window.innerWidth - tooltipTriggerRect.right,
+                                ...(showTooltipBelow
+                                  ? { top: tooltipTriggerRect.bottom + 8 }
+                                  : {
+                                      bottom:
+                                        window.innerHeight -
+                                        tooltipTriggerRect.top +
+                                        8,
+                                    }),
+                                width: "220px",
+                                backgroundColor: "#fff",
+                                border: "1px solid #E8E8E7",
+                                borderRadius: "12px",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                                padding: "14px",
+                                display: "flex",
+                                flexDirection: "column",
+                                zIndex: 2147483647,
+                                pointerEvents: "none",
+                                textAlign: "left",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  color: "#848483",
+                                  letterSpacing: "0.06em",
+                                  textTransform: "uppercase",
+                                  marginBottom: "4px",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                }}
+                              >
+                                Asset Balance
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "15px",
+                                  color: "#161615",
+                                  lineHeight: "20px",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                }}
+                              >
+                                This is your current asset balance on this
+                                chain.
+                              </div>
+                            </div>,
+                            document.body
+                          )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
-                {/* 25% 50% 75% MAX — shown only while the row amount is focused */}
-                <PercentButtons
-                  onSelect={(pct) =>
-                    token
-                      ? handleSendPercentForToken(index, pct, token)
-                      : handleSendPercent(pct)
-                  }
-                  visible={Boolean(token) && focusedRow === index}
-                />
+                {/* PercentButtons moved inline next to balance */}
               </div>
             );
           })}
@@ -1551,9 +1614,7 @@ export function SwapIdleForm({
             }
             onClick={() => {
               const element = sourceListRef.current;
-              if (!element) {
-                return;
-              }
+              if (!element) return;
               element.scrollTo({
                 behavior: "smooth",
                 top: isSourceListAtBottom ? 0 : element.scrollTop + 80,
@@ -1568,10 +1629,10 @@ export function SwapIdleForm({
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               gap: "5px",
-              lineHeight: "18px",
+              lineHeight: "20px",
               marginTop: "-2px",
               padding: 0,
             }}
@@ -1589,9 +1650,9 @@ export function SwapIdleForm({
               color:
                 sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
+              fontSize: "15px",
               fontWeight: 500,
-              lineHeight: "18px",
+              lineHeight: "20px",
               marginTop: "-6px",
             }}
           >
@@ -1613,7 +1674,7 @@ export function SwapIdleForm({
           >
             <span
               style={{
-                fontSize: "17px",
+                fontSize: "19px",
                 fontWeight: 600,
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1623,7 +1684,7 @@ export function SwapIdleForm({
             </span>
             <span
               style={{
-                fontSize: "12px",
+                fontSize: "14px",
                 color: "#848483",
                 fontWeight: 600,
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1649,9 +1710,9 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "10px",
-          paddingBlock: "16px",
-          paddingInline: "14px",
+          gap: "8px",
+          paddingBlock: "12px",
+          paddingInline: "11px",
           width: "100%",
         }}
       >
@@ -1661,10 +1722,10 @@ export function SwapIdleForm({
             boxSizing: "border-box",
             color: "#848483",
             fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 500,
             letterSpacing: "0.08em",
-            lineHeight: "20px",
+            lineHeight: "23px",
             textTransform: "uppercase" as const,
             width: "100%",
           }}
@@ -1716,9 +1777,9 @@ export function SwapIdleForm({
                   color: receiveAmountTextColor,
                   fontFamily:
                     '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "32px",
+                  fontSize: "36px",
                   fontWeight: 500,
-                  lineHeight: "38px",
+                  lineHeight: "44px",
                   background: "transparent",
                   border: "none",
                   cursor: "default",
@@ -1808,9 +1869,9 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "15px",
+                  fontSize: "17px",
                   fontWeight: 500,
-                  lineHeight: "22px",
+                  lineHeight: "25px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}
@@ -1828,18 +1889,20 @@ export function SwapIdleForm({
               display: "flex",
               justifyContent: "space-between",
               width: "100%",
+              minHeight: "24px",
             }}
           >
             {isReceiveUsdLoading ? (
-              <SkeletonBar borderRadius="6px" height="18px" width="74px" />
+              <SkeletonBar borderRadius="6px" height="16px" width="74px" />
             ) : (
               <div
                 style={{
                   boxSizing: "border-box",
                   color: "#848483",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "16px",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {receiveAltValue}
@@ -1863,9 +1926,10 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontVariantNumeric: "tabular-nums",
-                    lineHeight: "18px",
+                    lineHeight: "16px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Asset Balance ·
@@ -1875,9 +1939,10 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: "#848483",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
+                    fontSize: "11px",
                     fontVariantNumeric: "tabular-nums",
-                    lineHeight: "18px",
+                    lineHeight: "16px",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {receiveBalanceLabel}
@@ -1898,7 +1963,7 @@ export function SwapIdleForm({
                       padding: "14px",
                       display: "flex",
                       flexDirection: "column",
-                      zIndex: 10_000,
+                      zIndex: 10000,
                       pointerEvents: "none",
                       textAlign: "left",
                     }}
@@ -1918,9 +1983,9 @@ export function SwapIdleForm({
                     </div>
                     <div
                       style={{
-                        fontSize: "13px",
+                        fontSize: "15px",
                         color: "#161615",
-                        lineHeight: "18px",
+                        lineHeight: "20px",
                         fontFamily: '"Geist", system-ui, sans-serif',
                       }}
                     >
@@ -1963,10 +2028,10 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#7C7C7A",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
+                  fontSize: "14px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  lineHeight: "20px",
+                  lineHeight: "23px",
                   textTransform: "uppercase" as const,
                 }}
               >
@@ -1988,7 +2053,7 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: recipientColor,
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "15px",
+                    fontSize: "17px",
                     fontVariantNumeric: "tabular-nums",
                     fontWeight: 500,
                     lineHeight: "17px",
@@ -2018,7 +2083,7 @@ export function SwapIdleForm({
                       boxSizing: "border-box",
                       color: "#006BF4",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "12px",
+                      fontSize: "14px",
                       fontWeight: 500,
                       lineHeight: "13px",
                     }}

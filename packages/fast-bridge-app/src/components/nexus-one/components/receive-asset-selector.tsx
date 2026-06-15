@@ -1,8 +1,9 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 "use client";
 import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
-import type React from "react";
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -11,9 +12,11 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { CHAIN_METADATA } from "../../common";
+import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import { useNexus } from "../../nexus/nexus-provider";
+import { nexusOneTheme } from "../theme";
 import {
+  CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
   getCitreaChainMeta,
   getCitreaReceiveTokenOptions,
@@ -21,6 +24,7 @@ import {
 import {
   getTokenSearchRank,
   RadioDot,
+  SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
   sortChainIdsBySwapDisplayOrder,
 } from "./swap-asset-selector";
@@ -30,6 +34,7 @@ interface ReceiveAssetSelectorProps {
   onSelect: (token: SwapTokenOption) => void;
 }
 
+const SUPPORTED_RECEIVE_CHAIN_IDS = new Set<number>(SWAP_CHAIN_DISPLAY_ORDER);
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
@@ -135,16 +140,12 @@ const FILTER_TABS = [
 ];
 
 const getTokenBalanceKey = (chainId?: number, address?: string) => {
-  if (!(chainId && address)) {
-    return null;
-  }
+  if (!chainId || !address) return null;
   return `${chainId}-${address.toLowerCase()}`;
 };
 
 const getNativeAddressAlias = (address?: string) => {
-  if (!address) {
-    return null;
-  }
+  if (!address) return null;
   const lower = address.toLowerCase();
   if (lower === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
     return "0x0000000000000000000000000000000000000000";
@@ -159,15 +160,28 @@ let rawTokensCache: any = null;
 let rawTokensPromise: Promise<any> | null = null;
 
 export const preloadReceiveTokens = () => {
+  console.log(
+    "[preloadReceiveTokens] Function invoked. Current state: hasCache =",
+    !!rawTokensCache,
+    "hasPromise =",
+    !!rawTokensPromise
+  );
   if (typeof window === "undefined") {
+    console.log(
+      "[preloadReceiveTokens] Aborted preload: window is undefined (SSR)."
+    );
     return null;
   }
   if (!rawTokensPromise) {
+    console.log(
+      "[preloadReceiveTokens] No active promise found. Creating a new promise to load tokens..."
+    );
     rawTokensPromise = (async () => {
       const CACHE_KEY = "nexus_receive_tokens_cache_v2";
       const CACHE_TIME_KEY = "nexus_receive_tokens_time_v2";
 
       try {
+        console.log("[preloadReceiveTokens] Checking localStorage cache...");
         const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
         const cachedData = localStorage.getItem(CACHE_KEY);
         if (
@@ -177,51 +191,138 @@ export const preloadReceiveTokens = () => {
         ) {
           const data = JSON.parse(cachedData);
           rawTokensCache = data;
+          console.log(
+            "[preloadReceiveTokens] Cache hit! Retrieved cached tokens from localStorage. Token chains count:",
+            Object.keys(data.tokens || {}).length,
+            "stables count:",
+            data.stableSymbols?.length
+          );
           return data;
         }
-      } catch (err) {}
+        console.log(
+          "[preloadReceiveTokens] Cache miss or expired. Proceeding to network fetch."
+        );
+      } catch (err) {
+        console.error(
+          "[preloadReceiveTokens] Error reading or parsing cache from localStorage:",
+          err
+        );
+      }
 
       let data: any = { tokens: {}, stableSymbols: [] };
       try {
+        console.log(
+          "[preloadReceiveTokens] Initiating network request to li.quest..."
+        );
         const [resAll, resStables] = await Promise.all([
           fetch("https://li.quest/v1/tokens"),
           fetch("https://li.quest/v1/tokens?tags=stablecoin"),
         ]);
 
+        console.log(
+          "[preloadReceiveTokens] li.quest APIs responded. Status resAll =",
+          resAll.status,
+          "status resStables =",
+          resStables.status
+        );
+
         let allTokens = {};
         if (resAll.ok) {
-          const allData = await resAll.json();
-          allTokens = allData.tokens || {};
+          try {
+            const allData = await resAll.json();
+            allTokens = allData.tokens || {};
+            console.log(
+              "[preloadReceiveTokens] Successfully parsed all tokens. Count of chains =",
+              Object.keys(allTokens).length
+            );
+          } catch (jsonErr) {
+            console.error(
+              "[preloadReceiveTokens] Failed to parse all tokens JSON response:",
+              jsonErr
+            );
+          }
+        } else {
+          console.warn(
+            "[preloadReceiveTokens] resAll response was not ok:",
+            resAll.status,
+            resAll.statusText
+          );
         }
 
         const stableSymbols = new Set<string>();
         if (resStables.ok) {
-          const stablesData = await resStables.json();
-          const stableChains = stablesData.tokens || {};
-          for (const chainId of Object.keys(stableChains)) {
-            for (const t of stableChains[chainId]) {
-              stableSymbols.add(t.symbol);
+          try {
+            const stablesData = await resStables.json();
+            const stableChains = stablesData.tokens || {};
+            for (const chainId of Object.keys(stableChains)) {
+              for (const t of stableChains[chainId]) {
+                stableSymbols.add(t.symbol);
+              }
             }
+            console.log(
+              "[preloadReceiveTokens] Successfully parsed stable tokens. Stable symbols count =",
+              stableSymbols.size
+            );
+          } catch (jsonErr) {
+            console.error(
+              "[preloadReceiveTokens] Failed to parse stable tokens JSON response:",
+              jsonErr
+            );
           }
+        } else {
+          console.warn(
+            "[preloadReceiveTokens] resStables response was not ok:",
+            resStables.status,
+            resStables.statusText
+          );
         }
 
         data = {
           tokens: allTokens,
           stableSymbols: Array.from(stableSymbols),
         };
+        console.log(
+          "[preloadReceiveTokens] Finished composing network token data.",
+          {
+            chainsCount: Object.keys(data.tokens).length,
+            stablesCount: data.stableSymbols.length,
+          }
+        );
       } catch (err) {
-        console.error("Failed to fetch tokens from li.quest", err);
+        console.error(
+          "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest:",
+          err
+        );
       }
 
       rawTokensCache = data;
 
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-      } catch (err) {}
+      if (Object.keys(data.tokens).length > 0) {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+          console.log(
+            "[preloadReceiveTokens] Successfully saved non-empty token data to localStorage cache."
+          );
+        } catch (err) {
+          console.error(
+            "[preloadReceiveTokens] Error writing token data to localStorage cache:",
+            err
+          );
+        }
+      } else {
+        console.warn(
+          "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Skipping cache write and resetting rawTokensPromise to allow retry."
+        );
+        rawTokensPromise = null;
+      }
 
       return data;
     })();
+  } else {
+    console.log(
+      "[preloadReceiveTokens] Using existing promise (single-flight / in-flight request)."
+    );
   }
   return rawTokensPromise;
 };
@@ -229,6 +330,9 @@ export const preloadReceiveTokens = () => {
 // Start preloading immediately in the background
 if (typeof window !== "undefined") {
   setTimeout(() => {
+    console.log(
+      "[preloadReceiveTokens] Calling preloadReceiveTokens from initial background timeout (1s)"
+    );
     preloadReceiveTokens();
   }, 1000);
 }
@@ -257,7 +361,6 @@ export function ReceiveAssetSelector({
   const [showChainSelector, setShowChainSelector] = useState(false);
   const [isChainSelectorClosing, setIsChainSelectorClosing] = useState(false);
   const [chainQuery, setChainQuery] = useState("");
-  const [draftChainFilter, setDraftChainFilter] = useState<number | null>(null);
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
   const [selectedTokenHash, setSelectedTokenHash] = useState<string | null>(
     null
@@ -278,10 +381,6 @@ export function ReceiveAssetSelector({
   const [isLoading, setIsLoading] = useState(true);
   const [dynamicStableSymbols, setDynamicStableSymbols] =
     useState<Set<string>>(STABLE_SYMBOLS);
-
-  const supportedReceiveChainIds = useMemo(() => {
-    return new Set((supportedChainsAndTokens ?? []).map((chain) => chain.id));
-  }, [supportedChainsAndTokens]);
 
   useEffect(() => {
     setPortalRoot(
@@ -304,7 +403,6 @@ export function ReceiveAssetSelector({
       clearTimeout(chainCloseTimerRef.current);
       chainCloseTimerRef.current = null;
     }
-    setDraftChainFilter(selectedChainFilter);
     setChainQuery("");
     setIsChainSelectorClosing(false);
     setShowChainSelector(true);
@@ -330,22 +428,14 @@ export function ReceiveAssetSelector({
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
         const key = getTokenBalanceKey(bd.chain?.id, bd.contractAddress);
-        if (!key) {
-          continue;
-        }
+        if (!key) continue;
         const fiatBalance = parseFiatValue(bd.balanceInFiat);
-        if (fiatBalance < 1) {
-          continue;
-        }
+        if (fiatBalance < 1) continue;
 
         const symbol = bd.symbol ?? asset.symbol;
         const decimals = bd.decimals ?? asset.decimals ?? 18;
         map.set(key, {
-          balance:
-            formatTokenBalance(bd.balance ?? "0", {
-              symbol,
-              decimals,
-            }) ?? `0 ${symbol}`,
+          balance: bd.balance ?? "0",
           balanceInFiat:
             bd.balanceInFiat != null ? `$${fiatBalance.toFixed(2)}` : "$0.00",
         });
@@ -391,14 +481,10 @@ export function ReceiveAssetSelector({
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;
-    if (!listEl) {
-      return;
-    }
+    if (!listEl) return;
 
     const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) {
-      return;
-    }
+    if (nextHeight <= stableListHeightRef.current) return;
 
     stableListHeightRef.current = nextHeight;
     setStableListHeight(nextHeight);
@@ -408,9 +494,7 @@ export function ReceiveAssetSelector({
     preserveListHeight();
 
     const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") {
-      return;
-    }
+    if (!listEl || typeof ResizeObserver === "undefined") return;
 
     const observer = new ResizeObserver(() => {
       preserveListHeight();
@@ -425,53 +509,49 @@ export function ReceiveAssetSelector({
     const map = new Map<number, { name: string; logo: string }>();
     if (supportedChainsAndTokens) {
       for (const c of supportedChainsAndTokens) {
-        map.set(c.id, { name: c.name, logo: c.logo });
+        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
       }
     }
     if (swapSupportedChainsAndTokens) {
       for (const c of swapSupportedChainsAndTokens) {
-        map.set(c.id, { name: c.name, logo: c.logo });
+        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
       }
     }
-    for (const token of getCitreaReceiveTokenOptions()) {
-      if (token.chainId && supportedReceiveChainIds.has(token.chainId)) {
-        map.set(token.chainId, getCitreaChainMeta());
-      }
+    if (!map.has(CITREA_CHAIN_ID)) {
+      map.set(CITREA_CHAIN_ID, getCitreaChainMeta());
     }
     return map;
-  }, [
-    supportedChainsAndTokens,
-    swapSupportedChainsAndTokens,
-    supportedReceiveChainIds,
-  ]);
+  }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);
 
   const chainFilterIds = useMemo(() => {
-    return sortChainIdsBySwapDisplayOrder(Array.from(supportedReceiveChainIds));
-  }, [supportedReceiveChainIds]);
+    const supportedIds = swapSupportedChainsAndTokens
+      ?.map((chain) => chain.id)
+      .filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id));
+
+    const nextIds = new Set(
+      supportedIds?.length
+        ? supportedIds
+        : Array.from(SUPPORTED_RECEIVE_CHAIN_IDS)
+    );
+    nextIds.add(CITREA_CHAIN_ID);
+
+    return sortChainIdsBySwapDisplayOrder(
+      Array.from(nextIds).filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id))
+    );
+  }, [swapSupportedChainsAndTokens]);
 
   useEffect(() => {
     let active = true;
     const fetchTokens = async () => {
-      if (!supportedChainsAndTokens) {
-        setApiTokens([]);
-        setIsLoading(true);
-        return;
-      }
-
-      if (supportedReceiveChainIds.size === 0) {
-        setApiTokens([]);
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setIsLoading(true);
+        console.log(
+          "[preloadReceiveTokens] Calling preloadReceiveTokens from ReceiveAssetSelector useEffect (fetchTokens)"
+        );
         preloadReceiveTokens();
 
         const data = await rawTokensPromise;
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         if (data.stableSymbols && Array.isArray(data.stableSymbols)) {
           setDynamicStableSymbols(
@@ -486,12 +566,10 @@ export function ReceiveAssetSelector({
         const allParsed: SwapTokenOption[] = [];
         const chains = data.tokens || {};
         for (const chainIdStr of Object.keys(chains)) {
-          const chainId = Number.parseInt(chainIdStr, 10);
-          if (!supportedReceiveChainIds.has(chainId)) {
-            continue;
-          }
+          const chainId = parseInt(chainIdStr, 10);
+          if (!SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)) continue;
           const meta = chainMetaMap.get(chainId) || {
-            name: `Chain ${chainId}`,
+            name: getShortChainName(chainId, `Chain ${chainId}`),
             logo: "",
           };
           for (const t of chains[chainIdStr]) {
@@ -509,12 +587,8 @@ export function ReceiveAssetSelector({
             });
           }
         }
-        const citreaTokens = getCitreaReceiveTokenOptions().filter(
-          (token) =>
-            token.chainId && supportedReceiveChainIds.has(token.chainId)
-        );
         const tokensByKey = new Map<string, SwapTokenOption>();
-        for (const token of [...allParsed, ...citreaTokens]) {
+        for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -526,16 +600,14 @@ export function ReceiveAssetSelector({
       } catch (err) {
         console.error("Failed to fetch receive tokens", err);
       } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+        if (active) setIsLoading(false);
       }
     };
     fetchTokens();
     return () => {
       active = false;
     };
-  }, [chainMetaMap, supportedChainsAndTokens, supportedReceiveChainIds]);
+  }, [chainMetaMap]);
 
   const isNativeToken = (t: SwapTokenOption) =>
     t.contractAddress.toLowerCase() ===
@@ -545,17 +617,14 @@ export function ReceiveAssetSelector({
 
   const filtered = useMemo(() => {
     let result = tokensWithBalances;
-    if (selectedChainFilter) {
+    if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
-    }
     if (query.trim()) {
       result = result.filter((t) => getTokenSearchRank(t, query) !== null);
     }
-    if (activeTab === "native") {
-      result = result.filter(isNativeToken);
-    } else if (activeTab === "stables") {
+    if (activeTab === "native") result = result.filter(isNativeToken);
+    else if (activeTab === "stables")
       result = result.filter((t) => dynamicStableSymbols.has(t.symbol));
-    }
 
     return result;
   }, [
@@ -573,21 +642,15 @@ export function ReceiveAssetSelector({
         const bRank = getTokenSearchRank(b, query);
         const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
         const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
-        if (aScore !== bScore) {
-          return aScore - bScore;
-        }
+        if (aScore !== bScore) return aScore - bScore;
 
         const aMatched = aRank?.matchedTerms ?? 0;
         const bMatched = bRank?.matchedTerms ?? 0;
-        if (aMatched !== bMatched) {
-          return bMatched - aMatched;
-        }
+        if (aMatched !== bMatched) return bMatched - aMatched;
       }
       const aFiat = parseFiatValue(a.balanceInFiat);
       const bFiat = parseFiatValue(b.balanceInFiat);
-      if (aFiat !== bFiat) {
-        return bFiat - aFiat;
-      }
+      if (aFiat !== bFiat) return bFiat - aFiat;
       return `${a.symbol} ${a.chainName}`.localeCompare(
         `${b.symbol} ${b.chainName}`
       );
@@ -783,9 +846,9 @@ export function ReceiveAssetSelector({
               style={{
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "16px",
+                lineHeight: "18px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -895,6 +958,7 @@ export function ReceiveAssetSelector({
                   onClick={() => {
                     setSelectedTokenHash(hash);
                     setSelectedTokenFull(t);
+                    onSelect(t);
                   }}
                   onMouseEnter={() => setHoveredHash(hash)}
                   onMouseLeave={() => setHoveredHash(null)}
@@ -1060,7 +1124,10 @@ export function ReceiveAssetSelector({
                           color: "#161615",
                         }}
                       >
-                        {t.balance}
+                        {formatTokenBalance(t.balance, {
+                          symbol: t.symbol,
+                          decimals: t.decimals,
+                        }) ?? `${t.balance} ${t.symbol}`}
                       </span>
                       <span
                         style={{
@@ -1078,39 +1145,6 @@ export function ReceiveAssetSelector({
             })}
           </div>
         )}
-      </div>
-
-      {/* Done Button Footer */}
-      <div
-        style={{
-          padding: "0 0 6px",
-          backgroundColor: "#FFFFFE",
-          flexShrink: 0,
-          zIndex: 10,
-        }}
-      >
-        <button
-          disabled={!selectedTokenFull}
-          onClick={() => {
-            if (selectedTokenFull) {
-              onSelect(selectedTokenFull);
-            }
-          }}
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: 12,
-            backgroundColor: selectedTokenFull ? "#006BF4" : "#C8C8C7",
-            color: "#FFFFFE",
-            border: "none",
-            cursor: selectedTokenFull ? "pointer" : "not-allowed",
-            fontFamily: '"Geist", system-ui, sans-serif',
-            fontWeight: 600,
-            fontSize: 16,
-          }}
-        >
-          Done
-        </button>
       </div>
 
       {/* Chain Selector Modal */}
@@ -1294,7 +1328,10 @@ export function ReceiveAssetSelector({
                     }}
                   >
                     <button
-                      onClick={() => setDraftChainFilter(null)}
+                      onClick={() => {
+                        setSelectedChainFilter(null);
+                        closeChainSelector();
+                      }}
                       style={{
                         width: "100%",
                         display: "flex",
@@ -1307,7 +1344,7 @@ export function ReceiveAssetSelector({
                         boxSizing: "border-box",
                       }}
                     >
-                      <RadioDot selected={draftChainFilter === null} />
+                      <RadioDot selected={selectedChainFilter === null} />
                       <div
                         style={{
                           display: "flex",
@@ -1345,13 +1382,14 @@ export function ReceiveAssetSelector({
                       })
                       .map((id) => {
                         const meta = chainMetaMap.get(id);
-                        if (!meta) {
-                          return null;
-                        }
+                        if (!meta) return null;
                         return (
                           <button
                             key={id}
-                            onClick={() => setDraftChainFilter(id)}
+                            onClick={() => {
+                              setSelectedChainFilter(id);
+                              closeChainSelector();
+                            }}
                             style={{
                               width: "100%",
                               display: "flex",
@@ -1364,7 +1402,7 @@ export function ReceiveAssetSelector({
                               boxSizing: "border-box",
                             }}
                           >
-                            <RadioDot selected={draftChainFilter === id} />
+                            <RadioDot selected={selectedChainFilter === id} />
                             <div
                               style={{
                                 display: "flex",
@@ -1398,30 +1436,6 @@ export function ReceiveAssetSelector({
                       })}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedChainFilter(draftChainFilter);
-                    closeChainSelector();
-                  }}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#006BF4",
-                    border: "none",
-                    borderRadius: 10,
-                    color: "#FFFFFE",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexShrink: 0,
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    height: 44,
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
-                >
-                  Done
-                </button>
               </div>
             </div>
           );
@@ -1445,7 +1459,7 @@ export function ReceiveAssetSelector({
                 top: tooltipState.y - 12,
                 left: tooltipState.x,
                 transform: "translate(-50%, -100%)",
-                zIndex: 2_147_483_647,
+                zIndex: 2147483647,
                 display: "flex",
                 flexDirection: "column",
                 pointerEvents: "auto",
@@ -1465,7 +1479,7 @@ export function ReceiveAssetSelector({
                   borderBottom: "1px solid #E8E8E7",
                   zIndex: 1,
                 }}
-              />
+              ></div>
 
               <div
                 style={{

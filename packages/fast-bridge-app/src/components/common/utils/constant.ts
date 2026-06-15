@@ -179,6 +179,16 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   // [SUPPORTED_CHAINS.TRON_SHASTA]: "Tron Shasta",
 } as const;
 
+export function getShortChainName(
+  chainId?: number,
+  fallbackName?: string
+): string {
+  if (!chainId) {
+    return fallbackName ?? "";
+  }
+  return SHORT_CHAIN_NAME[chainId] ?? fallbackName ?? String(chainId);
+}
+
 export const TOKEN_IMAGES: Record<string, string> = {
   BNB: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
   KAIA: "https://assets.coingecko.com/asset_platforms/images/9672/large/kaia.png",

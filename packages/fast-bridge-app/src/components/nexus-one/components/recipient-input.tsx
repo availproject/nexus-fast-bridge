@@ -1,4 +1,7 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import { X } from "lucide-react";
+import React from "react";
 
 export interface RecipientInputProps {
   hasError?: boolean;
@@ -22,14 +25,14 @@ export function RecipientInput({
       className="flex items-center w-full px-4 overflow-hidden outline-none transition-all placeholder:text-[var(--foreground-muted, #848483)] text-[var(--foreground-primary, #161615)]"
       style={{
         background: "#FFFFFE",
-        height: "46px",
-        borderRadius: "8px",
+        height: "38px",
+        borderRadius: "7px",
         borderWidth: "1px",
         borderStyle: "solid",
         borderColor: hasError ? "#E35454" : "#006BF4",
-        gap: "10px",
-        paddingTop: "10px",
-        paddingBottom: "10px",
+        gap: "8px",
+        paddingTop: "8px",
+        paddingBottom: "8px",
       }}
     >
       {label && (
@@ -40,7 +43,7 @@ export function RecipientInput({
               "var(--foreground-primary, var(--foreground-primary, #161615))",
             fontSize: "14px",
             fontWeight: 400,
-            lineHeight: "18px",
+            lineHeight: "17px",
           }}
         >
           {label}
@@ -66,7 +69,7 @@ export function RecipientInput({
           fontSize: "14px",
           fontWeight: 500,
           WebkitTextFillColor: "#161615",
-          lineHeight: "18px",
+          lineHeight: "17px",
         }}
         value={value}
       />

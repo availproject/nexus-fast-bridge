@@ -3,24 +3,26 @@ import { useNexus } from "../../nexus/nexus-provider";
 import { INTENT_HISTORY_REFRESH_EVENT } from "../history-events";
 
 const ITEMS_PER_PAGE = 10;
+const SDK_INTENT_PAGE_LIMIT = 20;
 
-export interface RFF {
-  deposited?: boolean;
+type NexusIntentStatus = "created" | "deposited" | "fulfilled" | "expired";
+
+interface NexusIntentRecord {
   destinationChain?: {
+    id?: number | string;
     logo?: string;
     name?: string;
   };
   destinations: {
     amount?: string;
     token: {
+      logo?: string;
       symbol: string;
     };
   }[];
   expiry: number;
   explorerUrl?: string;
-  fulfilled?: boolean;
-  id: number | string;
-  refunded?: boolean;
+  requestHash: string;
   sources?: {
     chain?: {
       id?: number | string;
@@ -28,11 +30,44 @@ export interface RFF {
       name?: string;
     };
   }[];
+  status: NexusIntentStatus;
+}
+
+interface NexusIntentListResult {
+  intents: NexusIntentRecord[];
+  total: number;
+}
+
+export interface IntentHistoryItem {
+  destinationChain?: NexusIntentRecord["destinationChain"];
+  destinations: NexusIntentRecord["destinations"];
+  expiry: number;
+  explorerUrl?: string;
+  id: string;
+  requestHash: string;
+  sources?: NexusIntentRecord["sources"];
+  status: NexusIntentStatus;
 }
 
 type IntentHistoryClient = {
-  getMyIntents?: () => Promise<RFF[] | null | undefined>;
+  listIntents?: (params?: {
+    page?: number;
+    status?: NexusIntentStatus;
+  }) => Promise<NexusIntentListResult | null | undefined>;
 };
+
+const normalizeIntentRecord = (
+  intent: NexusIntentRecord
+): IntentHistoryItem => ({
+  destinationChain: intent.destinationChain,
+  destinations: intent.destinations ?? [],
+  expiry: intent.expiry,
+  explorerUrl: intent.explorerUrl,
+  id: intent.requestHash,
+  requestHash: intent.requestHash,
+  sources: intent.sources,
+  status: intent.status,
+});
 
 function formatExpiryDate(timestamp: number) {
   const date = new Date(timestamp * 1000);
@@ -46,9 +81,11 @@ function formatExpiryDate(timestamp: number) {
 
 const useViewHistory = () => {
   const { nexusSDK } = useNexus();
-  const [history, setHistory] = useState<RFF[] | null>(null);
+  const [history, setHistory] = useState<IntentHistoryItem[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [displayedHistory, setDisplayedHistory] = useState<RFF[]>([]);
+  const [displayedHistory, setDisplayedHistory] = useState<IntentHistoryItem[]>(
+    []
+  );
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -64,7 +101,7 @@ const useViewHistory = () => {
     }
     try {
       const historyClient = nexusSDK as IntentHistoryClient;
-      if (typeof historyClient.getMyIntents !== "function") {
+      if (typeof historyClient.listIntents !== "function") {
         setLoadError(null);
         setHistory([]);
         setDisplayedHistory([]);
@@ -73,7 +110,29 @@ const useViewHistory = () => {
         return;
       }
 
-      const nextHistory = (await historyClient.getMyIntents()) ?? [];
+      const nextHistory: IntentHistoryItem[] = [];
+      let currentPage = 1;
+      let total = Number.POSITIVE_INFINITY;
+
+      while (nextHistory.length < total) {
+        const result = await historyClient.listIntents({ page: currentPage });
+        const intents = result?.intents ?? [];
+        total = Number.isFinite(result?.total)
+          ? (result?.total ?? intents.length)
+          : intents.length;
+
+        if (intents.length === 0) {
+          break;
+        }
+
+        nextHistory.push(...intents.map(normalizeIntentRecord));
+
+        if (intents.length < SDK_INTENT_PAGE_LIMIT) {
+          break;
+        }
+        currentPage += 1;
+      }
+
       setLoadError(null);
       setHistory(nextHistory);
       const firstPage = nextHistory.slice(0, ITEMS_PER_PAGE);
@@ -160,15 +219,18 @@ const useViewHistory = () => {
     };
   }, [hasMore, isLoadingMore, loadMore, sentinelNode]);
 
-  const getStatus = (pastIntent: RFF) => {
-    if (pastIntent?.fulfilled) {
+  const getStatus = (pastIntent: IntentHistoryItem) => {
+    if (pastIntent.status === "fulfilled") {
       return "Fulfilled";
     }
-    if (pastIntent?.deposited) {
+    if (pastIntent.status === "deposited") {
       return "Deposited";
     }
-    if (pastIntent?.refunded) {
-      return "Refunded";
+    if (pastIntent.status === "created") {
+      return "Created";
+    }
+    if (pastIntent.status === "expired") {
+      return "Expired";
     }
     return "Failed";
   };

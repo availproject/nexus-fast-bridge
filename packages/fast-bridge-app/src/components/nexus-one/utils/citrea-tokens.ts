@@ -1,4 +1,7 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import { CHAIN_METADATA } from "../../common";
+import { getShortChainName } from "../../common/utils/constant";
 import type { SwapTokenOption } from "../components/swap-asset-selector";
 
 export const CITREA_CHAIN_ID = 4114;
@@ -102,18 +105,17 @@ export const CITREA_LOCAL_TOKENS = [
 
 const normalizeAddress = (address?: string) => {
   const lower = address?.toLowerCase();
-  if (!lower) {
-    return "";
-  }
-  if (lower === E_ADDRESS) {
-    return ZERO_ADDRESS;
-  }
+  if (!lower) return "";
+  if (lower === E_ADDRESS) return ZERO_ADDRESS;
   return lower;
 };
 
 export const getCitreaChainMeta = () => ({
   logo: CHAIN_METADATA[CITREA_CHAIN_ID]?.logo ?? CITREA_CHAIN_FALLBACK.logo,
-  name: CHAIN_METADATA[CITREA_CHAIN_ID]?.name ?? CITREA_CHAIN_FALLBACK.name,
+  name: getShortChainName(
+    CITREA_CHAIN_ID,
+    CHAIN_METADATA[CITREA_CHAIN_ID]?.name ?? CITREA_CHAIN_FALLBACK.name
+  ),
 });
 
 export const getCitreaReceiveTokenOptions = (): SwapTokenOption[] => {
@@ -141,9 +143,7 @@ export const findCitreaReceiveToken = ({
   chainId?: number;
   symbol?: string;
 }): SwapTokenOption | undefined => {
-  if (chainId !== CITREA_CHAIN_ID) {
-    return undefined;
-  }
+  if (chainId !== CITREA_CHAIN_ID) return undefined;
 
   const normalizedAddress = normalizeAddress(address);
   const normalizedSymbol = symbol?.toLowerCase();

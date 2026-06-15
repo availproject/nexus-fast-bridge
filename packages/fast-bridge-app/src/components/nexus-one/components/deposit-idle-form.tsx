@@ -1,3 +1,5 @@
+// biome-ignore-all lint: NexusOne registry component from shadcn registry.
+
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
@@ -15,10 +17,12 @@ interface DepositIdleFormProps {
   fromTokens: SwapTokenOption[];
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
+  isSourcePickerDisabled?: boolean;
   onAmountChange: (val: string) => void;
   onAmountModeToggle: () => void;
   onOpenSourcePicker: () => void;
   onSetPercent: (pct: number) => void;
+  reserveSourceRows?: boolean;
   routeMessage?: string;
   routeStatus?: "loading" | "insufficient";
   showAutoBadge?: boolean;
@@ -35,12 +39,8 @@ const border = "#E8E8E7";
 const brand = "#006BF4";
 
 const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-  if (Decimal.isDecimal(value)) {
-    return value;
-  }
+  if (value === null || value === undefined || value === "") return undefined;
+  if (Decimal.isDecimal(value)) return value;
   const cleaned = String(value).replace(/[^0-9.-]/g, "");
   if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
     return undefined;
@@ -55,15 +55,12 @@ const parseDecimal = (value: unknown) => {
 
 const formatToken = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  const max = amount.abs().gte(1) ? 6 : 8;
-  return amount.toDecimalPlaces(max).toFixed();
+  return amount.toDecimalPlaces(8).toFixed();
 };
 
 const formatUsd = (value: unknown) => {
   const amount = parseDecimal(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) {
-    return "<$0.01";
-  }
+  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
   return `$${amount.toDecimalPlaces(2).toFixed()}`;
 };
 
@@ -74,9 +71,7 @@ const getTokenInputDecimals = (token?: Pick<SwapTokenOption, "decimals">) => {
 };
 
 const formatAmountInputDisplay = (value: string) => {
-  if (!value) {
-    return "";
-  }
+  if (!value) return "";
   try {
     return new Decimal(value)
       .toDecimalPlaces(MAX_AMOUNT_DISPLAY_DECIMALS, Decimal.ROUND_DOWN)
@@ -89,16 +84,12 @@ const formatAmountInputDisplay = (value: string) => {
 const sanitizeAmountInput = (raw: string, maxDecimals: number) => {
   let next = raw.replaceAll(/[^0-9.]/g, "");
   const parts = next.split(".");
-  if (parts.length > 2) {
-    next = parts[0] + "." + parts.slice(1).join("");
-  }
+  if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
   const [integerPart, decimalPart] = next.split(".");
   if (decimalPart !== undefined) {
     next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
   }
-  if (next === ".") {
-    next = "0.";
-  }
+  if (next === ".") next = "0.";
   return next;
 };
 
@@ -182,6 +173,83 @@ function SourceLogoPair({ token }: { token: SwapTokenOption }) {
   );
 }
 
+function PercentButtons({
+  visible,
+  onSelect,
+  maxLabel = "Max",
+}: {
+  visible: boolean;
+  onSelect: (pct: number) => void;
+  maxLabel?: string;
+}) {
+  const [hoveredPct, setHoveredPct] = React.useState<number | null>(null);
+
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        backgroundColor: "#F0F3F9",
+        borderRadius: "6px",
+        boxShadow: "#2A388B0F 0px 1px 2px inset",
+        boxSizing: "border-box",
+        display: "flex",
+        flexShrink: 0,
+        gap: "2px",
+        padding: "2px",
+        opacity: visible ? 1 : 0,
+        visibility: visible ? "visible" : "hidden",
+        pointerEvents: visible ? "auto" : "none",
+        transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
+        width: "108px",
+      }}
+    >
+      {[20, 50, 100].map((pct) => {
+        const label = pct === 100 ? maxLabel : `${pct}%`;
+        const isHovered = hoveredPct === pct;
+
+        return (
+          <button
+            key={pct}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(pct);
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+            }}
+            onMouseEnter={() => setHoveredPct(pct)}
+            onMouseLeave={() => setHoveredPct(null)}
+            style={{
+              alignItems: "center",
+              backgroundColor: isHovered ? "#FFFFFF" : "transparent",
+              borderRadius: "4px",
+              boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
+              boxSizing: "border-box",
+              color: isHovered ? "#1F1F1F" : "#8E8E89",
+              cursor: "pointer",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "10.5px",
+              fontWeight: 500,
+              height: "20px",
+              justifyContent: "center",
+              flex: "1 1 0%",
+              minWidth: 0,
+              paddingInline: "3px",
+              border: "none",
+              transition: "all 0.15s ease-out",
+            }}
+            tabIndex={-1}
+            type="button"
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SkeletonRow() {
   return (
     <div
@@ -242,7 +310,7 @@ function PayWithSources({
         fontSize: "9px",
         fontWeight: 600,
         letterSpacing: "0.04em",
-        lineHeight: "12px",
+        lineHeight: "14px",
         padding: "1px 5px",
       }}
     >
@@ -277,11 +345,11 @@ function PayWithSources({
             color: muted,
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "12px",
+            fontSize: "14px",
             fontWeight: 500,
             gap: "6px",
             letterSpacing: "0.08em",
-            lineHeight: "18px",
+            lineHeight: "20px",
             textTransform: "uppercase",
           }}
         >
@@ -301,7 +369,7 @@ function PayWithSources({
               color: brand,
               cursor: "pointer",
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 500,
               lineHeight: "16px",
               padding: "7px 10px",
@@ -321,7 +389,7 @@ function PayWithSources({
               color: brand,
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "15px",
               gap: "6px",
             }}
           >
@@ -377,7 +445,7 @@ function PayWithSources({
                       style={{
                         color: primary,
                         fontFamily: uiFont,
-                        fontSize: "14px",
+                        fontSize: "16px",
                         fontWeight: 600,
                       }}
                     >
@@ -387,7 +455,7 @@ function PayWithSources({
                       style={{
                         color: muted,
                         fontFamily: uiFont,
-                        fontSize: "12px",
+                        fontSize: "14px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -411,7 +479,7 @@ function PayWithSources({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "13px",
+                      fontSize: "15px",
                     }}
                   >
                     {formatToken(token.userAmount || token.balance)}{" "}
@@ -421,7 +489,7 @@ function PayWithSources({
                     style={{
                       color: muted,
                       fontFamily: uiFont,
-                      fontSize: "12px",
+                      fontSize: "14px",
                     }}
                   >
                     {formatUsd(token.userAmountUsd || token.balanceInFiat)}
@@ -464,8 +532,8 @@ function PayWithSources({
           style={{
             color: primary,
             fontFamily: uiFont,
-            fontSize: "13px",
-            lineHeight: "18px",
+            fontSize: "15px",
+            lineHeight: "20px",
           }}
         >
           Sources will be auto selected
@@ -479,9 +547,9 @@ function PayWithSources({
             color: "#D32F2F",
             display: "flex",
             fontFamily: uiFont,
-            fontSize: "13px",
+            fontSize: "15px",
             gap: "8px",
-            lineHeight: "18px",
+            lineHeight: "20px",
           }}
         >
           <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />
@@ -510,14 +578,14 @@ export function DepositIdleForm({
   calculatingPercent,
   isQuoteRefreshing,
   showAutoBadge = true,
+  isSourcePickerDisabled = false,
+  reserveSourceRows = false,
 }: DepositIdleFormProps) {
   const [pendingPercent, setPendingPercent] = useState<number | null>(null);
   const [isAmountFocused, setIsAmountFocused] = useState(false);
 
   React.useEffect(() => {
-    if (!isCalculatingMax) {
-      setPendingPercent(null);
-    }
+    if (!isCalculatingMax) setPendingPercent(null);
   }, [isCalculatingMax]);
 
   const handlePercentSelect = (pct: number) => {
@@ -552,23 +620,24 @@ export function DepositIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "10px",
         width: "100%",
       }}
     >
       <div
+        className="nexus-focus-container"
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: border,
-          borderRadius: "12px",
+          borderRadius: "10px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
-          padding: "15px 14px",
+          gap: "8px",
+          padding: "12px 11px",
         }}
       >
         <div
@@ -582,10 +651,10 @@ export function DepositIdleForm({
             style={{
               color: muted,
               fontFamily: uiFont,
-              fontSize: "12px",
+              fontSize: "10.5px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "20px",
+              lineHeight: "16px",
               textTransform: "uppercase",
             }}
           >
@@ -596,8 +665,8 @@ export function DepositIdleForm({
               style={{
                 color: muted,
                 fontFamily: uiFont,
-                fontSize: "13px",
-                lineHeight: "18px",
+                fontSize: "11px",
+                lineHeight: "15px",
               }}
             >
               Total Balance:
@@ -606,9 +675,9 @@ export function DepositIdleForm({
               style={{
                 color: primary,
                 fontFamily: uiFont,
-                fontSize: "13px",
+                fontSize: "11px",
                 fontWeight: 600,
-                lineHeight: "18px",
+                lineHeight: "15px",
               }}
             >
               ${totalBalance}
@@ -656,9 +725,9 @@ export function DepositIdleForm({
                         color: primary,
                         fontFamily:
                           '"Delight-Medium", "Delight", system-ui, sans-serif',
-                        fontSize: "30px",
+                        fontSize: "28px",
                         fontWeight: 500,
-                        lineHeight: "36px",
+                        lineHeight: "34px",
                       }}
                     >
                       $
@@ -676,9 +745,9 @@ export function DepositIdleForm({
                       color: amount ? primary : "#9E9E9C",
                       fontFamily:
                         '"Delight-Medium", "Delight", system-ui, sans-serif',
-                      fontSize: "32px",
+                      fontSize: "30px",
                       fontWeight: 500,
-                      lineHeight: "38px",
+                      lineHeight: "35px",
                       minWidth: 0,
                       outline: "none",
                       padding: 0,
@@ -717,9 +786,9 @@ export function DepositIdleForm({
                 display: "inline-flex",
                 flexShrink: 0,
                 gap: "8px",
-                height: "32px",
-                paddingLeft: "4px",
-                paddingRight: "10px",
+                height: "27px",
+                paddingLeft: "3.5px",
+                paddingRight: "8px",
               }}
             >
               <div
@@ -745,6 +814,8 @@ export function DepositIdleForm({
                       outline: "1px solid #FFFFFE",
                       position: "absolute",
                       right: -2,
+                      width: 12,
+                      height: 12,
                     }}
                   />
                 )}
@@ -755,7 +826,7 @@ export function DepositIdleForm({
                   fontFamily: uiFont,
                   fontSize: "15px",
                   fontWeight: 600,
-                  lineHeight: "22px",
+                  lineHeight: "20px",
                 }}
               >
                 {toToken?.symbol || "Token"}
@@ -768,33 +839,69 @@ export function DepositIdleForm({
               alignItems: "center",
               display: "flex",
               justifyContent: "space-between",
+              width: "100%",
+              minHeight: "24px",
             }}
           >
-            <button
-              onClick={onAmountModeToggle}
+            <div
               style={{
-                background: "transparent",
-                border: "none",
-                color: muted,
-                cursor: "pointer",
-                fontFamily: uiFont,
-                fontSize: "13px",
-                lineHeight: "18px",
-                padding: 0,
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                flex: 1,
               }}
-              type="button"
             >
-              {isUsdMode
-                ? `≈ ${tokenValue || "0"} ${toToken?.symbol || ""} ↕`
-                : `≈ $${usdValue || "0"} ↕`}
-            </button>
-            <div style={{ alignItems: "center", display: "flex", gap: "5px" }}>
+              <button
+                onClick={onAmountModeToggle}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: muted,
+                  cursor: "pointer",
+                  fontFamily: uiFont,
+                  fontSize: "11px",
+                  lineHeight: "15px",
+                  padding: 0,
+                }}
+                type="button"
+              >
+                {isUsdMode
+                  ? `≈ ${tokenValue || "0"} ${toToken?.symbol || ""} ↕`
+                  : `≈ $${usdValue || "0"} ↕`}
+              </button>
+            </div>
+
+            <div
+              style={{
+                alignItems: "center",
+                display: toToken && isAmountFocused ? "flex" : "none",
+                justifyContent: "center",
+                pointerEvents: toToken && isAmountFocused ? "auto" : "none",
+              }}
+            >
+              {toToken && (
+                <PercentButtons
+                  onSelect={handlePercentSelect}
+                  visible={Boolean(toToken) && isAmountFocused}
+                />
+              )}
+            </div>
+
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "5px",
+                flex: 1,
+              }}
+            >
               <span
                 style={{
                   color: "#7C7C7A",
                   fontFamily: uiFont,
-                  fontSize: "13px",
-                  lineHeight: "18px",
+                  fontSize: "11px",
+                  lineHeight: "15px",
                 }}
               >
                 Balance:
@@ -803,9 +910,9 @@ export function DepositIdleForm({
                 style={{
                   color: primary,
                   fontFamily: uiFont,
-                  fontSize: "13px",
+                  fontSize: "11px",
                   fontWeight: 500,
-                  lineHeight: "18px",
+                  lineHeight: "15px",
                 }}
               >
                 {destinationBalanceLabel}
@@ -813,112 +920,15 @@ export function DepositIdleForm({
             </div>
           </div>
 
-          <div
-            style={{
-              alignItems: "center",
-              display: "flex",
-              gap: "5px",
-              minHeight: "24px",
-              width: "100%",
-            }}
-          >
-            {[25, 50, 75].map((pct) => {
-              const isPending = Boolean(
-                isCalculatingMax && activePendingPercent === pct
-              );
-              return (
-                <button
-                  key={pct}
-                  onClick={() => handlePercentSelect(pct)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: isPending ? "#E8F0FF" : "#F4F4F3",
-                    border: "none",
-                    borderRadius: "7px",
-                    cursor: "pointer",
-                    display: "flex",
-                    flex: "1 1 0%",
-                    gap: "5px",
-                    justifyContent: "center",
-                    padding: "4px 7px",
-                  }}
-                  type="button"
-                >
-                  {isPending && (
-                    <Loader2
-                      className="animate-spin"
-                      style={{ color: brand, height: 12, width: 12 }}
-                    />
-                  )}
-                  <span
-                    style={{
-                      color: isPending ? brand : "#363635",
-                      fontFamily: uiFont,
-                      fontSize: "11px",
-                      fontWeight: isPending ? 600 : 500,
-                      lineHeight: "16px",
-                    }}
-                  >
-                    {pct}%
-                  </span>
-                </button>
-              );
-            })}
-            {(() => {
-              const isPending = Boolean(
-                isCalculatingMax && activePendingPercent === 100
-              );
-              return (
-                <button
-                  onClick={() => handlePercentSelect(100)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: isPending ? "#E8F0FF" : "#F4F4F3",
-                    border: "none",
-                    borderRadius: "7px",
-                    cursor: "pointer",
-                    display: "flex",
-                    flex: isPending ? "1.8 1 0%" : "1 1 0%",
-                    gap: "5px",
-                    justifyContent: "center",
-                    minWidth: 0,
-                    padding: "4px 7px",
-                  }}
-                  type="button"
-                >
-                  {isPending && (
-                    <Loader2
-                      className="animate-spin"
-                      style={{ color: brand, height: 12, width: 12 }}
-                    />
-                  )}
-                  <span
-                    style={{
-                      color: isPending ? brand : "#363635",
-                      fontFamily: uiFont,
-                      fontSize: isPending ? "9px" : "11px",
-                      fontWeight: isPending ? 600 : 500,
-                      letterSpacing: "0.02em",
-                      lineHeight: "16px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isPending ? "Calculating Max..." : "MAX"}
-                  </span>
-                </button>
-              );
-            })()}
-          </div>
+          {/* Percent buttons moved next to balance */}
         </div>
       </div>
 
       <SharedPayWithSources
         fromTokens={fromTokens}
+        isSourcePickerDisabled={isSourcePickerDisabled}
         onOpenSourcePicker={onOpenSourcePicker}
+        reserveSourceRows={reserveSourceRows}
         routeMessage={routeMessage}
         routeStatus={routeStatus}
         showAutoBadge={showAutoBadge}

@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 1448.62 228.881" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 1547770169" filter="url(#filter0_f_0_16)">
+<path id="Subtract (Stroke)" d="M1445.62 3.5H1445.12C804.082 3.5 341.075 101.499 3.61645 224.732L3.85083 225.5" stroke="var(--stroke-0, #E9E9E9)"/>
+<path id="Subtract (Stroke)_2" d="M3.851 225.5L3.61645 224.727M1445.62 67.5C804.297 77.4889 352.834 117.818 5.86321 224.679" stroke="var(--stroke-0, #E0E9FC)"/>
+<path id="Subtract (Stroke)_3" d="M3.86417 225.506L3.63012 225.3M1445.6 182.248C807.137 182.266 296.74 183.333 5.87213 225.287" stroke="var(--stroke-0, #E0E9FC)"/>
+<path id="Subtract (Stroke)_4" d="M3.85051 225.504L3.61645 225.035M1444.62 126.5C805.542 126.5 307.116 155 5.8585 225.005" stroke="var(--stroke-0, #E0E9FC)"/>
+</g>
+<defs>
+<filter id="filter0_f_0_16" x="5.96046e-08" y="0" width="1448.62" height="228.881" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="1.5" result="effect1_foregroundBlur_0_16"/>
+</filter>
+</defs>
+</svg>

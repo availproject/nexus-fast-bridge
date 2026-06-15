@@ -1,5 +1,5 @@
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
 import type { AppConfig, ChainFeatures } from "@/types/runtime";
+import { SUPPORTED_CHAINS } from "../components/common/utils/constant";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,11 +40,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to MegaETH faster than ever!",
       appTitle: "MegaETH Fast Bridge",
       appDescription: "MegaETH Fast Bridge",
-      primaryColor: "#19191A",
+      primaryColor: "#2B2B2B",
       secondaryColor: "#ECE8E8",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 4326,
       nexusPrimaryToken: "USDM",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #2B2B2B0A 0px 2px 4px, #2B2B2B29 0px 12px 24px, #2B2B2B26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
       meta: {
         title: "Bridge to MegaETH – Instant Cross-Chain Transfers | FastBridge",
         description:
@@ -53,7 +56,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/megaeth.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#19191A",
+        themeColor: "#2B2B2B",
         backgroundColor: "#ECE8E8",
       },
     },
@@ -134,11 +137,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Monad faster than ever!",
       appTitle: "Monad Fast Bridge",
       appDescription: "Monad Fast Bridge",
-      primaryColor: "#6E54FF",
+      primaryColor: "#836EF9",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 143,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #836EF90A 0px 2px 4px, #836EF929 0px 12px 24px, #836EF926 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/monad-ribbon.png",
       meta: {
         title:
           "Bridge to Monad – Fast & Cheap Cross-Chain Transfers | FastBridge",
@@ -148,7 +154,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/monad.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#6E54FF",
+        themeColor: "#836EF9",
         backgroundColor: "#ffffff",
       },
     },
@@ -205,11 +211,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move assets from any chain to Citrea, instantly.",
       appTitle: "Citrea Fast Bridge",
       appDescription: "Move assets from any chain to Citrea, instantly.",
-      primaryColor: "#EF8F36",
+      primaryColor: "#1A1A1A",
       secondaryColor: "#CDD2D8",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 4114,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #1A1A1A0A 0px 2px 4px, #1A1A1A29 0px 12px 24px, #1A1A1A26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/citrea-ribbon.png",
       meta: {
         title:
           "Bridge to Citrea – Bitcoin ZK Rollup Cross-Chain Bridge | FastBridge",
@@ -219,7 +228,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/citrea.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#EF8F36",
+        themeColor: "#1A1A1A",
         backgroundColor: "#CDD2D8",
       },
     },
@@ -282,11 +291,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Arbitrum faster than ever!",
       appTitle: "Arbitrum Fast Bridge",
       appDescription: "Arbitrum Fast Bridge",
-      primaryColor: "#0164E9",
+      primaryColor: "#28A0F0",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 42_161,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #28A0F00A 0px 2px 4px, #28A0F029 0px 12px 24px, #28A0F026 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/arbitrum-ribbon.png",
       meta: {
         title:
           "Bridge to Arbitrum from Multiple Chains in One Transaction | FastBridge",
@@ -296,7 +308,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/arbitrum.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#0164E9",
+        themeColor: "#28A0F0",
         backgroundColor: "#ffffff",
       },
     },
@@ -336,11 +348,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Ethereum faster than ever!",
       appTitle: "Ethereum Fast Bridge",
       appDescription: "Ethereum Fast Bridge",
-      primaryColor: "#5555FF",
+      primaryColor: "#627EEA",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 1,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #627EEA0A 0px 2px 4px, #627EEA29 0px 12px 24px, #627EEA26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/ethereum-ribbon.png",
       meta: {
         title:
           "Bridge to Ethereum – Combine Your L2 Balances in One Transaction | FastBridge",
@@ -350,7 +365,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/ethereum.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#8891AE",
+        themeColor: "#627EEA",
         backgroundColor: "#ffffff",
       },
     },
@@ -392,11 +407,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Polygon faster than ever!",
       appTitle: "Polygon Fast Bridge",
       appDescription: "Polygon Fast Bridge",
-      primaryColor: "#7B3FE4",
+      primaryColor: "#8247E5",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 137,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #8247E50A 0px 2px 4px, #8247E529 0px 12px 24px, #8247E526 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/polygon-ribbon.png",
       meta: {
         title:
           "Bridge to Polygon – Instant Cross-Chain Swaps & Transfers | FastBridge",
@@ -406,7 +424,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/polygon.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#6100FF",
+        themeColor: "#8247E5",
         backgroundColor: "#ffffff",
       },
     },
@@ -448,11 +466,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Base faster than ever!",
       appTitle: "Base Fast Bridge",
       appDescription: "Base Fast Bridge",
-      primaryColor: "#0000ff",
+      primaryColor: "#0052FF",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 8453,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #0052FF0A 0px 2px 4px, #0052FF29 0px 12px 24px, #0052FF26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/base-ribbon.png",
       meta: {
         title:
           "Bridge to Base – Fastest ETH & USDC Transfers to Base Chain | FastBridge",
@@ -462,7 +483,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/base.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#0000ff",
+        themeColor: "#0052FF",
         backgroundColor: "#ffffff",
       },
     },
@@ -482,10 +503,10 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
 
   // ── OP Mainnet ──────────────────────────────────────────────────────────
   "op-mainnet": {
-    slug: "op-mainnet",
+    slug: "optimism",
     appConfig: {
       chainId: 10,
-      chainName: "OP Mainnet",
+      chainName: "Optimism",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
       chainRpcUrl: "https://mainnet.optimism.io",
       chainBlockExplorerUrl: "https://optimistic.etherscan.io",
@@ -504,11 +525,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to OP Mainnet faster than ever!",
       appTitle: "OP Mainnet Fast Bridge",
       appDescription: "OP Mainnet Fast Bridge",
-      primaryColor: "#FF0421",
+      primaryColor: "#FF0420",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 10,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #FF04200A 0px 2px 4px, #FF042029 0px 12px 24px, #FF042026 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/optimism-ribbon.png",
       meta: {
         title:
           "Bridge to Optimism from Multiple Chains in One Transaction | FastBridge",
@@ -518,7 +542,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#FF0421",
+        themeColor: "#FF0420",
         backgroundColor: "#ffffff",
       },
     },
@@ -558,11 +582,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Scroll faster than ever!",
       appTitle: "Scroll Fast Bridge",
       appDescription: "Scroll Fast Bridge",
-      primaryColor: "#EBC28E",
+      primaryColor: "#C4A882",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 534_352,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #C4A8820A 0px 2px 4px, #C4A88224 0px 12px 24px, #C4A88222 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/scroll-ribbon.png",
       meta: {
         title:
           "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
@@ -572,7 +599,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/scroll.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#FFEEDA",
+        themeColor: "#C4A882",
         backgroundColor: "#ffffff",
       },
     },
@@ -616,11 +643,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Kaia faster than ever!",
       appTitle: "Kaia Fast Bridge",
       appDescription: "Kaia Fast Bridge",
-      primaryColor: "#bff009",
+      primaryColor: "#31C48D",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 8217,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #31C48D0A 0px 2px 4px, #31C48D29 0px 12px 24px, #31C48D26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/kaia-ribbon.png",
       meta: {
         title:
           "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",
@@ -630,7 +660,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/kaia.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#bff009",
+        themeColor: "#31C48D",
         backgroundColor: "#ffffff",
       },
     },
@@ -672,11 +702,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to BNB Smart Chain faster than ever!",
       appTitle: "BNB Smart Chain Fast Bridge",
       appDescription: "BNB Smart Chain Fast Bridge",
-      primaryColor: "#f0b90b",
+      primaryColor: "#F3BA2F",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 56,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #F3BA2F0A 0px 2px 4px, #F3BA2F24 0px 12px 24px, #F3BA2F1A 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/bnb-ribbon.png",
       meta: {
         title:
           "Bridge to BNB Smart Chain – Fast ETH to BNB Transfers | FastBridge",
@@ -686,7 +719,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/bnb.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#f0b90b",
+        themeColor: "#F3BA2F",
         backgroundColor: "#ffffff",
       },
     },
@@ -710,7 +743,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     appConfig: {
       chainId: 999,
       chainName: "HyperEVM",
-      chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      chainNativeCurrency: { name: "Hype", symbol: "HYPE", decimals: 18 },
       chainRpcUrl: "https://rpc.hyperliquid.xyz/evm",
       chainBlockExplorerUrl: "https://purrsec.com",
       chainTestnet: false,
@@ -728,11 +761,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to HyperEVM faster than ever!",
       appTitle: "HyperEVM Fast Bridge",
       appDescription: "HyperEVM Fast Bridge",
-      primaryColor: "#50D2C1",
+      primaryColor: "#50E3C2",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 999,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #50E3C20A 0px 2px 4px, #50E3C229 0px 12px 24px, #50E3C226 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/hyperevm-ribbon.png",
       meta: {
         title:
           "Bridge to HyperEVM from Multiple Chains in One Transaction | FastBridge",
@@ -742,7 +778,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/hyperliquid.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#50D2C1",
+        themeColor: "#50E3C2",
         backgroundColor: "#ffffff",
       },
     },
@@ -784,11 +820,14 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       heroText: "Move your assets to Avalanche faster than ever!",
       appTitle: "Avalanche Fast Bridge",
       appDescription: "Avalanche Fast Bridge",
-      primaryColor: "#FF394A",
+      primaryColor: "#E84142",
       secondaryColor: "#ffffff",
       nexusNetwork: "mainnet",
       nexusSupportedChain: 43_114,
       nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #E841420A 0px 2px 4px, #E8414229 0px 12px 24px, #E8414226 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/avalanche-ribbon.png",
       meta: {
         title:
           "Bridge to Avalanche from Multiple Chains in One Transaction | FastBridge",
@@ -798,7 +837,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         imageUrl:
           "https://files.availproject.org/nexus-fast-bridge/meta/avalanche.jpg",
         faviconUrl: "/avail_logo.svg",
-        themeColor: "#FF394A",
+        themeColor: "#E84142",
         backgroundColor: "#ffffff",
       },
     },
@@ -822,20 +861,45 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
 // ---------------------------------------------------------------------------
 
 export function getChainSettings(slug: string): ChainSettings {
-  return CHAIN_REGISTRY[slug] ?? CHAIN_REGISTRY[DEFAULT_CHAIN_SLUG];
+  const normalized = slug === "optimism" ? "op-mainnet" : slug;
+  return CHAIN_REGISTRY[normalized] ?? CHAIN_REGISTRY[DEFAULT_CHAIN_SLUG];
 }
 
 export function getAllChainSlugs(): string[] {
-  return Object.keys(CHAIN_REGISTRY);
+  const slugs = Object.keys(CHAIN_REGISTRY);
+  if (!slugs.includes("optimism")) {
+    slugs.push("optimism");
+  }
+  return slugs;
 }
 
 export function isValidChainSlug(slug: string): boolean {
-  return slug in CHAIN_REGISTRY;
+  const normalized = slug === "optimism" ? "op-mainnet" : slug;
+  return normalized in CHAIN_REGISTRY;
 }
 
 export function getChainSlugById(chainId: number): string | undefined {
   const settings = Object.values(CHAIN_REGISTRY).find(
     (s) => s.appConfig.chainId === chainId
   );
+  return settings?.slug;
+}
+
+function normalizeChainLookupValue(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+export function getChainSlugByName(chainName?: string): string | undefined {
+  if (!chainName) {
+    return undefined;
+  }
+
+  const normalized = normalizeChainLookupValue(chainName);
+  const settings = Object.values(CHAIN_REGISTRY).find((entry) =>
+    [entry.slug, entry.appConfig.chainName].some(
+      (candidate) => normalizeChainLookupValue(candidate) === normalized
+    )
+  );
+
   return settings?.slug;
 }

@@ -27,36 +27,22 @@ export default function Navbar() {
   }, [address]);
 
   return (
-    <nav className="relative z-10 w-full overflow-x-hidden border-border border-b bg-white">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 min-w-0 items-center justify-between">
+    <nav className="fastbridge-app-nav">
+      <div className="fastbridge-app-nav-inner">
+        <div className="flex min-w-0 items-center justify-between">
           <div className="flex min-w-0 shrink items-center overflow-hidden">
             <a
-              className="flex items-center"
+              className="fastbridge-app-logo"
               href="/"
               rel="noopener noreferrer"
-              style={{ textDecoration: "none" }}
             >
               <img
-                alt=""
-                height={24}
-                src="/landing-assets/fastbridge-icon.svg"
-                style={{ width: "24px", height: "24px" }}
-                width={24}
+                alt="FastBridge"
+                className="fastbridge-app-logo-image"
+                height={160}
+                src="/fastbridge-logo.png"
+                width={758}
               />
-              <span
-                style={{
-                  marginLeft: "4px",
-                  fontFamily: '"Delight", sans-serif',
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  lineHeight: "29px",
-                  color: "#161615",
-                  letterSpacing: "0.48px",
-                }}
-              >
-                fastbridge
-              </span>
             </a>
           </div>
 
@@ -66,7 +52,7 @@ export default function Navbar() {
           >
             {isConnected ? (
               <button
-                className="flex items-center gap-2 rounded bg-gray-100 px-[14px] py-2 font-medium text-[#161615] text-sm transition-colors hover:bg-gray-200"
+                className="fastbridge-wallet-button"
                 onClick={() => open()}
                 type="button"
               >
@@ -74,7 +60,7 @@ export default function Navbar() {
               </button>
             ) : (
               <button
-                className="flex items-center gap-2 rounded bg-[#161615] px-[14px] py-2 font-medium text-sm text-white transition-opacity hover:opacity-90"
+                className="fastbridge-wallet-button"
                 onClick={() => open({ view: "Connect" })}
                 type="button"
               >

@@ -2,6 +2,7 @@ export interface AppConfig {
   appDescription: string;
   appTitle: string;
   backgroundImageUrl: string;
+  boxShadow?: string;
   chainBlockExplorerUrl: string;
   chainGifAlt: string;
   chainGifUrl: string;
@@ -31,6 +32,7 @@ export interface AppConfig {
   nexusPrimaryToken: string;
   nexusSupportedChain: number;
   primaryColor: string;
+  ribbonPng?: string;
   secondaryColor: string;
   useChainLogo: boolean;
 }

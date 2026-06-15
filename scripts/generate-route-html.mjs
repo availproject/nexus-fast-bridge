@@ -23,8 +23,7 @@ const indexPath = path.join(distDir, "index.html");
 // (each chain's `appConfig.meta` object).
 //
 // WHY NOT A DIRECT IMPORT?
-// chain-settings.ts uses TypeScript syntax and imports from npm packages
-// (e.g. `import { SUPPORTED_CHAINS } from "@avail-project/nexus-core"`).
+// chain-settings.ts uses TypeScript syntax and imports local app modules.
 // Plain `node` cannot execute TypeScript without a build step, so we maintain
 // this plain-JS mirror. When you update `meta` in chain-settings.ts, update
 // the matching entry here too.

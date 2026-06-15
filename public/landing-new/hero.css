@@ -1,0 +1,514 @@
+/* FastBridge hero — Figma "Desktop · Fastbridge Hero" (226:2690) */
+
+.hero {
+  --hero-pad-x: 100px;
+  --hero-pad-top: 50px;
+  --hero-height: 809px;
+  --hero-title-size: 75px;
+  --hero-title-lh: 89.842px;
+  --hero-title-tracking: 1.4974px;
+  --hero-title-max: 913px;
+  --hero-title-gap: 96px;
+  --hero-panel-max: 667px;
+  --hero-panel-bottom: 298px;
+  --hero-panel-top: 35px;
+  --hero-panel-gap: 24px;
+
+  position: relative;
+  width: 100%;
+  height: max(var(--hero-height), 100svh);
+  min-height: max(var(--hero-height), 100svh);
+  overflow: hidden;
+  background: #0a0a12;
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero__gradient-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero__gradient-wrap::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    132.24deg,
+    rgba(0, 0, 0, 0.2) 26.76%,
+    rgba(0, 0, 0, 0) 39.94%
+  );
+}
+
+.hero__gradient {
+  position: absolute;
+  top: -23.28%;
+  left: 50%;
+  width: 100.02%;
+  max-width: none;
+  height: 147.93%;
+  object-fit: cover;
+  object-position: center top;
+  transform: translateX(-50%);
+}
+
+.hero__video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__video {
+    display: none;
+  }
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1440px;
+  height: 100%;
+  padding: var(--hero-pad-top) var(--hero-pad-x) 0;
+  margin: 0 auto;
+}
+
+.hero__header {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero__logo {
+  display: inline-flex;
+  gap: 5.374px;
+  align-items: center;
+  color: #fffffe;
+  text-decoration: none;
+}
+
+.hero__logo-icon {
+  flex-shrink: 0;
+  width: 39.97px;
+  height: 39.97px;
+}
+
+.hero__logo-text {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 30.731px;
+  font-weight: 400;
+  line-height: 1;
+  color: #fffffe;
+}
+
+.hero__nav-btn {
+  width: 165px;
+  min-width: 165px;
+  max-width: 165px;
+  padding: 0;
+}
+
+.hero__title {
+  max-width: var(--hero-title-max);
+  margin: var(--hero-title-gap) auto 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: var(--hero-title-size);
+  font-weight: 400;
+  line-height: var(--hero-title-lh);
+  color: #fffffe;
+  text-align: center;
+  text-transform: capitalize;
+  letter-spacing: var(--hero-title-tracking);
+}
+
+.hero__title-tablet,
+.hero__title-mobile {
+  display: none;
+}
+
+.hero__title-desktop {
+  display: block;
+}
+
+.hero__title-desktop .hero__title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hero-panel-gap);
+  align-items: center;
+  width: var(--hero-panel-max);
+  max-width: calc(100% - 2 * var(--hero-pad-x));
+  margin: var(--hero-panel-top) auto 0;
+  text-align: center;
+}
+
+.hero__desc {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #fffffe;
+  text-shadow:
+    0 1px 16px rgba(0, 0, 0, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.35);
+}
+
+.hero__actions {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero .btn {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 24px;
+  overflow: hidden;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.hero .btn:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Add FastBridge — translucent glass-dark button (Figma 342:2399) */
+.hero .btn--primary {
+  width: 160px;
+  min-width: 160px;
+  color: #fffffe;
+  background-color: rgba(22, 22, 21, 0.61);
+  background-image: linear-gradient(
+    rgba(255, 255, 254, 0.14),
+    rgba(255, 255, 254, 0.14)
+  );
+  background-size: 100% 0%;
+  border: 1px solid rgba(255, 255, 254, 0.19);
+  box-shadow: 0 1px 4px rgba(85, 85, 85, 0.05);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.hero .btn--primary:hover {
+  background-size: 100% 100%;
+  border-color: rgba(255, 255, 254, 0.45);
+}
+
+/* Bridge Now — solid white button (Figma 342:2401) */
+.hero .btn--secondary {
+  width: 160px;
+  min-width: 160px;
+  color: #161615;
+  background-color: #fffffe;
+  background-image: linear-gradient(#161615, #161615);
+  background-size: 100% 0%;
+  border: 1px solid #e8e8e7;
+}
+
+.hero .btn--secondary:hover {
+  color: #fffffe;
+  background-size: 100% 100%;
+  border-color: #161615;
+}
+
+/* Scale down on narrower desktop viewports */
+@media (max-width: 1440px) {
+  .hero {
+    --hero-title-size: clamp(2.75rem, 5.2vw, 75px);
+    --hero-title-lh: 1.198;
+  }
+}
+
+/* Tablet — Figma "Tablet Section / Hero" (226:2714) */
+@media (max-width: 768px) {
+  .hero {
+    --hero-pad-x: 48px;
+    --hero-pad-top: 40px;
+    --hero-height: 924px;
+    --hero-panel-bottom: 184px;
+    --hero-title-size: 61.328px;
+    --hero-title-lh: 73.464px;
+    --hero-title-tracking: 1.2244px;
+    --hero-title-max: 628px;
+    --hero-title-gap: 43px;
+    --hero-panel-gap: 30px;
+    --hero-desc-max: 539px;
+
+    height: var(--hero-height);
+    min-height: var(--hero-height);
+    background: #0a0a12;
+  }
+
+  /* Dark streak background fills the whole hero (Figma 226:2716) */
+  .hero__gradient-wrap {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero__gradient-wrap::after {
+    display: none;
+  }
+
+  .hero__gradient {
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .hero .hero__nav-btn {
+    display: none;
+  }
+
+  .hero__inner {
+    position: relative;
+    max-width: none;
+    height: 100%;
+    padding: var(--hero-pad-top) var(--hero-pad-x) 0;
+    margin: 0;
+  }
+
+  .hero__header {
+    justify-content: center;
+  }
+
+  .hero__title {
+    max-width: var(--hero-title-max);
+    margin: var(--hero-title-gap) auto 0;
+    text-align: center;
+    text-transform: none;
+  }
+
+  .hero__title-desktop {
+    display: none;
+  }
+
+  .hero__title-tablet {
+    display: block;
+  }
+
+  .hero__title-mobile {
+    display: none;
+  }
+
+  .hero__panel {
+    position: absolute;
+    right: auto;
+    bottom: var(--hero-panel-bottom);
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hero-panel-gap);
+    align-items: center;
+    width: var(--hero-desc-max);
+    max-width: calc(100% - 2 * var(--hero-pad-x));
+    text-align: center;
+    isolation: auto;
+    transform: translateX(-50%);
+  }
+
+  .hero__panel::before {
+    display: none;
+  }
+
+  .hero__desc {
+    max-width: var(--hero-desc-max);
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.5;
+    color: #fffffe;
+    text-align: center;
+  }
+
+  .hero__actions {
+    position: static;
+    gap: 24px;
+    justify-content: center;
+  }
+}
+
+/* Mobile — Figma "Mobile Section / Hero" (226:2731) */
+@media (max-width: 460px) {
+  .hero {
+    --hero-pad-x: 24px;
+    --hero-pad-top: 37px;
+    --hero-pad-bottom: 55px;
+    --hero-height: 780px;
+    --hero-title-size: 42px;
+    --hero-title-lh: 55.967px;
+    --hero-title-tracking: 0.9328px;
+    --hero-title-max: 314px;
+    --hero-title-gap: 42px;
+    --hero-panel-top: 32px;
+  }
+
+  .hero__gradient {
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .hero__header {
+    justify-content: center;
+  }
+
+  .hero .hero__nav-btn {
+    display: none;
+  }
+
+  .hero__logo {
+    gap: 4.031px;
+  }
+
+  .hero__logo-icon {
+    width: 29.977px;
+    height: 29.977px;
+  }
+
+  .hero__logo-text {
+    font-size: 23.048px;
+  }
+
+  .hero__title-tablet {
+    display: none;
+  }
+
+  .hero__title-mobile {
+    display: block;
+  }
+
+  .hero__title-line {
+    display: block;
+  }
+
+  .hero__title {
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+  }
+
+  .hero__panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: center;
+    width: 100%;
+    max-width: calc(100% - 2 * var(--hero-pad-x));
+    margin: var(--hero-panel-top) auto 0;
+    text-align: center;
+    transform: none;
+  }
+
+  .hero__desc {
+    width: 326px;
+    max-width: 100%;
+    margin: 0;
+    font-size: 16px;
+    color: #fffffe;
+    text-align: center;
+  }
+
+  .hero__actions {
+    gap: 16px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Compact CTAs over the dark image (Figma 343:52) */
+  .hero .btn {
+    height: 48px;
+    font-size: 14px;
+  }
+
+  .hero .btn--primary,
+  .hero .btn--secondary {
+    width: 152px;
+    min-width: 152px;
+  }
+}
+
+@media (max-height: 860px) and (min-width: 769px) {
+  .hero {
+    --hero-pad-top: 40px;
+    --hero-title-size: clamp(2.25rem, 4.2vw, 75px);
+    --hero-title-lh: 1.198;
+    --hero-title-gap: 72px;
+    --hero-panel-top: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .btn {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .hero .btn--secondary:hover,
+  .hero .btn--primary:hover {
+    background-size: 100% 100%;
+  }
+
+  .hero .btn--secondary:hover {
+    color: #fffffe;
+  }
+
+  .hero .btn:active {
+    transform: none;
+  }
+}
