@@ -876,7 +876,7 @@ export function NexusOneProgressScreen({
               }
               tokenSymbol={destinationSymbol}
             />
-            <span>{formatDecimal(destinationAmount, 9)}</span>
+            <span>{formatDecimal(destinationAmount, 8)}</span>
             <span style={{ fontSize: "10.5px", lineHeight: "14px" }}>
               {destinationSymbol}
             </span>

@@ -130,18 +130,16 @@ const formatUsdAmount = (value: Decimal) => {
 const formatUsdValue = (value: Decimal) => {
   const absolute = value.abs();
   if (absolute.eq(0)) return "$0";
-  if (absolute.lt(0.000001)) return value.lt(0) ? "-<$0.000001" : "<$0.000001";
+  if (absolute.lt(0.01)) return value.lt(0) ? "-<$0.01" : "<$0.01";
 
-  const amount = absolute.lt(0.01)
-    ? formatAmount(absolute, { max: 6 })
-    : formatAmount(absolute, { max: 2 });
+  const amount = formatAmount(absolute, { max: 2 });
 
   return value.lt(0) ? `-$${amount}` : `$${amount}`;
 };
 
 const formatTokenAmount = (value: unknown) => {
   const amount = toDecimal(value);
-  return amount.toDecimalPlaces(9).toFixed();
+  return amount.toDecimalPlaces(8).toFixed();
 };
 
 const formatHeaderTokenAmount = (value: unknown) => {
@@ -153,7 +151,7 @@ const formatHeaderTokenAmount = (value: unknown) => {
   if (amount.abs().gte(1)) {
     return amount.toDecimalPlaces(4).toFixed();
   }
-  return amount.toDecimalPlaces(6).toFixed();
+  return amount.toDecimalPlaces(8).toFixed();
 };
 
 const getFontSize = (amountStr: string, symbolStr: string) => {
