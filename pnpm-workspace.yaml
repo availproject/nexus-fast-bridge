@@ -10,6 +10,8 @@ allowBuilds:
   protobufjs: true
   utf-8-validate: true
 
+blockExoticSubdeps: false
+
 minimumReleaseAgeExclude:
   - axios@1.17.0
   - "@avail-project/ca-common@3.0.0"

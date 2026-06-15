@@ -43,6 +43,5 @@ export default defineConfig({
     target: "es2022",
     outDir: "apps/root/dist",
     emptyOutDir: true,
-    target: "es2022",
   },
 });
