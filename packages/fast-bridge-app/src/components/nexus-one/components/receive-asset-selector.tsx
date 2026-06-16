@@ -12,7 +12,11 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
+import {
+  CHAIN_METADATA,
+  getShortChainName,
+  isUnsupportedSwapChain,
+} from "../../common/utils/constant";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
@@ -427,6 +431,7 @@ export function ReceiveAssetSelector({
     >();
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
+        if (isUnsupportedSwapChain(bd.chain?.id)) continue;
         const key = getTokenBalanceKey(bd.chain?.id, bd.contractAddress);
         if (!key) continue;
         const fiatBalance = parseFiatValue(bd.balanceInFiat);
@@ -514,6 +519,7 @@ export function ReceiveAssetSelector({
     }
     if (swapSupportedChainsAndTokens) {
       for (const c of swapSupportedChainsAndTokens) {
+        if (isUnsupportedSwapChain(c.id)) continue;
         map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
       }
     }
@@ -526,7 +532,10 @@ export function ReceiveAssetSelector({
   const chainFilterIds = useMemo(() => {
     const supportedIds = swapSupportedChainsAndTokens
       ?.map((chain) => chain.id)
-      .filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id));
+      .filter(
+        (id) =>
+          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) && !isUnsupportedSwapChain(id)
+      );
 
     const nextIds = new Set(
       supportedIds?.length
@@ -536,7 +545,10 @@ export function ReceiveAssetSelector({
     nextIds.add(CITREA_CHAIN_ID);
 
     return sortChainIdsBySwapDisplayOrder(
-      Array.from(nextIds).filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id))
+      Array.from(nextIds).filter(
+        (id) =>
+          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) && !isUnsupportedSwapChain(id)
+      )
     );
   }, [swapSupportedChainsAndTokens]);
 
@@ -568,6 +580,7 @@ export function ReceiveAssetSelector({
         for (const chainIdStr of Object.keys(chains)) {
           const chainId = parseInt(chainIdStr, 10);
           if (!SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)) continue;
+          if (isUnsupportedSwapChain(chainId)) continue;
           const meta = chainMetaMap.get(chainId) || {
             name: getShortChainName(chainId, `Chain ${chainId}`),
             logo: "",

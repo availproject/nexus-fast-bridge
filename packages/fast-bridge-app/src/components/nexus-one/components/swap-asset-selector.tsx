@@ -27,6 +27,7 @@ import { createPortal } from "react-dom";
 import {
   CHAIN_METADATA,
   getShortChainName,
+  isUnsupportedSwapChain,
   isUnsupportedSwapSourceChain,
 } from "../../common/utils/constant";
 import type { UserAsset } from "../../nexus/nexus-provider";
@@ -1031,7 +1032,7 @@ export function SwapAssetSelector({
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const baseTokens = staticOptions
-      ? [...staticOptions]
+      ? staticOptions.filter((token) => !isUnsupportedSwapChain(token.chainId))
       : swapBalance
         ? deriveTokenOptions(swapBalance)
         : [];
@@ -1059,7 +1060,7 @@ export function SwapAssetSelector({
       }
     }
 
-    return merged;
+    return merged.filter((token) => !isUnsupportedSwapChain(token.chainId));
   }, [
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
@@ -1907,6 +1908,7 @@ export function SwapAssetSelector({
 
     for (const chain of swapSupportedChains ?? []) {
       if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) continue;
+      if (isUnsupportedSwapChain(chain.id)) continue;
       options.set(chain.id, {
         contractAddress: "",
         symbol: "",
@@ -1921,7 +1923,11 @@ export function SwapAssetSelector({
     }
 
     for (const token of allTokens) {
-      if (!token.chainId || !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId)) {
+      if (
+        !token.chainId ||
+        !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId) ||
+        isUnsupportedSwapChain(token.chainId)
+      ) {
         continue;
       }
       if (!options.has(token.chainId)) {

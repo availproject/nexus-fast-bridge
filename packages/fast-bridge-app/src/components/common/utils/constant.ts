@@ -179,15 +179,18 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   // [SUPPORTED_CHAINS.TRON_SHASTA]: "Tron Shasta",
 } as const;
 
-export const UNSUPPORTED_SWAP_SOURCE_CHAIN_IDS = new Set<number>([
+export const UNSUPPORTED_SWAP_CHAIN_IDS = new Set<number>([
   SUPPORTED_CHAINS.AVALANCHE,
   SUPPORTED_CHAINS.KAIA,
 ]);
+export const UNSUPPORTED_SWAP_SOURCE_CHAIN_IDS = UNSUPPORTED_SWAP_CHAIN_IDS;
+
+export function isUnsupportedSwapChain(chainId?: number | null): boolean {
+  return Boolean(chainId && UNSUPPORTED_SWAP_CHAIN_IDS.has(Number(chainId)));
+}
 
 export function isUnsupportedSwapSourceChain(chainId?: number | null): boolean {
-  return Boolean(
-    chainId && UNSUPPORTED_SWAP_SOURCE_CHAIN_IDS.has(Number(chainId))
-  );
+  return isUnsupportedSwapChain(chainId);
 }
 
 export function getShortChainName(
