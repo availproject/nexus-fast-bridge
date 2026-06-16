@@ -1102,7 +1102,7 @@ function SwapReceiptPanel({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
+        gap: "7px",
         width: "100%",
       }}
     >
@@ -1110,23 +1110,23 @@ function SwapReceiptPanel({
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           boxShadow: "0px 1px 12px 0px #5B5B5B0D",
-          padding: "22px 16px",
+          padding: "16px 13px",
           textAlign: "center",
         }}
       >
         <div
           style={{
             display: "inline-flex",
-            marginBottom: "14px",
+            marginBottom: "10px",
             position: "relative",
           }}
         >
           <MiniLogo
-            fontSize={22}
+            fontSize={17}
             label={tokenSymbol}
-            size={58}
+            size={45}
             src={
               isDeposit
                 ? entry.opportunity?.logo || entry.toToken?.logo
@@ -1143,19 +1143,19 @@ function SwapReceiptPanel({
               color: "#FFFFFE",
               display: "flex",
               fontFamily: uiFont,
-              fontSize: "17px",
+              fontSize: "14px",
               fontWeight: 700,
-              height: "22px",
+              height: "18px",
               justifyContent: "center",
               position: "absolute",
               right: -4,
-              width: "22px",
+              width: "18px",
             }}
           >
             {isFailed ? "x" : "✓"}
           </div>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}>
           {isFailed
             ? failureHeadline
             : isDeposit
@@ -1170,22 +1170,22 @@ function SwapReceiptPanel({
             color: "#161615",
             display: "flex",
             fontFamily: '"Delight-Medium", "Delight", system-ui, sans-serif',
-            fontSize: "48px",
+            fontSize: "36px",
             fontWeight: 500,
-            gap: "8px",
+            gap: "7px",
             justifyContent: "center",
-            lineHeight: "50px",
-            marginTop: "8px",
+            lineHeight: "40px",
+            marginTop: "5px",
           }}
         >
           {displayAmount ? formatTokenDisplay(displayAmount) : "--"}
           <span
-            style={{ fontFamily: uiFont, fontSize: "17px", fontWeight: 600 }}
+            style={{ fontFamily: uiFont, fontSize: "14px", fontWeight: 600 }}
           >
             {tokenSymbol}
           </span>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}>
           ≈ {formatUsdDisplay(value)}
         </div>
         {receiptSummary && (
@@ -1193,8 +1193,8 @@ function SwapReceiptPanel({
             style={{
               color: "#848483",
               fontFamily: uiFont,
-              fontSize: "15px",
-              marginTop: "14px",
+              fontSize: "13px",
+              marginTop: "8px",
             }}
           >
             {receiptSummary}
@@ -1206,7 +1206,7 @@ function SwapReceiptPanel({
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           boxShadow: "0px 1px 12px 0px #5B5B5B0D",
           overflow: "hidden",
         }}
@@ -1216,11 +1216,11 @@ function SwapReceiptPanel({
             alignItems: "center",
             display: "flex",
             justifyContent: "space-between",
-            padding: "16px 20px",
+            padding: "12px 14px",
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "16px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
           >
             {isDeposit || isSend ? "You Paid" : "You Swapped"}
           </span>
@@ -1229,7 +1229,7 @@ function SwapReceiptPanel({
               alignItems: "flex-end",
               display: "flex",
               flexDirection: "column",
-              gap: "6px",
+              gap: "5px",
               textAlign: "right",
             }}
           >
@@ -1237,7 +1237,7 @@ function SwapReceiptPanel({
               style={{
                 color: "#161615",
                 fontFamily: uiFont,
-                fontSize: "16px",
+                fontSize: "14px",
                 fontWeight: 700,
               }}
             >
@@ -1253,7 +1253,7 @@ function SwapReceiptPanel({
                 cursor: "pointer",
                 display: "inline-flex",
                 fontFamily: uiFont,
-                fontSize: "14px",
+                fontSize: "12px",
                 gap: "4px",
                 padding: 0,
               }}
@@ -1263,7 +1263,7 @@ function SwapReceiptPanel({
                 ? "Hide Details"
                 : `${sourceCount} asset${sourceCount === 1 ? "" : "s"}`}
               <ChevronDown
-                size={13}
+                size={12}
                 style={{
                   transform: showSourceDetails
                     ? "rotate(180deg)"
@@ -1290,7 +1290,7 @@ function SwapReceiptPanel({
             <SourceRowsList
               borderTopFirst={false}
               entry={entry}
-              maxHeight={isDeposit ? 204 : 236}
+              maxHeight={isDeposit ? 184 : 212}
               scrollAfterRows={isDeposit ? 3 : 4}
             />
           </div>
@@ -1302,11 +1302,11 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: "10px 14px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
             >
               Recipient
             </span>
@@ -1320,18 +1320,18 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: "10px 14px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
             >
               Intent Explorer
             </span>
             <a
               href={entry.intentExplorerUrl ?? undefined}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "15px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
               target="_blank"
             >
               {intentLabel} ↗
@@ -1345,18 +1345,18 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "14px 20px",
+              padding: "10px 14px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
             >
               Final Transaction
             </span>
             <a
               href={entry.finalExplorerUrl}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "15px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
               target="_blank"
             >
               View Explorer ↗
@@ -1369,16 +1369,16 @@ function SwapReceiptPanel({
             borderTop: "1px solid #E8E8E7",
             display: "flex",
             justifyContent: "space-between",
-            padding: "14px 20px",
+            padding: "10px 14px",
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "15px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
           >
             Total Fees
           </span>
           <span
-            style={{ color: "#161615", fontFamily: uiFont, fontSize: "15px" }}
+            style={{ color: "#161615", fontFamily: uiFont, fontSize: "13px" }}
           >
             {formatUsdDisplay(entry.feeUsd)}
           </span>
@@ -1391,15 +1391,15 @@ function SwapReceiptPanel({
           alignItems: "center",
           background: "#1F1F1F",
           border: "none",
-          borderRadius: "11px",
+          borderRadius: "10px",
           boxShadow: "0px 1px 4px 0px #5555550D",
           color: "#FFFFFE",
           cursor: "pointer",
           display: "flex",
           fontFamily: uiFont,
-          fontSize: "16px",
+          fontSize: "15px",
           fontWeight: 600,
-          height: "48px",
+          height: "40px",
           justifyContent: "center",
           width: "100%",
         }}
@@ -6987,21 +6987,21 @@ function NexusOneInner({
         display: "flex",
         flexDirection: "column",
         fontFeatureSettings: '"tnum"',
-        fontSize: "13px",
+        fontSize: "12px",
         fontSynthesis: "none",
         fontVariantNumeric: "tabular-nums",
-        gap: "10px",
+        gap: "7px",
         height:
           hasMeasuredRootContent && rootContentHeight
-            ? `${rootContentHeight + 40}px`
+            ? `${rootContentHeight + 24}px`
             : "fit-content",
         maxHeight: "90dvh",
-        lineHeight: "18px",
+        lineHeight: "17px",
         margin: "auto",
         overflowX: "hidden",
         overflowY: isDrawerOverlayActive ? "hidden" : "auto",
         overscrollBehavior: isDrawerOverlayActive ? "contain" : "auto",
-        padding: "16px",
+        padding: "12px",
         scrollbarColor: `${theme.colors.textEmpty} transparent`,
         scrollbarGutter: "stable",
         scrollbarWidth: "thin",
@@ -7015,7 +7015,7 @@ function NexusOneInner({
           return transitions.join(", ");
         })(),
         willChange: "height",
-        width: "480px",
+        width: "392px",
         maxWidth: "100%",
         minWidth: "280px",
         WebkitFontSmoothing: "antialiased",
@@ -7029,7 +7029,7 @@ function NexusOneInner({
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
-          gap: "10px",
+          gap: "7px",
           minHeight: 0,
           width: "100%",
         }}
@@ -7087,8 +7087,8 @@ function NexusOneInner({
                   style={{
                     color: theme.colors.muted,
                     fontFamily: theme.fonts.sans,
-                    fontSize: "15px",
-                    marginLeft: "8px",
+                    fontSize: "14px",
+                    marginLeft: "7px",
                   }}
                 >
                   {fromTokens.length} asset(s) selected
@@ -7102,7 +7102,7 @@ function NexusOneInner({
               alignItems: "center",
               boxSizing: "border-box",
               display: "flex",
-              gap: "12px",
+              gap: "9px",
             }}
           >
             {hasQuoteRefreshCountdown && (
@@ -7125,19 +7125,19 @@ function NexusOneInner({
                 boxSizing: "border-box",
                 display: "flex",
                 flexShrink: 0,
-                height: "32px",
+                height: "28px",
                 justifyContent: "center",
-                width: "32px",
+                width: "28px",
                 cursor: "pointer",
                 padding: 0,
               }}
             >
               <svg
                 fill="none"
-                height="16"
-                style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                height="14"
+                style={{ width: "14px", height: "14px", flexShrink: 0 }}
                 viewBox="0 0 16 16"
-                width="16"
+                width="14"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
@@ -7178,18 +7178,18 @@ function NexusOneInner({
                   cursor: "pointer",
                   display: "flex",
                   flexShrink: 0,
-                  height: "32px",
+                  height: "28px",
                   justifyContent: "center",
                   padding: 0,
-                  width: "32px",
+                  width: "28px",
                 }}
               >
                 <svg
                   fill="none"
-                  height="16"
-                  style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                  height="14"
+                  style={{ width: "14px", height: "14px", flexShrink: 0 }}
                   viewBox="0 0 16 16"
-                  width="16"
+                  width="14"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
@@ -7213,7 +7213,7 @@ function NexusOneInner({
             display: "flex",
             flex: 1,
             flexDirection: "column",
-            gap: "10px",
+            gap: "7px",
             minHeight: 0,
             padding: 0,
             width: "100%",
@@ -7235,7 +7235,7 @@ function NexusOneInner({
                   <div
                     className="w-full"
                     style={{
-                      maxHeight: "calc(90dvh - 72px)",
+                      maxHeight: "calc(90dvh - 66px)",
                       minHeight: 0,
                       overflowX: "hidden",
                       overflowY: isPreviewTransitioning ? "hidden" : "auto",
@@ -7416,8 +7416,8 @@ function NexusOneInner({
                       boxSizing: "border-box",
                       display: "flex",
                       flexShrink: 0,
-                      gap: "8px",
-                      height: "52px",
+                      gap: "7px",
+                      height: "42px",
                       justifyContent: "center",
                       marginTop: "8px",
                       paddingInline: "16px",
@@ -7429,8 +7429,8 @@ function NexusOneInner({
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
-                          height: "17px",
-                          width: "17px",
+                          height: "14px",
+                          width: "14px",
                         }}
                       />
                     ) : (needsWalletConnection && walletConnectBusy) ||
@@ -7442,8 +7442,8 @@ function NexusOneInner({
                           color: isSwapCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
-                          height: "16px",
-                          width: "16px",
+                          height: "14px",
+                          width: "14px",
                         }}
                       />
                     ) : null}
@@ -7457,13 +7457,13 @@ function NexusOneInner({
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
                         fontSize: exactOutInsufficientSourceIssue
-                          ? "15px"
-                          : "16px",
+                          ? "13px"
+                          : "14px",
                         fontWeight: 500,
-                        letterSpacing: "-0.005em",
+                        letterSpacing: "0",
                         lineHeight: exactOutInsufficientSourceIssue
-                          ? "18px"
-                          : "20px",
+                          ? "17px"
+                          : "19px",
                       }}
                     >
                       {fromTokens.length === 0
@@ -7560,8 +7560,8 @@ function NexusOneInner({
                           boxSizing: "border-box",
                           display: "flex",
                           flexShrink: 0,
-                          gap: "8px",
-                          height: "48px",
+                          gap: "7px",
+                          height: "40px",
                           justifyContent: "center",
                           paddingInline: "16px",
                           cursor: isDepositCtaDisabled ? "default" : "pointer",
@@ -7572,8 +7572,8 @@ function NexusOneInner({
                           <AlertCircle
                             style={{
                               color: "#D32F2F",
-                              height: "17px",
-                              width: "17px",
+                              height: "14px",
+                              width: "14px",
                             }}
                           />
                         ) : (needsWalletConnection && walletConnectBusy) ||
@@ -7586,8 +7586,8 @@ function NexusOneInner({
                               color: isDepositCtaDisabled
                                 ? theme.colors.muted
                                 : theme.colors.surface,
-                              height: "16px",
-                              width: "16px",
+                              height: "14px",
+                              width: "14px",
                             }}
                           />
                         ) : null}
@@ -7601,10 +7601,10 @@ function NexusOneInner({
                                 : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
                             fontSize: exactOutInsufficientSourceIssue
-                              ? "15px"
-                              : "16px",
+                              ? "13px"
+                              : "14px",
                             fontWeight: 500,
-                            lineHeight: "24px",
+                            lineHeight: "21px",
                           }}
                         >
                           {quoteCtaLabel("Review deposit")}
@@ -7707,8 +7707,8 @@ function NexusOneInner({
                       boxSizing: "border-box",
                       display: "flex",
                       flexShrink: 0,
-                      gap: "8px",
-                      height: "48px",
+                      gap: "7px",
+                      height: "40px",
                       justifyContent: "center",
                       paddingInline: "16px",
                       cursor: isSendCtaDisabled ? "default" : "pointer",
@@ -7719,8 +7719,8 @@ function NexusOneInner({
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
-                          height: "17px",
-                          width: "17px",
+                          height: "14px",
+                          width: "14px",
                         }}
                       />
                     ) : (needsWalletConnection && walletConnectBusy) ||
@@ -7734,8 +7734,8 @@ function NexusOneInner({
                           color: isSendCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
-                          height: "16px",
-                          width: "16px",
+                          height: "14px",
+                          width: "14px",
                         }}
                       />
                     ) : null}
@@ -7749,10 +7749,10 @@ function NexusOneInner({
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
                         fontSize: exactOutInsufficientSourceIssue
-                          ? "15px"
-                          : "16px",
+                          ? "13px"
+                          : "14px",
                         fontWeight: 500,
-                        lineHeight: "24px",
+                        lineHeight: "21px",
                       }}
                     >
                       {sendCtaLabel}
@@ -8003,11 +8003,11 @@ function NexusOneInner({
                   cursor: "pointer",
                   display: "flex",
                   fontFamily: theme.fonts.sans,
-                  fontSize: "18px",
+                  fontSize: "16px",
                   fontWeight: 500,
-                  height: "48px",
+                  height: "43px",
                   justifyContent: "center",
-                  marginTop: "24px",
+                  marginTop: "22px",
                   width: "100%",
                 }}
               >

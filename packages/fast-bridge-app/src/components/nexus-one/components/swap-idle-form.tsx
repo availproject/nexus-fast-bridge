@@ -105,7 +105,7 @@ function PercentButtons({
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
-        width: "108px",
+        width: "97px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -134,9 +134,9 @@ function PercentButtons({
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "10.5px",
+              fontSize: "10px",
               fontWeight: 500,
-              height: "20px",
+              height: "18px",
               justifyContent: "center",
               flex: "1 1 0%",
               minWidth: 0,
@@ -436,13 +436,13 @@ function PercentHoverButton({
       style={{
         alignItems: "center",
         backgroundColor: isHighlighted ? "#E8F0FF" : "#F4F4F3",
-        borderRadius: "7px",
+        borderRadius: "6px",
         boxSizing: "border-box",
         display: "flex",
         flex: "1 1 0%",
         justifyContent: "center",
         paddingBlock: "3px",
-        paddingInline: "7px",
+        paddingInline: "6px",
         border: "none",
         cursor: "pointer",
         transition: "background-color 0.2s ease-out",
@@ -958,7 +958,7 @@ export function SwapIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "9px",
         width: "100%",
       }}
     >
@@ -978,7 +978,7 @@ export function SwapIdleForm({
           alignItems: "center",
           backgroundColor: "#FFFFFE",
           borderColor: "#E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
@@ -986,10 +986,10 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "8px",
+          gap: "6px",
           justifyContent: "center",
-          paddingBlock: "11px",
-          paddingInline: "11px",
+          paddingBlock: "9px",
+          paddingInline: "9px",
           width: "100%",
         }}
       >
@@ -1009,10 +1009,10 @@ export function SwapIdleForm({
               boxSizing: "border-box",
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "12px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              lineHeight: "23px",
+              lineHeight: "18px",
               textTransform: "uppercase" as const,
             }}
           >
@@ -1027,7 +1027,7 @@ export function SwapIdleForm({
               border: "none",
               borderRadius: "6px",
               display: "flex",
-              gap: "5px",
+              gap: "4px",
               padding: "2px 0",
               color:
                 fromTokens.length > 0 && !isSourcePickerDisabled
@@ -1038,9 +1038,9 @@ export function SwapIdleForm({
                   ? "pointer"
                   : "not-allowed",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "12px",
               fontWeight: 500,
-              lineHeight: "20px",
+              lineHeight: "18px",
               opacity:
                 fromTokens.length > 0 && !isSourcePickerDisabled ? 1 : 0.75,
             }}
@@ -1050,8 +1050,8 @@ export function SwapIdleForm({
               aria-hidden="true"
               style={{
                 color: "currentColor",
-                fontSize: "18px",
-                lineHeight: "16px",
+                fontSize: "14px",
+                lineHeight: "14px",
               }}
             >
               +
@@ -1069,8 +1069,8 @@ export function SwapIdleForm({
             boxSizing: "border-box",
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
-            maxHeight: hasSourceOverflow ? "220px" : undefined,
+            gap: "9px",
+            maxHeight: hasSourceOverflow ? "178px" : undefined,
             overflowX: hasSourceOverflow ? "hidden" : undefined,
             overflowY: hasSourceOverflow ? "auto" : undefined,
             paddingRight: hasSourceOverflow ? "4px" : undefined,
@@ -1095,7 +1095,7 @@ export function SwapIdleForm({
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "6px",
+                  gap: "5px",
                   opacity: 1,
                   position: "relative",
                   transform: "translateY(0)",
@@ -1109,7 +1109,7 @@ export function SwapIdleForm({
                     alignSelf: "stretch",
                     boxSizing: "border-box",
                     display: "flex",
-                    gap: "8px",
+                    gap: "7px",
                     justifyContent: "space-between",
                     width: "100%",
                   }}
@@ -1138,9 +1138,9 @@ export function SwapIdleForm({
                                 : "#9E9E9C",
                               fontFamily:
                                 '"Delight-Medium", "Delight", system-ui, sans-serif',
-                              fontSize: "36px",
+                              fontSize: "29px",
                               fontWeight: 500,
-                              lineHeight: "44px",
+                              lineHeight: "34px",
                               marginRight: "4px",
                             }}
                           >
@@ -1173,9 +1173,9 @@ export function SwapIdleForm({
                               : "#9E9E9C",
                             fontFamily:
                               '"Delight-Medium", "Delight", system-ui, sans-serif',
-                            fontSize: "36px",
+                            fontSize: "29px",
                             fontWeight: 500,
-                            lineHeight: "44px",
+                            lineHeight: "34px",
                             background: "transparent",
                             border: "none",
                             outline: "none",
@@ -1206,7 +1206,7 @@ export function SwapIdleForm({
                   <div
                     style={{
                       display: "flex",
-                      gap: "8px",
+                      gap: "7px",
                       alignItems: "center",
                     }}
                   >
@@ -1216,13 +1216,13 @@ export function SwapIdleForm({
                           alignItems: "center",
                           display: "flex",
                           flexShrink: 0,
-                          height: "30px",
-                          width: "110px",
+                          height: "25px",
+                          width: "90px",
                         }}
                       >
                         <SkeletonBar
                           borderRadius="999px"
-                          height="28px"
+                          height="23px"
                           width="100%"
                         />
                       </div>
@@ -1240,11 +1240,11 @@ export function SwapIdleForm({
                           boxShadow: token ? "#1616150A 0px 1px 2px" : "none",
                           boxSizing: "border-box",
                           display: "flex",
-                          gap: "7px",
-                          paddingBottom: "4px",
-                          paddingLeft: token ? "4px" : "8px",
-                          paddingRight: "9px",
-                          paddingTop: "4px",
+                          gap: "6px",
+                          paddingBottom: "3px",
+                          paddingLeft: token ? "3px" : "7px",
+                          paddingRight: "8px",
+                          paddingTop: "3px",
                           cursor: isSourcePickerDisabled
                             ? "not-allowed"
                             : "pointer",
@@ -1254,31 +1254,31 @@ export function SwapIdleForm({
                       >
                         {token ? (
                           token.isUnified ? (
-                            <UnifiedTokenLogoBadge size={24} token={token} />
+                            <UnifiedTokenLogoBadge size={20} token={token} />
                           ) : (
                             <div
                               style={{
                                 boxSizing: "border-box",
                                 flexShrink: 0,
-                                height: "24px",
+                                height: "20px",
                                 position: "relative" as const,
-                                width: "24px",
+                                width: "20px",
                               }}
                             >
                               <LogoCircle
                                 alt={token.symbol}
-                                fontSize={12}
+                                fontSize={10}
                                 label={token.symbol}
-                                size={24}
+                                size={20}
                                 src={token.logo}
                               />
                               {token.chainLogo && (
                                 <LogoCircle
                                   alt={token.chainName}
-                                  fontSize={6}
+                                  fontSize={5}
                                   label={token.chainName}
                                   outline="1px solid #FFFFFE"
-                                  size={12}
+                                  size={10}
                                   src={token.chainLogo}
                                   style={{
                                     bottom: -2,
@@ -1298,8 +1298,8 @@ export function SwapIdleForm({
                               borderWidth: "1.5px",
                               boxSizing: "border-box",
                               flexShrink: 0,
-                              height: "22px",
-                              width: "22px",
+                              height: "18px",
+                              width: "18px",
                             }}
                           />
                         )}
@@ -1308,9 +1308,9 @@ export function SwapIdleForm({
                             boxSizing: "border-box",
                             color: "#161615",
                             fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: token ? "13px" : "15px",
+                            fontSize: token ? "12px" : "14px",
                             fontWeight: 500,
-                            lineHeight: token ? "17px" : "22px",
+                            lineHeight: token ? "16px" : "20px",
                           }}
                         >
                           {token ? token.symbol : "Assets"}
@@ -1332,8 +1332,8 @@ export function SwapIdleForm({
                           );
                         }}
                         style={{
-                          width: "22px",
-                          height: "22px",
+                          width: "18px",
+                          height: "18px",
                           borderRadius: "999px",
                           backgroundColor: "#F0F0EF",
                           border: "none",
@@ -1554,12 +1554,12 @@ export function SwapIdleForm({
                                         tooltipTriggerRect.top +
                                         8,
                                     }),
-                                width: "220px",
+                                width: "198px",
                                 backgroundColor: "#fff",
                                 border: "1px solid #E8E8E7",
                                 borderRadius: "12px",
                                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                                padding: "14px",
+                                padding: "12px",
                                 display: "flex",
                                 flexDirection: "column",
                                 zIndex: 2147483647,
@@ -1582,9 +1582,9 @@ export function SwapIdleForm({
                               </div>
                               <div
                                 style={{
-                                  fontSize: "15px",
+                                  fontSize: "14px",
                                   color: "#161615",
-                                  lineHeight: "20px",
+                                  lineHeight: "18px",
                                   fontFamily: '"Geist", system-ui, sans-serif',
                                 }}
                               >
@@ -1629,10 +1629,10 @@ export function SwapIdleForm({
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "13px",
               fontWeight: 500,
-              gap: "5px",
-              lineHeight: "20px",
+              gap: "4px",
+              lineHeight: "18px",
               marginTop: "-2px",
               padding: 0,
             }}
@@ -1650,9 +1650,9 @@ export function SwapIdleForm({
               color:
                 sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "15px",
+              fontSize: "13px",
               fontWeight: 500,
-              lineHeight: "20px",
+              lineHeight: "18px",
               marginTop: "-6px",
             }}
           >
@@ -1665,7 +1665,7 @@ export function SwapIdleForm({
           <div
             style={{
               display: "flex",
-              gap: "8px",
+              gap: "7px",
               alignItems: "center",
               paddingTop: "6px",
               alignSelf: "flex-start",
@@ -1674,7 +1674,7 @@ export function SwapIdleForm({
           >
             <span
               style={{
-                fontSize: "19px",
+                fontSize: "15px",
                 fontWeight: 600,
                 color: "#161615",
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1684,7 +1684,7 @@ export function SwapIdleForm({
             </span>
             <span
               style={{
-                fontSize: "14px",
+                fontSize: "12px",
                 color: "#848483",
                 fontWeight: 600,
                 fontFamily: '"Geist", system-ui, sans-serif',
@@ -1702,7 +1702,7 @@ export function SwapIdleForm({
         style={{
           backgroundColor: "#FFFFFE",
           borderColor: "#E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           borderStyle: "solid",
           borderWidth: "1px",
           boxShadow: "#1616150A 0px 1px 2px",
@@ -1710,9 +1710,9 @@ export function SwapIdleForm({
           display: "flex",
           flexDirection: "column",
           fontVariantNumeric: "tabular-nums",
-          gap: "8px",
-          paddingBlock: "12px",
-          paddingInline: "11px",
+          gap: "6px",
+          paddingBlock: "9px",
+          paddingInline: "9px",
           width: "100%",
         }}
       >
@@ -1722,10 +1722,10 @@ export function SwapIdleForm({
             boxSizing: "border-box",
             color: "#848483",
             fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "14px",
+            fontSize: "12px",
             fontWeight: 500,
             letterSpacing: "0.08em",
-            lineHeight: "23px",
+            lineHeight: "18px",
             textTransform: "uppercase" as const,
             width: "100%",
           }}
@@ -1749,7 +1749,7 @@ export function SwapIdleForm({
               alignSelf: "stretch",
               boxSizing: "border-box",
               display: "flex",
-              gap: "10px",
+              gap: "9px",
               justifyContent: "space-between",
               width: "100%",
             }}
@@ -1760,12 +1760,12 @@ export function SwapIdleForm({
                   alignItems: "center",
                   boxSizing: "border-box",
                   display: "flex",
-                  minHeight: "38px",
+                  minHeight: "31px",
                   minWidth: 0,
                   width: "100%",
                 }}
               >
-                <SkeletonBar height="30px" width="68%" />
+                <SkeletonBar height="27px" width="68%" />
               </div>
             ) : (
               <input
@@ -1777,9 +1777,9 @@ export function SwapIdleForm({
                   color: receiveAmountTextColor,
                   fontFamily:
                     '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "36px",
+                  fontSize: "29px",
                   fontWeight: 500,
-                  lineHeight: "44px",
+                  lineHeight: "34px",
                   background: "transparent",
                   border: "none",
                   cursor: "default",
@@ -1808,11 +1808,11 @@ export function SwapIdleForm({
                 boxShadow: toToken ? "#1616150A 0px 1px 2px" : "none",
                 boxSizing: "border-box",
                 display: "flex",
-                gap: "7px",
-                paddingBottom: "4px",
-                paddingLeft: toToken ? "5px" : "8px",
-                paddingRight: "9px",
-                paddingTop: "4px",
+                gap: "5px",
+                paddingBottom: "3px",
+                paddingLeft: toToken ? "4px" : "7px",
+                paddingRight: "8px",
+                paddingTop: "3px",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
@@ -1822,25 +1822,25 @@ export function SwapIdleForm({
                   style={{
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "24px",
+                    height: "20px",
                     position: "relative" as const,
-                    width: "24px",
+                    width: "20px",
                   }}
                 >
                   <LogoCircle
                     alt={toToken.symbol}
-                    fontSize={12}
+                    fontSize={10}
                     label={toToken.symbol}
-                    size={24}
+                    size={20}
                     src={toToken.logo}
                   />
                   {toToken.chainLogo && (
                     <LogoCircle
                       alt={toToken.chainName}
-                      fontSize={6}
+                      fontSize={5}
                       label={toToken.chainName}
                       outline="1px solid #FFFFFE"
-                      size={12}
+                      size={10}
                       src={toToken.chainLogo}
                       style={{
                         bottom: -2,
@@ -1859,8 +1859,8 @@ export function SwapIdleForm({
                     borderWidth: "1.5px",
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "22px",
-                    width: "22px",
+                    height: "18px",
+                    width: "18px",
                   }}
                 />
               )}
@@ -1869,9 +1869,9 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "17px",
+                  fontSize: "14px",
                   fontWeight: 500,
-                  lineHeight: "25px",
+                  lineHeight: "19px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}
@@ -1889,7 +1889,7 @@ export function SwapIdleForm({
               display: "flex",
               justifyContent: "space-between",
               width: "100%",
-              minHeight: "24px",
+              minHeight: "22px",
             }}
           >
             {isReceiveUsdLoading ? (
@@ -1955,12 +1955,12 @@ export function SwapIdleForm({
                       position: "absolute",
                       right: 0,
                       bottom: "calc(100% + 8px)",
-                      width: "220px",
+                      width: "198px",
                       backgroundColor: "#fff",
                       border: "1px solid #E8E8E7",
                       borderRadius: "12px",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                      padding: "14px",
+                      padding: "12px",
                       display: "flex",
                       flexDirection: "column",
                       zIndex: 10000,
@@ -1983,9 +1983,9 @@ export function SwapIdleForm({
                     </div>
                     <div
                       style={{
-                        fontSize: "15px",
+                        fontSize: "14px",
                         color: "#161615",
-                        lineHeight: "20px",
+                        lineHeight: "18px",
                         fontFamily: '"Geist", system-ui, sans-serif',
                       }}
                     >
@@ -2018,7 +2018,7 @@ export function SwapIdleForm({
                 boxSizing: "border-box",
                 display: "flex",
                 flexDirection: "column",
-                gap: "5px",
+                gap: "4px",
                 paddingTop: "2px",
                 width: "100%",
               }}
@@ -2028,10 +2028,10 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#7C7C7A",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "14px",
+                  fontSize: "12px",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  lineHeight: "23px",
+                  lineHeight: "18px",
                   textTransform: "uppercase" as const,
                 }}
               >
@@ -2043,7 +2043,7 @@ export function SwapIdleForm({
                   alignSelf: "stretch",
                   boxSizing: "border-box",
                   display: "flex",
-                  gap: "10px",
+                  gap: "9px",
                   justifyContent: "space-between",
                   width: "100%",
                 }}
@@ -2053,10 +2053,10 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     color: recipientColor,
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "17px",
+                    fontSize: "14px",
                     fontVariantNumeric: "tabular-nums",
                     fontWeight: 500,
-                    lineHeight: "17px",
+                    lineHeight: "16px",
                   }}
                 >
                   {recipientAddress
@@ -2072,8 +2072,8 @@ export function SwapIdleForm({
                     boxSizing: "border-box",
                     display: "flex",
                     gap: "4px",
-                    paddingBlock: "7px",
-                    paddingInline: "10px",
+                    paddingBlock: "6px",
+                    paddingInline: "9px",
                     border: "none",
                     cursor: "pointer",
                   }}
@@ -2083,7 +2083,7 @@ export function SwapIdleForm({
                       boxSizing: "border-box",
                       color: "#006BF4",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "14px",
+                      fontSize: "13px",
                       fontWeight: 500,
                       lineHeight: "13px",
                     }}

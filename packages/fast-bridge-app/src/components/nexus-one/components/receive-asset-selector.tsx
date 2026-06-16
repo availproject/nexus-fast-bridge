@@ -34,6 +34,19 @@ interface ReceiveAssetSelectorProps {
   onSelect: (token: SwapTokenOption) => void;
 }
 
+interface ReceiveTokenPayload {
+  stableSymbols?: string[];
+  tokens: Record<string, ReceiveTokenResponse[]>;
+}
+
+interface ReceiveTokenResponse {
+  address: string;
+  decimals: number;
+  logoURI?: string;
+  name: string;
+  symbol: string;
+}
+
 const SUPPORTED_RECEIVE_CHAIN_IDS = new Set<number>(SWAP_CHAIN_DISPLAY_ORDER);
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
@@ -156,6 +169,26 @@ const getNativeAddressAlias = (address?: string) => {
   return null;
 };
 
+const hasNonEmptyTokenList = (tokens: unknown) =>
+  Boolean(
+    tokens &&
+      typeof tokens === "object" &&
+      !Array.isArray(tokens) &&
+      Object.values(tokens).some(
+        (chainTokens) => Array.isArray(chainTokens) && chainTokens.length > 0
+      )
+  );
+
+const isReceiveTokensPayloadUsable = (
+  data: unknown
+): data is ReceiveTokenPayload =>
+  Boolean(
+    data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      hasNonEmptyTokenList((data as { tokens?: unknown }).tokens)
+  );
+
 let rawTokensCache: any = null;
 let rawTokensPromise: Promise<any> | null = null;
 
@@ -189,15 +222,22 @@ export const preloadReceiveTokens = () => {
           cachedData &&
           Date.now() - Number(cachedTime) < 24 * 60 * 60 * 1000
         ) {
-          const data = JSON.parse(cachedData);
-          rawTokensCache = data;
-          console.log(
-            "[preloadReceiveTokens] Cache hit! Retrieved cached tokens from localStorage. Token chains count:",
-            Object.keys(data.tokens || {}).length,
-            "stables count:",
-            data.stableSymbols?.length
+          const data = JSON.parse(cachedData) as unknown;
+          if (isReceiveTokensPayloadUsable(data)) {
+            rawTokensCache = data;
+            console.log(
+              "[preloadReceiveTokens] Cache hit! Retrieved cached tokens from localStorage. Token chains count:",
+              Object.keys(data.tokens).length,
+              "stables count:",
+              Array.isArray(data.stableSymbols) ? data.stableSymbols.length : 0
+            );
+            return data;
+          }
+          console.warn(
+            "[preloadReceiveTokens] Cache hit contained empty token data. Clearing localStorage cache and fetching from li.quest."
           );
-          return data;
+          localStorage.removeItem(CACHE_KEY);
+          localStorage.removeItem(CACHE_TIME_KEY);
         }
         console.log(
           "[preloadReceiveTokens] Cache miss or expired. Proceeding to network fetch."
@@ -295,9 +335,8 @@ export const preloadReceiveTokens = () => {
         );
       }
 
-      rawTokensCache = data;
-
       if (Object.keys(data.tokens).length > 0) {
+        rawTokensCache = data;
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(data));
           localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
@@ -311,6 +350,7 @@ export const preloadReceiveTokens = () => {
           );
         }
       } else {
+        rawTokensCache = null;
         console.warn(
           "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Skipping cache write and resetting rawTokensPromise to allow retry."
         );
@@ -548,10 +588,13 @@ export function ReceiveAssetSelector({
         console.log(
           "[preloadReceiveTokens] Calling preloadReceiveTokens from ReceiveAssetSelector useEffect (fetchTokens)"
         );
-        preloadReceiveTokens();
+        const data = await preloadReceiveTokens();
 
-        const data = await rawTokensPromise;
         if (!active) return;
+        if (!isReceiveTokensPayloadUsable(data)) {
+          setApiTokens(getCitreaReceiveTokenOptions());
+          return;
+        }
 
         if (data.stableSymbols && Array.isArray(data.stableSymbols)) {
           setDynamicStableSymbols(
