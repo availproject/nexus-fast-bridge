@@ -8,6 +8,7 @@ import { http, WagmiProvider } from "wagmi";
 import {
   arbitrum,
   base,
+  bsc,
   type Chain,
   mainnet,
   monad,
@@ -87,6 +88,7 @@ const staticTransports = {
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
+  [bsc.id]: http(rpcConfig.bnb || undefined),
 };
 
 const staticChains = [
@@ -100,6 +102,7 @@ const staticChains = [
   megaeth,
   citrea,
   hyperevm,
+  bsc,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();

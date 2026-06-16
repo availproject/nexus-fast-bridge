@@ -1,8 +1,8 @@
 "use client";
 import { useAppKit } from "@reown/appkit/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Address } from "viem";
-import { useAccount, useChains, useSwitchChain } from "wagmi";
+import { useAccount } from "wagmi";
 import { getChainSlugById, getChainSlugByName } from "@/config/chain-settings";
 import { readBridgeParams } from "../lib/url-params";
 import { useRuntime } from "../providers/runtime-context";
@@ -77,24 +77,12 @@ function getPreferredDestinationPair(
 }
 
 const FastBridgeShowcase = () => {
-  const { address, isConnected, chainId } = useAccount();
+  const { address } = useAccount();
   const { open } = useAppKit();
-  const chains = useChains();
-  const { switchChain } = useSwitchChain();
   const { appConfig, chainSlug, setChain } = useRuntime();
   const [params] = useState(() => readBridgeParams());
   const [receiveAssetOverride, setReceiveAssetOverride] =
     useState<ReceiveAsset | null>(null);
-
-  useEffect(() => {
-    if (isConnected && chainId && switchChain) {
-      const isSupported = chains.some((c) => c.id === chainId);
-      if (!isSupported) {
-        // Switch to Ethereum Mainnet (1) if the current chain is not supported
-        switchChain({ chainId: 1 });
-      }
-    }
-  }, [isConnected, chainId, chains, switchChain]);
 
   const receiveAssetOverrideKey = useMemo(
     () => getReceiveAssetKey(receiveAssetOverride),
