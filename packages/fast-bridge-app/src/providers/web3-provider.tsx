@@ -7,16 +7,13 @@ import type { ReactNode } from "react";
 import { http, WagmiProvider } from "wagmi";
 import {
   arbitrum,
-  avalanche,
   base,
   type Chain,
-  kaia,
   mainnet,
   monad,
   optimism,
   polygon,
   scroll,
-  sophon,
 } from "wagmi/chains";
 import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
@@ -40,6 +37,43 @@ const megaeth: Chain = {
   testnet: false,
 };
 
+const citrea: Chain = {
+  id: 4114,
+  name: "Citrea Mainnet",
+  nativeCurrency: {
+    name: "CBTC",
+    symbol: "cBTC",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citrea"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Citrea Explorer",
+      url: "https://explorer.mainnet.citrea.xyz",
+    },
+  },
+  testnet: false,
+};
+
+const hyperevm: Chain = {
+  id: 999,
+  name: "HyperEVM",
+  nativeCurrency: {
+    name: "HYPE",
+    symbol: "HYPE",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [rpcs.hyperevm || "https://rpc.hyperliquid.xyz/evm"] },
+  },
+  blockExplorers: {
+    default: { name: "Purrsec", url: "https://purrsec.com" },
+  },
+  testnet: false,
+};
+
 const rpcConfig = rpcs as Record<string, string>;
 
 const staticTransports = {
@@ -49,25 +83,23 @@ const staticTransports = {
   [optimism.id]: http(rpcConfig.optimism || undefined),
   [polygon.id]: http(rpcConfig.polygon || undefined),
   [scroll.id]: http(rpcConfig.scroll || undefined),
-  [avalanche.id]: http(rpcConfig.avalanche || undefined),
-  [sophon.id]: http(rpcConfig.sophon || undefined),
-  [kaia.id]: http(rpcConfig.kaia || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
+  [citrea.id]: http(rpcConfig.citrea || undefined),
+  [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
 };
 
 const staticChains = [
   mainnet,
   base,
-  sophon,
-  kaia,
   arbitrum,
-  avalanche,
   optimism,
   polygon,
   scroll,
   monad,
   megaeth,
+  citrea,
+  hyperevm,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();
