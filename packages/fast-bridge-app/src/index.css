@@ -102,7 +102,7 @@ body,
 }
 
 .fastbridge-app-nav-inner {
-  width: min(1120px, calc(100% - 64px));
+  width: min(1240px, calc(100% - 80px));
   padding: 16px 0 0;
   margin: 0 auto;
 }
@@ -164,10 +164,10 @@ body,
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 26px;
+  gap: 32px;
   align-items: center;
   justify-content: space-between;
-  width: min(1120px, calc(100% - 64px));
+  width: min(1240px, calc(100% - 80px));
   padding: 0 0 16px;
   margin: 0 auto;
   font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
@@ -182,19 +182,19 @@ body,
 }
 
 .fastbridge-app-footer-left {
-  gap: 14px;
+  gap: 18px;
   min-width: 0;
 }
 
 .fastbridge-app-footer-right {
   flex-shrink: 0;
-  gap: 22px;
+  gap: 28px;
 }
 
 .fastbridge-powered-by {
   flex-shrink: 0;
   gap: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 16px;
   color: #525252;
@@ -204,8 +204,8 @@ body,
 .fastbridge-footer-avail-logo {
   display: block;
   flex-shrink: 0;
-  width: 33px;
-  height: 12px;
+  width: 37px;
+  height: 14px;
   object-fit: contain;
   object-position: center 66.667%;
 }
@@ -218,7 +218,7 @@ body,
 }
 
 .fastbridge-footer-copy {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 16px;
   color: #9e9e9c;
   letter-spacing: 0;
@@ -232,7 +232,7 @@ body,
 }
 
 .fastbridge-footer-link {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 16px;
   letter-spacing: 0;
@@ -246,53 +246,23 @@ body,
 }
 
 .fastbridge-footer-links {
-  gap: 20px;
+  gap: 24px;
 }
 
 .fastbridge-footer-socials {
-  gap: 12px;
+  gap: 14px;
 }
 
 .fastbridge-footer-icon-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .fastbridge-footer-icon-link-discord {
-  width: 16px;
-}
-
-.fastbridge-footer-icon-link svg {
-  width: 14px;
-  height: 14px;
-}
-
-.fastbridge-footer-icon-link-discord svg {
-  width: 16px;
-}
-
-.fastbridge-nexus-stage {
-  --fastbridge-nexus-scale: 0.78;
-  min-height: calc(400px * var(--fastbridge-nexus-scale));
-}
-
-.fastbridge-nexus-scale {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  max-width: 100%;
-  zoom: var(--fastbridge-nexus-scale);
-}
-
-@supports not (zoom: 1) {
-  .fastbridge-nexus-scale {
-    transform: scale(var(--fastbridge-nexus-scale));
-    transform-origin: center center;
-  }
+  width: 18px;
 }
 
 .fastbridge-footer-link:hover,
@@ -301,13 +271,9 @@ body,
 }
 
 @media (max-width: 900px) {
-  .fastbridge-nexus-stage {
-    --fastbridge-nexus-scale: 0.86;
-  }
-
   .fastbridge-app-nav-inner {
     width: calc(100% - 40px);
-    padding: 24px 0 0;
+    padding: 32px 0 0;
   }
 
   .fastbridge-wallet-button {
@@ -340,15 +306,6 @@ body,
 }
 
 @media (max-width: 480px) {
-  .fastbridge-nexus-stage {
-    --fastbridge-nexus-scale: 1;
-    min-height: 0;
-  }
-
-  .fastbridge-nexus-scale {
-    width: 100%;
-  }
-
   .fastbridge-app-main {
     width: 100% !important;
     max-width: 100% !important;
