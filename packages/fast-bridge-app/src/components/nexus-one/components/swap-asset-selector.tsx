@@ -54,6 +54,42 @@ export interface SwapTokenOption {
   userAmountUsd?: string;
 }
 
+const AVALANCHE_CHAIN_ID = 43_114;
+const KAIA_CHAIN_ID = 8217;
+
+export const BLOCKED_ASSET_SELECTOR_CHAIN_IDS = new Set<number>([
+  AVALANCHE_CHAIN_ID,
+  KAIA_CHAIN_ID,
+]);
+
+export const isBlockedAssetSelectorChainId = (chainId?: number | null) =>
+  typeof chainId === "number" && BLOCKED_ASSET_SELECTOR_CHAIN_IDS.has(chainId);
+
+const filterBlockedAssetSelectorToken = (
+  token: SwapTokenOption
+): SwapTokenOption | null => {
+  if (isBlockedAssetSelectorChainId(token.chainId)) return null;
+
+  if (!token.sourceTokens?.length) return token;
+
+  const sourceTokens = filterBlockedAssetSelectorTokens(token.sourceTokens);
+  if (token.isUnified && sourceTokens.length === 0) return null;
+  if (sourceTokens.length === token.sourceTokens.length) return token;
+
+  return { ...token, sourceTokens };
+};
+
+export const filterBlockedAssetSelectorTokens = (
+  tokens: SwapTokenOption[]
+): SwapTokenOption[] => {
+  const filtered: SwapTokenOption[] = [];
+  for (const token of tokens) {
+    const nextToken = filterBlockedAssetSelectorToken(token);
+    if (nextToken) filtered.push(nextToken);
+  }
+  return filtered;
+};
+
 interface SwapAssetSelectorProps {
   allowSelectedTokenRemoval?: boolean;
   allowUnified?: boolean;
@@ -87,7 +123,9 @@ export function deriveTokenOptions(
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
       if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
-      const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
+      const chainId = bd.chain?.id;
+      if (isBlockedAssetSelectorChainId(chainId)) continue;
+      const chainMeta = chainId ? CHAIN_METADATA[chainId] : undefined;
       tokens.push({
         contractAddress: bd.contractAddress,
         symbol: bd.symbol ?? asset.symbol,
@@ -99,9 +137,9 @@ export function deriveTokenOptions(
           bd.balanceInFiat != null
             ? `$${Number(bd.balanceInFiat).toFixed(2)}`
             : "$0.00",
-        chainId: bd.chain?.id,
+        chainId,
         chainName: getShortChainName(
-          bd.chain?.id,
+          chainId,
           chainMeta?.name ?? bd.chain?.name
         ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
@@ -522,11 +560,9 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   10, // OP
   999, // HyperEVM
   56, // BSC
-  // 43114, // Avalanche
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
-  8217, // Kaia
   534352, // Scroll
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
@@ -563,7 +599,7 @@ export const compareChainsBySwapDisplayOrder = <
   return (a.chainName ?? "").localeCompare(b.chainName ?? "");
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8453, 42161, 534352, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
@@ -1028,24 +1064,25 @@ export function SwapAssetSelector({
   }, [preserveListHeight]);
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
-    const baseTokens = staticOptions
-      ? [...staticOptions]
-      : swapBalance
-        ? deriveTokenOptions(swapBalance)
-        : [];
+    const baseTokens = filterBlockedAssetSelectorTokens(
+      staticOptions
+        ? [...staticOptions]
+        : swapBalance
+          ? deriveTokenOptions(swapBalance)
+          : []
+    );
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return baseTokens;
     }
 
     const merged = [...baseTokens];
-    const selectedSourceTokens = [
-      ...activeSelectedTokens,
-      ...lockedSelectedTokens,
-    ].flatMap((token) =>
-      token.isUnified && token.sourceTokens?.length
-        ? token.sourceTokens
-        : [token]
+    const selectedSourceTokens = filterBlockedAssetSelectorTokens(
+      [...activeSelectedTokens, ...lockedSelectedTokens].flatMap((token) =>
+        token.isUnified && token.sourceTokens?.length
+          ? token.sourceTokens
+          : [token]
+      )
     );
 
     for (const selectedToken of selectedSourceTokens) {
@@ -1057,7 +1094,7 @@ export function SwapAssetSelector({
       }
     }
 
-    return merged;
+    return filterBlockedAssetSelectorTokens(merged);
   }, [
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
@@ -1083,7 +1120,7 @@ export function SwapAssetSelector({
         result.filter(
           (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
         ),
-        lockedSelectedTokens.filter(
+        filterBlockedAssetSelectorTokens(lockedSelectedTokens).filter(
           (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
         )
       );
@@ -1397,6 +1434,8 @@ export function SwapAssetSelector({
   };
 
   const handleMultiTokenToggle = (token: SwapTokenOption) => {
+    if (isBlockedAssetSelectorChainId(token.chainId)) return;
+
     if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
       onToggle?.(token);
       return;
@@ -1404,13 +1443,14 @@ export function SwapAssetSelector({
 
     setActiveTab("custom");
     const current = mergeTokenOptions(
-      activeSelectedTokens,
-      lockedSelectedTokens
+      filterBlockedAssetSelectorTokens(activeSelectedTokens),
+      filterBlockedAssetSelectorTokens(lockedSelectedTokens)
     );
-    const targets =
+    const targets = filterBlockedAssetSelectorTokens(
       token.isUnified && token.sourceTokens?.length
         ? token.sourceTokens
-        : [token];
+        : [token]
+    );
     const unlockedTargets = targets.filter((target) => !isLockedToken(target));
     if (unlockedTargets.length === 0) return;
 
@@ -1420,7 +1460,7 @@ export function SwapAssetSelector({
     const next = allTargetsSelected
       ? removeTokenOptions(current, unlockedTargets)
       : mergeTokenOptions(current, unlockedTargets);
-    emitSelectionChange(next);
+    emitSelectionChange(filterBlockedAssetSelectorTokens(next));
   };
 
   /* ── Render a single-chain token row ── */
@@ -1824,9 +1864,11 @@ export function SwapAssetSelector({
   };
 
   const isLoading = !staticOptions && swapBalance === null;
-  const selectedAssetCount = activeSelectedTokens.length;
+  const allowedActiveSelectedTokens =
+    filterBlockedAssetSelectorTokens(activeSelectedTokens);
+  const selectedAssetCount = allowedActiveSelectedTokens.length;
   const requiredUsdAmount = parseTokenAmount(requiredUsd);
-  const selectedUsdAmount = activeSelectedTokens.reduce((sum, token) => {
+  const selectedUsdAmount = allowedActiveSelectedTokens.reduce((sum, token) => {
     if (token.isUnified && token.sourceTokens?.length) {
       return sum.plus(
         token.sourceTokens.reduce((sourceSum, source) => {

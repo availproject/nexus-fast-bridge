@@ -22,7 +22,9 @@ import {
   getCitreaReceiveTokenOptions,
 } from "../utils/citrea-tokens";
 import {
+  filterBlockedAssetSelectorTokens,
   getTokenSearchRank,
+  isBlockedAssetSelectorChainId,
   RadioDot,
   SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
@@ -493,7 +495,7 @@ export function ReceiveAssetSelector({
   }, [swapBalance]);
 
   const tokensWithBalances = useMemo(() => {
-    return apiTokens.map((token) => {
+    return filterBlockedAssetSelectorTokens(apiTokens).map((token) => {
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
@@ -566,7 +568,11 @@ export function ReceiveAssetSelector({
   const chainFilterIds = useMemo(() => {
     const supportedIds = swapSupportedChainsAndTokens
       ?.map((chain) => chain.id)
-      .filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id));
+      .filter(
+        (id) =>
+          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
+          !isBlockedAssetSelectorChainId(id)
+      );
 
     const nextIds = new Set(
       supportedIds?.length
@@ -576,7 +582,11 @@ export function ReceiveAssetSelector({
     nextIds.add(CITREA_CHAIN_ID);
 
     return sortChainIdsBySwapDisplayOrder(
-      Array.from(nextIds).filter((id) => SUPPORTED_RECEIVE_CHAIN_IDS.has(id))
+      Array.from(nextIds).filter(
+        (id) =>
+          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
+          !isBlockedAssetSelectorChainId(id)
+      )
     );
   }, [swapSupportedChainsAndTokens]);
 
@@ -592,7 +602,9 @@ export function ReceiveAssetSelector({
 
         if (!active) return;
         if (!isReceiveTokensPayloadUsable(data)) {
-          setApiTokens(getCitreaReceiveTokenOptions());
+          setApiTokens(
+            filterBlockedAssetSelectorTokens(getCitreaReceiveTokenOptions())
+          );
           return;
         }
 
@@ -610,7 +622,12 @@ export function ReceiveAssetSelector({
         const chains = data.tokens || {};
         for (const chainIdStr of Object.keys(chains)) {
           const chainId = parseInt(chainIdStr, 10);
-          if (!SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)) continue;
+          if (
+            !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId) ||
+            isBlockedAssetSelectorChainId(chainId)
+          ) {
+            continue;
+          }
           const meta = chainMetaMap.get(chainId) || {
             name: getShortChainName(chainId, `Chain ${chainId}`),
             logo: "",
@@ -631,7 +648,10 @@ export function ReceiveAssetSelector({
           }
         }
         const tokensByKey = new Map<string, SwapTokenOption>();
-        for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
+        for (const token of filterBlockedAssetSelectorTokens([
+          ...allParsed,
+          ...getCitreaReceiveTokenOptions(),
+        ])) {
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
