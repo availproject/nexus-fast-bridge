@@ -44,6 +44,7 @@ import type {
 import {
   CHAIN_METADATA,
   getShortChainName,
+  isUnsupportedSwapSourceChain,
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
@@ -867,16 +868,20 @@ const normalizePlanStep = (
 ): SwapStepType | BridgeStepType => {
   const source =
     stepLike && typeof stepLike === "object" ? (stepLike as any) : {};
+  const rawStepType = fallbackStepType ?? source.stepType ?? source.type;
   const progressType = normalizePlanStepType(
-    fallbackStepType ?? source.stepType ?? source.type ?? source.typeID,
+    rawStepType ?? source.typeID,
     state
   );
+  const progressKey =
+    source.id ?? source.stepId ?? source.typeID ?? progressType;
 
   return {
     ...source,
     completed,
+    rawType: rawStepType,
     type: progressType,
-    typeID: progressType,
+    typeID: String(progressKey),
   } as SwapStepType | BridgeStepType;
 };
 
@@ -902,27 +907,76 @@ const getPlanStepIntentExplorerUrl = (event: any, step: any) =>
   step?.data?.intentExplorerURL ??
   null;
 
-const shouldLogSwapPlanSteps = () => {
-  if (import.meta.env.DEV) return true;
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem("nexus-one-debug-swap-steps") === "1";
+const getSdkEventType = (event: any) =>
+  event?.type ?? event?.name ?? event?.event ?? "unknown";
+
+const summarizeSdkProgressStep = (
+  step: SwapStepType | BridgeStepType | null | undefined,
+  index?: number
+) => ({
+  completed: (step as any)?.completed,
+  index,
+  rawType: (step as any)?.rawType ?? (step as any)?.stepType,
+  state: (step as any)?.state,
+  type: getProgressStepType(step),
+});
+
+const logSdkSwapEvent = (
+  label: string,
+  event: any,
+  meta?: Record<string, unknown>
+) => {
+  console.log(`[NexusOne SDK][swap] ${label}`, {
+    event,
+    eventType: getSdkEventType(event),
+    ...meta,
+  });
+};
+
+const logSdkIntentEvent = (
+  label: string,
+  data: any,
+  meta?: Record<string, unknown>
+) => {
+  console.log(`[NexusOne SDK][intent] ${label}`, {
+    hasAllow: typeof data?.allow === "function",
+    hasDeny: typeof data?.deny === "function",
+    hasRefresh: typeof data?.refresh === "function",
+    intent: data?.intent,
+    raw: data,
+    ...meta,
+  });
 };
 
 const logSwapPlanSteps = (
   eventType: "plan_preview" | "plan_confirmed",
-  stepList: Array<SwapStepType | BridgeStepType>
+  stepList: Array<SwapStepType | BridgeStepType>,
+  rawSteps: unknown
 ) => {
-  if (!shouldLogSwapPlanSteps()) return;
+  console.log(`[NexusOne SDK][swap] ${eventType} step list`, {
+    count: stepList.length,
+    eventType,
+    rawSteps,
+    steps: stepList.map((step, index) => summarizeSdkProgressStep(step, index)),
+  });
+};
 
-  console.log(
-    `[NexusOne] swap ${eventType} steps`,
-    stepList.map((step, index) => ({
-      index,
-      state: (step as any).state,
-      type: getProgressStepType(step),
-      rawType: (step as any).rawType ?? (step as any).type,
-    }))
-  );
+const logSwapPlanProgress = (
+  event: any,
+  step: SwapStepType | BridgeStepType,
+  eventName: string,
+  completed: boolean
+) => {
+  console.log("[NexusOne SDK][swap] plan_progress", {
+    completed,
+    eventName,
+    eventType: getSdkEventType(event),
+    normalizedStep: summarizeSdkProgressStep(step),
+    rawEvent: event,
+    rawStep: event?.step,
+    state: event?.state,
+    stepType: event?.stepType,
+  });
 };
 
 const getFailureMessageForProgressStep = (
@@ -3174,6 +3228,7 @@ function NexusOneInner({
     const seen = new Set<string>();
     return expanded.filter((token) => {
       if (!token.chainId || !token.contractAddress) return false;
+      if (isUnsupportedSwapSourceChain(token.chainId)) return false;
       const key = `${token.chainId}-${token.contractAddress.toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -3964,7 +4019,18 @@ function NexusOneInner({
   const handleSwapIntentCallback = useCallback(
     (data: any, runId: number, quoteInputKey: string) => {
       const { intent, allow, deny, refresh } = data;
+      logSdkIntentEvent("onIntent", data, {
+        currentRunId: swapRunIdRef.current,
+        isCurrentRun: swapRunIdRef.current === runId,
+        quoteInputKey,
+        runId,
+      });
       if (swapRunIdRef.current !== runId) {
+        logSdkIntentEvent("ignored stale onIntent", data, {
+          currentRunId: swapRunIdRef.current,
+          quoteInputKey,
+          runId,
+        });
         deny();
         return;
       }
@@ -5492,11 +5558,11 @@ function NexusOneInner({
               normalizePlanStep(step, step?.type, undefined, false)
             )
           : [];
+        logSwapPlanSteps(event.type, stepList, event.plan?.steps);
         if (stepList.length === 0) return;
 
         if (hasSwapPlanSteps(stepList)) {
           swapStepsListRef.current = stepList as SwapStepType[];
-          logSwapPlanSteps(event.type, stepList);
           appendProgressListEvent(
             PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST,
             stepList
@@ -5511,7 +5577,10 @@ function NexusOneInner({
         return;
       }
 
-      if (event.type !== "plan_progress") return;
+      if (event.type !== "plan_progress") {
+        logSdkSwapEvent("unhandled typed event", event);
+        return;
+      }
 
       const state = String(event.state ?? "").toLowerCase();
       const completed = PLAN_FINAL_STATES.has(state);
@@ -5525,6 +5594,7 @@ function NexusOneInner({
         ? PROGRESS_EVENT_NAMES.BRIDGE_PLAN_PROGRESS
         : PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS;
 
+      logSwapPlanProgress(event, step, eventName, completed);
       appendProgressEvent(eventName, step, completed);
       handleProgressStepSideEffects(event, step, completed);
     };
@@ -5544,11 +5614,30 @@ function NexusOneInner({
       if (!event || typeof event !== "object") return;
       if (typeof event.type === "string") {
         handlePlanEvent(event);
+        return;
       }
+      logSdkSwapEvent("ignored event without string type", event);
     };
 
     const onEvent = (event: any) => {
-      if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) return;
+      const isCurrentRun = swapRunIdRef.current === runId;
+      const isCurrentQuote = isCurrentQuoteInput();
+      logSdkSwapEvent("onEvent", event, {
+        currentRunId: swapRunIdRef.current,
+        isCurrentQuote,
+        isCurrentRun,
+        quoteInputKey,
+        runId,
+      });
+      if (!isCurrentRun || !isCurrentQuote) {
+        logSdkSwapEvent("ignored stale onEvent", event, {
+          currentRunId: swapRunIdRef.current,
+          isCurrentQuote,
+          quoteInputKey,
+          runId,
+        });
+        return;
+      }
       handleSwapEvent(event);
     };
 
@@ -5918,12 +6007,7 @@ function NexusOneInner({
                 onIntent: (data) =>
                   handleSwapIntentCallback(data, runId, quoteInputKey),
               },
-              onEvent: (event: any) => {
-                if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
-                  return;
-                }
-                handleSwapEvent(event);
-              },
+              onEvent,
             }
           );
           const intentExplorerUrl = result.intentExplorerUrl || null;

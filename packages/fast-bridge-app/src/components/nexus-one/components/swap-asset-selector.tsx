@@ -24,7 +24,11 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
+import {
+  CHAIN_METADATA,
+  getShortChainName,
+  isUnsupportedSwapSourceChain,
+} from "../../common/utils/constant";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 const tabularNums: React.CSSProperties = {
@@ -83,6 +87,7 @@ export function deriveTokenOptions(
   const tokens: SwapTokenOption[] = [];
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
+      if (isUnsupportedSwapSourceChain(bd.chain?.id)) continue;
       if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       tokens.push({

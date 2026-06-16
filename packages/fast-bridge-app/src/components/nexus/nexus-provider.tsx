@@ -38,6 +38,7 @@ import {
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
+import { isUnsupportedSwapSourceChain } from "../common/utils/constant";
 import {
   buildUsdPeggedSymbolSet,
   DEFAULT_USD_PEGGED_TOKEN_SYMBOLS,
@@ -100,6 +101,47 @@ type TokenBalanceWithSources = Omit<TokenBalance, "chainBalances"> & {
   breakdown?: SourceBalance[];
   chainBalances?: SourceBalance[];
   value?: number | string;
+};
+
+const sumSourceBalances = (sources: SourceBalance[]) =>
+  sources.reduce((sum, source) => {
+    const balance = Number.parseFloat(String(source.balance ?? "0"));
+    return Number.isFinite(balance) && balance > 0 ? sum + balance : sum;
+  }, 0);
+
+const getSourceBalanceChainId = (source: SourceBalance) =>
+  source.chain?.id ?? (source as SourceBalance & { chainId?: number }).chainId;
+
+const filterUnsupportedSwapSources = (
+  assets: TokenBalance[] | null
+): TokenBalance[] | null => {
+  if (!assets) {
+    return null;
+  }
+
+  return assets.flatMap((asset) => {
+    const assetWithSources = asset as TokenBalanceWithSources;
+    const sourceBalances =
+      assetWithSources.chainBalances ?? assetWithSources.breakdown ?? [];
+    const filteredSources = sourceBalances.filter(
+      (source) => !isUnsupportedSwapSourceChain(getSourceBalanceChainId(source))
+    );
+
+    if (filteredSources.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        ...asset,
+        balance: String(sumSourceBalances(filteredSources)),
+        balanceInFiat: undefined,
+        breakdown: filteredSources,
+        chainBalances: filteredSources,
+        value: "0",
+      } as TokenBalance,
+    ];
+  });
 };
 
 const NexusProvider = ({
@@ -478,7 +520,11 @@ const NexusProvider = ({
     }
 
     if (swapBalanceResult.status === "fulfilled") {
-      setSwapBalance(normalizeUserAssetFiatValues(swapBalanceResult.value));
+      setSwapBalance(
+        normalizeUserAssetFiatValues(
+          filterUnsupportedSwapSources(swapBalanceResult.value)
+        )
+      );
     }
   }, [config?.network, normalizeUserAssetFiatValues]);
 
@@ -573,7 +619,11 @@ const NexusProvider = ({
         return;
       }
       const updatedBalance = await activeSdk.getBalancesForSwap();
-      setSwapBalance(normalizeUserAssetFiatValues(updatedBalance));
+      setSwapBalance(
+        normalizeUserAssetFiatValues(
+          filterUnsupportedSwapSources(updatedBalance)
+        )
+      );
     } catch (error) {
       console.error("Error fetching swap balance:", error);
     }
