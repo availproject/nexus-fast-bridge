@@ -10,7 +10,9 @@ import {
   base,
   bsc,
   type Chain,
+  citrea,
   mainnet,
+  megaeth,
   monad,
   optimism,
   polygon,
@@ -20,43 +22,6 @@ import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
-
-const megaeth: Chain = {
-  id: 4326,
-  name: "MegaETH Mainnet",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.megaeth || "https://rpcs.avail.so/megaeth"] },
-  },
-  blockExplorers: {
-    default: { name: "Explorer", url: "https://megaeth.blockscout.com" },
-  },
-  testnet: false,
-};
-
-const citrea: Chain = {
-  id: 4114,
-  name: "Citrea Mainnet",
-  nativeCurrency: {
-    name: "CBTC",
-    symbol: "cBTC",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citrea"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Citrea Explorer",
-      url: "https://explorer.mainnet.citrea.xyz",
-    },
-  },
-  testnet: false,
-};
 
 const hyperevm: Chain = {
   id: 999,
