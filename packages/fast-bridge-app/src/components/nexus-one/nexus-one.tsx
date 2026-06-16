@@ -6160,11 +6160,21 @@ function NexusOneInner({
     }
   };
 
+  const hasInsufficientSourcesQuoteIssue =
+    swapQuoteIssue?.type === "insufficientSources";
+
   useEffect(() => {
     if (activeMode !== "swap" || swapStep !== "idle" || !nexusSDK) return;
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasInsufficientSourcesQuoteIssue) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6205,6 +6215,7 @@ function NexusOneInner({
     defaultRecipientAddress,
     fromTokensQuoteKey,
     hasCurrentQuoteIntent,
+    hasInsufficientSourcesQuoteIssue,
     nexusSDK,
     recipientAddress,
     swapStep,
@@ -6216,6 +6227,13 @@ function NexusOneInner({
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasInsufficientSourcesQuoteIssue) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6261,6 +6279,7 @@ function NexusOneInner({
     depositAmountMode,
     depositQuoteAmountKey,
     hasCurrentQuoteIntent,
+    hasInsufficientSourcesQuoteIssue,
     nexusSDK,
     sourceSelectionRevision,
     selectedOpportunityIdentity,
@@ -6273,6 +6292,13 @@ function NexusOneInner({
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasInsufficientSourcesQuoteIssue) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6311,6 +6337,7 @@ function NexusOneInner({
     amount,
     activeQuoteInputKey,
     hasCurrentQuoteIntent,
+    hasInsufficientSourcesQuoteIssue,
     nexusSDK,
     sourceSelectionRevision,
     swapStep,
@@ -6629,6 +6656,12 @@ function NexusOneInner({
     }
   };
 
+  const handleSwapTokensUpdate = (tokens: SwapTokenOption[]) => {
+    setSwapQuoteIssue(null);
+    setTxError(null);
+    setFromTokens(tokens);
+  };
+
   const handleDepositAmountChange = (val: string) => {
     syncingIntentSourcesRef.current = false;
     resetExactOutSourcesToAuto();
@@ -6888,11 +6921,8 @@ function NexusOneInner({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-  const exactOutInsufficientSourceIssue =
-    (activeMode === "deposit" || activeMode === "send") &&
-    swapQuoteIssue?.type === "insufficientSources"
-      ? swapQuoteIssue
-      : null;
+  const insufficientSourceIssue =
+    swapQuoteIssue?.type === "insufficientSources" ? swapQuoteIssue : null;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
   const hasCurrentIntentSources = hasCurrentRunnableIntent && hasIntentSources;
@@ -6903,7 +6933,7 @@ function NexusOneInner({
     Boolean(
       toToken && (receiveMaxCalculating || (amount && Number(amount) > 0))
     ) &&
-    !exactOutInsufficientSourceIssue &&
+    !insufficientSourceIssue &&
     !hasCurrentIntentSources &&
     (quoteRefreshing || intentLoading || receiveMaxCalculating);
   const isQuoteUnavailableForAutoSourceFlow =
@@ -6912,7 +6942,7 @@ function NexusOneInner({
     !quoteRefreshing &&
     !receiveMaxCalculating &&
     !intentLoading &&
-    !exactOutInsufficientSourceIssue &&
+    !insufficientSourceIssue &&
     !hasCurrentIntentSources;
   const hasPositiveRootAmount = hasPositiveDecimalInput(amount);
   const hasReadySwapQuoteInput = hasReadyExactInSwapInput(fromTokens, toToken);
@@ -6935,7 +6965,7 @@ function NexusOneInner({
     : !hasReadySwapQuoteInput ||
       receiveMaxCalculating ||
       quoteRefreshing ||
-      Boolean(exactOutInsufficientSourceIssue);
+      Boolean(insufficientSourceIssue);
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
     : !hasPositiveRootAmount ||
@@ -6945,7 +6975,7 @@ function NexusOneInner({
         (quoteRefreshing ||
           intentLoading ||
           isQuoteUnavailableForAutoSourceFlow)) ||
-      Boolean(exactOutInsufficientSourceIssue);
+      Boolean(insufficientSourceIssue);
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -6958,10 +6988,10 @@ function NexusOneInner({
         (quoteRefreshing ||
           intentLoading ||
           isQuoteUnavailableForAutoSourceFlow)) ||
-      Boolean(exactOutInsufficientSourceIssue);
+      Boolean(insufficientSourceIssue);
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
-    if (exactOutInsufficientSourceIssue) return "Insufficient balance";
+    if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveMaxCalculating) return "Calculating...";
     if (!hasCurrentIntentSources && (quoteRefreshing || intentLoading)) {
       return "Fetching quotes...";
@@ -6972,7 +7002,7 @@ function NexusOneInner({
   };
   const sendCtaLabel = (() => {
     if (needsWalletConnection) return walletCtaLabel;
-    if (exactOutInsufficientSourceIssue) return "Insufficient balance";
+    if (insufficientSourceIssue) return "Insufficient balance";
     if (!hasPositiveRootAmount) return "Enter amount";
     if (!toToken) return "Select token";
     if (hasSameOwnerSendRecipient) return "Change recipient";
@@ -7543,15 +7573,15 @@ function NexusOneInner({
                     setEditingAssetIndex(index ?? null);
                     openDrawerStep("choose-swap-asset");
                   }}
-                  onUpdateTokens={setFromTokens}
+                  onUpdateTokens={handleSwapTokensUpdate}
                   receiveQuoteAmount={
                     swapType === "exactIn" ? idleReceiveQuoteAmount : undefined
                   }
                   receiveQuoteUsd={idleReceiveQuoteUsd}
                   recipientAddress={effectiveRecipientAddress}
-                  sourceRouteMessage={exactOutInsufficientSourceIssue?.message}
+                  sourceRouteMessage={insufficientSourceIssue?.message}
                   sourceRouteStatus={
-                    exactOutInsufficientSourceIssue
+                    insufficientSourceIssue
                       ? "insufficient"
                       : isExactOutRouteLoading
                         ? "loading"
@@ -7563,7 +7593,7 @@ function NexusOneInner({
                   usdValue={amount && usdValue > 0 ? usdValue.toFixed(2) : ""}
                 />
 
-                {txError && !exactOutInsufficientSourceIssue && (
+                {txError && !insufficientSourceIssue && (
                   <StatusAlert message={txError} type="error" />
                 )}
 
@@ -7586,17 +7616,17 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: exactOutInsufficientSourceIssue
+                      backgroundColor: insufficientSourceIssue
                         ? "#FCEEED"
                         : isSwapCtaDisabled
                           ? theme.colors.surfaceCool
                           : theme.colors.text,
-                      border: exactOutInsufficientSourceIssue
+                      border: insufficientSourceIssue
                         ? "1px solid #F7C4C1"
                         : "none",
                       borderRadius: theme.radius.primaryButton,
                       boxShadow:
-                        exactOutInsufficientSourceIssue || isSwapCtaDisabled
+                        insufficientSourceIssue || isSwapCtaDisabled
                           ? "none"
                           : theme.shadows.primaryButton,
                       boxSizing: "border-box",
@@ -7611,7 +7641,7 @@ function NexusOneInner({
                       width: "100%",
                     }}
                   >
-                    {exactOutInsufficientSourceIssue ? (
+                    {insufficientSourceIssue ? (
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
@@ -7636,20 +7666,16 @@ function NexusOneInner({
                     <div
                       style={{
                         boxSizing: "border-box",
-                        color: exactOutInsufficientSourceIssue
+                        color: insufficientSourceIssue
                           ? "#D32F2F"
                           : isSwapCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
-                        fontSize: exactOutInsufficientSourceIssue
-                          ? "13px"
-                          : "14px",
+                        fontSize: insufficientSourceIssue ? "13px" : "14px",
                         fontWeight: 500,
                         letterSpacing: "0",
-                        lineHeight: exactOutInsufficientSourceIssue
-                          ? "17px"
-                          : "19px",
+                        lineHeight: insufficientSourceIssue ? "17px" : "19px",
                       }}
                     >
                       {fromTokens.length === 0
@@ -7690,9 +7716,9 @@ function NexusOneInner({
                         openDrawerStep("choose-swap-asset")
                       }
                       onSetPercent={handleDepositPercentSelect}
-                      routeMessage={exactOutInsufficientSourceIssue?.message}
+                      routeMessage={insufficientSourceIssue?.message}
                       routeStatus={
-                        exactOutInsufficientSourceIssue
+                        insufficientSourceIssue
                           ? "insufficient"
                           : displayExactOutRouteLoading
                             ? "loading"
@@ -7705,7 +7731,7 @@ function NexusOneInner({
                       usdValue={depositUsdDisplay}
                     />
 
-                    {txError && !exactOutInsufficientSourceIssue && (
+                    {txError && !insufficientSourceIssue && (
                       <StatusAlert message={txError} type="error" />
                     )}
 
@@ -7727,20 +7753,19 @@ function NexusOneInner({
                         }}
                         style={{
                           alignItems: "center",
-                          backgroundColor: exactOutInsufficientSourceIssue
+                          backgroundColor: insufficientSourceIssue
                             ? "#FCEEED"
                             : isDepositCtaDisabled
                               ? theme.colors.surfaceCool
                               : theme.colors.text,
-                          border: exactOutInsufficientSourceIssue
+                          border: insufficientSourceIssue
                             ? "1px solid #F7C4C1"
                             : "none",
-                          borderRadius: exactOutInsufficientSourceIssue
+                          borderRadius: insufficientSourceIssue
                             ? "4px"
                             : theme.radius.primaryButton,
                           boxShadow:
-                            exactOutInsufficientSourceIssue ||
-                            isDepositCtaDisabled
+                            insufficientSourceIssue || isDepositCtaDisabled
                               ? "none"
                               : theme.shadows.primaryButton,
                           boxSizing: "border-box",
@@ -7754,7 +7779,7 @@ function NexusOneInner({
                           width: "100%",
                         }}
                       >
-                        {exactOutInsufficientSourceIssue ? (
+                        {insufficientSourceIssue ? (
                           <AlertCircle
                             style={{
                               color: "#D32F2F",
@@ -7780,15 +7805,13 @@ function NexusOneInner({
                         <div
                           style={{
                             boxSizing: "border-box",
-                            color: exactOutInsufficientSourceIssue
+                            color: insufficientSourceIssue
                               ? "#D32F2F"
                               : isDepositCtaDisabled
                                 ? theme.colors.muted
                                 : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
-                            fontSize: exactOutInsufficientSourceIssue
-                              ? "13px"
-                              : "14px",
+                            fontSize: insufficientSourceIssue ? "13px" : "14px",
                             fontWeight: 500,
                             lineHeight: "21px",
                           }}
@@ -7833,9 +7856,9 @@ function NexusOneInner({
                   }}
                   onSetPercent={handleSendPercentSelect}
                   recipientAddress={recipientAddress || ""}
-                  routeMessage={exactOutInsufficientSourceIssue?.message}
+                  routeMessage={insufficientSourceIssue?.message}
                   routeStatus={
-                    exactOutInsufficientSourceIssue
+                    insufficientSourceIssue
                       ? "insufficient"
                       : displayExactOutRouteLoading
                         ? "loading"
@@ -7849,7 +7872,7 @@ function NexusOneInner({
                   }
                 />
 
-                {txError && !exactOutInsufficientSourceIssue && (
+                {txError && !insufficientSourceIssue && (
                   <StatusAlert message={txError} type="error" />
                 )}
 
@@ -7875,19 +7898,19 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: exactOutInsufficientSourceIssue
+                      backgroundColor: insufficientSourceIssue
                         ? "#FCEEED"
                         : isSendCtaDisabled
                           ? theme.colors.surfaceCool
                           : theme.colors.text,
-                      border: exactOutInsufficientSourceIssue
+                      border: insufficientSourceIssue
                         ? "1px solid #F7C4C1"
                         : "none",
-                      borderRadius: exactOutInsufficientSourceIssue
+                      borderRadius: insufficientSourceIssue
                         ? "4px"
                         : theme.radius.primaryButton,
                       boxShadow:
-                        exactOutInsufficientSourceIssue || isSendCtaDisabled
+                        insufficientSourceIssue || isSendCtaDisabled
                           ? "none"
                           : theme.shadows.primaryButton,
                       boxSizing: "border-box",
@@ -7901,7 +7924,7 @@ function NexusOneInner({
                       width: "100%",
                     }}
                   >
-                    {exactOutInsufficientSourceIssue ? (
+                    {insufficientSourceIssue ? (
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
@@ -7928,15 +7951,13 @@ function NexusOneInner({
                     <div
                       style={{
                         boxSizing: "border-box",
-                        color: exactOutInsufficientSourceIssue
+                        color: insufficientSourceIssue
                           ? "#D32F2F"
                           : isSendCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
-                        fontSize: exactOutInsufficientSourceIssue
-                          ? "13px"
-                          : "14px",
+                        fontSize: insufficientSourceIssue ? "13px" : "14px",
                         fontWeight: 500,
                         lineHeight: "21px",
                       }}
