@@ -561,15 +561,21 @@ const extractIntentIdFromUrl = (url?: string | null) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
 
+const getNonEmptyString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed.length > 0) return trimmed;
+  }
+  return null;
+};
+
+const isHttpUrl = (value?: string | null) =>
+  Boolean(value && /^https?:\/\//i.test(value));
+
 const hasValidIntentExplorer = (
-  entry: Pick<SwapHistoryEntry, "intentExplorerUrl" | "intentId">
-) =>
-  Boolean(
-    entry.intentExplorerUrl &&
-      entry.intentId !== undefined &&
-      Number.isFinite(entry.intentId) &&
-      entry.intentId > 0
-  );
+  entry: Pick<SwapHistoryEntry, "intentExplorerUrl">
+) => isHttpUrl(entry.intentExplorerUrl);
 
 const getExplorerTxUrl = (chainId?: number, txHash?: string | null) => {
   if (!chainId || !txHash) return null;
@@ -582,17 +588,14 @@ const getExplorerTxUrl = (chainId?: number, txHash?: string | null) => {
 
 const getSdkSwapResult = (result: any) => {
   const candidate = result?.swapResult ?? result?.result;
-  return candidate &&
-    typeof candidate === "object" &&
-    (typeof candidate.explorerURL === "string" ||
-      typeof candidate.intentExplorerUrl === "string")
-    ? candidate
-    : null;
+  return candidate && typeof candidate === "object" ? candidate : null;
 };
 
 const getSdkTransactionHash = (result: any) =>
   result?.executeResponse?.txHash ||
+  result?.executeResponse?.transactionHash ||
   result?.execute?.txHash ||
+  result?.execute?.transactionHash ||
   result?.transactionHash ||
   result?.transferTransactionHash ||
   result?.executeTransactionHash ||
@@ -600,12 +603,68 @@ const getSdkTransactionHash = (result: any) =>
   null;
 
 const getSdkExplorerUrl = (result: any) =>
-  result?.explorerUrl ||
-  result?.explorerURL ||
-  result?.execute?.txExplorerUrl ||
-  result?.executeExplorerUrl ||
-  result?.transferExplorerUrl ||
-  null;
+  getNonEmptyString(
+    result?.explorerUrl,
+    result?.explorerURL,
+    result?.txExplorerUrl,
+    result?.transactionExplorerUrl,
+    result?.execute?.explorerUrl,
+    result?.execute?.explorerURL,
+    result?.execute?.txExplorerUrl,
+    result?.execute?.transactionExplorerUrl,
+    result?.executeResponse?.explorerUrl,
+    result?.executeResponse?.explorerURL,
+    result?.executeResponse?.txExplorerUrl,
+    result?.executeResponse?.transactionExplorerUrl,
+    result?.executeExplorerUrl,
+    result?.transferExplorerUrl,
+    result?.swapResult?.explorerUrl,
+    result?.swapResult?.explorerURL,
+    result?.result?.explorerUrl,
+    result?.result?.explorerURL
+  );
+
+const getSdkIntentExplorerUrl = (result: any, swapResult?: any) =>
+  getNonEmptyString(
+    swapResult?.intentExplorerUrl,
+    swapResult?.intentExplorerURL,
+    swapResult?.intentUrl,
+    swapResult?.intentURL,
+    swapResult?.rffUrl,
+    swapResult?.rffURL,
+    swapResult?.rffExplorerUrl,
+    swapResult?.rffExplorerURL,
+    swapResult?.explorerUrl,
+    swapResult?.explorerURL,
+    result?.intentExplorerUrl,
+    result?.intentExplorerURL,
+    result?.intentUrl,
+    result?.intentURL,
+    result?.rffUrl,
+    result?.rffURL,
+    result?.rffExplorerUrl,
+    result?.rffExplorerURL,
+    result?.swapResult?.intentExplorerUrl,
+    result?.swapResult?.intentExplorerURL,
+    result?.swapResult?.intentUrl,
+    result?.swapResult?.intentURL,
+    result?.swapResult?.rffUrl,
+    result?.swapResult?.rffURL,
+    result?.swapResult?.rffExplorerUrl,
+    result?.swapResult?.rffExplorerURL,
+    result?.swapResult?.explorerUrl,
+    result?.swapResult?.explorerURL,
+    result?.result?.intentExplorerUrl,
+    result?.result?.intentExplorerURL,
+    result?.result?.intentUrl,
+    result?.result?.intentURL,
+    result?.result?.rffUrl,
+    result?.result?.rffURL,
+    result?.result?.rffExplorerUrl,
+    result?.result?.rffExplorerURL,
+    result?.result?.explorerUrl,
+    result?.result?.explorerURL
+  );
 
 function MiniLogo({
   src,
@@ -886,26 +945,48 @@ const normalizePlanStep = (
 };
 
 const getPlanStepExplorerUrl = (event: any, step: any) =>
-  event?.explorerUrl ??
-  event?.explorerURL ??
-  event?.txExplorerUrl ??
-  event?.transactionExplorerUrl ??
-  step?.explorerUrl ??
-  step?.explorerURL ??
-  step?.txExplorerUrl ??
-  step?.transactionExplorerUrl ??
-  step?.data?.explorerUrl ??
-  step?.data?.explorerURL ??
-  null;
+  getNonEmptyString(
+    event?.explorerUrl,
+    event?.explorerURL,
+    event?.txExplorerUrl,
+    event?.transactionExplorerUrl,
+    step?.explorerUrl,
+    step?.explorerURL,
+    step?.txExplorerUrl,
+    step?.transactionExplorerUrl,
+    step?.data?.explorerUrl,
+    step?.data?.explorerURL,
+    step?.data?.txExplorerUrl,
+    step?.data?.transactionExplorerUrl
+  );
 
 const getPlanStepIntentExplorerUrl = (event: any, step: any) =>
-  event?.intentExplorerUrl ??
-  event?.intentExplorerURL ??
-  step?.intentExplorerUrl ??
-  step?.intentExplorerURL ??
-  step?.data?.intentExplorerUrl ??
-  step?.data?.intentExplorerURL ??
-  null;
+  getNonEmptyString(
+    event?.intentExplorerUrl,
+    event?.intentExplorerURL,
+    event?.intentUrl,
+    event?.intentURL,
+    event?.rffUrl,
+    event?.rffURL,
+    event?.rffExplorerUrl,
+    event?.rffExplorerURL,
+    step?.intentExplorerUrl,
+    step?.intentExplorerURL,
+    step?.intentUrl,
+    step?.intentURL,
+    step?.rffUrl,
+    step?.rffURL,
+    step?.rffExplorerUrl,
+    step?.rffExplorerURL,
+    step?.data?.intentExplorerUrl,
+    step?.data?.intentExplorerURL,
+    step?.data?.intentUrl,
+    step?.data?.intentURL,
+    step?.data?.rffUrl,
+    step?.data?.rffURL,
+    step?.data?.rffExplorerUrl,
+    step?.data?.rffExplorerURL
+  );
 
 const getSdkEventType = (event: any) =>
   event?.type ?? event?.name ?? event?.event ?? "unknown";
@@ -1238,7 +1319,9 @@ function SwapReceiptPanel({
   const value = requestedExactOutValue || destination?.value;
   const displayAmount = requestedExactOutAmount || amount;
   const showIntentExplorer = hasValidIntentExplorer(entry);
-  const intentLabel = `Intent #${entry.intentId}`;
+  const intentLabel = entry.intentId
+    ? `Intent #${entry.intentId}`
+    : "View Explorer";
   const sourceRows = getSourceRows(entry);
   const sourceCount = sourceRows.length;
   const sourceTotalUsd = sourceRows.reduce(
@@ -1719,6 +1802,9 @@ function SwapHistoryPanel({
         const viewUrl = showIntentExplorer
           ? entry.intentExplorerUrl
           : entry.finalExplorerUrl;
+        const intentLabel = entry.intentId
+          ? `Intent #${entry.intentId}`
+          : "View Explorer";
         const canShowRefund =
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
@@ -1885,7 +1971,7 @@ function SwapHistoryPanel({
                       fontSize: "15px",
                     }}
                   >
-                    Intent #{entry.intentId}
+                    {intentLabel}
                   </span>
                 ) : entry.finalExplorerUrl ? (
                   <span
@@ -3737,7 +3823,7 @@ function NexusOneInner({
     setExplorerUrls(next);
     patchCurrentSwapHistoryEntry({
       sourceExplorerUrl: next.sourceExplorerUrl,
-      finalExplorerUrl: next.destinationExplorerUrl,
+      finalExplorerUrl: next.destinationExplorerUrl ?? next.sourceExplorerUrl,
     });
   };
 
@@ -3846,7 +3932,9 @@ function NexusOneInner({
       endedAt: now,
       durationSeconds: Math.max(1, Math.round((now - startedAt) / 1000)),
       sourceExplorerUrl: explorerUrlsRef.current.sourceExplorerUrl,
-      finalExplorerUrl: explorerUrlsRef.current.destinationExplorerUrl,
+      finalExplorerUrl:
+        explorerUrlsRef.current.destinationExplorerUrl ??
+        explorerUrlsRef.current.sourceExplorerUrl,
       ...patch,
     });
     void fetchSwapBalance();
@@ -5774,11 +5862,7 @@ function NexusOneInner({
             }
 
             const swapResult = getSdkSwapResult(result);
-            intentExplorerUrl =
-              swapResult?.intentExplorerUrl ||
-              swapResult?.explorerURL ||
-              result?.intentExplorerUrl ||
-              null;
+            intentExplorerUrl = getSdkIntentExplorerUrl(result, swapResult);
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
               currentSwapEntry?.intentId;
@@ -5802,7 +5886,7 @@ function NexusOneInner({
               onEvent,
             });
 
-            intentExplorerUrl = result.intentExplorerUrl || null;
+            intentExplorerUrl = getSdkIntentExplorerUrl(result);
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
               currentSwapEntry?.intentId;
@@ -5836,7 +5920,7 @@ function NexusOneInner({
             },
             onEvent,
           });
-          intentExplorerUrl = result.intentExplorerUrl || null;
+          intentExplorerUrl = getSdkIntentExplorerUrl(result);
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -5972,11 +6056,7 @@ function NexusOneInner({
             throw new Error("Swap failed");
           }
           const executeTxHash = getSdkTransactionHash(result);
-          const intentExplorerUrl =
-            swapResult?.intentExplorerUrl ||
-            swapResult?.explorerURL ||
-            result?.intentExplorerUrl ||
-            null;
+          const intentExplorerUrl = getSdkIntentExplorerUrl(result, swapResult);
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -6010,7 +6090,7 @@ function NexusOneInner({
               onEvent,
             }
           );
-          const intentExplorerUrl = result.intentExplorerUrl || null;
+          const intentExplorerUrl = getSdkIntentExplorerUrl(result);
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -7570,6 +7650,10 @@ function NexusOneInner({
                   }
                   onOpenRecipientPicker={handleOpenRecipientEditor}
                   onOpenSourcePicker={(index) => {
+                    if (needsWalletConnection) {
+                      void handleConnectWallet();
+                      return;
+                    }
                     setEditingAssetIndex(index ?? null);
                     openDrawerStep("choose-swap-asset");
                   }}
@@ -7678,9 +7762,11 @@ function NexusOneInner({
                         lineHeight: insufficientSourceIssue ? "17px" : "19px",
                       }}
                     >
-                      {fromTokens.length === 0
-                        ? "Add assets to send"
-                        : quoteCtaLabel("Review swap")}
+                      {needsWalletConnection
+                        ? walletCtaLabel
+                        : fromTokens.length === 0
+                          ? "Add assets to send"
+                          : quoteCtaLabel("Review swap")}
                     </div>
                   </button>
                 </div>
@@ -7712,9 +7798,13 @@ function NexusOneInner({
                       }
                       onAmountChange={handleDepositAmountChange}
                       onAmountModeToggle={handleDepositAmountModeToggle}
-                      onOpenSourcePicker={() =>
-                        openDrawerStep("choose-swap-asset")
-                      }
+                      onOpenSourcePicker={() => {
+                        if (needsWalletConnection) {
+                          void handleConnectWallet();
+                          return;
+                        }
+                        openDrawerStep("choose-swap-asset");
+                      }}
                       onSetPercent={handleDepositPercentSelect}
                       routeMessage={insufficientSourceIssue?.message}
                       routeStatus={
@@ -7851,6 +7941,10 @@ function NexusOneInner({
                   }
                   onOpenRecipientPicker={handleOpenRecipientEditor}
                   onOpenSourcePicker={() => {
+                    if (needsWalletConnection) {
+                      void handleConnectWallet();
+                      return;
+                    }
                     setEditingAssetIndex(null);
                     openDrawerStep("choose-swap-asset");
                   }}
