@@ -177,6 +177,7 @@ const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
 const DRAWER_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 220;
 const ROOT_HEIGHT_TRANSITION_MS = 140;
+const ASSET_SELECTOR_DRAWER_HEIGHT = "90%";
 const BASIS_POINTS = 10000;
 const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
 const PREDICTIVE_EXACT_OUT_BUFFER_BPS = 100;
@@ -577,12 +578,107 @@ const hasValidIntentExplorer = (
   entry: Pick<SwapHistoryEntry, "intentExplorerUrl">
 ) => isHttpUrl(entry.intentExplorerUrl);
 
-const getExplorerTxUrl = (chainId?: number, txHash?: string | null) => {
+const getFiniteNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value !== "string") continue;
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+};
+
+const getObjectChainId = (value: any) =>
+  getFiniteNumber(
+    value?.chainId,
+    value?.chain?.id,
+    value?.chain?.chainId,
+    value?.toChainId,
+    value?.destinationChainId,
+    value?.data?.chainId,
+    value?.data?.chain?.id,
+    value?.data?.chain?.chainId,
+    value?.data?.toChainId,
+    value?.data?.destinationChainId,
+    value?.result?.chainId,
+    value?.result?.chain?.id
+  );
+
+const getExplorerBaseUrl = (chainId?: number, ...candidates: unknown[]) => {
+  const directCandidates = candidates.flatMap((candidate: any) => [
+    candidate?.blockExplorerUrl,
+    candidate?.blockExplorerURL,
+    candidate?.chainBlockExplorerUrl,
+    candidate?.explorerBaseUrl,
+    candidate?.explorerUrlBase,
+    candidate?.blockExplorerUrls?.[0],
+    candidate?.blockExplorers?.default?.url,
+    candidate?.chain?.blockExplorerUrl,
+    candidate?.chain?.blockExplorerURL,
+    candidate?.chain?.chainBlockExplorerUrl,
+    candidate?.chain?.explorerBaseUrl,
+    candidate?.chain?.explorerUrlBase,
+    candidate?.chain?.blockExplorerUrls?.[0],
+    candidate?.chain?.blockExplorers?.default?.url,
+    candidate?.data?.blockExplorerUrl,
+    candidate?.data?.blockExplorerURL,
+    candidate?.data?.chainBlockExplorerUrl,
+    candidate?.data?.blockExplorerUrls?.[0],
+    candidate?.data?.blockExplorers?.default?.url,
+    candidate?.data?.chain?.blockExplorerUrl,
+    candidate?.data?.chain?.blockExplorerURL,
+    candidate?.data?.chain?.chainBlockExplorerUrl,
+    candidate?.data?.chain?.blockExplorerUrls?.[0],
+    candidate?.data?.chain?.blockExplorers?.default?.url,
+  ]);
+  return getNonEmptyString(
+    ...directCandidates,
+    chainId ? CHAIN_METADATA[chainId]?.blockExplorerUrls?.[0] : undefined,
+    chainId
+      ? (CHAIN_METADATA[chainId] as any)?.blockExplorers?.default?.url
+      : undefined
+  );
+};
+
+const getTransactionHash = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (/^0x[a-fA-F0-9]{64}$/.test(trimmed)) return trimmed;
+  }
+  return null;
+};
+
+const getObjectTransactionHash = (value: any) =>
+  getTransactionHash(
+    value?.txHash,
+    value?.transactionHash,
+    value?.executeTxHash,
+    value?.executeTransactionHash,
+    value?.transferTransactionHash,
+    value?.receipt?.transactionHash,
+    value?.tx?.hash,
+    value?.transaction?.hash,
+    value?.data?.txHash,
+    value?.data?.transactionHash,
+    value?.data?.executeTxHash,
+    value?.data?.executeTransactionHash,
+    value?.data?.transferTransactionHash,
+    value?.data?.receipt?.transactionHash,
+    value?.data?.tx?.hash,
+    value?.data?.transaction?.hash,
+    value?.result?.txHash,
+    value?.result?.transactionHash,
+    value?.result?.receipt?.transactionHash
+  );
+
+const getExplorerTxUrl = (
+  chainId?: number,
+  txHash?: string | null,
+  ...candidates: unknown[]
+) => {
   if (!chainId || !txHash) return null;
-  const chainMeta = CHAIN_METADATA[chainId];
-  const baseUrl =
-    (chainMeta as any)?.blockExplorerUrls?.[0] ||
-    (chainMeta as any)?.blockExplorers?.default?.url;
+  const baseUrl = getExplorerBaseUrl(chainId, ...candidates);
   return baseUrl ? `${String(baseUrl).replace(/\/$/, "")}/tx/${txHash}` : null;
 };
 
@@ -592,14 +688,12 @@ const getSdkSwapResult = (result: any) => {
 };
 
 const getSdkTransactionHash = (result: any) =>
-  result?.executeResponse?.txHash ||
-  result?.executeResponse?.transactionHash ||
-  result?.execute?.txHash ||
-  result?.execute?.transactionHash ||
-  result?.transactionHash ||
-  result?.transferTransactionHash ||
-  result?.executeTransactionHash ||
-  result?.txHash ||
+  getObjectTransactionHash(result) ||
+  getObjectTransactionHash(result?.executeResponse) ||
+  getObjectTransactionHash(result?.execute) ||
+  getObjectTransactionHash(result?.transfer) ||
+  getObjectTransactionHash(result?.swapResult) ||
+  getObjectTransactionHash(result?.result) ||
   null;
 
 const getSdkExplorerUrl = (result: any) =>
@@ -620,8 +714,12 @@ const getSdkExplorerUrl = (result: any) =>
     result?.transferExplorerUrl,
     result?.swapResult?.explorerUrl,
     result?.swapResult?.explorerURL,
+    result?.swapResult?.txExplorerUrl,
+    result?.swapResult?.transactionExplorerUrl,
     result?.result?.explorerUrl,
-    result?.result?.explorerURL
+    result?.result?.explorerURL,
+    result?.result?.txExplorerUrl,
+    result?.result?.transactionExplorerUrl
   );
 
 const getSdkIntentExplorerUrl = (result: any, swapResult?: any) =>
@@ -944,8 +1042,14 @@ const normalizePlanStep = (
   } as SwapStepType | BridgeStepType;
 };
 
-const getPlanStepExplorerUrl = (event: any, step: any) =>
-  getNonEmptyString(
+const getPlanStepChainId = (event: any, step: any) =>
+  getObjectChainId(event) ?? getObjectChainId(step);
+
+const getPlanStepTransactionHash = (event: any, step: any) =>
+  getObjectTransactionHash(event) ?? getObjectTransactionHash(step);
+
+const getPlanStepExplorerUrl = (event: any, step: any) => {
+  const directExplorerUrl = getNonEmptyString(
     event?.explorerUrl,
     event?.explorerURL,
     event?.txExplorerUrl,
@@ -959,6 +1063,15 @@ const getPlanStepExplorerUrl = (event: any, step: any) =>
     step?.data?.txExplorerUrl,
     step?.data?.transactionExplorerUrl
   );
+  if (directExplorerUrl) return directExplorerUrl;
+
+  return getExplorerTxUrl(
+    getPlanStepChainId(event, step),
+    getPlanStepTransactionHash(event, step),
+    event,
+    step
+  );
+};
 
 const getPlanStepIntentExplorerUrl = (event: any, step: any) =>
   getNonEmptyString(
@@ -5770,7 +5883,11 @@ function NexusOneInner({
       );
       const finalExplorerUrl =
         getSdkExplorerUrl(result) ||
-        getExplorerTxUrl(toToken.chainId, getSdkTransactionHash(result));
+        getExplorerTxUrl(
+          toToken.chainId,
+          getSdkTransactionHash(result),
+          result
+        );
       if (finalExplorerUrl) {
         setTransferExplorerUrl(finalExplorerUrl);
         mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
@@ -5866,16 +5983,20 @@ function NexusOneInner({
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
               currentSwapEntry?.intentId;
-            finalExplorerUrl =
+            const resultFinalExplorerUrl =
               getSdkExplorerUrl(result) ||
               getExplorerTxUrl(
                 toToken.chainId,
-                getSdkTransactionHash(result)
-              ) ||
-              finalExplorerUrl;
-            if (finalExplorerUrl) {
-              setTransferExplorerUrl(finalExplorerUrl);
-              mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
+                getSdkTransactionHash(result),
+                result,
+                swapResult
+              );
+            finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
+            if (resultFinalExplorerUrl) {
+              setTransferExplorerUrl(resultFinalExplorerUrl);
+              mergeExplorerUrls({
+                destinationExplorerUrl: resultFinalExplorerUrl,
+              });
             }
           } else {
             const result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
@@ -5924,16 +6045,36 @@ function NexusOneInner({
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
+          const swapResult = getSdkSwapResult(result);
+          const resultFinalExplorerUrl =
+            getSdkExplorerUrl(result) ||
+            getExplorerTxUrl(
+              toToken.chainId,
+              getSdkTransactionHash(result),
+              result,
+              swapResult
+            );
+          finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
+          if (resultFinalExplorerUrl) {
+            setTransferExplorerUrl(resultFinalExplorerUrl);
+            mergeExplorerUrls({
+              destinationExplorerUrl: resultFinalExplorerUrl,
+            });
+          }
         }
 
         if (
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
+          const resolvedFinalExplorerUrl =
+            finalExplorerUrl ||
+            explorerUrlsRef.current.destinationExplorerUrl ||
+            explorerUrlsRef.current.sourceExplorerUrl;
           finishCurrentSwapHistoryEntry("fulfilled", {
+            finalExplorerUrl: resolvedFinalExplorerUrl,
             intentExplorerUrl,
             intentId,
-            finalExplorerUrl,
           });
           resetInputsAfterSuccessfulExecution();
           onComplete?.();
@@ -6062,7 +6203,12 @@ function NexusOneInner({
             currentSwapEntry?.intentId;
           const finalExplorerUrl =
             getSdkExplorerUrl(result) ||
-            getExplorerTxUrl(toToken.chainId, executeTxHash);
+            getExplorerTxUrl(
+              toToken.chainId,
+              executeTxHash,
+              result,
+              swapResult
+            );
           if (finalExplorerUrl) {
             if (activeMode === "send" || hasCustomSwapRecipient) {
               setTransferExplorerUrl(finalExplorerUrl);
@@ -6070,9 +6216,9 @@ function NexusOneInner({
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
           patchCurrentSwapHistoryEntry({
+            ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
             intentExplorerUrl,
             intentId,
-            finalExplorerUrl,
           });
         } else {
           const result = await nexusSDK.swapWithExactOut(
@@ -6094,7 +6240,23 @@ function NexusOneInner({
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
-          patchCurrentSwapHistoryEntry({ intentExplorerUrl, intentId });
+          const swapResult = getSdkSwapResult(result);
+          const finalExplorerUrl =
+            getSdkExplorerUrl(result) ||
+            getExplorerTxUrl(
+              toToken.chainId,
+              getSdkTransactionHash(result),
+              result,
+              swapResult
+            );
+          if (finalExplorerUrl) {
+            mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
+          }
+          patchCurrentSwapHistoryEntry({
+            ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
+            intentExplorerUrl,
+            intentId,
+          });
         }
 
         if (
@@ -8362,9 +8524,10 @@ function NexusOneInner({
               style={{
                 ...modalHeightTransitionStyle,
                 bottom: 0,
-                height: "90%",
+                height: ASSET_SELECTOR_DRAWER_HEIGHT,
                 left: 0,
-                maxHeight: "90%",
+                maxHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
+                minHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
                 position: "absolute",
                 right: 0,
                 width: "100%",
@@ -8716,9 +8879,10 @@ function NexusOneInner({
               style={{
                 ...modalHeightTransitionStyle,
                 bottom: 0,
-                height: "90%",
+                height: ASSET_SELECTOR_DRAWER_HEIGHT,
                 left: 0,
-                maxHeight: "90%",
+                maxHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
+                minHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
                 position: "absolute",
                 right: 0,
                 width: "100%",

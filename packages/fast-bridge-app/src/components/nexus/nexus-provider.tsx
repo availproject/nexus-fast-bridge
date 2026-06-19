@@ -520,11 +520,15 @@ const NexusProvider = ({
     }
 
     if (swapBalanceResult.status === "fulfilled") {
-      setSwapBalance(
-        normalizeUserAssetFiatValues(
-          filterUnsupportedSwapSources(swapBalanceResult.value)
-        )
+      const rawSwapBalance = swapBalanceResult.value;
+      const filteredSwapBalance = filterUnsupportedSwapSources(rawSwapBalance);
+      const normalizedSwapBalance =
+        normalizeUserAssetFiatValues(filteredSwapBalance);
+      console.log(
+        "[NexusProvider] getBalancesForSwap:init raw",
+        rawSwapBalance
       );
+      setSwapBalance(normalizedSwapBalance);
     }
   }, [config?.network, normalizeUserAssetFiatValues]);
 
@@ -619,11 +623,14 @@ const NexusProvider = ({
         return;
       }
       const updatedBalance = await activeSdk.getBalancesForSwap();
-      setSwapBalance(
-        normalizeUserAssetFiatValues(
-          filterUnsupportedSwapSources(updatedBalance)
-        )
+      const filteredSwapBalance = filterUnsupportedSwapSources(updatedBalance);
+      const normalizedSwapBalance =
+        normalizeUserAssetFiatValues(filteredSwapBalance);
+      console.log(
+        "[NexusProvider] getBalancesForSwap:refresh raw",
+        updatedBalance
       );
+      setSwapBalance(normalizedSwapBalance);
     } catch (error) {
       console.error("Error fetching swap balance:", error);
     }
