@@ -5,6 +5,7 @@
 import Decimal from "decimal.js";
 import { ChevronDown, Info, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
+import { withBasePath } from "@/lib/utils";
 import type { SwapStepType } from "../../common/types/transaction-flow";
 import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import TransactionProgress from "../../swaps/components/transaction-progress";
@@ -140,6 +141,64 @@ const formatUsdValue = (value: Decimal) => {
 const formatTokenAmount = (value: unknown) => {
   const amount = toDecimal(value);
   return amount.toDecimalPlaces(8).toFixed();
+};
+
+const normalizeProviderText = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const isMayanProviderValue = (value: unknown): boolean => {
+  if (typeof value === "string" || typeof value === "number") {
+    return normalizeProviderText(value).includes("mayan");
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const providerLike = value as Record<string, unknown>;
+  return ["id", "name", "provider", "slug", "type"].some((key) =>
+    isMayanProviderValue(providerLike[key])
+  );
+};
+
+const hasMayanProvider = (
+  value: unknown,
+  seen = new WeakSet<object>(),
+  depth = 0
+): boolean => {
+  if (!value || typeof value !== "object" || depth > 8) {
+    return false;
+  }
+
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some((item) => hasMayanProvider(item, seen, depth + 1));
+  }
+
+  for (const [key, nestedValue] of Object.entries(
+    value as Record<string, unknown>
+  )) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey.includes("provider") &&
+      isMayanProviderValue(nestedValue)
+    ) {
+      return true;
+    }
+
+    if (hasMayanProvider(nestedValue, seen, depth + 1)) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 const formatHeaderTokenAmount = (value: unknown) => {
@@ -473,6 +532,42 @@ function InlineInfoTooltip({ message }: { message: string }) {
         </span>
       )}
     </span>
+  );
+}
+
+function MayanPoweredBadge() {
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        background: "#F3F6FF",
+        border: "1px solid #E8EEFF",
+        borderRadius: "8px",
+        color: brand,
+        display: "flex",
+        fontFamily,
+        fontSize: "12px",
+        fontWeight: 500,
+        gap: "8px",
+        lineHeight: "16px",
+        minHeight: "36px",
+        padding: "9px 12px",
+        width: "100%",
+      }}
+    >
+      <Info style={{ flexShrink: 0, height: 13, width: 13 }} />
+      <span style={{ flexShrink: 0 }}>This transaction is powered by</span>
+      <img
+        alt="Mayan"
+        src={withBasePath("/mayan_logo.svg")}
+        style={{
+          display: "block",
+          height: "12px",
+          objectFit: "contain",
+          width: "64px",
+        }}
+      />
+    </div>
   );
 }
 
@@ -1227,6 +1322,7 @@ export function SwapIntentPreview({
         : "Swap now";
   const shouldPulseCta =
     !isLoading && !isRefreshing && !isExecuting && !quoteUnavailable;
+  const shouldShowMayanBadge = hasMayanProvider(intentData);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1766,6 +1862,8 @@ export function SwapIntentPreview({
           />
         </div>
       )}
+
+      {shouldShowMayanBadge && <MayanPoweredBadge />}
 
       <Button
         disabled={isLoading || isRefreshing || isExecuting || quoteUnavailable}
