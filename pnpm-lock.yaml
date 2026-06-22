@@ -25,8 +25,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-sdk-v2':
-        specifier: git+https://github.com/availproject/nexus-sdk-v2.git#55eaa8b5bf0b099147260b8326f2324af1576fae
-        version: git+https://github.com/availproject/nexus-sdk-v2.git#55eaa8b5bf0b099147260b8326f2324af1576fae(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
+        specifier: git+https://github.com/availproject/nexus-sdk-v2.git#24b188ae23b9d01e6a0dfcf58c3aee7cf9bc52aa
+        version: git+https://github.com/availproject/nexus-sdk-v2.git#24b188ae23b9d01e6a0dfcf58c3aee7cf9bc52aa(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -188,8 +188,8 @@ packages:
       msgpackr: ^1.11.4
       viem: 2.47.12
 
-  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#55eaa8b5bf0b099147260b8326f2324af1576fae':
-    resolution: {commit: 55eaa8b5bf0b099147260b8326f2324af1576fae, repo: https://github.com/availproject/nexus-sdk-v2.git, type: git}
+  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#24b188ae23b9d01e6a0dfcf58c3aee7cf9bc52aa':
+    resolution: {commit: 24b188ae23b9d01e6a0dfcf58c3aee7cf9bc52aa, repo: https://github.com/availproject/nexus-sdk-v2.git, type: git}
     version: 0.0.1
     engines: {node: '>=18.0.0'}
 
@@ -4850,7 +4850,7 @@ snapshots:
     transitivePeerDependencies:
       - google-protobuf
 
-  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#55eaa8b5bf0b099147260b8326f2324af1576fae(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
+  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#24b188ae23b9d01e6a0dfcf58c3aee7cf9bc52aa(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@avail-project/nexus-types': 0.1.21(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)(zod@4.4.3)
       '@opentelemetry/api-logs': 0.208.0
