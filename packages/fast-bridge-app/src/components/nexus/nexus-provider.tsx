@@ -153,6 +153,8 @@ const NexusProvider = ({
     [config]
   );
 
+  console.log("NEXUS PROVIDER CONFIG", stableConfig, defaultConfig, config);
+
   const sdkRef = useRef<NexusClient | null>(null);
   const [sdk, setSdk] = useState<NexusClient | null>(null);
   const [nexusSDK, setNexusSDK] = useState<NexusClient | null>(null);
@@ -191,6 +193,7 @@ const NexusProvider = ({
 
   useEffect(() => {
     let cancelled = false;
+    console.log("NEXUS CONFIG", stableConfig);
     const nextSdk = createNexusClient({
       network: stableConfig.network,
       debug: stableConfig.debug,
@@ -536,6 +539,7 @@ const NexusProvider = ({
     async (provider: EthereumProvider) => {
       setLoading(true);
       try {
+        console.log("INITIALIZE NEXUS CONFIG", stableConfig);
         const nextSdk = createNexusClient({
           network: stableConfig.network,
           debug: stableConfig.debug,
