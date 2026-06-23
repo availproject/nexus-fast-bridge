@@ -944,7 +944,7 @@ function SourceLogoStack({
             color: "#848483",
             flexShrink: 0,
             fontFamily: uiFont,
-            fontSize: "14px",
+            fontSize: size <= 21 ? "12px" : "14px",
             fontWeight: 600,
             marginLeft: "3px",
           }}
@@ -1953,9 +1953,10 @@ function HistoryStatusPill({ status }: { status: SwapHistoryStatus }) {
         borderRadius: "999px",
         color: config.fg,
         fontFamily: uiFont,
-        fontSize: "14px",
+        fontSize: "12px",
         fontWeight: 600,
-        padding: "4px 9px",
+        lineHeight: "16px",
+        padding: "3px 8px",
       }}
     >
       {config.label}
@@ -2007,7 +2008,7 @@ function SwapHistoryPanel({
           style={{
             color: "#161615",
             fontFamily: uiFont,
-            fontSize: "18px",
+            fontSize: "16px",
             fontWeight: 500,
           }}
         >
@@ -2017,7 +2018,8 @@ function SwapHistoryPanel({
           style={{
             color: "#848483",
             fontFamily: uiFont,
-            fontSize: "16px",
+            fontSize: "13px",
+            lineHeight: "17px",
             maxWidth: "280px",
             textAlign: "center",
           }}
@@ -2037,7 +2039,7 @@ function SwapHistoryPanel({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
+        gap: "8px",
         maxHeight: shouldScroll ? "660px" : undefined,
         overflowY: shouldScroll ? "auto" : undefined,
         paddingRight: shouldScroll ? "4px" : undefined,
@@ -2076,9 +2078,9 @@ function SwapHistoryPanel({
             style={{
               background: "#FFFFFE",
               border: "1px solid #E8E8E7",
-              borderRadius: "12px",
+              borderRadius: "10px",
               boxShadow: "0px 1px 12px 0px #5B5B5B0D",
-              padding: "14px 18px",
+              padding: "12px 14px",
             }}
           >
             <div
@@ -2094,7 +2096,7 @@ function SwapHistoryPanel({
                 <TokenLogoPair
                   chainLogo={destinationChainLogo}
                   chainName={destinationChainName}
-                  size={42}
+                  size={34}
                   tokenLogo={destinationLogo}
                   tokenSymbol={destinationSymbol}
                 />
@@ -2105,9 +2107,10 @@ function SwapHistoryPanel({
                       color: "#161615",
                       display: "flex",
                       fontFamily: uiFont,
-                      fontSize: "22px",
+                      fontSize: "17px",
                       fontWeight: 700,
                       gap: "6px",
+                      lineHeight: "22px",
                     }}
                   >
                     {destinationAmount
@@ -2116,7 +2119,7 @@ function SwapHistoryPanel({
                     <span
                       style={{
                         color: "#848483",
-                        fontSize: "14px",
+                        fontSize: "12px",
                         fontWeight: 600,
                       }}
                     >
@@ -2127,7 +2130,8 @@ function SwapHistoryPanel({
                     style={{
                       color: "#848483",
                       fontFamily: uiFont,
-                      fontSize: "15px",
+                      fontSize: "13px",
+                      lineHeight: "17px",
                     }}
                   >
                     ≈ {formatUsdDisplay(destinationValue)}
@@ -2139,7 +2143,7 @@ function SwapHistoryPanel({
                   alignItems: "flex-end",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "8px",
+                  gap: "6px",
                 }}
               >
                 <HistoryStatusPill status={status} />
@@ -2147,7 +2151,8 @@ function SwapHistoryPanel({
                   style={{
                     color: "#848483",
                     fontFamily: uiFont,
-                    fontSize: "14px",
+                    fontSize: "12px",
+                    lineHeight: "16px",
                   }}
                 >
                   {getRelativeTime(entry.createdAt ?? entry.startedAt, now)}
@@ -2163,15 +2168,15 @@ function SwapHistoryPanel({
                   borderRadius: "8px",
                   display: "flex",
                   justifyContent: "space-between",
-                  marginTop: "14px",
-                  padding: "10px 12px",
+                  marginTop: "12px",
+                  padding: "8px 10px",
                 }}
               >
                 <span
                   style={{
                     color: "#161615",
                     fontFamily: uiFont,
-                    fontSize: "15px",
+                    fontSize: "13px",
                   }}
                 >
                   Refund Initiated
@@ -2185,8 +2190,8 @@ function SwapHistoryPanel({
                 borderTop: "1px solid #E8E8E7",
                 display: "flex",
                 justifyContent: "space-between",
-                marginTop: "14px",
-                paddingTop: "12px",
+                marginTop: "12px",
+                paddingTop: "10px",
               }}
             >
               <div
@@ -2198,13 +2203,13 @@ function SwapHistoryPanel({
                 }}
               >
                 {sourceRows.length > 0 && (
-                  <SourceLogoStack sources={sourceRows} />
+                  <SourceLogoStack size={21} sources={sourceRows} />
                 )}
                 <span
                   style={{
                     color: "#848483",
                     fontFamily: uiFont,
-                    fontSize: "15px",
+                    fontSize: "13px",
                   }}
                 >
                   →
@@ -2212,7 +2217,7 @@ function SwapHistoryPanel({
                 <TokenLogoPair
                   chainLogo={destinationChainLogo}
                   chainName={destinationChainName}
-                  size={24}
+                  size={21}
                   tokenLogo={destinationLogo}
                   tokenSymbol={destinationSymbol}
                 />
