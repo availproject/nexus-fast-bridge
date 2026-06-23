@@ -12,6 +12,7 @@ import {
   bsc,
   type Chain,
   citrea,
+  hyperEvm as hyperevm,
   mainnet,
   megaeth,
   monad,
@@ -23,77 +24,6 @@ import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
-
-const hyperevm: Chain = {
-  id: 999,
-  name: "HyperEVM",
-  nativeCurrency: {
-    name: "HYPE",
-    symbol: "HYPE",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.hyperevm || "https://rpc.hyperliquid.xyz/evm"] },
-  },
-  blockExplorers: {
-    default: { name: "Purrsec", url: "https://purrsec.com" },
-  },
-  testnet: false,
-};
-
-const monad: Chain = {
-  id: 143,
-  name: "Monad",
-  nativeCurrency: {
-    name: "Monad",
-    symbol: "MON",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.monad || "https://rpcs.avail.so/monad"] },
-  },
-  blockExplorers: {
-    default: { name: "Monad Vision", url: "https://monadvision.com" },
-  },
-  testnet: false,
-};
-
-const citrea: Chain = {
-  id: 4114,
-  name: "Citrea Mainnet",
-  nativeCurrency: {
-    name: "CBTC",
-    symbol: "cBTC",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citrea"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Citrea Explorer",
-      url: "https://explorer.mainnet.citrea.xyz",
-    },
-  },
-  testnet: false,
-};
-
-const hyperevm: Chain = {
-  id: 999,
-  name: "HyperEVM",
-  nativeCurrency: {
-    name: "HYPE",
-    symbol: "HYPE",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.hyperevm || "https://rpc.hyperliquid.xyz/evm"] },
-  },
-  blockExplorers: {
-    default: { name: "Purrsec", url: "https://purrsec.com" },
-  },
-  testnet: false,
-};
 
 const rpcConfig = rpcs as Record<string, string>;
 
