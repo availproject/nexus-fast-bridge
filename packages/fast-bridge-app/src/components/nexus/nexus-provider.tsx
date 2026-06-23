@@ -90,7 +90,8 @@ type NexusProviderProps = {
 };
 
 const defaultConfig: Required<NexusProviderProps["config"]> = {
-  network: "canary",
+  // this is place to switch between "canary" and "mainnet"
+  network: "mainnet",
   debug: true,
 };
 

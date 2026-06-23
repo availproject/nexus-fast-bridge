@@ -203,9 +203,14 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
       name?: string;
       balance?: string;
       balanceInFiat?: string;
+      balanceValue: number;
+      fiatValue: number;
     }[] = [];
     for (const t of tokens) {
       if (t.chainId && !seen.has(t.chainId)) {
+        const balanceValue = Number(
+          String(t.balance ?? "").replace(/[^0-9.]/g, "") || 0
+        );
         seen.add(t.chainId);
         out.push({
           id: t.chainId,
@@ -213,10 +218,21 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
           name: getShortChainName(t.chainId, t.chainName),
           balance: t.balance,
           balanceInFiat: t.balanceInFiat,
+          balanceValue:
+            Number.isNaN(balanceValue) || !Number.isFinite(balanceValue)
+              ? 0
+              : balanceValue,
+          fiatValue: getTokenFiatValue(t),
         });
       }
     }
-    return out;
+    return out.sort((a, b) => {
+      if (a.fiatValue !== b.fiatValue) return b.fiatValue - a.fiatValue;
+      if (a.balanceValue !== b.balanceValue) {
+        return b.balanceValue - a.balanceValue;
+      }
+      return (a.name ?? "").localeCompare(b.name ?? "");
+    });
   }, [tokens]);
 
   const maxShow = 3;
@@ -529,7 +545,7 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   10, // OP
   999, // HyperEVM
   56, // BSC
-  // 43114, // Avalanche
+  43114, // Avalanche
   143, // Monad
   4326, // MegaETH
   4114, // Citrea

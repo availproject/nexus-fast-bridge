@@ -858,19 +858,27 @@ function TokenLogoPair({
   chainLogo,
   tokenSymbol,
   chainName,
+  tokenOutline,
   size = 34,
 }: {
   tokenLogo?: string;
   chainLogo?: string;
   tokenSymbol?: string;
   chainName?: string;
+  tokenOutline?: string;
   size?: number;
 }) {
   return (
     <div
       style={{ flexShrink: 0, height: size, position: "relative", width: size }}
     >
-      <MiniLogo fontSize={14} label={tokenSymbol} size={size} src={tokenLogo} />
+      <MiniLogo
+        fontSize={14}
+        label={tokenSymbol}
+        outline={tokenOutline}
+        size={size}
+        src={tokenLogo}
+      />
       {chainLogo && (
         <MiniLogo
           fontSize={6}
@@ -921,6 +929,11 @@ function SourceLogoStack({
             chainName={source.chainName}
             size={size}
             tokenLogo={source.tokenLogo}
+            tokenOutline={
+              index < visibleSources.length - 1
+                ? "1px solid #FFFFFE"
+                : undefined
+            }
             tokenSymbol={source.symbol}
           />
         </div>
@@ -2052,13 +2065,6 @@ function SwapHistoryPanel({
           entry.requestedToAmount
             ? entry.requestedToAmount
             : destination?.amount || "";
-        const showIntentExplorer = hasValidIntentExplorer(entry);
-        const viewUrl = showIntentExplorer
-          ? entry.intentExplorerUrl
-          : entry.finalExplorerUrl;
-        const intentLabel = entry.intentId
-          ? `Intent #${entry.intentId}`
-          : "View Explorer";
         const canShowRefund =
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
@@ -2210,42 +2216,7 @@ function SwapHistoryPanel({
                   tokenLogo={destinationLogo}
                   tokenSymbol={destinationSymbol}
                 />
-                {showIntentExplorer ? (
-                  <span
-                    style={{
-                      color: "#848483",
-                      fontFamily: uiFont,
-                      fontSize: "15px",
-                    }}
-                  >
-                    {intentLabel}
-                  </span>
-                ) : entry.finalExplorerUrl ? (
-                  <span
-                    style={{
-                      color: "#848483",
-                      fontFamily: uiFont,
-                      fontSize: "15px",
-                    }}
-                  >
-                    Final transaction
-                  </span>
-                ) : null}
               </div>
-              {viewUrl && (
-                <a
-                  href={viewUrl}
-                  rel="noopener noreferrer"
-                  style={{
-                    color: "#006BF4",
-                    fontFamily: uiFont,
-                    fontSize: "15px",
-                  }}
-                  target="_blank"
-                >
-                  View ↗
-                </a>
-              )}
             </div>
           </div>
         );

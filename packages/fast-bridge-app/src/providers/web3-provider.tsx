@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { http, WagmiProvider } from "wagmi";
 import {
   arbitrum,
+  avalanche,
   base,
   bsc,
   type Chain,
@@ -48,6 +49,7 @@ const staticTransports = {
   [arbitrum.id]: http(rpcConfig.arbitrum || undefined),
   [optimism.id]: http(rpcConfig.optimism || undefined),
   [polygon.id]: http(rpcConfig.polygon || undefined),
+  [avalanche.id]: http(rpcConfig.avalanche || undefined),
   [scroll.id]: http(rpcConfig.scroll || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
@@ -62,6 +64,7 @@ const staticChains = [
   arbitrum,
   optimism,
   polygon,
+  avalanche,
   scroll,
   monad,
   megaeth,

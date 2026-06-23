@@ -10,7 +10,8 @@ import Web3Provider from "@/providers/web3-provider";
 
 const NEXUS_PROVIDER_CONFIG = {
   debug: true,
-  network: "canary",
+  // this is place to switch between "canary" and "mainnet"
+  network: "mainnet",
 } as const;
 
 function XSocialIcon() {
