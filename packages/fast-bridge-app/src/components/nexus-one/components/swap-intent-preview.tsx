@@ -32,7 +32,10 @@ export interface SwapIntentDestination {
   value?: string;
 }
 
+export type BridgeProvider = "nexus" | "mayan" | null;
+
 export interface SwapIntentData {
+  bridgeProvider?: BridgeProvider;
   destination: SwapIntentDestination;
   feesAndBuffer?: {
     buffer?: string;
@@ -141,64 +144,6 @@ const formatUsdValue = (value: Decimal) => {
 const formatTokenAmount = (value: unknown) => {
   const amount = toDecimal(value);
   return amount.toDecimalPlaces(8).toFixed();
-};
-
-const normalizeProviderText = (value: unknown) =>
-  String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-
-const isMayanProviderValue = (value: unknown): boolean => {
-  if (typeof value === "string" || typeof value === "number") {
-    return normalizeProviderText(value).includes("mayan");
-  }
-
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const providerLike = value as Record<string, unknown>;
-  return ["id", "name", "provider", "slug", "type"].some((key) =>
-    isMayanProviderValue(providerLike[key])
-  );
-};
-
-const hasMayanProvider = (
-  value: unknown,
-  seen = new WeakSet<object>(),
-  depth = 0
-): boolean => {
-  if (!value || typeof value !== "object" || depth > 8) {
-    return false;
-  }
-
-  if (seen.has(value)) {
-    return false;
-  }
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    return value.some((item) => hasMayanProvider(item, seen, depth + 1));
-  }
-
-  for (const [key, nestedValue] of Object.entries(
-    value as Record<string, unknown>
-  )) {
-    const normalizedKey = key.toLowerCase();
-    if (
-      normalizedKey.includes("provider") &&
-      isMayanProviderValue(nestedValue)
-    ) {
-      return true;
-    }
-
-    if (hasMayanProvider(nestedValue, seen, depth + 1)) {
-      return true;
-    }
-  }
-
-  return false;
 };
 
 const formatHeaderTokenAmount = (value: unknown) => {
@@ -1322,7 +1267,7 @@ export function SwapIntentPreview({
         : "Swap now";
   const shouldPulseCta =
     !isLoading && !isRefreshing && !isExecuting && !quoteUnavailable;
-  const shouldShowMayanBadge = hasMayanProvider(intentData);
+  const shouldShowMayanBadge = intentData?.bridgeProvider === "mayan";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

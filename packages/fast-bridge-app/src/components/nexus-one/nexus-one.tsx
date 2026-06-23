@@ -70,6 +70,7 @@ import {
 } from "./components/swap-asset-selector";
 import { SwapIdleForm } from "./components/swap-idle-form";
 import {
+  type BridgeProvider,
   type SwapIntentData,
   SwapIntentPreview,
 } from "./components/swap-intent-preview";
@@ -118,6 +119,7 @@ interface SwapHistoryEntry {
   endedAt?: number;
   error?: string;
   failedStepType?: string;
+  failureDescription?: string;
   failureMessage?: string;
   feeUsd?: string;
   finalExplorerUrl?: string | null;
@@ -990,6 +992,15 @@ const isAutoRefundAvailableProgressEvent = (event?: NexusOneProgressEvent) =>
   event?.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
   isBridgeRefundStepType(getProgressStepType(event.step));
 
+const normalizeBridgeProvider = (
+  value: unknown
+): BridgeProvider | undefined => {
+  if (value === "nexus" || value === "mayan" || value === null) {
+    return value;
+  }
+  return undefined;
+};
+
 const normalizePlanStepType = (stepType: unknown, state?: unknown) => {
   const normalized = String(stepType ?? "").toLowerCase();
   const normalizedState = String(state ?? "").toLowerCase();
@@ -1219,6 +1230,37 @@ const getFailureMessageForProgressStep = (
     : mode === "deposit"
       ? "Deposit failed. Funds are in your wallet"
       : "Swap Failed";
+};
+
+const getBridgeTokenSymbolForProgressStep = (
+  step: SwapStepType | BridgeStepType | null | undefined
+) => {
+  const rawStep = step as any;
+  return (
+    getNonEmptyString(
+      rawStep?.bridgeToken?.symbol,
+      rawStep?.data?.bridgeToken?.symbol,
+      rawStep?.bridgeTokenSymbol,
+      rawStep?.data?.bridgeTokenSymbol,
+      rawStep?.swaps?.[0]?.input?.symbol,
+      rawStep?.data?.swaps?.[0]?.input?.symbol,
+      rawStep?.input?.symbol,
+      rawStep?.data?.input?.symbol,
+      rawStep?.asset?.symbol,
+      rawStep?.data?.asset?.symbol
+    ) ?? "USDC"
+  );
+};
+
+const getFailureDescriptionForProgressStep = (
+  step: SwapStepType | BridgeStepType | null | undefined,
+  autoRefundAvailable = false
+) => {
+  if (autoRefundAvailable) return undefined;
+  const type = getProgressStepType(step);
+  if (!type.includes("DESTINATION_SWAP")) return undefined;
+  const bridgeTokenSymbol = getBridgeTokenSymbolForProgressStep(step);
+  return `${bridgeTokenSymbol} has been bridged and you have those funds in your wallet.`;
 };
 
 const getSourceRows = (entry: SwapHistoryEntry) => {
@@ -1455,6 +1497,7 @@ function SwapReceiptPanel({
       : isRecipientTransfer
         ? "Send failed. Funds are in your wallet"
         : defaultSwapFailureHeadline);
+  const failureDescription = isFailed ? entry.failureDescription : undefined;
   const receiptLocation = isDeposit ? depositVenue : chainName;
   const receiptSummary = receiptLocation ? `on ${receiptLocation}` : "";
 
@@ -1525,6 +1568,20 @@ function SwapReceiptPanel({
                 ? "You sent"
                 : "You received"}
         </div>
+        {failureDescription && (
+          <div
+            style={{
+              color: "#848483",
+              fontFamily: uiFont,
+              fontSize: "12px",
+              lineHeight: "16px",
+              margin: "6px auto 0",
+              maxWidth: "260px",
+            }}
+          >
+            {failureDescription}
+          </div>
+        )}
         <div
           style={{
             alignItems: "baseline",
@@ -4220,7 +4277,16 @@ function NexusOneInner({
   const handleSwapIntentCallback = useCallback(
     (data: any, runId: number, quoteInputKey: string) => {
       const { intent, allow, deny, refresh } = data;
+      const bridgeProvider = normalizeBridgeProvider(data?.bridgeProvider);
+      const intentWithBridgeProvider: SwapIntentData =
+        bridgeProvider === undefined
+          ? intent
+          : {
+              ...intent,
+              bridgeProvider,
+            };
       logSdkIntentEvent("onIntent", data, {
+        bridgeProvider,
         currentRunId: swapRunIdRef.current,
         isCurrentRun: swapRunIdRef.current === runId,
         quoteInputKey,
@@ -4237,9 +4303,14 @@ function NexusOneInner({
       }
       const resolvedQuoteInputKey =
         activeQuoteInputKeyRef.current || quoteInputKey;
-      providerSwapIntent.current = { intent, allow, deny, refresh };
+      providerSwapIntent.current = {
+        intent: intentWithBridgeProvider,
+        allow,
+        deny,
+        refresh,
+      };
       swapIntentRef.current = {
-        intent,
+        intent: intentWithBridgeProvider,
         allow,
         deny,
         refresh,
@@ -4247,7 +4318,7 @@ function NexusOneInner({
         quoteInputKey: resolvedQuoteInputKey,
       };
       flushSync(() => {
-        applySwapIntent(intent);
+        applySwapIntent(intentWithBridgeProvider);
         setIntentLoading(false);
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
@@ -6352,6 +6423,10 @@ function NexusOneInner({
         finishCurrentSwapHistoryEntry("failed", {
           error,
           autoRefundAvailable,
+          failureDescription: getFailureDescriptionForProgressStep(
+            failedStep,
+            autoRefundAvailable
+          ),
           failureMessage: getFailureMessageForProgressStep(
             failedStep,
             hasCustomSwapRecipient ? "send" : activeMode,
