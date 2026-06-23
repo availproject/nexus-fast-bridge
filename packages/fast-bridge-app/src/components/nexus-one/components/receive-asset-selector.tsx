@@ -592,6 +592,7 @@ export function ReceiveAssetSelector({
               name: t.name,
               logo: t.logoURI || "",
               decimals: t.decimals,
+              priceUSD: t.priceUSD,
               chainId,
               chainName: meta.name,
               chainLogo: meta.logo,
@@ -607,7 +608,13 @@ export function ReceiveAssetSelector({
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               ? "0x0000000000000000000000000000000000000000"
               : token.contractAddress.toLowerCase();
-          tokensByKey.set(`${token.chainId ?? 0}-${address}`, token);
+          const key = `${token.chainId ?? 0}-${address}`;
+          const existing = tokensByKey.get(key);
+          tokensByKey.set(key, {
+            ...existing,
+            ...token,
+            priceUSD: token.priceUSD ?? existing?.priceUSD,
+          });
         }
         setApiTokens(Array.from(tokensByKey.values()));
       } catch (err) {

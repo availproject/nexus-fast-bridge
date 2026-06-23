@@ -45,6 +45,7 @@ import {
   CHAIN_METADATA,
   getShortChainName,
   isUnsupportedSwapSourceChain,
+  SUPPORTED_CHAINS,
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
@@ -139,10 +140,26 @@ interface SwapHistoryEntry {
   toToken?: SwapTokenOption;
 }
 
+type HistorySourceRow = {
+  amount: string;
+  chainLogo?: string;
+  chainName: string;
+  key: string;
+  symbol: string;
+  tokenLogo?: string;
+  value?: unknown;
+};
+
 type SwapQuoteIssue = {
   type: "insufficientSources";
   message: string;
   missingUsd?: string;
+};
+
+type ReceiveAmountIssue = {
+  ctaLabel: string;
+  message: string;
+  type: "receiveLimitExceeded" | "unpricedReceiveToken";
 };
 
 type CachedMaxSwapQuote = {
@@ -174,9 +191,16 @@ type PredictiveQuoteBaseline = {
   updatedAt: number;
 };
 
+const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
+  [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+  [SUPPORTED_CHAINS.CITREA]: 2000,
+  [SUPPORTED_CHAINS.SCROLL]: 500,
+};
+
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
 const DRAWER_CLOSE_MS = 220;
+const BALANCE_REFRESH_AFTER_TERMINAL_MS = 2000;
 const MODAL_HEIGHT_TRANSITION_MS = 220;
 const ROOT_HEIGHT_TRANSITION_MS = 140;
 const ASSET_SELECTOR_DRAWER_HEIGHT = "90%";
@@ -861,6 +885,64 @@ function TokenLogoPair({
   );
 }
 
+function SourceLogoStack({
+  sources,
+  size = 24,
+  maxVisible = 3,
+}: {
+  sources: HistorySourceRow[];
+  size?: number;
+  maxVisible?: number;
+}) {
+  const visibleSources = sources.slice(0, maxVisible);
+  const hiddenCount = Math.max(0, sources.length - visibleSources.length);
+
+  return (
+    <div
+      aria-label={`${sources.length} source asset${sources.length === 1 ? "" : "s"}`}
+      style={{
+        alignItems: "center",
+        display: "flex",
+        flexShrink: 0,
+        minWidth: 0,
+      }}
+    >
+      {visibleSources.map((source, index) => (
+        <div
+          key={source.key}
+          style={{
+            marginLeft: index === 0 ? 0 : -7,
+            position: "relative",
+            zIndex: visibleSources.length - index,
+          }}
+        >
+          <TokenLogoPair
+            chainLogo={source.chainLogo}
+            chainName={source.chainName}
+            size={size}
+            tokenLogo={source.tokenLogo}
+            tokenSymbol={source.symbol}
+          />
+        </div>
+      ))}
+      {hiddenCount > 0 && (
+        <span
+          style={{
+            color: "#848483",
+            flexShrink: 0,
+            fontFamily: uiFont,
+            fontSize: "14px",
+            fontWeight: 600,
+            marginLeft: "3px",
+          }}
+        >
+          +{hiddenCount}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function TruncatedAddress({
   address,
   color = "#006BF4",
@@ -921,7 +1003,9 @@ function TruncatedAddress({
   );
 }
 
-const getDisplayDestinationSourceRow = (entry: SwapHistoryEntry) => {
+const getDisplayDestinationSourceRow = (
+  entry: SwapHistoryEntry
+): HistorySourceRow | null => {
   if (entry.mode !== "deposit" && entry.mode !== "send") return null;
   if (!entry.toToken || !entry.requestedToAmount) return null;
 
@@ -1263,7 +1347,7 @@ const getFailureDescriptionForProgressStep = (
   return `${bridgeTokenSymbol} has been bridged and you have those funds in your wallet.`;
 };
 
-const getSourceRows = (entry: SwapHistoryEntry) => {
+const getSourceRows = (entry: SwapHistoryEntry): HistorySourceRow[] => {
   const sources = entry.intentData?.sources ?? [];
   const displayDestinationSourceRow = getDisplayDestinationSourceRow(entry);
   if (sources.length > 0) {
@@ -1979,7 +2063,6 @@ function SwapHistoryPanel({
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
         const sourceRows = getSourceRows(entry);
-        const firstSource = sourceRows[0];
 
         return (
           <div
@@ -2108,14 +2191,8 @@ function SwapHistoryPanel({
                   minWidth: 0,
                 }}
               >
-                {firstSource && (
-                  <TokenLogoPair
-                    chainLogo={firstSource.chainLogo}
-                    chainName={firstSource.chainName}
-                    size={24}
-                    tokenLogo={firstSource.tokenLogo}
-                    tokenSymbol={firstSource.symbol}
-                  />
+                {sourceRows.length > 0 && (
+                  <SourceLogoStack sources={sourceRows} />
                 )}
                 <span
                   style={{
@@ -2358,6 +2435,9 @@ function NexusOneInner({
   const drawerCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  const terminalBalanceRefreshTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const [closingDrawerStep, setClosingDrawerStep] = useState<SwapStep | null>(
     null
   );
@@ -2541,6 +2621,10 @@ function NexusOneInner({
   const [swapQuoteIssue, setSwapQuoteIssue] = useState<SwapQuoteIssue | null>(
     null
   );
+  const [receiveAmountIssue, setReceiveAmountIssue] =
+    useState<ReceiveAmountIssue | null>(null);
+  const receiveAmountIssueRef = useRef<ReceiveAmountIssue | null>(null);
+  const receiveAmountIssueKeyRef = useRef("");
   const [transferExplorerUrl, setTransferExplorerUrl] = useState<string | null>(
     null
   );
@@ -2583,6 +2667,9 @@ function NexusOneInner({
     return () => {
       if (drawerCloseTimerRef.current) {
         clearTimeout(drawerCloseTimerRef.current);
+      }
+      if (terminalBalanceRefreshTimerRef.current) {
+        clearTimeout(terminalBalanceRefreshTimerRef.current);
       }
       if (rootHeightTransitionTimerRef.current) {
         clearTimeout(rootHeightTransitionTimerRef.current);
@@ -3338,6 +3425,134 @@ function NexusOneInner({
     return resolvedRate;
   };
 
+  const getDestinationReceiveLimitUsd = (token?: SwapTokenOption) => {
+    if (!token?.chainId) return undefined;
+    const limit = DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID[token.chainId];
+    return limit ? new Decimal(limit) : undefined;
+  };
+
+  const getImmediateDestinationReceiveUsdRate = (token?: SwapTokenOption) => {
+    const priceUsd = parseFiatNumber(token?.priceUSD);
+    if (priceUsd && priceUsd.gt(0)) return priceUsd;
+
+    const cachedRate = getCachedDestinationUsdRate(token);
+    if (cachedRate && cachedRate.gt(0)) return cachedRate;
+
+    if (!token) return undefined;
+    const localRate = getTokenUsdRate(token);
+    return localRate.gt(0) ? localRate : undefined;
+  };
+
+  const getExactInSourceUsdForReceiveLimit = (
+    sourceTokens: SwapTokenOption[],
+    inputAmount: string
+  ) => {
+    if (sourceTokens.length === 0) return undefined;
+    let hasPositiveSourceAmount = false;
+    let totalUsd = new Decimal(0);
+
+    for (const token of sourceTokens) {
+      const fallbackAmount =
+        sourceTokens.length === 1 ? inputAmount : undefined;
+      const sourceAmount = parseFiatNumber(token.userAmount || fallbackAmount);
+      if (!sourceAmount || sourceAmount.lte(0)) continue;
+
+      hasPositiveSourceAmount = true;
+      const sourceUsd = getTokenUsdValue(token, fallbackAmount);
+      if (sourceUsd.lte(0)) return undefined;
+      totalUsd = totalUsd.plus(sourceUsd);
+    }
+
+    return hasPositiveSourceAmount ? totalUsd : undefined;
+  };
+
+  const buildReceiveAmountIssue = ({
+    destinationRate,
+    destinationToken = toToken,
+    inputAmount = amount,
+    mode = activeMode,
+    sourceTokens = fromTokens,
+    type = swapType,
+  }: {
+    destinationRate?: Decimal;
+    destinationToken?: SwapTokenOption;
+    inputAmount?: string;
+    mode?: NexusOneMode;
+    sourceTokens?: SwapTokenOption[];
+    type?: SwapType;
+  } = {}): ReceiveAmountIssue | null => {
+    const limit = getDestinationReceiveLimitUsd(destinationToken);
+    if (!limit || !destinationToken) return null;
+
+    const parsedAmount = parseFiatNumber(inputAmount);
+    if (!parsedAmount || parsedAmount.lte(0)) return null;
+    if (mode === "swap" && type === "exactIn" && sourceTokens.length === 0) {
+      return null;
+    }
+
+    const chainName = getShortChainName(
+      destinationToken.chainId,
+      destinationToken.chainName
+    );
+    const resolvedDestinationRate =
+      destinationRate ??
+      getImmediateDestinationReceiveUsdRate(destinationToken);
+
+    if (!resolvedDestinationRate || resolvedDestinationRate.lte(0)) {
+      return {
+        ctaLabel: "Price unavailable",
+        message: `Unable to price ${destinationToken.symbol} on ${chainName}. Select another receive token.`,
+        type: "unpricedReceiveToken",
+      };
+    }
+
+    let receiveUsd: Decimal | undefined;
+    if (mode === "swap" && type === "exactIn") {
+      receiveUsd = getExactInSourceUsdForReceiveLimit(
+        sourceTokens,
+        inputAmount
+      );
+      if (!receiveUsd || receiveUsd.lte(0)) {
+        return {
+          ctaLabel: "Price unavailable",
+          message: `Unable to price selected assets for ${chainName}'s receive limit.`,
+          type: "unpricedReceiveToken",
+        };
+      }
+    } else if (mode === "deposit" && depositAmountMode === "usd") {
+      receiveUsd = parsedAmount;
+    } else {
+      receiveUsd = parsedAmount.mul(resolvedDestinationRate);
+    }
+
+    if (receiveUsd.gt(limit)) {
+      return {
+        ctaLabel: "Receive limit exceeded",
+        message: `Maximum receive amount on ${chainName} is ${formatUsdDisplay(limit)}.`,
+        type: "receiveLimitExceeded",
+      };
+    }
+
+    return null;
+  };
+
+  const applyReceiveAmountIssue = (issue: ReceiveAmountIssue | null) => {
+    const key = issue ? `${issue.type}:${issue.message}` : "";
+    receiveAmountIssueRef.current = issue;
+    if (receiveAmountIssueKeyRef.current !== key) {
+      receiveAmountIssueKeyRef.current = key;
+      setReceiveAmountIssue(issue);
+    }
+    if (!issue) return;
+
+    clearPendingSwapIntent(true);
+    setQuoteRefreshing(false);
+    setIntentLoading(false);
+    setReceiveMaxCalculating(false);
+    setPreviewQuoteRefreshing(false);
+    setTxError(null);
+  };
+
   const getPredictiveExactInSourceTokens = () => {
     const expanded = getExpandedSourceTokens(fromTokens);
     if (expanded.length === 0) return [];
@@ -3960,6 +4175,17 @@ function NexusOneInner({
       ? swapHistory.find((entry) => entry.id === currentSwapId)
       : undefined;
 
+  const scheduleTerminalBalanceRefresh = () => {
+    if (terminalBalanceRefreshTimerRef.current) {
+      clearTimeout(terminalBalanceRefreshTimerRef.current);
+    }
+
+    terminalBalanceRefreshTimerRef.current = setTimeout(() => {
+      terminalBalanceRefreshTimerRef.current = null;
+      void fetchSwapBalance();
+    }, BALANCE_REFRESH_AFTER_TERMINAL_MS);
+  };
+
   const patchSwapHistoryEntry = (
     id: string | null | undefined,
     patch: Partial<SwapHistoryEntry>
@@ -4107,7 +4333,7 @@ function NexusOneInner({
         explorerUrlsRef.current.sourceExplorerUrl,
       ...patch,
     });
-    void fetchSwapBalance();
+    scheduleTerminalBalanceRefresh();
   };
 
   const markSwapExecutionStarted = () => {
@@ -4339,6 +4565,45 @@ function NexusOneInner({
   );
   const [depositSourceFilter, setDepositSourceFilter] =
     useState<DepositSourceFilter>("all");
+
+  useEffect(() => {
+    const immediateIssue = buildReceiveAmountIssue();
+    applyReceiveAmountIssue(immediateIssue);
+
+    if (!toToken || !getDestinationReceiveLimitUsd(toToken)) return;
+    if (!parseFiatNumber(amount)?.gt(0)) return;
+    if (getImmediateDestinationReceiveUsdRate(toToken)?.gt(0)) return;
+
+    let cancelled = false;
+    void resolveUsdRateForToken(toToken)
+      .then((resolvedRate) => {
+        if (cancelled) return;
+        const issue = buildReceiveAmountIssue({
+          destinationRate: resolvedRate.gt(0) ? resolvedRate : undefined,
+        });
+        applyReceiveAmountIssue(issue);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          applyReceiveAmountIssue(buildReceiveAmountIssue());
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeMode,
+    amount,
+    depositAmountMode,
+    fromTokens,
+    swapType,
+    toToken?.chainId,
+    toToken?.chainName,
+    toToken?.contractAddress,
+    toToken?.priceUSD,
+    toToken?.symbol,
+  ]);
 
   const trackDeposit = useCallback(
     (event: string, props?: Record<string, unknown>) => {
@@ -4983,8 +5248,14 @@ function NexusOneInner({
         : false;
   const invalidateExactOutQuoteForRefresh = () => {
     immediateQuoteAfterSourceEditRef.current = true;
-    const shouldLoadQuote = Boolean(nexusSDK && canRefreshExactOutQuote());
-    clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    const receiveIssue = buildReceiveAmountIssue();
+    applyReceiveAmountIssue(receiveIssue);
+    const shouldLoadQuote = Boolean(
+      !receiveIssue && nexusSDK && canRefreshExactOutQuote()
+    );
+    if (!receiveIssue) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
       setTxError(null);
@@ -5612,6 +5883,16 @@ function NexusOneInner({
       if (!background) {
         setTxError(null);
         setSwapQuoteIssue(null);
+      }
+      return;
+    }
+
+    const receiveIssue = buildReceiveAmountIssue();
+    if (receiveIssue) {
+      applyReceiveAmountIssue(receiveIssue);
+      if (!background && swapStepRef.current !== "idle") {
+        swapStepRef.current = "idle";
+        setSwapStep("idle");
       }
       return;
     }
@@ -6479,12 +6760,21 @@ function NexusOneInner({
 
   const hasInsufficientSourcesQuoteIssue =
     swapQuoteIssue?.type === "insufficientSources";
+  const hasReceiveAmountQuoteIssue = Boolean(receiveAmountIssue);
 
   useEffect(() => {
     if (activeMode !== "swap" || swapStep !== "idle" || !nexusSDK) return;
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasReceiveAmountQuoteIssue) {
+      clearPendingSwapIntent(true);
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6533,6 +6823,7 @@ function NexusOneInner({
     fromTokensQuoteKey,
     hasCurrentQuoteIntent,
     hasInsufficientSourcesQuoteIssue,
+    hasReceiveAmountQuoteIssue,
     nexusSDK,
     recipientAddress,
     swapStep,
@@ -6544,6 +6835,14 @@ function NexusOneInner({
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasReceiveAmountQuoteIssue) {
+      clearPendingSwapIntent(true);
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6597,6 +6896,7 @@ function NexusOneInner({
     depositQuoteAmountKey,
     hasCurrentQuoteIntent,
     hasInsufficientSourcesQuoteIssue,
+    hasReceiveAmountQuoteIssue,
     nexusSDK,
     sourceSelectionRevision,
     selectedOpportunityIdentity,
@@ -6609,6 +6909,14 @@ function NexusOneInner({
 
     if (syncingIntentSourcesRef.current) {
       syncingIntentSourcesRef.current = false;
+      return;
+    }
+
+    if (hasReceiveAmountQuoteIssue) {
+      clearPendingSwapIntent(true);
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
       return;
     }
 
@@ -6655,6 +6963,7 @@ function NexusOneInner({
     activeQuoteInputKey,
     hasCurrentQuoteIntent,
     hasInsufficientSourcesQuoteIssue,
+    hasReceiveAmountQuoteIssue,
     nexusSDK,
     sourceSelectionRevision,
     swapStep,
@@ -6662,6 +6971,8 @@ function NexusOneInner({
   ]);
 
   const refreshActiveSwapIntent = useCallback(async () => {
+    if (receiveAmountIssueRef.current) return;
+
     const activeIntent = swapIntentRef.current;
     if (
       !activeIntent ||
@@ -6732,7 +7043,11 @@ function NexusOneInner({
       ) &&
       (swapStep === "idle" || swapStep === "preview-intent");
 
-    if (!hasRefreshableIntent) return;
+    if (!hasRefreshableIntent || receiveAmountIssue) {
+      setQuoteRefreshProgress(0);
+      setQuoteRefreshSecondsRemaining(0);
+      return;
+    }
 
     let cancelled = false;
     let timeout: number | undefined;
@@ -6741,6 +7056,13 @@ function NexusOneInner({
       const quoteAge = Date.now() - lastSwapIntentRefreshAtRef.current;
       const delay = Math.max(0, QUOTE_REFRESH_INTERVAL_MS - quoteAge);
       timeout = window.setTimeout(() => {
+        if (receiveAmountIssueRef.current) {
+          clearPendingSwapIntent(true);
+          setQuoteRefreshProgress(0);
+          setQuoteRefreshSecondsRemaining(0);
+          return;
+        }
+
         if (
           intentLoading ||
           quoteRefreshing ||
@@ -6774,6 +7096,7 @@ function NexusOneInner({
     activeQuoteInputKey,
     intentData,
     intentLoading,
+    receiveAmountIssue,
     previewQuoteRefreshing,
     quoteRefreshing,
     receiveMaxCalculating,
@@ -6793,7 +7116,7 @@ function NexusOneInner({
       ) &&
       (swapStep === "idle" || swapStep === "preview-intent");
 
-    if (!hasRefreshableIntent) {
+    if (!hasRefreshableIntent || receiveAmountIssue) {
       setQuoteRefreshProgress(0);
       setQuoteRefreshSecondsRemaining(0);
       return;
@@ -6810,7 +7133,13 @@ function NexusOneInner({
     const interval = window.setInterval(updateProgress, 250);
 
     return () => window.clearInterval(interval);
-  }, [activeMode, activeQuoteInputKey, intentData, swapStep]);
+  }, [
+    activeMode,
+    activeQuoteInputKey,
+    intentData,
+    receiveAmountIssue,
+    swapStep,
+  ]);
 
   /** User accepted swap from the preview — call allow() from the intent hook */
   const handleSwapAccept = () => {
@@ -6951,13 +7280,21 @@ function NexusOneInner({
     setSwapQuoteIssue(null);
     setTxError(null);
     const nextAmount = parseFiatNumber(val);
+    const receiveIssue = buildReceiveAmountIssue({ inputAmount: val });
+    applyReceiveAmountIssue(receiveIssue);
     const hasSelectedSourceToken = fromTokens.some(
       (token) => token.chainId && token.contractAddress
     );
     const shouldLoadQuote = Boolean(
-      nexusSDK && nextAmount?.gt(0) && toToken && hasSelectedSourceToken
+      !receiveIssue &&
+        nexusSDK &&
+        nextAmount?.gt(0) &&
+        toToken &&
+        hasSelectedSourceToken
     );
-    clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    if (!receiveIssue) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
     }
@@ -6976,6 +7313,7 @@ function NexusOneInner({
   const handleSwapTokensUpdate = (tokens: SwapTokenOption[]) => {
     setSwapQuoteIssue(null);
     setTxError(null);
+    applyReceiveAmountIssue(buildReceiveAmountIssue({ sourceTokens: tokens }));
     setFromTokens(tokens);
   };
 
@@ -6987,10 +7325,18 @@ function NexusOneInner({
     setMaxCalculationPercent(null);
     setSwapQuoteIssue(null);
     const nextAmount = parseFiatNumber(val);
+    const receiveIssue = buildReceiveAmountIssue({ inputAmount: val });
+    applyReceiveAmountIssue(receiveIssue);
     const shouldLoadQuote = Boolean(
-      nexusSDK && nextAmount?.gt(0) && toToken && selectedOpportunity
+      !receiveIssue &&
+        nexusSDK &&
+        nextAmount?.gt(0) &&
+        toToken &&
+        selectedOpportunity
     );
-    clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    if (!receiveIssue) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
     } else {
@@ -7008,8 +7354,17 @@ function NexusOneInner({
     setSwapQuoteIssue(null);
     setSwapType("exactOut");
     const nextAmount = parseFiatNumber(val);
-    const shouldLoadQuote = Boolean(nexusSDK && nextAmount?.gt(0) && toToken);
-    clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    const receiveIssue = buildReceiveAmountIssue({
+      inputAmount: val,
+      type: "exactOut",
+    });
+    applyReceiveAmountIssue(receiveIssue);
+    const shouldLoadQuote = Boolean(
+      !receiveIssue && nexusSDK && nextAmount?.gt(0) && toToken
+    );
+    if (!receiveIssue) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+    }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
     } else {
@@ -7240,6 +7595,7 @@ function NexusOneInner({
   // ---------------------------------------------------------------------------
   const insufficientSourceIssue =
     swapQuoteIssue?.type === "insufficientSources" ? swapQuoteIssue : null;
+  const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
   const hasCurrentIntentSources = hasCurrentRunnableIntent && hasIntentSources;
@@ -7250,7 +7606,7 @@ function NexusOneInner({
     Boolean(
       toToken && (receiveMaxCalculating || (amount && Number(amount) > 0))
     ) &&
-    !insufficientSourceIssue &&
+    !blockingQuoteIssue &&
     !hasCurrentIntentSources &&
     (quoteRefreshing || intentLoading || receiveMaxCalculating);
   const isQuoteUnavailableForAutoSourceFlow =
@@ -7259,7 +7615,7 @@ function NexusOneInner({
     !quoteRefreshing &&
     !receiveMaxCalculating &&
     !intentLoading &&
-    !insufficientSourceIssue &&
+    !blockingQuoteIssue &&
     !hasCurrentIntentSources;
   const hasPositiveRootAmount = hasPositiveDecimalInput(amount);
   const hasReadySwapQuoteInput = hasReadyExactInSwapInput(fromTokens, toToken);
@@ -7282,7 +7638,7 @@ function NexusOneInner({
     : !hasReadySwapQuoteInput ||
       receiveMaxCalculating ||
       quoteRefreshing ||
-      Boolean(insufficientSourceIssue);
+      Boolean(blockingQuoteIssue);
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
     : !hasPositiveRootAmount ||
@@ -7292,7 +7648,7 @@ function NexusOneInner({
         (quoteRefreshing ||
           intentLoading ||
           isQuoteUnavailableForAutoSourceFlow)) ||
-      Boolean(insufficientSourceIssue);
+      Boolean(blockingQuoteIssue);
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -7305,10 +7661,11 @@ function NexusOneInner({
         (quoteRefreshing ||
           intentLoading ||
           isQuoteUnavailableForAutoSourceFlow)) ||
-      Boolean(insufficientSourceIssue);
+      Boolean(blockingQuoteIssue);
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
     if (insufficientSourceIssue) return "Insufficient balance";
+    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (receiveMaxCalculating) return "Calculating...";
     if (!hasCurrentIntentSources && (quoteRefreshing || intentLoading)) {
       return "Fetching quotes...";
@@ -7320,6 +7677,7 @@ function NexusOneInner({
   const sendCtaLabel = (() => {
     if (needsWalletConnection) return walletCtaLabel;
     if (insufficientSourceIssue) return "Insufficient balance";
+    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (!hasPositiveRootAmount) return "Enter amount";
     if (!toToken) return "Select token";
     if (hasSameOwnerSendRecipient) return "Change recipient";
@@ -7914,7 +8272,14 @@ function NexusOneInner({
                   usdValue={amount && usdValue > 0 ? usdValue.toFixed(2) : ""}
                 />
 
-                {txError && !insufficientSourceIssue && (
+                {receiveAmountIssue && (
+                  <StatusAlert
+                    message={receiveAmountIssue.message}
+                    type="error"
+                  />
+                )}
+
+                {txError && !blockingQuoteIssue && (
                   <StatusAlert message={txError} type="error" />
                 )}
 
@@ -7937,17 +8302,15 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: insufficientSourceIssue
+                      backgroundColor: blockingQuoteIssue
                         ? "#FCEEED"
                         : isSwapCtaDisabled
                           ? theme.colors.surfaceCool
                           : theme.colors.text,
-                      border: insufficientSourceIssue
-                        ? "1px solid #F7C4C1"
-                        : "none",
+                      border: blockingQuoteIssue ? "1px solid #F7C4C1" : "none",
                       borderRadius: theme.radius.primaryButton,
                       boxShadow:
-                        insufficientSourceIssue || isSwapCtaDisabled
+                        blockingQuoteIssue || isSwapCtaDisabled
                           ? "none"
                           : theme.shadows.primaryButton,
                       boxSizing: "border-box",
@@ -7962,7 +8325,7 @@ function NexusOneInner({
                       width: "100%",
                     }}
                   >
-                    {insufficientSourceIssue ? (
+                    {blockingQuoteIssue ? (
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
@@ -7987,16 +8350,16 @@ function NexusOneInner({
                     <div
                       style={{
                         boxSizing: "border-box",
-                        color: insufficientSourceIssue
+                        color: blockingQuoteIssue
                           ? "#D32F2F"
                           : isSwapCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
-                        fontSize: insufficientSourceIssue ? "13px" : "14px",
+                        fontSize: blockingQuoteIssue ? "13px" : "14px",
                         fontWeight: 500,
                         letterSpacing: "0",
-                        lineHeight: insufficientSourceIssue ? "17px" : "19px",
+                        lineHeight: blockingQuoteIssue ? "17px" : "19px",
                       }}
                     >
                       {needsWalletConnection
@@ -8058,7 +8421,14 @@ function NexusOneInner({
                       usdValue={depositUsdDisplay}
                     />
 
-                    {txError && !insufficientSourceIssue && (
+                    {receiveAmountIssue && (
+                      <StatusAlert
+                        message={receiveAmountIssue.message}
+                        type="error"
+                      />
+                    )}
+
+                    {txError && !blockingQuoteIssue && (
                       <StatusAlert message={txError} type="error" />
                     )}
 
@@ -8080,19 +8450,19 @@ function NexusOneInner({
                         }}
                         style={{
                           alignItems: "center",
-                          backgroundColor: insufficientSourceIssue
+                          backgroundColor: blockingQuoteIssue
                             ? "#FCEEED"
                             : isDepositCtaDisabled
                               ? theme.colors.surfaceCool
                               : theme.colors.text,
-                          border: insufficientSourceIssue
+                          border: blockingQuoteIssue
                             ? "1px solid #F7C4C1"
                             : "none",
-                          borderRadius: insufficientSourceIssue
+                          borderRadius: blockingQuoteIssue
                             ? "4px"
                             : theme.radius.primaryButton,
                           boxShadow:
-                            insufficientSourceIssue || isDepositCtaDisabled
+                            blockingQuoteIssue || isDepositCtaDisabled
                               ? "none"
                               : theme.shadows.primaryButton,
                           boxSizing: "border-box",
@@ -8106,7 +8476,7 @@ function NexusOneInner({
                           width: "100%",
                         }}
                       >
-                        {insufficientSourceIssue ? (
+                        {blockingQuoteIssue ? (
                           <AlertCircle
                             style={{
                               color: "#D32F2F",
@@ -8132,13 +8502,13 @@ function NexusOneInner({
                         <div
                           style={{
                             boxSizing: "border-box",
-                            color: insufficientSourceIssue
+                            color: blockingQuoteIssue
                               ? "#D32F2F"
                               : isDepositCtaDisabled
                                 ? theme.colors.muted
                                 : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
-                            fontSize: insufficientSourceIssue ? "13px" : "14px",
+                            fontSize: blockingQuoteIssue ? "13px" : "14px",
                             fontWeight: 500,
                             lineHeight: "21px",
                           }}
@@ -8203,7 +8573,14 @@ function NexusOneInner({
                   }
                 />
 
-                {txError && !insufficientSourceIssue && (
+                {receiveAmountIssue && (
+                  <StatusAlert
+                    message={receiveAmountIssue.message}
+                    type="error"
+                  />
+                )}
+
+                {txError && !blockingQuoteIssue && (
                   <StatusAlert message={txError} type="error" />
                 )}
 
@@ -8229,19 +8606,17 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: insufficientSourceIssue
+                      backgroundColor: blockingQuoteIssue
                         ? "#FCEEED"
                         : isSendCtaDisabled
                           ? theme.colors.surfaceCool
                           : theme.colors.text,
-                      border: insufficientSourceIssue
-                        ? "1px solid #F7C4C1"
-                        : "none",
-                      borderRadius: insufficientSourceIssue
+                      border: blockingQuoteIssue ? "1px solid #F7C4C1" : "none",
+                      borderRadius: blockingQuoteIssue
                         ? "4px"
                         : theme.radius.primaryButton,
                       boxShadow:
-                        insufficientSourceIssue || isSendCtaDisabled
+                        blockingQuoteIssue || isSendCtaDisabled
                           ? "none"
                           : theme.shadows.primaryButton,
                       boxSizing: "border-box",
@@ -8255,7 +8630,7 @@ function NexusOneInner({
                       width: "100%",
                     }}
                   >
-                    {insufficientSourceIssue ? (
+                    {blockingQuoteIssue ? (
                       <AlertCircle
                         style={{
                           color: "#D32F2F",
@@ -8282,13 +8657,13 @@ function NexusOneInner({
                     <div
                       style={{
                         boxSizing: "border-box",
-                        color: insufficientSourceIssue
+                        color: blockingQuoteIssue
                           ? "#D32F2F"
                           : isSendCtaDisabled
                             ? theme.colors.muted
                             : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
-                        fontSize: insufficientSourceIssue ? "13px" : "14px",
+                        fontSize: blockingQuoteIssue ? "13px" : "14px",
                         fontWeight: 500,
                         lineHeight: "21px",
                       }}
