@@ -44,7 +44,7 @@ import type {
 import {
   CHAIN_METADATA,
   getShortChainName,
-  isUnsupportedSwapSourceChain,
+  isSwapSupportedBySdkChainList,
   SUPPORTED_CHAINS,
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
@@ -3699,7 +3699,14 @@ function NexusOneInner({
     const seen = new Set<string>();
     return expanded.filter((token) => {
       if (!token.chainId || !token.contractAddress) return false;
-      if (isUnsupportedSwapSourceChain(token.chainId)) return false;
+      if (
+        !isSwapSupportedBySdkChainList(
+          token.chainId,
+          swapSupportedChainsAndTokens
+        )
+      ) {
+        return false;
+      }
       const key = `${token.chainId}-${token.contractAddress.toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -3843,7 +3850,9 @@ function NexusOneInner({
   const getDepositTokenOptionsBySourceId = () => {
     const map = new Map<string, SwapTokenOption>();
     const sourceTokens = [
-      ...(swapBalance ? deriveTokenOptions(swapBalance) : []),
+      ...(swapBalance
+        ? deriveTokenOptions(swapBalance, swapSupportedChainsAndTokens)
+        : []),
       ...fromTokens,
     ];
 
@@ -4761,7 +4770,10 @@ function NexusOneInner({
       };
       const targetAddress = normalizeAddress(pair.token);
 
-      const balanceToken = deriveTokenOptions(swapBalance ?? []).find(
+      const balanceToken = deriveTokenOptions(
+        swapBalance ?? [],
+        swapSupportedChainsAndTokens
+      ).find(
         (token) =>
           token.chainId === pair.chain &&
           normalizeAddress(token.contractAddress) === targetAddress
@@ -7898,7 +7910,6 @@ function NexusOneInner({
         overscrollBehavior: isDrawerOverlayActive ? "contain" : "auto",
         padding: "12px",
         scrollbarColor: `${theme.colors.textEmpty} transparent`,
-        scrollbarGutter: "stable",
         scrollbarWidth: "thin",
         position: "relative",
         transition: (() => {
@@ -8135,9 +8146,7 @@ function NexusOneInner({
                       overflowX: "hidden",
                       overflowY: isPreviewTransitioning ? "hidden" : "auto",
                       overscrollBehavior: "contain",
-                      paddingRight: "2px",
                       scrollbarColor: "#C8C8C7 transparent",
-                      scrollbarGutter: "stable",
                       scrollbarWidth: "thin",
                       width: "100%",
                     }}

@@ -193,6 +193,72 @@ export function isUnsupportedSwapSourceChain(chainId?: number | null): boolean {
   return isUnsupportedSwapChain(chainId);
 }
 
+export type SdkChainWithSwapSupport = {
+  chain?: { id?: number | null } | null;
+  id?: number | null;
+  swapSupported?: boolean | null;
+};
+
+export type SdkChainListWithSwapSupport =
+  | readonly SdkChainWithSwapSupport[]
+  | null
+  | undefined;
+
+const getSdkChainId = (chain: SdkChainWithSwapSupport) => {
+  const rawId = chain.id ?? chain.chain?.id;
+  if (rawId == null) {
+    return undefined;
+  }
+
+  const chainId = Number(rawId);
+  return Number.isInteger(chainId) && chainId > 0 ? chainId : undefined;
+};
+
+export function getSdkSwapSupportedChainIds(
+  chains: SdkChainListWithSwapSupport
+): Set<number> | null {
+  if (!chains?.length) {
+    return null;
+  }
+
+  const hasExplicitSwapSupport = chains.some(
+    (chain) => typeof chain.swapSupported === "boolean"
+  );
+  if (!hasExplicitSwapSupport) {
+    return null;
+  }
+
+  const supportedIds = new Set<number>();
+  for (const chain of chains) {
+    if (chain.swapSupported !== true) {
+      continue;
+    }
+
+    const chainId = getSdkChainId(chain);
+    if (chainId) {
+      supportedIds.add(chainId);
+    }
+  }
+
+  return supportedIds;
+}
+
+export function isSwapSupportedBySdkChainList(
+  chainId: number | null | undefined,
+  chains: SdkChainListWithSwapSupport
+): boolean {
+  if (!chainId) {
+    return false;
+  }
+
+  const sdkSupportedIds = getSdkSwapSupportedChainIds(chains);
+  if (sdkSupportedIds) {
+    return sdkSupportedIds.has(Number(chainId));
+  }
+
+  return !isUnsupportedSwapChain(chainId);
+}
+
 export function getShortChainName(
   chainId?: number,
   fallbackName?: string

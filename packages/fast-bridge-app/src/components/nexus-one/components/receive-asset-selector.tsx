@@ -14,8 +14,9 @@ import React, {
 import { createPortal } from "react-dom";
 import {
   CHAIN_METADATA,
+  getSdkSwapSupportedChainIds,
   getShortChainName,
-  isUnsupportedSwapChain,
+  isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
@@ -356,6 +357,10 @@ export function ReceiveAssetSelector({
     swapBalance,
     swapSupportedChainsAndTokens,
   } = useNexus();
+  const sdkSwapSupportedChainIds = useMemo(
+    () => getSdkSwapSupportedChainIds(swapSupportedChainsAndTokens),
+    [swapSupportedChainsAndTokens]
+  );
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedChainFilter, setSelectedChainFilter] = useState<number | null>(
@@ -431,7 +436,14 @@ export function ReceiveAssetSelector({
     >();
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
-        if (isUnsupportedSwapChain(bd.chain?.id)) continue;
+        if (
+          !isSwapSupportedBySdkChainList(
+            bd.chain?.id,
+            swapSupportedChainsAndTokens
+          )
+        ) {
+          continue;
+        }
         const key = getTokenBalanceKey(bd.chain?.id, bd.contractAddress);
         if (!key) continue;
         const fiatBalance = parseFiatValue(bd.balanceInFiat);
@@ -455,7 +467,7 @@ export function ReceiveAssetSelector({
       }
     }
     return map;
-  }, [swapBalance]);
+  }, [swapBalance, swapSupportedChainsAndTokens]);
 
   const tokensWithBalances = useMemo(() => {
     return apiTokens.map((token) => {
@@ -519,7 +531,11 @@ export function ReceiveAssetSelector({
     }
     if (swapSupportedChainsAndTokens) {
       for (const c of swapSupportedChainsAndTokens) {
-        if (isUnsupportedSwapChain(c.id)) continue;
+        if (
+          !isSwapSupportedBySdkChainList(c.id, swapSupportedChainsAndTokens)
+        ) {
+          continue;
+        }
         map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
       }
     }
@@ -530,27 +546,35 @@ export function ReceiveAssetSelector({
   }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);
 
   const chainFilterIds = useMemo(() => {
-    const supportedIds = swapSupportedChainsAndTokens
-      ?.map((chain) => chain.id)
-      .filter(
-        (id) =>
-          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) && !isUnsupportedSwapChain(id)
-      );
+    const supportedIds: number[] | undefined = sdkSwapSupportedChainIds
+      ? Array.from(sdkSwapSupportedChainIds)
+      : swapSupportedChainsAndTokens
+          ?.map((chain: { id: number }) => chain.id)
+          .filter(
+            (id: number) =>
+              SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
+              isSwapSupportedBySdkChainList(id, swapSupportedChainsAndTokens)
+          );
 
     const nextIds = new Set(
-      supportedIds?.length
-        ? supportedIds
-        : Array.from(SUPPORTED_RECEIVE_CHAIN_IDS)
+      supportedIds ? supportedIds : Array.from(SUPPORTED_RECEIVE_CHAIN_IDS)
     );
-    nextIds.add(CITREA_CHAIN_ID);
+    if (
+      !sdkSwapSupportedChainIds ||
+      sdkSwapSupportedChainIds.has(CITREA_CHAIN_ID)
+    ) {
+      nextIds.add(CITREA_CHAIN_ID);
+    }
 
     return sortChainIdsBySwapDisplayOrder(
-      Array.from(nextIds).filter(
-        (id) =>
-          SUPPORTED_RECEIVE_CHAIN_IDS.has(id) && !isUnsupportedSwapChain(id)
+      Array.from(nextIds).filter((id) =>
+        sdkSwapSupportedChainIds
+          ? sdkSwapSupportedChainIds.has(id)
+          : SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
+            isSwapSupportedBySdkChainList(id, swapSupportedChainsAndTokens)
       )
     );
-  }, [swapSupportedChainsAndTokens]);
+  }, [sdkSwapSupportedChainIds, swapSupportedChainsAndTokens]);
 
   useEffect(() => {
     let active = true;
@@ -579,8 +603,21 @@ export function ReceiveAssetSelector({
         const chains = data.tokens || {};
         for (const chainIdStr of Object.keys(chains)) {
           const chainId = parseInt(chainIdStr, 10);
-          if (!SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)) continue;
-          if (isUnsupportedSwapChain(chainId)) continue;
+          if (
+            sdkSwapSupportedChainIds
+              ? !sdkSwapSupportedChainIds.has(chainId)
+              : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
+          ) {
+            continue;
+          }
+          if (
+            !isSwapSupportedBySdkChainList(
+              chainId,
+              swapSupportedChainsAndTokens
+            )
+          ) {
+            continue;
+          }
           const meta = chainMetaMap.get(chainId) || {
             name: getShortChainName(chainId, `Chain ${chainId}`),
             logo: "",
@@ -627,7 +664,7 @@ export function ReceiveAssetSelector({
     return () => {
       active = false;
     };
-  }, [chainMetaMap]);
+  }, [chainMetaMap, sdkSwapSupportedChainIds, swapSupportedChainsAndTokens]);
 
   const isNativeToken = (t: SwapTokenOption) =>
     t.contractAddress.toLowerCase() ===

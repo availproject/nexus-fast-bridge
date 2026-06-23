@@ -38,7 +38,10 @@ import {
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
-import { isUnsupportedSwapSourceChain } from "../common/utils/constant";
+import {
+  isSwapSupportedBySdkChainList,
+  type SdkChainListWithSwapSupport,
+} from "../common/utils/constant";
 import {
   buildUsdPeggedSymbolSet,
   DEFAULT_USD_PEGGED_TOKEN_SYMBOLS,
@@ -113,7 +116,8 @@ const getSourceBalanceChainId = (source: SourceBalance) =>
   source.chain?.id ?? (source as SourceBalance & { chainId?: number }).chainId;
 
 const filterUnsupportedSwapSources = (
-  assets: TokenBalance[] | null
+  assets: TokenBalance[] | null,
+  swapSupportedChains?: SdkChainListWithSwapSupport
 ): TokenBalance[] | null => {
   if (!assets) {
     return null;
@@ -123,8 +127,11 @@ const filterUnsupportedSwapSources = (
     const assetWithSources = asset as TokenBalanceWithSources;
     const sourceBalances =
       assetWithSources.chainBalances ?? assetWithSources.breakdown ?? [];
-    const filteredSources = sourceBalances.filter(
-      (source) => !isUnsupportedSwapSourceChain(getSourceBalanceChainId(source))
+    const filteredSources = sourceBalances.filter((source) =>
+      isSwapSupportedBySdkChainList(
+        getSourceBalanceChainId(source),
+        swapSupportedChains
+      )
     );
 
     if (filteredSources.length === 0) {
@@ -524,7 +531,10 @@ const NexusProvider = ({
 
     if (swapBalanceResult.status === "fulfilled") {
       const rawSwapBalance = swapBalanceResult.value;
-      const filteredSwapBalance = filterUnsupportedSwapSources(rawSwapBalance);
+      const filteredSwapBalance = filterUnsupportedSwapSources(
+        rawSwapBalance,
+        swapList
+      );
       const normalizedSwapBalance =
         normalizeUserAssetFiatValues(filteredSwapBalance);
       console.log(
@@ -627,7 +637,10 @@ const NexusProvider = ({
         return;
       }
       const updatedBalance = await activeSdk.getBalancesForSwap();
-      const filteredSwapBalance = filterUnsupportedSwapSources(updatedBalance);
+      const filteredSwapBalance = filterUnsupportedSwapSources(
+        updatedBalance,
+        swapSupportedChainsAndTokens.current
+      );
       const normalizedSwapBalance =
         normalizeUserAssetFiatValues(filteredSwapBalance);
       console.log(

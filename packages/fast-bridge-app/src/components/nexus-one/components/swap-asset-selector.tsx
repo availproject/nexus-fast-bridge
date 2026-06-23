@@ -26,9 +26,9 @@ import React, {
 import { createPortal } from "react-dom";
 import {
   CHAIN_METADATA,
+  getSdkSwapSupportedChainIds,
   getShortChainName,
-  isUnsupportedSwapChain,
-  isUnsupportedSwapSourceChain,
+  isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
@@ -84,12 +84,15 @@ interface SwapAssetSelectorProps {
 }
 
 export function deriveTokenOptions(
-  swapBalance: UserAsset[]
+  swapBalance: UserAsset[],
+  swapSupportedChains?: SupportedChainsAndTokensResult | null
 ): SwapTokenOption[] {
   const tokens: SwapTokenOption[] = [];
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
-      if (isUnsupportedSwapSourceChain(bd.chain?.id)) continue;
+      if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
+        continue;
+      }
       if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       tokens.push({
@@ -927,6 +930,10 @@ export function SwapAssetSelector({
   onSelectionChange,
   requiredUsd,
 }: SwapAssetSelectorProps) {
+  const sdkSwapSupportedChainIds = useMemo(
+    () => getSdkSwapSupportedChainIds(swapSupportedChains),
+    [swapSupportedChains]
+  );
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const chainCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1032,10 +1039,13 @@ export function SwapAssetSelector({
   }, [preserveListHeight]);
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
+    const isSwapSupportedToken = (token: SwapTokenOption) =>
+      isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
+
     const baseTokens = staticOptions
-      ? staticOptions.filter((token) => !isUnsupportedSwapChain(token.chainId))
+      ? staticOptions.filter(isSwapSupportedToken)
       : swapBalance
-        ? deriveTokenOptions(swapBalance)
+        ? deriveTokenOptions(swapBalance, swapSupportedChains)
         : [];
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
@@ -1061,12 +1071,13 @@ export function SwapAssetSelector({
       }
     }
 
-    return merged.filter((token) => !isUnsupportedSwapChain(token.chainId));
+    return merged.filter(isSwapSupportedToken);
   }, [
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
     activeSelectedTokens,
     swapBalance,
+    swapSupportedChains,
     staticOptions,
   ]);
 
@@ -1908,8 +1919,15 @@ export function SwapAssetSelector({
     const options = new Map<number, SwapTokenOption>();
 
     for (const chain of swapSupportedChains ?? []) {
-      if (!SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)) continue;
-      if (isUnsupportedSwapChain(chain.id)) continue;
+      if (
+        !sdkSwapSupportedChainIds &&
+        !SWAP_CHAIN_DISPLAY_ORDER_SET.has(chain.id)
+      ) {
+        continue;
+      }
+      if (!isSwapSupportedBySdkChainList(chain.id, swapSupportedChains)) {
+        continue;
+      }
       options.set(chain.id, {
         contractAddress: "",
         symbol: "",
@@ -1926,8 +1944,9 @@ export function SwapAssetSelector({
     for (const token of allTokens) {
       if (
         !token.chainId ||
-        !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId) ||
-        isUnsupportedSwapChain(token.chainId)
+        (!sdkSwapSupportedChainIds &&
+          !SWAP_CHAIN_DISPLAY_ORDER_SET.has(token.chainId)) ||
+        !isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains)
       ) {
         continue;
       }
@@ -1937,7 +1956,7 @@ export function SwapAssetSelector({
     }
 
     return Array.from(options.values()).sort(compareChainsBySwapDisplayOrder);
-  }, [allTokens, swapSupportedChains]);
+  }, [allTokens, sdkSwapSupportedChainIds, swapSupportedChains]);
 
   const selectedChainToken =
     selectedChainFilter === null

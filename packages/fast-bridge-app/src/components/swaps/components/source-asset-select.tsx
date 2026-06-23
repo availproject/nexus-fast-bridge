@@ -2,7 +2,11 @@
 import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
-import { CHAIN_METADATA, SHORT_CHAIN_NAME } from "../../common";
+import {
+  CHAIN_METADATA,
+  isSwapSupportedBySdkChainList,
+  SHORT_CHAIN_NAME,
+} from "../../common";
 import { type UserAsset, useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { DialogClose } from "../../ui/dialog";
@@ -30,7 +34,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
   onSelect,
   swapBalance,
 }) => {
-  const { swapSupportedChainsAndTokens, nexusSDK } = useNexus();
+  const { swapSupportedChainsAndTokens } = useNexus();
   const [tempChain, setTempChain] = useState<{
     id: number;
     logo: string;
@@ -50,6 +54,14 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
         continue;
       }
       for (const breakdown of asset.breakdown) {
+        if (
+          !isSwapSupportedBySdkChainList(
+            breakdown.chain?.id,
+            swapSupportedChainsAndTokens
+          )
+        ) {
+          continue;
+        }
         if (Number.parseFloat(breakdown.balance) <= 0) {
           continue;
         }
@@ -87,7 +99,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
       unique.set(key, t);
     }
     return Array.from(unique.values());
-  }, [swapBalance, nexusSDK]);
+  }, [swapBalance, swapSupportedChainsAndTokens]);
 
   // Only show chains that have tokens with balance
   const chainsWithTokens = useMemo(() => {
@@ -95,8 +107,10 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
       return [];
     }
     const chainIdsWithTokens = new Set(allTokens.map((t) => t.chainId));
-    return swapSupportedChainsAndTokens.filter((c) =>
-      chainIdsWithTokens.has(c.id)
+    return swapSupportedChainsAndTokens.filter(
+      (c) =>
+        isSwapSupportedBySdkChainList(c.id, swapSupportedChainsAndTokens) &&
+        chainIdsWithTokens.has(c.id)
     );
   }, [swapSupportedChainsAndTokens, allTokens]);
 
