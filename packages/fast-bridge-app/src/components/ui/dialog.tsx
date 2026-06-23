@@ -56,9 +56,13 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  dismissible = true,
   showCloseButton = true,
+  onEscapeKeyDown,
+  onPointerDownOutside,
   ...props
 }: ComponentProps<typeof DialogContentPrimitive> & {
+  dismissible?: boolean;
   showCloseButton?: boolean;
 }) {
   return (
@@ -70,6 +74,18 @@ function DialogContent({
           className
         )}
         data-slot="dialog-content"
+        onEscapeKeyDown={(event) => {
+          if (!dismissible) {
+            event.preventDefault();
+          }
+          onEscapeKeyDown?.(event);
+        }}
+        onPointerDownOutside={(event) => {
+          if (!dismissible) {
+            event.preventDefault();
+          }
+          onPointerDownOutside?.(event);
+        }}
         {...props}
       >
         {children}

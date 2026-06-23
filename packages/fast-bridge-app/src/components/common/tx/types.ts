@@ -12,9 +12,8 @@ export interface GenericStep<TStep> {
   step: TStep;
 }
 
-interface StepLike {
-  type?: unknown;
-  typeID?: unknown;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 /**
@@ -24,14 +23,15 @@ export function getStepKey(step: unknown): string {
   if (!step) {
     return "";
   }
-
-  const stepLike = step as StepLike;
-
-  if (typeof stepLike.typeID === "string" && stepLike.typeID.length > 0) {
-    return stepLike.typeID;
+  if (
+    isRecord(step) &&
+    typeof step.typeID === "string" &&
+    step.typeID.length > 0
+  ) {
+    return step.typeID;
   }
-  if (typeof stepLike.type === "string" && stepLike.type.length > 0) {
-    return stepLike.type;
+  if (isRecord(step) && typeof step.type === "string" && step.type.length > 0) {
+    return step.type;
   }
   try {
     return JSON.stringify(step);

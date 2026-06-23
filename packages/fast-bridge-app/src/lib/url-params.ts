@@ -1,26 +1,24 @@
-import type {
-  SUPPORTED_CHAINS_IDS,
-  SUPPORTED_TOKENS,
-} from "@avail-project/nexus-core";
 import { isAddress } from "viem";
 
-const ALLOWED_TOKENS = new Set(["USDC", "USDT"]) as Set<SUPPORTED_TOKENS>;
+type SupportedBridgeToken = "USDC" | "USDT";
+
+const ALLOWED_TOKENS = new Set<SupportedBridgeToken>(["USDC", "USDT"]);
 const FILTERED_CHAIN_ID = 728_126_428;
 const AMOUNT_PATTERN = /^\d*\.?\d*$/;
 
 interface BridgeParams {
   amount?: string;
   recipient?: `0x${string}`;
-  to?: SUPPORTED_CHAINS_IDS;
-  token?: SUPPORTED_TOKENS;
+  to?: number;
+  token?: SupportedBridgeToken;
 }
 
-function isValidToken(token: string | null): token is SUPPORTED_TOKENS {
+function isValidToken(token: string | null): token is SupportedBridgeToken {
   if (!token) {
     return false;
   }
   const upperToken = token.toUpperCase().trim();
-  return ALLOWED_TOKENS.has(upperToken as SUPPORTED_TOKENS);
+  return ALLOWED_TOKENS.has(upperToken as SupportedBridgeToken);
 }
 
 function isValidChain(chainStr: string | null): boolean {
@@ -71,10 +69,10 @@ export function readBridgeParams(): BridgeParams {
 
   const to =
     toStr && toStr !== "self" && isValidChain(toStr)
-      ? (Number.parseInt(toStr, 10) as SUPPORTED_CHAINS_IDS)
+      ? Number.parseInt(toStr, 10)
       : undefined;
   const token = isValidToken(tokenStr)
-    ? (tokenStr.toUpperCase() as SUPPORTED_TOKENS)
+    ? (tokenStr.toUpperCase() as SupportedBridgeToken)
     : undefined;
   const sanitizedAmount = sanitizeAmount(amountStr);
   const recipientAddress =

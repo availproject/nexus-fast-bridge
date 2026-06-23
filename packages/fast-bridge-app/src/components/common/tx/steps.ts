@@ -1,4 +1,4 @@
-import type { SwapStepType } from "@avail-project/nexus-core";
+import type { SwapStepType } from "../types/transaction-flow";
 import type { GenericStep } from "./types";
 import { getStepKey } from "./types";
 
@@ -7,31 +7,30 @@ import { getStepKey } from "./types";
  * Kept here to avoid duplication across exact-in and exact-out hooks.
  */
 export const SWAP_EXPECTED_STEPS: SwapStepType[] = [
-  { type: "SWAP_START", typeID: "SWAP_START" } as SwapStepType,
-  { type: "DETERMINING_SWAP", typeID: "DETERMINING_SWAP" } as SwapStepType,
   {
-    type: "CREATE_PERMIT_FOR_SOURCE_SWAP",
-    typeID:
-      "CREATE_PERMIT_FOR_SOURCE_SWAP" as unknown as SwapStepType["typeID"],
+    type: "SOURCE_SWAP",
+    typeID: "SOURCE_SWAP",
   } as SwapStepType,
   {
-    type: "SOURCE_SWAP_BATCH_TX",
-    typeID: "SOURCE_SWAP_BATCH_TX",
+    type: "EOA_TO_EPHEMERAL_TRANSFER",
+    typeID: "EOA_TO_EPHEMERAL_TRANSFER",
   } as SwapStepType,
   {
-    type: "SOURCE_SWAP_HASH",
-    typeID: "SOURCE_SWAP_HASH" as unknown as SwapStepType["typeID"],
-  } as SwapStepType,
-  { type: "RFF_ID", typeID: "RFF_ID" } as SwapStepType,
-  {
-    type: "DESTINATION_SWAP_BATCH_TX",
-    typeID: "DESTINATION_SWAP_BATCH_TX",
+    type: "BRIDGE_DEPOSIT",
+    typeID: "BRIDGE_DEPOSIT",
   } as SwapStepType,
   {
-    type: "DESTINATION_SWAP_HASH",
-    typeID: "DESTINATION_SWAP_HASH" as unknown as SwapStepType["typeID"],
+    type: "BRIDGE_INTENT_SUBMISSION",
+    typeID: "BRIDGE_INTENT_SUBMISSION",
   } as SwapStepType,
-  { type: "SWAP_COMPLETE", typeID: "SWAP_COMPLETE" } as SwapStepType,
+  {
+    type: "BRIDGE_FILL",
+    typeID: "BRIDGE_FILL",
+  } as SwapStepType,
+  {
+    type: "DESTINATION_SWAP",
+    typeID: "DESTINATION_SWAP",
+  } as SwapStepType,
 ];
 
 export function seedSteps<T>(expected: T[]): GenericStep<T>[] {

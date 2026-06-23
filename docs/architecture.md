@@ -37,7 +37,6 @@ Every chain app resolves shared imports with aliases in `apps/<slug>/vite.config
 
 - `@/*` -> `../../packages/fast-bridge-app/src/*`
 - `@fastbridge/runtime` -> `./src/runtime.ts`
-- `@avail-project/nexus-core` -> `./node_modules/@avail-project/nexus-core`
 
 That means shared code can do:
 
@@ -47,9 +46,9 @@ import { appConfig, chainFeatures } from "@fastbridge/runtime";
 
 and receive chain-specific values from the current app wrapper.
 
-The `@avail-project/nexus-core` alias is intentional. It forces all Nexus imports
-from shared code to resolve to the current chain app's installed Nexus version,
-so each app can pin its own SDK commit independently.
+Nexus SDK v2 is imported directly from `@avail-project/nexus-sdk-v2` in shared
+code. Chain-specific behavior should still flow through runtime config and
+feature flags rather than SDK aliases or wrapper forks.
 
 ## Configuration Layers
 

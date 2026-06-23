@@ -1,0 +1,343 @@
+/* Blog — Stripe-style squeezy carousel (canvas + sliding details) */
+
+.blog {
+  --blog-pad-x: 100px;
+  --blog-inner: 1240px;
+  --blog-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --blog-meta-duration: 1s;
+  --blog-canvas-height: 460px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1440px;
+  padding: 124px var(--blog-pad-x) 0;
+  margin: 0 auto;
+}
+
+.blog__container {
+  width: min(100%, var(--blog-inner));
+  margin: 0 auto;
+}
+
+.blog__header {
+  display: flex;
+  gap: 64px;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.blog__header-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.blog__title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--fg-primary);
+}
+
+.blog__title em {
+  display: block;
+  font-style: normal;
+  color: var(--title-muted);
+}
+
+/* Mobile-only forced line break inside the subtitle (shown via @media). */
+.blog__title-br {
+  display: none;
+}
+
+.blog__header-btn {
+  flex-shrink: 0;
+  width: 160px;
+  margin-top: 8px;
+}
+
+.blog__body {
+  width: 100%;
+}
+
+.squeezy-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+.squeezy-carousel__canvas {
+  display: block;
+  width: 100%;
+  height: var(--blog-canvas-height);
+  overflow: clip;
+  touch-action: pan-y;
+  cursor: default;
+}
+
+.squeezy-carousel__items-details-container {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+.squeezy-carousel__meta-track {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.squeezy-carousel__item-details {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 100%;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  transition:
+    transform var(--blog-meta-duration) var(--blog-ease),
+    opacity var(--blog-meta-duration) var(--blog-ease);
+  will-change: transform, opacity;
+}
+
+.squeezy-carousel__item-copy {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Carousel prev/next chevrons — pinned to the far right of the meta row */
+.blog__nav {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+.blog__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--fg-primary);
+  cursor: pointer;
+  background: #fffffe;
+  border: 1px solid #e8e8e7;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.blog__nav-btn:hover {
+  background: #f2f2f0;
+  border-color: #d8d8d6;
+}
+
+.blog__nav-btn svg {
+  display: block;
+}
+
+.blog__meta-title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 29px;
+  color: var(--fg-primary);
+}
+
+.blog__read {
+  flex-shrink: 0;
+  padding: 0;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--brand-blue);
+  white-space: nowrap;
+  text-decoration: none;
+  background: none;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.blog__read:hover {
+  opacity: 0.75;
+}
+
+/* Mobile/tablet scroll list — replaces the canvas carousel ≤768 */
+.blog__scroller {
+  display: none;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Mobile carousel dots + footer button (hidden on desktop) */
+.blog__footer {
+  display: none;
+}
+
+.blog__dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.blog__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  cursor: pointer;
+  background: #d4d4d2;
+  border: none;
+  border-radius: 999px;
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.blog__dot--active {
+  width: 22px;
+  background: var(--fg-primary);
+}
+
+.blog-card {
+  flex: 0 0 auto;
+  width: calc(95vw - var(--blog-pad-x) - 16px);
+  scroll-snap-align: start;
+}
+
+.blog-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.blog-card__media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--surface-muted);
+  border-radius: 12px;
+}
+
+.blog-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blog-card__title {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--fg-primary);
+}
+
+.blog-card__read {
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squeezy-carousel__item-details {
+    transition-duration: 0.2s;
+  }
+}
+
+@media (max-width: 768px) {
+  .blog__header {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Mobile: drop the "What's happening" lead and show the rest in black.
+     Force the break after "latest" so it reads:
+     "Check out the latest" / "from us." */
+  .blog__title-lead {
+    display: none;
+  }
+
+  .blog__title em {
+    color: var(--fg-primary);
+  }
+
+  .blog__title-br {
+    display: block;
+  }
+
+  /* Button moves below the cards into .blog__footer on mobile */
+  .blog__header-btn {
+    display: none;
+  }
+
+  .blog__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    margin-top: 24px;
+  }
+
+  .blog__footer-btn {
+    width: 100%;
+  }
+
+  .blog {
+    --blog-pad-x: 48px;
+    padding-top: 16px;
+  }
+
+  .squeezy-carousel {
+    display: none;
+  }
+
+  .blog__scroller {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: var(--blog-pad-x);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--blog-pad-x));
+    padding: 4px var(--blog-pad-x);
+  }
+
+  .blog__scroller::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .blog {
+    --blog-pad-x: 32px;
+  }
+
+  .blog__title {
+    font-size: 32px;
+  }
+}

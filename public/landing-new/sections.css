@@ -1,0 +1,787 @@
+/* Below-hero sections — Figma desktop (1440) + tablet/mobile */
+
+.section-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 24px;
+  overflow: hidden;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--brand-white);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background-color: var(--fg-primary);
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% 0%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.section-btn:hover {
+  color: var(--fg-primary);
+  background-size: 100% 100%;
+}
+
+.section-btn:active {
+  transform: scale(0.98);
+}
+
+.section-btn--full {
+  width: 100%;
+}
+
+/* ========== CHAINS STRIP ========== */
+.chains-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: center;
+  min-height: 232px;
+  padding: 40px
+    max(
+      var(--section-pad-x),
+      calc((100% - var(--section-max)) / 2 + var(--section-pad-x))
+    );
+  margin: 0;
+  background: var(--surface-muted);
+}
+
+.chains-strip__desc {
+  max-width: 772px;
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #3d3d3d;
+  text-align: center;
+}
+
+.chains-strip__logos {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+}
+
+.chains-strip__track {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+  width: max-content;
+  animation: chains-scroll 40s linear infinite;
+}
+
+@keyframes chains-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--scroll-width, -50%));
+  }
+}
+
+.chains-strip__logo {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  opacity: 0.5;
+}
+
+.chains-strip__logo img {
+  width: auto;
+  object-fit: contain;
+  filter: grayscale(100%);
+}
+
+.chains-strip__logo img[alt="Ethereum"] {
+  height: 34px;
+}
+.chains-strip__logo img[alt="Arbitrum"] {
+  height: 95px;
+}
+.chains-strip__logo img[alt="Optimism"] {
+  height: 17px;
+}
+.chains-strip__logo img[alt="Avalanche"] {
+  height: 34px;
+}
+.chains-strip__logo img[alt="Polygon"] {
+  height: 109px;
+}
+.chains-strip__logo img[alt="Hyperliquid"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Base"] {
+  height: 48px;
+}
+.chains-strip__logo img[alt="Scroll"] {
+  height: 61px;
+}
+.chains-strip__logo img[alt="Kaia"] {
+  height: 46px;
+}
+.chains-strip__logo img[alt="MegaETH"] {
+  height: 29px;
+}
+.chains-strip__logo img[alt="Monad"] {
+  height: 85px;
+}
+.chains-strip__logo img[alt="BNB Chain"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Citrea"] {
+  height: 26px;
+}
+
+/* How it works + product card — see hiw.css (loaded on index.html and hiw.html) */
+
+/* ========== FAQ ========== */
+.faq {
+  /* Top gap matches the blog section's top padding (124px) so the
+     blog→FAQ spacing equals the steps→blog spacing. */
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 159px;
+  align-items: start;
+  max-width: var(--section-max);
+  min-height: 809px;
+  /* Top gap matches the blog section's top padding (124px) so the
+     blog→FAQ spacing equals the steps→blog spacing. */
+  padding: 124px var(--section-pad-x) 150px;
+  margin: 0 auto;
+}
+
+.faq__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.faq__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq__title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--fg-primary);
+}
+
+.faq__title em {
+  display: block;
+  font-style: normal;
+  color: var(--title-muted);
+}
+
+.faq__subtitle {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: normal;
+  color: var(--fg-muted);
+}
+
+.faq__subtitle--mobile {
+  display: none;
+}
+
+/* Subtitle removed from the FAQ section on all viewports. */
+.faq__subtitle--desktop {
+  display: none;
+}
+
+.faq__header-btn {
+  width: 160px;
+}
+
+/* "View More" relocates below the questions on mobile (see ≤768) */
+.faq__footer {
+  display: none;
+}
+
+.faq__list {
+  display: flex;
+  flex-direction: column;
+  max-width: 701px;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border-faq);
+}
+
+.faq-item__question {
+  display: flex;
+  gap: 60px;
+  align-items: center;
+  width: 100%;
+  min-height: 78px;
+  padding: 24px 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 30px;
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.faq-item__chevron {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  transform: rotate(-90deg);
+  transition: transform 0.3s ease;
+}
+
+.faq-item--open .faq-item__chevron {
+  transform: rotate(180deg);
+}
+
+.faq-item__answer {
+  max-height: 0;
+  padding: 0 0 0 84px;
+  overflow: hidden;
+  transition:
+    max-height 0.35s ease,
+    padding 0.35s ease;
+}
+
+.faq-item--open .faq-item__answer {
+  max-height: 400px;
+  padding: 0 36px 24px 84px;
+}
+
+.faq-item__answer p {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  line-height: 30px;
+  color: var(--fg-secondary);
+}
+
+/* ========== FOOTER ========== */
+.site-footer {
+  --footer-pad-x: 100px;
+  position: relative;
+  min-height: 505px;
+  overflow: hidden;
+  color: var(--footer-text);
+  background: linear-gradient(132.22deg, #f8f8f7 36.93%, #929291 120.64%);
+  isolation: isolate;
+}
+
+.site-footer__glow-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Figma 337:2129 — glow fills entire footer, clipped at section edge */
+.site-footer__glow-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Desktop — user-provided panoramic background */
+.site-footer__glow-img--desktop {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__glow-img--tablet {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__glow-img--mobile {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__inner {
+  position: relative;
+  z-index: 2;
+  max-width: var(--section-max);
+  padding: 56px var(--footer-pad-x) 0;
+  margin: 0 auto;
+}
+
+.site-footer__top {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.site-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 376px;
+}
+
+.site-footer__logo {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--footer-text);
+  text-decoration: none;
+}
+
+.site-footer__logo-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+.site-footer__logo-text {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 30.731px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.site-footer__desc {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--footer-muted);
+}
+
+.site-footer__desc--compact {
+  display: none;
+}
+
+.site-footer__cta {
+  display: inline-block;
+  width: fit-content;
+  padding-bottom: 6px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  color: var(--footer-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--footer-text);
+}
+
+.site-footer__cta strong {
+  font-weight: 700;
+}
+
+.site-footer__cta:hover {
+  opacity: 0.8;
+}
+
+.site-footer__legal--inline {
+  display: none;
+}
+
+.site-footer__legal--desktop {
+  display: block;
+}
+
+.site-footer__links {
+  display: flex;
+  flex-shrink: 0;
+  gap: 48px;
+  justify-content: space-between;
+  min-width: 402px;
+  padding-top: 8px;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.site-footer__col--socials {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.site-footer__col-title {
+  margin: 0 0 4px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--footer-text);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.site-footer__col a {
+  position: relative;
+  z-index: 1;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--footer-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.site-footer__col a:visited {
+  color: var(--footer-muted);
+}
+
+.site-footer__col a:hover {
+  color: var(--footer-text);
+}
+
+.site-footer__legal {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--footer-muted);
+}
+
+/* Figma 226:2818 — watermark (icon + wordmark), locked aspect ratio */
+.site-footer__watermark {
+  --watermark-ratio: 1240 / 163;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 1;
+  width: min(1240px, calc(100% - (var(--footer-pad-x) * 2)));
+  height: auto;
+  aspect-ratio: var(--watermark-ratio);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  transform: translateX(-50%);
+}
+
+.site-footer__watermark picture {
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--watermark-ratio);
+}
+
+.site-footer__watermark-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--watermark-ratio);
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+/* Scroll reveal — legacy fallback only (enhanced uses animations.css) */
+.chains-strip:not([data-reveal-stagger]),
+.blog:not([data-reveal]),
+.faq:not([data-reveal]),
+.site-footer:not([data-reveal]) {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.chains-strip.is-visible:not([data-reveal-stagger]),
+.blog.is-visible:not([data-reveal]),
+.faq.is-visible:not([data-reveal]),
+.site-footer.is-visible:not([data-reveal]) {
+  opacity: 1;
+  transform: none;
+}
+
+/* ========== TABLET ≤768px ========== */
+@media (max-width: 768px) {
+  .chains-strip {
+    gap: 40px;
+    min-height: 232px;
+    padding: 40px var(--section-pad-x);
+  }
+
+  .faq {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    min-height: auto;
+    padding: 80px var(--section-pad-x);
+  }
+
+  .faq__title em {
+    color: #9b9b9a;
+  }
+
+  .faq-item__question {
+    gap: 48px;
+  }
+
+  .faq-item__answer,
+  .faq-item--open .faq-item__answer {
+    padding-left: 72px;
+  }
+
+  .faq__list {
+    max-width: none;
+  }
+
+  /* Move "View More" below the questions on mobile/tablet.
+     Scoped under .faq__intro to beat blog.css's later .section-btn rule. */
+  .faq__intro .faq__header-btn {
+    display: none;
+  }
+
+  .faq__footer {
+    display: block;
+  }
+
+  .faq__footer-btn {
+    width: 100%;
+  }
+
+  .site-footer {
+    --footer-pad-x: 80px;
+    min-height: 682px;
+  }
+
+  .site-footer__glow-img--desktop {
+    display: none;
+  }
+
+  .site-footer__glow-img--tablet {
+    display: block;
+  }
+
+  .site-footer__inner {
+    padding-top: 80px;
+    padding-bottom: 0;
+  }
+
+  .site-footer__top {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .site-footer__brand {
+    gap: 24px;
+    max-width: 603px;
+  }
+
+  .site-footer__desc--desktop {
+    display: none;
+  }
+
+  .site-footer__desc--compact {
+    display: block;
+  }
+
+  .site-footer__legal--desktop {
+    display: none;
+  }
+
+  .site-footer__links {
+    gap: 48px;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    max-width: 608px;
+    padding-top: 0;
+  }
+
+  .site-footer__watermark {
+    --watermark-ratio: 615 / 82;
+    width: min(615px, calc(100% - (var(--footer-pad-x) * 2)));
+  }
+}
+
+/* ========== MOBILE ≤460px ========== */
+@media (max-width: 460px) {
+  .chains-strip {
+    gap: 12px;
+    padding: 32px 32px 40px;
+  }
+
+  .chains-strip__desc {
+    max-width: none;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .faq {
+    padding: 80px 32px 48px;
+  }
+
+  .faq__intro {
+    align-items: center;
+    text-align: center;
+  }
+
+  .faq__title {
+    font-size: 32px;
+    line-height: normal;
+  }
+
+  .faq__title em {
+    color: #9b9b9a;
+  }
+
+  .faq__subtitle--desktop {
+    display: none;
+  }
+
+  .faq__subtitle--mobile {
+    display: none;
+  }
+
+  .faq-item__question {
+    gap: 24px;
+    align-items: flex-start;
+    min-height: auto;
+    padding: 18px 0;
+    font-size: 16px;
+  }
+
+  .faq-item--open .faq-item__question {
+    padding-bottom: 12px;
+  }
+
+  .faq-item__answer,
+  .faq-item--open .faq-item__answer {
+    padding: 0 0 0 48px;
+  }
+
+  .faq-item--open .faq-item__answer {
+    max-height: 360px;
+    padding-bottom: 16px;
+  }
+
+  .faq-item__answer p {
+    font-size: 14px;
+    line-height: 30px;
+  }
+
+  .site-footer {
+    --footer-pad-x: 32px;
+    min-height: 611px;
+  }
+
+  .site-footer__glow-img--tablet {
+    display: none;
+  }
+
+  .site-footer__glow-img--mobile {
+    display: block;
+  }
+
+  .site-footer__inner {
+    padding: 32px var(--footer-pad-x) 0;
+  }
+
+  .site-footer__brand {
+    gap: 16px;
+    max-width: none;
+  }
+
+  .site-footer__desc,
+  .site-footer__col a {
+    font-size: 14px;
+  }
+
+  .site-footer__legal--desktop {
+    display: none;
+  }
+
+  .site-footer__legal--inline {
+    display: block;
+  }
+
+  .site-footer__links {
+    flex-direction: row;
+    gap: 32px;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    max-width: 327px;
+  }
+
+  .site-footer__watermark {
+    width: min(327px, calc(100% - (var(--footer-pad-x) * 2)));
+    height: 42px;
+    aspect-ratio: auto;
+  }
+
+  .site-footer__watermark picture {
+    position: absolute;
+    top: 0;
+    bottom: auto;
+    left: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 332.53 / 71.3088;
+  }
+
+  .site-footer__watermark-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 332.53 / 71.3088;
+    object-fit: contain;
+    object-position: left top;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-btn {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .section-btn:hover {
+    color: var(--fg-primary);
+    background-size: 100% 100%;
+  }
+
+  .section-btn:active {
+    transform: none;
+  }
+}

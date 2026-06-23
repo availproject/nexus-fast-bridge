@@ -1,0 +1,108 @@
+/* Fill-rise button hovers — load last on every page */
+
+.page-hero__cta,
+.hero .btn,
+.section-btn,
+.faq-filter {
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.page-hero__cta:active,
+.hero .btn:active,
+.section-btn:active,
+.faq-filter:active {
+  transform: scale(0.98);
+}
+
+/* Bridge Now — white CTA (hero + FAQ/Contact banner) */
+.page-hero__cta,
+.hero .btn--secondary {
+  background-color: #fffffe;
+  background-image: linear-gradient(#161615, #161615);
+  background-size: 100% 0%;
+}
+
+.page-hero__cta:hover,
+.hero .btn--secondary:hover {
+  color: #fffffe;
+  background-size: 100% 100%;
+  border-color: #161615;
+}
+
+/* Add FastBridge — glass CTA */
+.hero .btn--primary {
+  background-color: rgba(22, 22, 21, 0.61);
+  background-image: linear-gradient(
+    rgba(255, 255, 254, 0.14),
+    rgba(255, 255, 254, 0.14)
+  );
+  background-size: 100% 0%;
+}
+
+.hero .btn--primary:hover {
+  background-size: 100% 100%;
+  border-color: rgba(255, 255, 254, 0.45);
+}
+
+/* Section CTAs — View Blogs, View More, Send message */
+.section-btn {
+  background-color: var(--fg-primary);
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-size: 100% 0%;
+}
+
+.section-btn:hover {
+  color: var(--fg-primary);
+  background-size: 100% 100%;
+}
+
+/* FAQ filter pills */
+.faq-filter:not(.faq-filter--active) {
+  background-color: #fffffe;
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-size: 100% 0%;
+}
+
+.faq-filter:not(.faq-filter--active):hover {
+  color: var(--fg-primary, #161615);
+  background-size: 100% 100%;
+  border-color: #c9c9c6;
+}
+
+.faq-filter--active {
+  background-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-hero__cta,
+  .hero .btn,
+  .section-btn,
+  .faq-filter {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .page-hero__cta:hover,
+  .hero .btn--secondary:hover,
+  .hero .btn--primary:hover,
+  .section-btn:hover,
+  .faq-filter:not(.faq-filter--active):hover {
+    background-size: 100% 100%;
+  }
+
+  .page-hero__cta:active,
+  .hero .btn:active,
+  .section-btn:active,
+  .faq-filter:active {
+    transform: none;
+  }
+}

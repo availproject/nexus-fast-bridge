@@ -7,10 +7,22 @@ allowBuilds:
   keccak: true
   msgpackr-extract: true
   protobufjs: true
+  secp256k1: true
   utf-8-validate: true
+  "@avail-project/ca-common": true
+  "@avail-project/nexus-sdk-v2": true
+  "@avail-project/nexus-types": true
+  msw: true
+  sharp: true
+  unrs-resolver: true
+
+blockExoticSubdeps: false
 
 minimumReleaseAgeExclude:
   - axios@1.17.0
+  - "@posthog/core@1.30.6"
+  - "@posthog/types@1.379.3"
+  - posthog-js@1.379.3
 
 overrides:
   "@protobufjs/utf8": "1.1.1"
@@ -25,4 +37,5 @@ overrides:
   protobufjs: "8.5.0"
   qs: "6.15.2"
   uuid: "14.0.0"
+  viem: "2.47.12"
   ws: "8.21.0"

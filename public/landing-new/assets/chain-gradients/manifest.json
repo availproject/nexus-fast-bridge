@@ -1,0 +1,84 @@
+{
+  "width": 1440,
+  "height": 1024,
+  "chains": {
+    "citrea": {
+      "label": "Citrea Mainnet",
+      "primary": "#1A1A1A",
+      "png": "assets/chain-gradients/citrea-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #1A1A1A0A 0px 2px 4px, #1A1A1A29 0px 12px 24px, #1A1A1A26 0px 32px 64px"
+    },
+    "ethereum": {
+      "label": "Ethereum Mainnet",
+      "primary": "#627EEA",
+      "png": "assets/chain-gradients/ethereum-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #627EEA0A 0px 2px 4px, #627EEA29 0px 12px 24px, #627EEA26 0px 32px 64px"
+    },
+    "optimism": {
+      "label": "OP Mainnet",
+      "primary": "#FF0420",
+      "png": "assets/chain-gradients/optimism-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #FF04200A 0px 2px 4px, #FF042029 0px 12px 24px, #FF042026 0px 32px 64px"
+    },
+    "polygon": {
+      "label": "Polygon PoS",
+      "primary": "#8247E5",
+      "png": "assets/chain-gradients/polygon-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #8247E50A 0px 2px 4px, #8247E529 0px 12px 24px, #8247E526 0px 32px 64px"
+    },
+    "arbitrum": {
+      "label": "Arbitrum One",
+      "primary": "#28A0F0",
+      "png": "assets/chain-gradients/arbitrum-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #28A0F00A 0px 2px 4px, #28A0F029 0px 12px 24px, #28A0F026 0px 32px 64px"
+    },
+    "avalanche": {
+      "label": "Avalanche C-Chain",
+      "primary": "#E84142",
+      "png": "assets/chain-gradients/avalanche-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #E841420A 0px 2px 4px, #E8414229 0px 12px 24px, #E8414226 0px 32px 64px"
+    },
+    "hyperevm": {
+      "label": "HyperEVM",
+      "primary": "#50E3C2",
+      "png": "assets/chain-gradients/hyperevm-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #50E3C20A 0px 2px 4px, #50E3C229 0px 12px 24px, #50E3C226 0px 32px 64px"
+    },
+    "kaia": {
+      "label": "Kaia Mainnet",
+      "primary": "#31C48D",
+      "png": "assets/chain-gradients/kaia-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #31C48D0A 0px 2px 4px, #31C48D29 0px 12px 24px, #31C48D26 0px 32px 64px"
+    },
+    "monad": {
+      "label": "Monad",
+      "primary": "#836EF9",
+      "png": "assets/chain-gradients/monad-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #836EF90A 0px 2px 4px, #836EF929 0px 12px 24px, #836EF926 0px 32px 64px"
+    },
+    "megaeth": {
+      "label": "MegaETH",
+      "primary": "#2B2B2B",
+      "png": "assets/chain-gradients/megaeth-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #2B2B2B0A 0px 2px 4px, #2B2B2B29 0px 12px 24px, #2B2B2B26 0px 32px 64px"
+    },
+    "base": {
+      "label": "Base",
+      "primary": "#0052FF",
+      "png": "assets/chain-gradients/base-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #0052FF0A 0px 2px 4px, #0052FF29 0px 12px 24px, #0052FF26 0px 32px 64px"
+    },
+    "scroll": {
+      "label": "Scroll",
+      "primary": "#C4A882",
+      "png": "assets/chain-gradients/scroll-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #C4A8820A 0px 2px 4px, #C4A88224 0px 12px 24px, #C4A88222 0px 32px 64px"
+    },
+    "bnb": {
+      "label": "BNB Smart Chain",
+      "primary": "#F3BA2F",
+      "png": "assets/chain-gradients/bnb-ribbon.png",
+      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #F3BA2F0A 0px 2px 4px, #F3BA2F24 0px 12px 24px, #F3BA2F1A 0px 32px 64px"
+    }
+  }
+}

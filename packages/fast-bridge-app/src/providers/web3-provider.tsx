@@ -11,8 +11,11 @@ import {
   base,
   bsc,
   type Chain,
-  kaia,
+  citrea,
+  hyperEvm as hyperevm,
   mainnet,
+  megaeth,
+  monad,
   optimism,
   polygon,
   scroll,
@@ -22,77 +25,6 @@ import type { AppConfig } from "@/types/runtime";
 
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
-const megaeth: Chain = {
-  id: 4326,
-  name: "MegaETH Mainnet",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.megaeth || "https://rpcs.avail.so/megaeth"] },
-  },
-  blockExplorers: {
-    default: { name: "Explorer", url: "https://megaeth.blockscout.com" },
-  },
-  testnet: false,
-};
-
-const monad: Chain = {
-  id: 143,
-  name: "Monad",
-  nativeCurrency: {
-    name: "Monad",
-    symbol: "MON",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.monad || "https://rpcs.avail.so/monad"] },
-  },
-  blockExplorers: {
-    default: { name: "Monad Vision", url: "https://monadvision.com" },
-  },
-  testnet: false,
-};
-
-const citrea: Chain = {
-  id: 4114,
-  name: "Citrea Mainnet",
-  nativeCurrency: {
-    name: "CBTC",
-    symbol: "cBTC",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.citrea || "https://rpcs.avail.so/citrea"] },
-  },
-  blockExplorers: {
-    default: {
-      name: "Citrea Explorer",
-      url: "https://explorer.mainnet.citrea.xyz",
-    },
-  },
-  testnet: false,
-};
-
-const hyperevm: Chain = {
-  id: 999,
-  name: "HyperEVM",
-  nativeCurrency: {
-    name: "HYPE",
-    symbol: "HYPE",
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: { http: [rpcs.hyperevm || "https://rpc.hyperliquid.xyz/evm"] },
-  },
-  blockExplorers: {
-    default: { name: "Purrsec", url: "https://purrsec.com" },
-  },
-  testnet: false,
-};
-
 const rpcConfig = rpcs as Record<string, string>;
 
 const staticTransports = {
@@ -101,24 +33,22 @@ const staticTransports = {
   [arbitrum.id]: http(rpcConfig.arbitrum || undefined),
   [optimism.id]: http(rpcConfig.optimism || undefined),
   [polygon.id]: http(rpcConfig.polygon || undefined),
-  [scroll.id]: http(rpcConfig.scroll || undefined),
   [avalanche.id]: http(rpcConfig.avalanche || undefined),
-  [kaia.id]: http(rpcConfig.kaia || undefined),
+  [scroll.id]: http(rpcConfig.scroll || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
-  [bsc.id]: http(rpcConfig.bsc || undefined),
+  [bsc.id]: http(rpcConfig.bnb || undefined),
 };
 
 const staticChains = [
   mainnet,
   base,
-  kaia,
   arbitrum,
-  avalanche,
   optimism,
   polygon,
+  avalanche,
   scroll,
   monad,
   megaeth,

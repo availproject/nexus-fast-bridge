@@ -1,7 +1,5 @@
 /// <reference types="vite/client" />
 
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
-
 export interface AppEnv {
   readonly VITE_APP_BASE_PATH?: string;
   readonly VITE_CONFIG_APP_DESCRIPTION: string;
@@ -30,7 +28,7 @@ export interface AppEnv {
   readonly VITE_CONFIG_CHAIN_USE_CHAIN_LOGO: boolean;
   readonly VITE_CONFIG_NEXUS_NETWORK: "mainnet" | "testnet" | "devnet";
   readonly VITE_CONFIG_NEXUS_PRIMARY_TOKEN: string;
-  readonly VITE_CONFIG_NEXUS_SUPPORTED_CHAIN: SUPPORTED_CHAINS;
+  readonly VITE_CONFIG_NEXUS_SUPPORTED_CHAIN: number;
   readonly VITE_CONFIG_PRIMARY_COLOR: string;
   readonly VITE_CONFIG_SECONDARY_COLOR: string;
 }

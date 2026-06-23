@@ -17,7 +17,9 @@ import { cn } from "@/lib/utils";
 import { useRuntime } from "@/providers/runtime-context";
 import type { ChainFeatures } from "@/types/runtime";
 import { TOKEN_IMAGES } from "../common/utils/constant";
-import useViewHistory from "./hooks/use-view-history";
+import useViewHistory, {
+  type IntentHistoryItem,
+} from "./hooks/use-view-history";
 
 const getDestinationTokenImage = (
   tokenSymbol: string,
@@ -29,28 +31,37 @@ const getDestinationTokenImage = (
   return override ?? TOKEN_IMAGES[tokenSymbol];
 };
 
-const SourceChains = ({ sources }: { sources: RFF["sources"] }) => {
+const SourceChains = ({
+  sources,
+}: {
+  sources: IntentHistoryItem["sources"];
+}) => {
   const sourceList = sources ?? [];
   return (
     <div className="flex items-center">
-      {sourceList.map((source, index) => (
-        <div
-          className={cn(
-            "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
-          )}
-          key={source?.chain?.id}
-          style={{ zIndex: sourceList.length - index }}
-        >
-          <img
-            alt={source?.chain?.name}
-            className="rounded-full"
-            height={24}
-            src={source?.chain?.logo}
-            width={24}
-          />
-        </div>
-      ))}
+      {sourceList.map(
+        (
+          source: NonNullable<IntentHistoryItem["sources"]>[number],
+          index: number
+        ) => (
+          <div
+            className={cn(
+              "rounded-full transition-transform hover:scale-110",
+              index > 0 && "-ml-2"
+            )}
+            key={source?.chain?.id}
+            style={{ zIndex: sourceList.length - index }}
+          >
+            <img
+              alt={source?.chain?.name}
+              className="rounded-full"
+              height={24}
+              src={source?.chain?.logo}
+              width={24}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 };
@@ -64,6 +75,9 @@ const StatusBadge = ({ status }: { status: string }) => {
       return "secondary";
     }
     if (status === "Refunded") {
+      return "outline";
+    }
+    if (status === "Created" || status === "Expired") {
       return "outline";
     }
     if (status === "Failed") {
@@ -82,29 +96,34 @@ const StatusBadge = ({ status }: { status: string }) => {
 const DestinationToken = ({
   destination,
 }: {
-  destination: RFF["destinations"];
+  destination: IntentHistoryItem["destinations"];
 }) => {
   const { chainFeatures } = useRuntime();
   return (
     <div className="flex items-center">
-      {destination.map((dest, index) => (
-        <div
-          className={cn(
-            "rounded-full transition-transform hover:scale-110",
-            index > 0 && "-ml-2"
-          )}
-          key={dest.token.symbol}
-          style={{ zIndex: destination.length - index }}
-        >
-          <img
-            alt={dest.token.symbol}
-            className="rounded-full"
-            height={24}
-            src={getDestinationTokenImage(dest.token.symbol, chainFeatures)}
-            width={24}
-          />
-        </div>
-      ))}
+      {destination.map(
+        (
+          dest: NonNullable<IntentHistoryItem["destinations"]>[number],
+          index: number
+        ) => (
+          <div
+            className={cn(
+              "rounded-full transition-transform hover:scale-110",
+              index > 0 && "-ml-2"
+            )}
+            key={dest.token.symbol}
+            style={{ zIndex: destination.length - index }}
+          >
+            <img
+              alt={dest.token.symbol}
+              className="rounded-full"
+              height={24}
+              src={getDestinationTokenImage(dest.token.symbol, chainFeatures)}
+              width={24}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 };

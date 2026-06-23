@@ -1,0 +1,130 @@
+/* Contact page — reuses the .page-hero banner (faq.css) and .site-footer
+   (sections.css); this file styles the contact form in the new UI. */
+
+.contact-page {
+  background: var(--brand-white, #fffffe);
+}
+
+.contact {
+  width: 100%;
+  max-width: var(--section-max, 1440px);
+  padding: clamp(48px, 6vw, 88px) var(--section-pad-x) clamp(72px, 9vw, 130px);
+  margin: 0 auto;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 620px;
+}
+
+.contact-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.contact-field__label {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-primary, #161615);
+}
+
+.contact-field__input,
+.contact-field__select,
+.contact-field__textarea {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--fg-primary, #161615);
+  -webkit-appearance: none;
+  appearance: none;
+  background: #fffffe;
+  border: 1px solid #e3e3e1;
+  border-radius: 12px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.contact-field__input::placeholder,
+.contact-field__textarea::placeholder {
+  color: #9b9b9a;
+}
+
+.contact-field__textarea {
+  min-height: 156px;
+  resize: vertical;
+}
+
+/* Native select arrow */
+.contact-field__select {
+  padding-right: 44px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+.contact-field__input:focus,
+.contact-field__select:focus,
+.contact-field__textarea:focus {
+  outline: none;
+  border-color: var(--brand-blue, #2f6bff);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.12);
+}
+
+.contact-form__actions {
+  margin-top: 4px;
+}
+
+.contact-form__submit {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+}
+
+.contact-form__note {
+  margin: 14px 0 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg-muted, #6b7280);
+}
+
+.contact-form__success {
+  padding: 16px 18px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1f7a3d;
+  background: #eef7f0;
+  border: 1px solid #cfe9d6;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .contact {
+    padding-top: clamp(28px, 7vw, 48px);
+  }
+
+  .contact-form {
+    max-width: none;
+  }
+
+  .contact-form__row {
+    grid-template-columns: 1fr;
+  }
+}

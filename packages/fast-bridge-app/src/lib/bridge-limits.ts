@@ -1,4 +1,4 @@
-import { SUPPORTED_CHAINS } from "@avail-project/nexus-core";
+import { SUPPORTED_CHAINS } from "../components/common/utils/constant";
 
 /**
  * Global token+chain max bridge amount limits (in USD).
