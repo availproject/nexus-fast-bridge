@@ -493,7 +493,7 @@ function MayanPoweredBadge() {
         fontFamily,
         fontSize: "12px",
         fontWeight: 500,
-        gap: "8px",
+        gap: "4px",
         lineHeight: "16px",
         minHeight: "36px",
         padding: "9px 12px",
@@ -507,9 +507,9 @@ function MayanPoweredBadge() {
         src={withBasePath("/mayan_logo.svg")}
         style={{
           display: "block",
-          height: "12px",
+          height: "20px",
           objectFit: "contain",
-          width: "64px",
+          width: "auto",
         }}
       />
     </div>
