@@ -111,6 +111,7 @@ type SwapHistoryStatus =
   | "pending"
   | "fulfilled"
   | "failed"
+  | "timeout"
   | "refund-initiated";
 
 interface SwapHistoryEntry {
@@ -346,6 +347,7 @@ const isStoredHistoryStatus = (value: unknown): value is SwapHistoryStatus =>
   value === "pending" ||
   value === "fulfilled" ||
   value === "failed" ||
+  value === "timeout" ||
   value === "refund-initiated";
 
 const isStoredMode = (value: unknown): value is NexusOneMode =>
@@ -597,7 +599,7 @@ const getNonEmptyString = (...values: unknown[]) => {
   return null;
 };
 
-const isHttpUrl = (value?: string | null) =>
+const isHttpUrl = (value?: string | null): value is string =>
   Boolean(value && /^https?:\/\//i.test(value));
 
 const hasValidIntentExplorer = (
@@ -674,6 +676,55 @@ const getTransactionHash = (...values: unknown[]) => {
   }
   return null;
 };
+
+const getIntentHash = (...values: unknown[]) => getTransactionHash(...values);
+
+const getObjectIntentHash = (value: any) =>
+  getIntentHash(
+    value?.intentHash,
+    value?.intent_hash,
+    value?.intent?.hash,
+    value?.intent?.intentHash,
+    value?.intent?.intent_hash,
+    value?.requestHash,
+    value?.request_hash,
+    value?.request?.hash,
+    value?.request?.requestHash,
+    value?.rffHash,
+    value?.rff_hash,
+    value?.rff?.hash,
+    value?.data?.intentHash,
+    value?.data?.intent_hash,
+    value?.data?.intent?.hash,
+    value?.data?.intent?.intentHash,
+    value?.data?.intent?.intent_hash,
+    value?.data?.requestHash,
+    value?.data?.request_hash,
+    value?.data?.request?.hash,
+    value?.data?.request?.requestHash,
+    value?.data?.rffHash,
+    value?.data?.rff_hash,
+    value?.data?.rff?.hash,
+    value?.result?.intentHash,
+    value?.result?.intent_hash,
+    value?.result?.intent?.hash,
+    value?.result?.requestHash,
+    value?.result?.request_hash,
+    value?.result?.rffHash,
+    value?.result?.rff_hash
+  );
+
+const getNexusExplorerNetwork = (network?: unknown) => {
+  const normalized =
+    typeof network === "string" ? network.trim().toLowerCase() : "";
+  if (normalized === "canary" || normalized === "testnet") return normalized;
+  return "mainnet";
+};
+
+const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
+  intentHash
+    ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
+    : null;
 
 const getObjectTransactionHash = (value: any) =>
   getTransactionHash(
@@ -788,6 +839,17 @@ const getSdkIntentExplorerUrl = (result: any, swapResult?: any) =>
     result?.result?.rffExplorerURL,
     result?.result?.explorerUrl,
     result?.result?.explorerURL
+  );
+
+const getSdkIntentExplorerUrlForNetwork = (
+  network: unknown,
+  result: any,
+  swapResult?: any
+) =>
+  getSdkIntentExplorerUrl(result, swapResult) ||
+  getRffExplorerUrl(
+    network,
+    getObjectIntentHash(swapResult) || getObjectIntentHash(result)
   );
 
 function MiniLogo({
@@ -1209,6 +1271,97 @@ const getPlanStepIntentExplorerUrl = (event: any, step: any) =>
     step?.data?.rffExplorerURL
   );
 
+const isIntentSubmissionLikeEvent = (event: any, step?: any) => {
+  const text = [
+    event?.type,
+    event?.event,
+    event?.name,
+    event?.status,
+    event?.stepType,
+    step?.type,
+    step?.typeID,
+    step?.rawType,
+  ]
+    .filter((value) => value !== null && value !== undefined)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("intent") ||
+    text.includes("request_submission") ||
+    text.includes("rff")
+  );
+};
+
+const getGenericEventHash = (event: any, step?: any) =>
+  getTransactionHash(
+    event?.hash,
+    event?.data?.hash,
+    event?.result?.hash,
+    step?.hash,
+    step?.data?.hash,
+    step?.result?.hash
+  );
+
+const getEventIntentExplorerUrl = (
+  network: unknown,
+  event: any,
+  step?: any
+) => {
+  const directUrl = step
+    ? getPlanStepIntentExplorerUrl(event, step)
+    : getNonEmptyString(
+        event?.intentExplorerUrl,
+        event?.intentExplorerURL,
+        event?.intentUrl,
+        event?.intentURL,
+        event?.rffUrl,
+        event?.rffURL,
+        event?.rffExplorerUrl,
+        event?.rffExplorerURL,
+        event?.data?.intentExplorerUrl,
+        event?.data?.intentExplorerURL,
+        event?.data?.intentUrl,
+        event?.data?.intentURL,
+        event?.data?.rffUrl,
+        event?.data?.rffURL,
+        event?.data?.rffExplorerUrl,
+        event?.data?.rffExplorerURL
+      );
+  if (directUrl) return directUrl;
+
+  return getRffExplorerUrl(
+    network,
+    getObjectIntentHash(event) ||
+      getObjectIntentHash(step) ||
+      (isIntentSubmissionLikeEvent(event, step)
+        ? getGenericEventHash(event, step)
+        : null)
+  );
+};
+
+const isTimeoutLikeError = (error: unknown) => {
+  const err = error as {
+    code?: unknown;
+    name?: unknown;
+    message?: unknown;
+    shortMessage?: unknown;
+  };
+  const text = [
+    err?.code,
+    err?.name,
+    err?.message,
+    err?.shortMessage,
+    typeof error === "string" ? error : undefined,
+  ]
+    .filter((value) => value !== null && value !== undefined)
+    .join(" ");
+
+  return /timeout|timed out|time out|deadline exceeded|expired while waiting|wait.*expired|poll.*expired/i.test(
+    text
+  );
+};
+
 const getSdkEventType = (event: any) =>
   event?.type ?? event?.name ?? event?.event ?? "unknown";
 
@@ -1549,6 +1702,7 @@ function SwapReceiptPanel({
   const [showSourceDetails, setShowSourceDetails] = useState(false);
   const destination = entry.intentData?.destination;
   const isFailed = entry.status === "failed";
+  const isTimeout = entry.status === "timeout";
   const isDeposit = entry.mode === "deposit";
   const isSend = entry.mode === "send";
   const isRecipientTransfer = isSend || Boolean(entry.recipientAddress);
@@ -1595,6 +1749,15 @@ function SwapReceiptPanel({
         ? "Send failed. Funds are in your wallet"
         : defaultSwapFailureHeadline);
   const failureDescription = isFailed ? entry.failureDescription : undefined;
+  const timeoutHeadline = isDeposit
+    ? "Deposit Timed Out"
+    : isRecipientTransfer
+      ? "Send Timed Out"
+      : "Swap Timed Out";
+  const timeoutDescription = isTimeout
+    ? entry.failureDescription ||
+      "This transaction is still pending. Check the intent explorer for the latest status."
+    : undefined;
   const receiptLocation = isDeposit ? depositVenue : chainName;
   const receiptSummary = receiptLocation ? `on ${receiptLocation}` : "";
 
@@ -1637,7 +1800,11 @@ function SwapReceiptPanel({
           <div
             style={{
               alignItems: "center",
-              background: isFailed ? "#E92C2C" : "#006BF4",
+              background: isFailed
+                ? "#E92C2C"
+                : isTimeout
+                  ? "#B7791F"
+                  : "#006BF4",
               border: "2px solid #FFFFFE",
               borderRadius: "999px",
               bottom: -2,
@@ -1653,19 +1820,21 @@ function SwapReceiptPanel({
               width: "18px",
             }}
           >
-            {isFailed ? "x" : "✓"}
+            {isFailed ? "x" : isTimeout ? "!" : "✓"}
           </div>
         </div>
         <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}>
-          {isFailed
-            ? failureHeadline
-            : isDeposit
-              ? "You deposited"
-              : isRecipientTransfer
-                ? "You sent"
-                : "You received"}
+          {isTimeout
+            ? timeoutHeadline
+            : isFailed
+              ? failureHeadline
+              : isDeposit
+                ? "You deposited"
+                : isRecipientTransfer
+                  ? "You sent"
+                  : "You received"}
         </div>
-        {failureDescription && (
+        {(failureDescription || timeoutDescription) && (
           <div
             style={{
               color: "#848483",
@@ -1676,7 +1845,7 @@ function SwapReceiptPanel({
               maxWidth: "260px",
             }}
           >
-            {failureDescription}
+            {failureDescription || timeoutDescription}
           </div>
         )}
         <div
@@ -1942,9 +2111,11 @@ function HistoryStatusPill({ status }: { status: SwapHistoryStatus }) {
       ? { label: "Fulfilled", bg: "#E8F6EF", fg: "#168A47" }
       : status === "pending"
         ? { label: "Pending", bg: "#FFF3DE", fg: "#B7791F" }
-        : status === "refund-initiated"
-          ? { label: "Refund Initiated", bg: "#FFF3DE", fg: "#B7791F" }
-          : { label: "Failed", bg: "#FFE6EA", fg: "#E92C2C" };
+        : status === "timeout"
+          ? { label: "Timed Out", bg: "#FFF3DE", fg: "#B7791F" }
+          : status === "refund-initiated"
+            ? { label: "Refund Initiated", bg: "#FFF3DE", fg: "#B7791F" }
+            : { label: "Failed", bg: "#FFE6EA", fg: "#E92C2C" };
 
   return (
     <span
@@ -4187,6 +4358,18 @@ function NexusOneInner({
     patchSwapHistoryEntry(currentSwapIdRef.current, patch);
   };
 
+  const patchCurrentIntentExplorerUrl = (url?: string | null) => {
+    if (!isHttpUrl(url)) return;
+    if (intentUrlRef.current === url) return;
+
+    intentUrlRef.current = url;
+    const intentId = extractIntentIdFromUrl(url);
+    patchCurrentSwapHistoryEntry({
+      intentExplorerUrl: url,
+      ...(intentId ? { intentId } : {}),
+    });
+  };
+
   const resetExplorerUrls = () => {
     const next = { sourceExplorerUrl: null, destinationExplorerUrl: null };
     explorerUrlsRef.current = next;
@@ -4291,7 +4474,10 @@ function NexusOneInner({
       feeUsd: intentFeeUsd,
       sourceExplorerUrl: null,
       finalExplorerUrl: null,
-      intentExplorerUrl: null,
+      intentExplorerUrl: isHttpUrl(intentUrlRef.current)
+        ? intentUrlRef.current
+        : null,
+      intentId: extractIntentIdFromUrl(intentUrlRef.current),
       autoRefundAvailable: false,
     };
 
@@ -4303,7 +4489,7 @@ function NexusOneInner({
   };
 
   const finishCurrentSwapHistoryEntry = (
-    status: "fulfilled" | "failed",
+    status: "fulfilled" | "failed" | "timeout",
     patch: Partial<SwapHistoryEntry> = {}
   ) => {
     const now = Date.now();
@@ -4515,7 +4701,7 @@ function NexusOneInner({
       const resolvedQuoteInputKey =
         activeQuoteInputKeyRef.current || quoteInputKey;
       providerSwapIntent.current = {
-        intent: intentWithBridgeProvider,
+        intent: intentWithBridgeProvider as any,
         allow,
         deny,
         refresh,
@@ -6032,11 +6218,13 @@ function NexusOneInner({
       ).toLowerCase();
       const rawState = String(event?.state ?? "").toLowerCase();
       const explorerUrl = getPlanStepExplorerUrl(event, step);
-      const intentExplorerUrl = getPlanStepIntentExplorerUrl(event, step);
+      const intentExplorerUrl = getEventIntentExplorerUrl(
+        appConfig.nexusNetwork,
+        event,
+        step
+      );
 
-      if (intentExplorerUrl && !intentUrlRef.current) {
-        intentUrlRef.current = intentExplorerUrl;
-      }
+      patchCurrentIntentExplorerUrl(intentExplorerUrl);
 
       if (
         type === "TRANSACTION_SENT" ||
@@ -6082,8 +6270,13 @@ function NexusOneInner({
           mergeExplorerUrls({ sourceExplorerUrl: explorerUrl });
         }
 
-        if (!intentUrlRef.current) {
-          intentUrlRef.current = explorerUrl;
+        if (
+          !intentUrlRef.current &&
+          (rawStepType === "bridge_intent_submission" ||
+            rawStepType === "request_submission" ||
+            type === "BRIDGE_INTENT_SUBMISSION")
+        ) {
+          patchCurrentIntentExplorerUrl(explorerUrl);
         }
       }
 
@@ -6179,6 +6372,9 @@ function NexusOneInner({
         });
         return;
       }
+      patchCurrentIntentExplorerUrl(
+        getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
+      );
       handleSwapEvent(event);
     };
 
@@ -6319,7 +6515,11 @@ function NexusOneInner({
             }
 
             const swapResult = getSdkSwapResult(result);
-            intentExplorerUrl = getSdkIntentExplorerUrl(result, swapResult);
+            intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+              appConfig.nexusNetwork,
+              result,
+              swapResult
+            );
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
               currentSwapEntry?.intentId;
@@ -6347,7 +6547,10 @@ function NexusOneInner({
               onEvent,
             });
 
-            intentExplorerUrl = getSdkIntentExplorerUrl(result);
+            intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+              appConfig.nexusNetwork,
+              result
+            );
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
               currentSwapEntry?.intentId;
@@ -6381,7 +6584,10 @@ function NexusOneInner({
             },
             onEvent,
           });
-          intentExplorerUrl = getSdkIntentExplorerUrl(result);
+          intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+            appConfig.nexusNetwork,
+            result
+          );
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -6411,10 +6617,14 @@ function NexusOneInner({
             finalExplorerUrl ||
             explorerUrlsRef.current.destinationExplorerUrl ||
             explorerUrlsRef.current.sourceExplorerUrl;
+          const resolvedIntentExplorerUrl =
+            intentExplorerUrl || intentUrlRef.current;
           finishCurrentSwapHistoryEntry("fulfilled", {
             finalExplorerUrl: resolvedFinalExplorerUrl,
-            intentExplorerUrl,
-            intentId,
+            ...(resolvedIntentExplorerUrl
+              ? { intentExplorerUrl: resolvedIntentExplorerUrl }
+              : {}),
+            ...(intentId ? { intentId } : {}),
           });
           resetInputsAfterSuccessfulExecution();
           onComplete?.();
@@ -6537,7 +6747,11 @@ function NexusOneInner({
             throw new Error("Swap failed");
           }
           const executeTxHash = getSdkTransactionHash(result);
-          const intentExplorerUrl = getSdkIntentExplorerUrl(result, swapResult);
+          const intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+            appConfig.nexusNetwork,
+            result,
+            swapResult
+          );
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -6557,8 +6771,8 @@ function NexusOneInner({
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            intentExplorerUrl,
-            intentId,
+            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(intentId ? { intentId } : {}),
           });
         } else {
           const result = await nexusSDK.swapWithExactOut(
@@ -6576,7 +6790,10 @@ function NexusOneInner({
               onEvent,
             }
           );
-          const intentExplorerUrl = getSdkIntentExplorerUrl(result);
+          const intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+            appConfig.nexusNetwork,
+            result
+          );
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
@@ -6594,8 +6811,8 @@ function NexusOneInner({
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            intentExplorerUrl,
-            intentId,
+            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(intentId ? { intentId } : {}),
           });
         }
 
@@ -6623,7 +6840,12 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
-      console.error("Error in handleEnterPreview:", err);
+      const caughtTimeout = isTimeoutLikeError(err);
+      if (caughtTimeout) {
+        console.warn("Timeout in handleEnterPreview:", err);
+      } else {
+        console.error("Error in handleEnterPreview:", err);
+      }
       if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
         return;
       }
@@ -6636,6 +6858,7 @@ function NexusOneInner({
           (typeof err?.message === "string" ? err.message : "") ||
           (typeof err === "string" ? err : "");
         const errName = typeof err?.name === "string" ? err.name : "";
+        const isTimeout = isTimeoutLikeError(err);
         const isUserRejected =
           err?.code === 4001 ||
           err?.code === "ACTION_REJECTED" ||
@@ -6648,11 +6871,13 @@ function NexusOneInner({
           | "unknown" = !hasActiveExecution ? "simulation" : "nexus_operation";
         const errorCategory: string = isUserRejected
           ? "user_rejected"
-          : isInsufficient
-            ? "no_eligible_sources"
-            : !hasActiveExecution
-              ? "quote_failed"
-              : "execution_failed";
+          : isTimeout
+            ? "timeout"
+            : isInsufficient
+              ? "no_eligible_sources"
+              : !hasActiveExecution
+                ? "quote_failed"
+                : "execution_failed";
         reachedTerminalRef.current = true;
         if (fundsMovedRef.current) {
           trackDeposit("deposit_partial_movement_detected", {
@@ -6671,6 +6896,7 @@ function NexusOneInner({
       setReceiveMaxCalculating(false);
       const hasActiveExecution =
         swapStepRef.current === "progress" && Boolean(currentSwapIdRef.current);
+      const isTimeout = caughtTimeout;
       const showFailedProgressThenReceipt = (
         error: string,
         patch: Partial<SwapHistoryEntry> = {}
@@ -6713,6 +6939,31 @@ function NexusOneInner({
           }
         }, 700);
       };
+      const showTimeoutReceipt = (
+        message = "Transaction timed out",
+        patch: Partial<SwapHistoryEntry> = {}
+      ) => {
+        finishCurrentSwapHistoryEntry("timeout", {
+          error: message,
+          failureDescription:
+            "This transaction is still pending. Check the intent explorer for the latest status.",
+          failureMessage:
+            activeMode === "deposit"
+              ? "Deposit Timed Out"
+              : activeMode === "send" || hasCustomSwapRecipient
+                ? "Send Timed Out"
+                : "Swap Timed Out",
+          ...patch,
+        });
+        window.setTimeout(() => {
+          if (
+            swapRunIdRef.current === runId &&
+            swapStepRef.current === "progress"
+          ) {
+            setSwapStep("failed");
+          }
+        }, 700);
+      };
       if (err?.code === "USER_DENIED_INTENT") {
         if (hasActiveExecution) {
           showFailedProgressThenReceipt("Transaction cancelled by user");
@@ -6736,6 +6987,11 @@ function NexusOneInner({
         (typeof err === "string"
           ? err
           : "Transaction failed. Please try again or check console.");
+      if (isTimeout && hasActiveExecution) {
+        showTimeoutReceipt(errorMessage);
+        setTxError(null);
+        return;
+      }
       if (hasActiveExecution) {
         showFailedProgressThenReceipt(errorMessage);
       } else if (!background || swapStepRef.current === "preview-intent") {
@@ -7187,18 +7443,27 @@ function NexusOneInner({
     if (activeMode === "swap") {
       if (swapStep === "progress") return "Swapping…";
       if (swapStep === "success") return "Swap Complete";
+      if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
+        return "Swap Timed Out";
+      }
       if (swapStep === "failed") return "Swap Failed";
       return "Swap";
     }
     if (activeMode === "deposit") {
       if (swapStep === "progress") return "Depositing…";
       if (swapStep === "success") return "Deposit Complete";
+      if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
+        return "Deposit Timed Out";
+      }
       if (swapStep === "failed") return "Deposit Failed";
       return "Deposit";
     }
     if (activeMode === "send") {
       if (swapStep === "progress") return "Sending…";
       if (swapStep === "success") return "Send Complete";
+      if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
+        return "Send Timed Out";
+      }
       if (swapStep === "failed") return "Send Failed";
       return "Send";
     }
