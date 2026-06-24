@@ -49,7 +49,7 @@ import {
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
-import { useNexus } from "../nexus/nexus-provider";
+import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
 import { DepositIdleForm } from "./components/deposit-idle-form";
@@ -2712,8 +2712,17 @@ function NexusOneInner({
           return current;
         }
 
+        const chainMeta = current.chainId
+          ? CHAIN_METADATA[current.chainId]
+          : undefined;
         const next = {
           ...current,
+          chainLogo:
+            loadedToken.chainLogo || current.chainLogo || chainMeta?.logo,
+          chainName: getShortChainName(
+            current.chainId,
+            loadedToken.chainName || current.chainName || chainMeta?.name
+          ),
           decimals: loadedToken.decimals ?? current.decimals,
           logo: loadedToken.logo || current.logo,
           name: loadedToken.name || current.name,
@@ -2723,6 +2732,8 @@ function NexusOneInner({
 
         if (
           current.decimals === next.decimals &&
+          current.chainLogo === next.chainLogo &&
+          current.chainName === next.chainName &&
           current.logo === next.logo &&
           current.name === next.name &&
           current.priceUSD === next.priceUSD &&
@@ -4448,6 +4459,128 @@ function NexusOneInner({
   const trimDecimalString = (value: string) =>
     value.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 
+  const buildSourceTokenSnapshotMap = useCallback(
+    (balances: UserAsset[] | null | undefined) => {
+      const snapshots = new Map<string, SwapTokenOption>();
+
+      for (const asset of balances ?? []) {
+        for (const breakdown of asset.breakdown ?? []) {
+          const chainId = breakdown.chain?.id;
+          const contractAddress = breakdown.contractAddress;
+          const symbol = breakdown.symbol ?? asset.symbol;
+
+          if (
+            !chainId ||
+            !contractAddress ||
+            !symbol ||
+            !isSwapSupportedBySdkChainList(
+              chainId,
+              swapSupportedChainsAndTokens
+            )
+          ) {
+            continue;
+          }
+
+          const chainMeta = CHAIN_METADATA[chainId];
+          const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
+          const snapshot: SwapTokenOption = {
+            balance: `${breakdown.balance ?? "0"} ${symbol}`,
+            balanceInFiat: fiatBalance
+              ? formatUsdDisplay(fiatBalance)
+              : "$0.00",
+            chainId,
+            chainLogo: chainMeta?.logo ?? breakdown.chain?.logo,
+            chainName: getShortChainName(
+              chainId,
+              chainMeta?.name ?? breakdown.chain?.name
+            ),
+            contractAddress,
+            decimals: breakdown.decimals ?? asset.decimals ?? 18,
+            logo: asset.logo ?? "",
+            name: symbol,
+            symbol,
+          };
+          snapshots.set(getTokenSelectionKey(snapshot), snapshot);
+        }
+      }
+
+      return snapshots;
+    },
+    [swapSupportedChainsAndTokens]
+  );
+
+  const patchSourceTokensWithBalances = useCallback(
+    (tokens: SwapTokenOption[], balances: UserAsset[]) => {
+      const snapshots = buildSourceTokenSnapshotMap(balances);
+
+      const updateToken = (token: SwapTokenOption): SwapTokenOption => {
+        const preservedAmounts = {
+          userAmount: token.userAmount,
+          userAmountMode: token.userAmountMode,
+          userAmountUsd: token.userAmountUsd,
+        };
+
+        if (token.isUnified) {
+          const sourceTokens = (token.sourceTokens ?? []).map(updateToken);
+          const totalBalance = sourceTokens.reduce(
+            (sum, source) =>
+              sum.plus(parseFiatNumber(source.balance) ?? new Decimal(0)),
+            new Decimal(0)
+          );
+          const totalFiat = sourceTokens.reduce(
+            (sum, source) =>
+              sum.plus(parseFiatNumber(source.balanceInFiat) ?? new Decimal(0)),
+            new Decimal(0)
+          );
+
+          return {
+            ...token,
+            ...preservedAmounts,
+            balance: totalBalance.toDecimalPlaces(8).toFixed(),
+            balanceInFiat: formatUsdDisplay(totalFiat),
+            sourceTokens,
+          };
+        }
+
+        const snapshot = snapshots.get(getTokenSelectionKey(token));
+        if (!snapshot) {
+          return {
+            ...token,
+            ...preservedAmounts,
+            balance: `0 ${token.symbol}`,
+            balanceInFiat: "$0.00",
+            chainLogo:
+              token.chainLogo ??
+              (token.chainId ? CHAIN_METADATA[token.chainId]?.logo : undefined),
+            chainName: getShortChainName(token.chainId, token.chainName),
+          };
+        }
+
+        return {
+          ...token,
+          ...snapshot,
+          ...preservedAmounts,
+        };
+      };
+
+      return tokens.map(updateToken);
+    },
+    [buildSourceTokenSnapshotMap]
+  );
+
+  const refreshSelectedSourceBalances = useCallback(async () => {
+    const refreshedBalance = await fetchSwapBalance();
+    const balances = refreshedBalance ?? swapBalance;
+    if (!balances) return;
+
+    setFromTokens((current) =>
+      current.length === 0
+        ? current
+        : patchSourceTokensWithBalances(current, balances)
+    );
+    setSourceSelectionRevision((current) => current + 1);
+  }, [fetchSwapBalance, patchSourceTokensWithBalances, swapBalance]);
+
   const receiveMaxSafetyMultiplier = new Decimal("0.9");
   const currentSwapEntry =
     currentSwapId !== null
@@ -4523,7 +4656,8 @@ function NexusOneInner({
   const appendProgressEvent = (
     name: string,
     step: SwapStepType | BridgeStepType | undefined,
-    defaultCompleted: boolean
+    defaultCompleted: boolean,
+    event?: unknown
   ) => {
     if (!step) return;
     const completed =
@@ -4538,6 +4672,7 @@ function NexusOneInner({
           id: `${Date.now()}-${prev.length}-${(step as any).typeID ?? (step as any).type ?? name}`,
           name,
           completed,
+          event,
           step,
         },
       ];
@@ -5120,7 +5255,7 @@ function NexusOneInner({
           pair.chain,
           chain?.name ?? chainMeta?.name ?? citreaToken?.chainName
         ),
-        chainLogo: chain?.logo ?? chainMeta?.logo ?? citreaToken?.chainLogo,
+        chainLogo: chainMeta?.logo ?? chain?.logo ?? citreaToken?.chainLogo,
       } satisfies SwapTokenOption;
     },
     [supportedChainsAndTokens, swapBalance]
@@ -5997,6 +6132,7 @@ function NexusOneInner({
   const handleFailureBack = () => {
     clearPendingSwapIntent();
     setTxError(null);
+    void refreshSelectedSourceBalances();
     setSwapStep("idle");
     setCurrentSwapId(null);
     currentSwapIdRef.current = null;
@@ -6452,7 +6588,7 @@ function NexusOneInner({
         : PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS;
 
       logSwapPlanProgress(event, step, eventName, completed);
-      appendProgressEvent(eventName, step, completed);
+      appendProgressEvent(eventName, step, completed, event);
       handleProgressStepSideEffects(event, step, completed);
     };
 
@@ -7570,7 +7706,7 @@ function NexusOneInner({
         return "Swap Timed Out";
       }
       if (swapStep === "failed") return "Swap Failed";
-      return "Swap";
+      return "Swap and Bridge";
     }
     if (activeMode === "deposit") {
       if (swapStep === "progress") return "Depositing…";
@@ -8738,7 +8874,7 @@ function NexusOneInner({
                       {needsWalletConnection
                         ? walletCtaLabel
                         : fromTokens.length === 0
-                          ? "Add assets to send"
+                          ? "Add Assets to Bridge"
                           : quoteCtaLabel("Review swap")}
                     </div>
                   </button>

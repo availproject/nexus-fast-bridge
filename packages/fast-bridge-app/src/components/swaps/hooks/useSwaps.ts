@@ -198,7 +198,7 @@ function reducer(state: SwapState, action: Action): SwapState {
 }
 
 interface UseSwapsProps {
-  fetchBalance: () => Promise<void>;
+  fetchBalance: () => Promise<UserAsset[] | null | undefined>;
   nexusSDK: NexusClient | null;
   onComplete?: (amount?: string) => void;
   onError?: (message: string) => void;

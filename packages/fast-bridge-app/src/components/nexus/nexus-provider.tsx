@@ -60,7 +60,7 @@ interface NexusContextType {
   deinitializeNexus: () => Promise<void>;
   exchangeRate: Record<string, number> | null;
   fetchBridgableBalance: () => Promise<void>;
-  fetchSwapBalance: () => Promise<void>;
+  fetchSwapBalance: () => Promise<UserAsset[] | null>;
   getFiatValue: (amount: number, token: string) => number;
   handleInit: (provider: EthereumProvider) => Promise<void>;
   initializeNexus: (provider: EthereumProvider) => Promise<void>;
@@ -635,7 +635,7 @@ const NexusProvider = ({
     try {
       const activeSdk = sdkRef.current;
       if (!activeSdk) {
-        return;
+        return null;
       }
       const updatedBalance = await activeSdk.getBalancesForSwap();
       const filteredSwapBalance = filterUnsupportedSwapSources(
@@ -649,8 +649,10 @@ const NexusProvider = ({
         updatedBalance
       );
       setSwapBalance(normalizedSwapBalance);
+      return normalizedSwapBalance;
     } catch (error) {
       console.error("Error fetching swap balance:", error);
+      return null;
     }
   }, [normalizeUserAssetFiatValues]);
 

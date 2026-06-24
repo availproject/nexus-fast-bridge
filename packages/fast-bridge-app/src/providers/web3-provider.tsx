@@ -13,6 +13,7 @@ import {
   type Chain,
   citrea,
   hyperEvm as hyperevm,
+  kaia,
   mainnet,
   megaeth,
   monad,
@@ -39,6 +40,7 @@ const staticTransports = {
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
+  [kaia.id]: http(rpcConfig.kaia || undefined),
   [bsc.id]: http(rpcConfig.bnb || undefined),
 };
 
@@ -54,6 +56,7 @@ const staticChains = [
   megaeth,
   citrea,
   hyperevm,
+  kaia,
   bsc,
 ] as [Chain, ...Chain[]];
 
@@ -72,7 +75,6 @@ const metadata = {
 };
 
 export const wagmiAdapter = new WagmiAdapter({
-  // @ts-expect-error networks
   networks: staticChains,
   projectId: walletConnectProjectId,
   ssr: false,
@@ -89,7 +91,6 @@ export function initGlobalAppKit() {
   try {
     appKit = createAppKit({
       adapters: [wagmiAdapter],
-      // @ts-expect-error networks
       networks: staticChains,
       projectId: walletConnectProjectId,
       metadata,
