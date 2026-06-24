@@ -58,6 +58,7 @@ import {
   NexusOneProgressScreen,
 } from "./components/nexus-one-progress-screen";
 import {
+  getCachedReceiveTokenMatch,
   preloadReceiveTokens,
   ReceiveAssetSelector,
 } from "./components/receive-asset-selector";
@@ -605,6 +606,18 @@ const isHttpUrl = (value?: string | null): value is string =>
 const hasValidIntentExplorer = (
   entry: Pick<SwapHistoryEntry, "intentExplorerUrl">
 ) => isHttpUrl(entry.intentExplorerUrl);
+
+const getHistoryExplorerUrl = (
+  entry: Pick<
+    SwapHistoryEntry,
+    "finalExplorerUrl" | "intentExplorerUrl" | "sourceExplorerUrl"
+  >
+) =>
+  [
+    entry.intentExplorerUrl,
+    entry.finalExplorerUrl,
+    entry.sourceExplorerUrl,
+  ].find(isHttpUrl) ?? null;
 
 const getFiniteNumber = (...values: unknown[]) => {
   for (const value of values) {
@@ -2242,6 +2255,7 @@ function SwapHistoryPanel({
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
         const sourceRows = getSourceRows(entry);
+        const historyExplorerUrl = getHistoryExplorerUrl(entry);
 
         return (
           <div
@@ -2393,6 +2407,30 @@ function SwapHistoryPanel({
                   tokenSymbol={destinationSymbol}
                 />
               </div>
+              {historyExplorerUrl && (
+                <a
+                  href={historyExplorerUrl}
+                  rel="noopener noreferrer"
+                  style={{
+                    alignItems: "center",
+                    background: "#F4F7FF",
+                    borderRadius: "8px",
+                    color: "#006BF4",
+                    display: "inline-flex",
+                    fontFamily: uiFont,
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    height: "26px",
+                    justifyContent: "center",
+                    lineHeight: "16px",
+                    padding: "0 10px",
+                    textDecoration: "none",
+                  }}
+                  target="_blank"
+                >
+                  View
+                </a>
+              )}
             </div>
           </div>
         );
@@ -2621,6 +2659,62 @@ function NexusOneInner({
   }, [activeMode, swapType, fromTokens]);
   const toTokenQuoteKey = getTokenQuoteKey(toToken);
   const appliedTokenPrefillRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!toToken?.chainId || !toToken.contractAddress) return;
+
+    let active = true;
+    const selectedTokenKey = getTokenSelectionKey(toToken);
+    const applyLoadedReceiveToken = () => {
+      if (!active) return;
+      const loadedToken = getCachedReceiveTokenMatch(toToken);
+      if (!loadedToken) return;
+
+      setToToken((current) => {
+        if (!current || getTokenSelectionKey(current) !== selectedTokenKey) {
+          return current;
+        }
+
+        const next = {
+          ...current,
+          decimals: loadedToken.decimals ?? current.decimals,
+          logo: loadedToken.logo || current.logo,
+          name: loadedToken.name || current.name,
+          priceUSD: loadedToken.priceUSD ?? current.priceUSD,
+          symbol: loadedToken.symbol || current.symbol,
+        };
+
+        if (
+          current.decimals === next.decimals &&
+          current.logo === next.logo &&
+          current.name === next.name &&
+          current.priceUSD === next.priceUSD &&
+          current.symbol === next.symbol
+        ) {
+          return current;
+        }
+
+        return next;
+      });
+    };
+
+    applyLoadedReceiveToken();
+    const receiveTokensPromise = preloadReceiveTokens();
+    receiveTokensPromise?.then(applyLoadedReceiveToken).catch((error) => {
+      if (active) {
+        console.warn("Unable to refresh receive token metadata", error);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    toToken?.chainId,
+    toToken?.contractAddress,
+    toToken?.decimals,
+    toToken?.symbol,
+  ]);
 
   const setExactOutQuoteSourceModeValue = useCallback(
     (mode: "all" | "selected") => {
