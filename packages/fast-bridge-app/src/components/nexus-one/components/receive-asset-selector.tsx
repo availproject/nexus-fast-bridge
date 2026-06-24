@@ -161,8 +161,104 @@ const getNativeAddressAlias = (address?: string) => {
   return null;
 };
 
-let rawTokensCache: any = null;
-let rawTokensPromise: Promise<any> | null = null;
+type RawReceiveToken = {
+  address?: string;
+  decimals?: number;
+  logoURI?: string;
+  name?: string;
+  priceUSD?: number | string;
+  symbol?: string;
+};
+
+type RawReceiveTokensData = {
+  stableSymbols: string[];
+  tokens: Record<string, RawReceiveToken[]>;
+};
+
+const EMPTY_RECEIVE_TOKENS_DATA: RawReceiveTokensData = {
+  stableSymbols: [],
+  tokens: {},
+};
+const LEGACY_RECEIVE_TOKEN_STORAGE_KEYS = [
+  "nexus_receive_tokens_cache",
+  "nexus_receive_tokens_time",
+  "nexus_receive_tokens_cache_v1",
+  "nexus_receive_tokens_time_v1",
+  "nexus_receive_tokens_cache_v2",
+  "nexus_receive_tokens_time_v2",
+] as const;
+const LEGACY_RECEIVE_TOKEN_STORAGE_PREFIX = "nexus_receive_tokens_";
+
+let rawTokensCache: RawReceiveTokensData | null = null;
+let rawTokensPromise: Promise<RawReceiveTokensData> | null = null;
+let legacyReceiveTokenStorageCleared = false;
+
+const clearLegacyReceiveTokenStorageCache = () => {
+  if (legacyReceiveTokenStorageCleared || typeof window === "undefined") {
+    return;
+  }
+  legacyReceiveTokenStorageCleared = true;
+
+  try {
+    const matchingKeys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index++) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(LEGACY_RECEIVE_TOKEN_STORAGE_PREFIX)) {
+        matchingKeys.push(key);
+      }
+    }
+    for (const key of LEGACY_RECEIVE_TOKEN_STORAGE_KEYS) {
+      window.localStorage.removeItem(key);
+    }
+    for (const key of matchingKeys) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage can be unavailable; the in-memory token cache still works.
+  }
+};
+
+const normalizeReceiveTokenAddress = (address?: string) => {
+  if (!address) return "";
+  const lower = address.toLowerCase();
+  if (
+    lower === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    lower === "0x0000000000000000000000000000000000000000"
+  ) {
+    return "0x0000000000000000000000000000000000000000";
+  }
+  return lower;
+};
+
+export const getCachedReceiveTokenMatch = (
+  token?: SwapTokenOption | null
+): SwapTokenOption | null => {
+  if (!token?.chainId || !rawTokensCache) return null;
+
+  const chainTokens = rawTokensCache.tokens[String(token.chainId)] ?? [];
+  const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
+  const addressMatch = chainTokens.find(
+    (candidate) =>
+      normalizeReceiveTokenAddress(candidate.address) === tokenAddress
+  );
+  const symbolMatches = chainTokens.filter(
+    (candidate) =>
+      candidate.symbol?.toUpperCase() === token.symbol.toUpperCase()
+  );
+  const matchedToken =
+    addressMatch ?? (symbolMatches.length === 1 ? symbolMatches[0] : undefined);
+
+  if (!matchedToken) return null;
+
+  return {
+    ...token,
+    decimals: matchedToken.decimals ?? token.decimals,
+    logo: matchedToken.logoURI || token.logo,
+    name: matchedToken.name || token.name,
+    priceUSD: matchedToken.priceUSD ?? token.priceUSD,
+    symbol: matchedToken.symbol || token.symbol,
+  };
+};
 
 export const preloadReceiveTokens = () => {
   console.log(
@@ -177,44 +273,17 @@ export const preloadReceiveTokens = () => {
     );
     return null;
   }
+  clearLegacyReceiveTokenStorageCache();
+  if (rawTokensCache) {
+    console.log("[preloadReceiveTokens] Using in-memory token cache.");
+    return Promise.resolve(rawTokensCache);
+  }
   if (!rawTokensPromise) {
     console.log(
       "[preloadReceiveTokens] No active promise found. Creating a new promise to load tokens..."
     );
     rawTokensPromise = (async () => {
-      const CACHE_KEY = "nexus_receive_tokens_cache_v2";
-      const CACHE_TIME_KEY = "nexus_receive_tokens_time_v2";
-
-      try {
-        console.log("[preloadReceiveTokens] Checking localStorage cache...");
-        const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
-        const cachedData = localStorage.getItem(CACHE_KEY);
-        if (
-          cachedTime &&
-          cachedData &&
-          Date.now() - Number(cachedTime) < 24 * 60 * 60 * 1000
-        ) {
-          const data = JSON.parse(cachedData);
-          rawTokensCache = data;
-          console.log(
-            "[preloadReceiveTokens] Cache hit! Retrieved cached tokens from localStorage. Token chains count:",
-            Object.keys(data.tokens || {}).length,
-            "stables count:",
-            data.stableSymbols?.length
-          );
-          return data;
-        }
-        console.log(
-          "[preloadReceiveTokens] Cache miss or expired. Proceeding to network fetch."
-        );
-      } catch (err) {
-        console.error(
-          "[preloadReceiveTokens] Error reading or parsing cache from localStorage:",
-          err
-        );
-      }
-
-      let data: any = { tokens: {}, stableSymbols: [] };
+      let data: RawReceiveTokensData = EMPTY_RECEIVE_TOKENS_DATA;
       try {
         console.log(
           "[preloadReceiveTokens] Initiating network request to li.quest..."
@@ -231,7 +300,7 @@ export const preloadReceiveTokens = () => {
           resStables.status
         );
 
-        let allTokens = {};
+        let allTokens: RawReceiveTokensData["tokens"] = {};
         if (resAll.ok) {
           try {
             const allData = await resAll.json();
@@ -300,24 +369,14 @@ export const preloadReceiveTokens = () => {
         );
       }
 
-      rawTokensCache = data;
-
       if (Object.keys(data.tokens).length > 0) {
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-          localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-          console.log(
-            "[preloadReceiveTokens] Successfully saved non-empty token data to localStorage cache."
-          );
-        } catch (err) {
-          console.error(
-            "[preloadReceiveTokens] Error writing token data to localStorage cache:",
-            err
-          );
-        }
+        rawTokensCache = data;
+        console.log(
+          "[preloadReceiveTokens] Cached non-empty token data in memory."
+        );
       } else {
         console.warn(
-          "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Skipping cache write and resetting rawTokensPromise to allow retry."
+          "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Resetting rawTokensPromise to allow retry."
         );
         rawTokensPromise = null;
       }
@@ -584,10 +643,9 @@ export function ReceiveAssetSelector({
         console.log(
           "[preloadReceiveTokens] Calling preloadReceiveTokens from ReceiveAssetSelector useEffect (fetchTokens)"
         );
-        preloadReceiveTokens();
-
-        const data = await rawTokensPromise;
+        const data = await preloadReceiveTokens();
         if (!active) return;
+        if (!data) return;
 
         if (data.stableSymbols && Array.isArray(data.stableSymbols)) {
           setDynamicStableSymbols(
@@ -623,12 +681,13 @@ export function ReceiveAssetSelector({
             logo: "",
           };
           for (const t of chains[chainIdStr]) {
+            if (!t.address || !t.symbol) continue;
             allParsed.push({
               contractAddress: t.address,
               symbol: t.symbol,
-              name: t.name,
+              name: t.name || t.symbol,
               logo: t.logoURI || "",
-              decimals: t.decimals,
+              decimals: t.decimals ?? 18,
               priceUSD: t.priceUSD,
               chainId,
               chainName: meta.name,
