@@ -202,7 +202,7 @@ const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
 const DRAWER_CLOSE_MS = 220;
-const BALANCE_REFRESH_AFTER_TERMINAL_MS = 2000;
+const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
 const MODAL_HEIGHT_TRANSITION_MS = 220;
 const ROOT_HEIGHT_TRANSITION_MS = 140;
 const ASSET_SELECTOR_DRAWER_HEIGHT = "90%";
@@ -2764,14 +2764,6 @@ function NexusOneInner({
   useEffect(() => {
     if (!nexusSDK) return;
     void fetchSwapBalance();
-
-    const refreshTimer = window.setInterval(() => {
-      void fetchSwapBalance();
-    }, 60_000);
-
-    return () => {
-      window.clearInterval(refreshTimer);
-    };
   }, [fetchSwapBalance, nexusSDK]);
 
   useEffect(() => {
