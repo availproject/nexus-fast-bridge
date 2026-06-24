@@ -2409,26 +2409,63 @@ function SwapHistoryPanel({
               </div>
               {historyExplorerUrl && (
                 <a
+                  aria-label="View transaction"
                   href={historyExplorerUrl}
                   rel="noopener noreferrer"
                   style={{
                     alignItems: "center",
-                    background: "#F4F7FF",
-                    borderRadius: "8px",
+                    boxSizing: "border-box",
                     color: "#006BF4",
                     display: "inline-flex",
-                    fontFamily: uiFont,
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    height: "26px",
-                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontSynthesis: "none",
                     lineHeight: "16px",
-                    padding: "0 10px",
+                    MozOsxFontSmoothing: "grayscale",
                     textDecoration: "none",
+                    WebkitFontSmoothing: "antialiased",
                   }}
                   target="_blank"
                 >
-                  View
+                  <span
+                    style={{
+                      boxSizing: "border-box",
+                      color: "#006BF4",
+                      fontFamily: uiFont,
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      lineHeight: "20px",
+                      whiteSpace: "pre",
+                    }}
+                  >
+                    View
+                  </span>
+                  <svg
+                    height="11"
+                    style={{
+                      flexShrink: 0,
+                      height: "auto",
+                      width: "13px",
+                    }}
+                    viewBox="0 0 14 14"
+                    width="11"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 5H9V9"
+                      fill="none"
+                      stroke="#006BF4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.4"
+                    />
+                    <path
+                      d="M5 9L9 5"
+                      fill="none"
+                      stroke="#006BF4"
+                      strokeLinecap="round"
+                      strokeWidth="1.4"
+                    />
+                  </svg>
                 </a>
               )}
             </div>
