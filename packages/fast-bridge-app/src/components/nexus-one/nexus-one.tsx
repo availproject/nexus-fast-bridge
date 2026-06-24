@@ -8740,7 +8740,6 @@ function NexusOneInner({
             ].includes(swapStep) && (
               <>
                 <SwapIdleForm
-                  allowOverBalanceAmounts={needsWalletConnection}
                   amount={amount}
                   defaultRecipientAddress={defaultRecipientAddress}
                   fromTokens={fromTokens}
