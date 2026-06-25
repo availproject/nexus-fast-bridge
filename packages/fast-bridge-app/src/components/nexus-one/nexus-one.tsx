@@ -211,6 +211,7 @@ const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
 const PREDICTIVE_EXACT_OUT_BUFFER_BPS = 100;
 const PREDICTIVE_QUOTE_DISPLAY_DECIMALS = 8;
 const SWAP_HISTORY_STORAGE_KEY_PREFIX = "nexus-one-transaction-history-v1";
+const TIMEOUT_LABEL = "Timed Out";
 const PROGRESS_EVENT_NAMES = {
   BRIDGE_PLAN_LIST: "bridge_plan_list",
   BRIDGE_PLAN_PROGRESS: "bridge_plan_progress",
@@ -335,6 +336,8 @@ const sanitizeOpportunityForHistory = (
 const sanitizeHistoryEntry = (entry: SwapHistoryEntry): SwapHistoryEntry => ({
   ...entry,
   createdAt: entry.createdAt ?? entry.startedAt ?? Date.now(),
+  failureMessage:
+    entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
   opportunity: sanitizeOpportunityForHistory(entry.opportunity),
 });
 
@@ -386,6 +389,8 @@ const normalizeStoredHistoryEntry = (
     status: entry.status,
     createdAt,
     startedAt,
+    failureMessage:
+      entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
     intentData: entry.intentData ?? null,
     fromTokens: Array.isArray(entry.fromTokens) ? entry.fromTokens : [],
     opportunity: sanitizeOpportunityForHistory(entry.opportunity),
@@ -1750,10 +1755,12 @@ function SwapReceiptPanel({
   const defaultSwapFailureHeadline = entry.autoRefundAvailable
     ? "Swap Failed. Refund Initiated"
     : "Swap Failed";
+  const entryFailureMessage =
+    entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage;
   const storedFailureMessage =
-    !entry.autoRefundAvailable && entry.failureMessage?.includes("Refund")
+    !entry.autoRefundAvailable && entryFailureMessage?.includes("Refund")
       ? undefined
-      : entry.failureMessage;
+      : entryFailureMessage;
   const failureHeadline =
     storedFailureMessage ||
     (isDeposit
@@ -1762,11 +1769,7 @@ function SwapReceiptPanel({
         ? "Send failed. Funds are in your wallet"
         : defaultSwapFailureHeadline);
   const failureDescription = isFailed ? entry.failureDescription : undefined;
-  const timeoutHeadline = isDeposit
-    ? "Deposit Timed Out"
-    : isRecipientTransfer
-      ? "Send Timed Out"
-      : "Swap Timed Out";
+  const timeoutHeadline = TIMEOUT_LABEL;
   const timeoutDescription = isTimeout
     ? entry.failureDescription ||
       "This transaction is still pending. Check the intent explorer for the latest status."
@@ -2125,7 +2128,7 @@ function HistoryStatusPill({ status }: { status: SwapHistoryStatus }) {
       : status === "pending"
         ? { label: "Pending", bg: "#FFF3DE", fg: "#B7791F" }
         : status === "timeout"
-          ? { label: "Timed Out", bg: "#FFF3DE", fg: "#B7791F" }
+          ? { label: TIMEOUT_LABEL, bg: "#FFF3DE", fg: "#B7791F" }
           : status === "refund-initiated"
             ? { label: "Refund Initiated", bg: "#FFF3DE", fg: "#B7791F" }
             : { label: "Failed", bg: "#FFE6EA", fg: "#E92C2C" };
@@ -7206,12 +7209,7 @@ function NexusOneInner({
           error: message,
           failureDescription:
             "This transaction is still pending. Check the intent explorer for the latest status.",
-          failureMessage:
-            activeMode === "deposit"
-              ? "Deposit Timed Out"
-              : activeMode === "send" || hasCustomSwapRecipient
-                ? "Send Timed Out"
-                : "Swap Timed Out",
+          failureMessage: TIMEOUT_LABEL,
           ...patch,
         });
         window.setTimeout(() => {
@@ -7703,7 +7701,7 @@ function NexusOneInner({
       if (swapStep === "progress") return "Swapping…";
       if (swapStep === "success") return "Swap Complete";
       if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
-        return "Swap Timed Out";
+        return TIMEOUT_LABEL;
       }
       if (swapStep === "failed") return "Swap Failed";
       return "Swap and Bridge";
@@ -7712,7 +7710,7 @@ function NexusOneInner({
       if (swapStep === "progress") return "Depositing…";
       if (swapStep === "success") return "Deposit Complete";
       if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
-        return "Deposit Timed Out";
+        return TIMEOUT_LABEL;
       }
       if (swapStep === "failed") return "Deposit Failed";
       return "Deposit";
@@ -7721,7 +7719,7 @@ function NexusOneInner({
       if (swapStep === "progress") return "Sending…";
       if (swapStep === "success") return "Send Complete";
       if (swapStep === "failed" && currentSwapEntry?.status === "timeout") {
-        return "Send Timed Out";
+        return TIMEOUT_LABEL;
       }
       if (swapStep === "failed") return "Send Failed";
       return "Send";

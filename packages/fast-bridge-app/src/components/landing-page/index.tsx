@@ -1308,7 +1308,7 @@ export default function LandingPage() {
                   GitHub
                 </a>
                 <a
-                  href="https://www.availproject.org/privacy-policy"
+                  href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
