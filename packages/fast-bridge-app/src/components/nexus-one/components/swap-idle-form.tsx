@@ -15,7 +15,6 @@ const tabularNums: React.CSSProperties = {
 };
 
 interface SwapIdleFormProps {
-  allowOverBalanceAmounts?: boolean;
   amount: string;
   defaultRecipientAddress?: string;
   fromTokens: SwapTokenOption[];
@@ -629,7 +628,6 @@ export function SwapIdleForm({
   recipientAddress,
   defaultRecipientAddress,
   swapType,
-  allowOverBalanceAmounts = false,
   onUpdateTokens,
   isSourcePickerDisabled = false,
 }: SwapIdleFormProps) {
@@ -732,22 +730,6 @@ export function SwapIdleForm({
         ? MAX_AMOUNT_DISPLAY_DECIMALS
         : getTokenInputDecimals(token)
     );
-
-    // Enforce max amount validation
-    const tokenBalance =
-      Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
-    const fiatBalance =
-      Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
-    const isUsdMode = token.userAmountMode === "usd";
-
-    const maxAmt = isUsdMode ? fiatBalance : tokenBalance;
-    if (!allowOverBalanceAmounts && Number(sanitized) > maxAmt) {
-      if (isUsdMode) {
-        sanitized = maxAmt.toFixed(2);
-      } else {
-        sanitized = String(token.balance).replace(/[^0-9.]/g, "");
-      }
-    }
 
     const next = [...fromTokens];
     next[index] = { ...token, userAmount: sanitized };

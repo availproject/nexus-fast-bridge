@@ -851,7 +851,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <span className="product-card__cta">Add assets to send</span>
+                <span className="product-card__cta">Add assets to bridge</span>
               </div>
             </div>
           </div>

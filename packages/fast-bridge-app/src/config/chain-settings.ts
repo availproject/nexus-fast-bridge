@@ -12,6 +12,8 @@ export interface ChainSettings {
 }
 
 export const DEFAULT_CHAIN_SLUG = "ethereum";
+export const LANDING_META_IMAGE_URL =
+  "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
 
 // ---------------------------------------------------------------------------
 // Registry
@@ -26,7 +28,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainName: "MegaETH",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
       chainRpcUrl: "https://rpcs.avail.so/megaeth",
-      chainBlockExplorerUrl: "https://explorer.megaeth.systems/",
+      chainBlockExplorerUrl: "https://mega.etherscan.io",
       chainTestnet: false,
       useChainLogo: true,
       chainIconUrl:
@@ -53,8 +55,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to MegaETH in one transaction. FastBridge is the fastest way to bridge to MegaETH with low fees from any chain.",
         canonicalUrl: "https://fastbridge.availproject.org/megaeth",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/megaeth.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#2B2B2B",
         backgroundColor: "#ECE8E8",
@@ -121,7 +122,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainName: "Monad",
       chainNativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
       chainRpcUrl: "https://rpcs.avail.so/monad",
-      chainBlockExplorerUrl: "https://monadvision.com/",
+      chainBlockExplorerUrl: "https://monadscan.com",
       chainTestnet: false,
       useChainLogo: true,
       chainIconUrl:
@@ -151,8 +152,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC and other tokens from major EVM chains to Monad in one transaction. FastBridge offers the fastest, lowest-fee routes from multiple chains to Monad mainnet.",
         canonicalUrl: "https://fastbridge.availproject.org/monad",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/monad.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#836EF9",
         backgroundColor: "#ffffff",
@@ -225,8 +225,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC, USDT, and other tokens from multiple EVM chains to Citrea in one transaction. FastBridge is the easiest way to bridge to Citrea with fast, low-fee transfers.",
         canonicalUrl: "https://fastbridge.availproject.org/citrea",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/citrea.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#1A1A1A",
         backgroundColor: "#CDD2D8",
@@ -276,7 +275,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 42_161,
       chainName: "Arbitrum",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://arb1.arbitrum.io/rpc",
+      chainRpcUrl: "https://rpcs.avail.so/arbitrum",
       chainBlockExplorerUrl: "https://arbiscan.io",
       chainTestnet: false,
       useChainLogo: true,
@@ -305,8 +304,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge ETH, USDC, and USDT to Arbitrum One from Ethereum and other chains, all at once. FastBridge offers instant, low-cost cross-chain swaps and transfers to Arbitrum.",
         canonicalUrl: "https://fastbridge.availproject.org/arbitrum",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/arbitrum.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#28A0F0",
         backgroundColor: "#ffffff",
@@ -333,7 +331,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 1,
       chainName: "Ethereum",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://eth.drpc.org",
+      chainRpcUrl: "https://rpcs.avail.so/eth",
       chainBlockExplorerUrl: "https://etherscan.io",
       chainTestnet: false,
       useChainLogo: true,
@@ -362,8 +360,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge from L2 chains like Base, Arbitrum, Optimism, Polygon, and more back to Ethereum mainnet. FastBridge enables cross-chain transfers and swaps with your assets consolidated.",
         canonicalUrl: "https://fastbridge.availproject.org/ethereum",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/ethereum.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#627EEA",
         backgroundColor: "#ffffff",
@@ -390,7 +387,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 137,
       chainName: "Polygon",
       chainNativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
-      chainRpcUrl: "https://polygon-rpc.com",
+      chainRpcUrl: "https://rpcs.avail.so/polygon",
       chainBlockExplorerUrl: "https://polygonscan.com",
       chainTestnet: false,
       useChainLogo: true,
@@ -421,8 +418,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC, USDT and POL to Polygon from Ethereum, Arbitrum, and more. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to Polygon PoS.",
         canonicalUrl: "https://fastbridge.availproject.org/polygon",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/polygon.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#8247E5",
         backgroundColor: "#ffffff",
@@ -449,7 +445,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 8453,
       chainName: "Base",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://mainnet.base.org",
+      chainRpcUrl: "https://rpcs.avail.so/base",
       chainBlockExplorerUrl: "https://basescan.org",
       chainTestnet: false,
       useChainLogo: true,
@@ -480,8 +476,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge ETH, and USDC from Ethereum, and other L2 chains to Base, in one transaction. FastBridge combines your multi-chain balances and delivers fast, low-fee transfers to Coinbase’s L2 instantly.",
         canonicalUrl: "https://fastbridge.availproject.org/base",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/base.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#0052FF",
         backgroundColor: "#ffffff",
@@ -508,7 +503,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 10,
       chainName: "Optimism",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://mainnet.optimism.io",
+      chainRpcUrl: "https://rpcs.avail.so/optimism",
       chainBlockExplorerUrl: "https://optimistic.etherscan.io",
       chainTestnet: false,
       useChainLogo: true,
@@ -539,8 +534,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge ETH, USDC, and USDT to Optimism from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to OP Mainnet.",
         canonicalUrl: "https://fastbridge.availproject.org/op-mainnet",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/optimism.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#FF0420",
         backgroundColor: "#ffffff",
@@ -567,7 +561,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 534_352,
       chainName: "Scroll",
       chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://rpc.scroll.io",
+      chainRpcUrl: "https://rpcs.avail.so/scroll",
       chainBlockExplorerUrl: "https://scrollscan.com",
       chainTestnet: false,
       useChainLogo: true,
@@ -596,8 +590,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
         canonicalUrl: "https://fastbridge.availproject.org/scroll",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/scroll.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#C4A882",
         backgroundColor: "#ffffff",
@@ -626,7 +619,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 8217,
       chainName: "Kaia",
       chainNativeCurrency: { name: "KAIA", symbol: "KAIA", decimals: 18 },
-      chainRpcUrl: "https://public-en.node.kaia.io",
+      chainRpcUrl: "https://rpcs.avail.so/kaia",
       chainBlockExplorerUrl: "https://kaiascan.io",
       chainTestnet: false,
       useChainLogo: true,
@@ -657,8 +650,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDT and KAIA tokens to Kaia blockchain from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Kaia (formerly Klaytn).",
         canonicalUrl: "https://fastbridge.availproject.org/kaia",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/kaia.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#31C48D",
         backgroundColor: "#ffffff",
@@ -685,7 +677,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 56,
       chainName: "BNB Smart Chain",
       chainNativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-      chainRpcUrl: "https://bsc-dataseed.binance.org",
+      chainRpcUrl: "https://rpcs.avail.so/bsc",
       chainBlockExplorerUrl: "https://bscscan.com",
       chainTestnet: false,
       useChainLogo: true,
@@ -716,8 +708,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge ETH, BNB, USDT and USDC to BNB chain from Ethereum, Polygon, Arbitrum and other EVM chains, all at once. FastBridge combines your balances from multiple chains and delivers low-fee cross-chain transfers to BSC.",
         canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/bnb.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#F3BA2F",
         backgroundColor: "#ffffff",
@@ -744,8 +735,8 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 999,
       chainName: "HyperEVM",
       chainNativeCurrency: { name: "Hype", symbol: "HYPE", decimals: 18 },
-      chainRpcUrl: "https://rpc.hyperliquid.xyz/evm",
-      chainBlockExplorerUrl: "https://purrsec.com",
+      chainRpcUrl: "https://rpcs.avail.so/hyperevm",
+      chainBlockExplorerUrl: "https://hyperevmscan.io",
       chainTestnet: false,
       useChainLogo: true,
       chainIconUrl:
@@ -775,8 +766,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC, USDT and HYPE to HyperEVM, Hyperliquid's EVM L1. FastBridge combines your balances from Ethereum, Arbitrum, and other EVM chains in a single transaction and delivers unified cross-chain swaps and transfers to HyperEVM.",
         canonicalUrl: "https://fastbridge.availproject.org/hyperevm",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/hyperliquid.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#50E3C2",
         backgroundColor: "#ffffff",
@@ -803,7 +793,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       chainId: 43_114,
       chainName: "Avalanche C-Chain",
       chainNativeCurrency: { name: "AVAX", symbol: "AVAX", decimals: 18 },
-      chainRpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+      chainRpcUrl: "https://rpcs.avail.so/avalanche",
       chainBlockExplorerUrl: "https://snowscan.xyz",
       chainTestnet: false,
       useChainLogo: true,
@@ -834,8 +824,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
         description:
           "Bridge USDC, USDT and AVAX to Avalanche C-Chain from Ethereum, Arbitrum, BNB and other EVM chains. FastBridge consolidates your funds across chains and delivers fast, unified cross-chain transfers to Avax chain, in a single transaction.",
         canonicalUrl: "https://fastbridge.availproject.org/avalanche",
-        imageUrl:
-          "https://files.availproject.org/nexus-fast-bridge/meta/avalanche.jpg",
+        imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#E84142",
         backgroundColor: "#ffffff",

@@ -26,6 +26,7 @@ export type NexusOneProgressEvent = {
   id: string;
   name: string;
   completed: boolean;
+  event?: unknown;
   step?: ProgressSdkStep;
   steps?: ProgressSdkStep[];
 };
@@ -311,6 +312,61 @@ const getApprovalUnitSymbols = (steps: ProgressSdkStep[]) =>
     .map((unit) => unit.symbol)
     .filter(Boolean) as string[];
 
+const getNumericEventIndex = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+      return value;
+    }
+    if (typeof value === "string" && /^\d+$/.test(value)) {
+      return Number(value);
+    }
+  }
+  return undefined;
+};
+
+const getApprovalIndexFromEvent = (event?: NexusOneProgressEvent) => {
+  const rawEvent = event?.event as any;
+  const rawStep = event?.step as any;
+  return getNumericEventIndex(
+    rawEvent?.approvalIndex,
+    rawEvent?.swapIndex,
+    rawEvent?.currentIndex,
+    rawEvent?.index,
+    rawEvent?.data?.approvalIndex,
+    rawEvent?.data?.swapIndex,
+    rawEvent?.data?.currentIndex,
+    rawEvent?.data?.index,
+    rawStep?.approvalIndex,
+    rawStep?.swapIndex,
+    rawStep?.currentIndex,
+    rawStep?.index,
+    rawStep?.data?.approvalIndex,
+    rawStep?.data?.swapIndex,
+    rawStep?.data?.currentIndex,
+    rawStep?.data?.index
+  );
+};
+
+const getActiveApprovalProgressEvent = (events: NexusOneProgressEvent[]) =>
+  [...events]
+    .reverse()
+    .find(
+      (event) =>
+        event.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
+        !event.completed &&
+        getApprovalUnitsForStep(event.step).length > 0
+    );
+
+const getApprovalSymbolFromProgressEvent = (event?: NexusOneProgressEvent) => {
+  const units = getApprovalUnitsForStep(event?.step);
+  if (units.length === 0) return undefined;
+  if (units.length === 1) return units[0]?.symbol;
+
+  const index = getApprovalIndexFromEvent(event);
+  if (index === undefined || index >= units.length) return undefined;
+  return units[index]?.symbol;
+};
+
 const getApprovalTotalFromSwapStepsList = (events: NexusOneProgressEvent[]) =>
   countApprovalUnits(
     getListedSteps(events, PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST)
@@ -380,6 +436,9 @@ const buildStatusRows = ({
   const approvalSymbols = getApprovalUnitSymbols(
     swapListSteps.length > 0 ? swapListSteps : fallbackSteps
   );
+  const activeApprovalSymbol = getApprovalSymbolFromProgressEvent(
+    getActiveApprovalProgressEvent(events)
+  );
   const hasSwapList =
     swapListSteps.length > 0 ||
     hasStepType(events, steps, [
@@ -439,6 +498,7 @@ const buildStatusRows = ({
       Math.max(1, approvalCompletedCount + 1)
     );
     const approvalSymbol =
+      activeApprovalSymbol ??
       approvalSymbols[
         Math.min(approvalCompletedCount, approvalSymbols.length - 1)
       ];

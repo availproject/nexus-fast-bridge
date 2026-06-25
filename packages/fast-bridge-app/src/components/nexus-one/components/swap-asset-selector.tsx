@@ -496,12 +496,18 @@ const STABLE_SYMBOLS = new Set([
   "USD0",
   "USDM",
 ]);
+const normalizeTokenGroupSymbol = (symbol: string) =>
+  symbol
+    .trim()
+    .toUpperCase()
+    .replaceAll("₮", "T")
+    .replaceAll(/[^A-Z0-9]/g, "");
 const STABLE_SYMBOL_KEYS = new Set(
-  Array.from(STABLE_SYMBOLS, (symbol) => symbol.toUpperCase())
+  Array.from(STABLE_SYMBOLS, normalizeTokenGroupSymbol)
 );
 
 const isStableToken = (token: SwapTokenOption) =>
-  STABLE_SYMBOL_KEYS.has(token.symbol.trim().toUpperCase());
+  STABLE_SYMBOL_KEYS.has(normalizeTokenGroupSymbol(token.symbol));
 
 function isNativeToken(t: SwapTokenOption) {
   if (isNativeLikeAddress(t.contractAddress)) return true;
@@ -629,6 +635,26 @@ const parseTokenAmount = (value: unknown) => {
     return undefined;
   }
 };
+
+const compareTokensByUsdBalance = (a: SwapTokenOption, b: SwapTokenOption) => {
+  const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
+  if (fiatDelta !== 0) return fiatDelta;
+
+  const aBalance = parseTokenAmount(a.balance) ?? new Decimal(0);
+  const bBalance = parseTokenAmount(b.balance) ?? new Decimal(0);
+  const balanceDelta = bBalance.cmp(aBalance);
+  if (balanceDelta !== 0) return balanceDelta;
+
+  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+  if (chainDelta !== 0) return chainDelta;
+
+  return `${a.symbol} ${a.chainName}`.localeCompare(
+    `${b.symbol} ${b.chainName}`
+  );
+};
+
+const sortTokensByUsdBalance = (tokens: SwapTokenOption[]) =>
+  [...tokens].sort(compareTokensByUsdBalance);
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -851,7 +877,7 @@ function getUnifiedSymbol(token: Pick<SwapTokenOption, "symbol" | "chainId">) {
     return null;
   }
 
-  const symbol = token.symbol.toUpperCase();
+  const symbol = normalizeTokenGroupSymbol(token.symbol);
   if (symbol.includes("USDC") || symbol === "USDM") return "USDC" as const;
   if (symbol.includes("USDT")) return "USDT" as const;
   if (symbol === "ETH") return "ETH" as const;
@@ -1065,7 +1091,7 @@ export function SwapAssetSelector({
         : [];
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
-      return baseTokens;
+      return sortTokensByUsdBalance(baseTokens);
     }
 
     const merged = [...baseTokens];
@@ -1087,7 +1113,7 @@ export function SwapAssetSelector({
       }
     }
 
-    return merged.filter(isSwapSupportedToken);
+    return sortTokensByUsdBalance(merged.filter(isSwapSupportedToken));
   }, [
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
@@ -1241,17 +1267,20 @@ export function SwapAssetSelector({
     }
     return Object.values(groups)
       .map((group) => {
+        const sortedGroup = sortTokensByUsdBalance(group);
         let totalFiatVal = 0;
         let totalBalVal = 0;
-        for (const t of group) {
+        for (const t of sortedGroup) {
           const fiatVal = getTokenFiatValue(t);
           totalFiatVal += isNaN(fiatVal) || !isFinite(fiatVal) ? 0 : fiatVal;
           const balStr = String(t.balance ?? "").replace(/[^0-9.]/g, "");
           const balVal = Number(balStr || 0);
           totalBalVal += isNaN(balVal) || !isFinite(balVal) ? 0 : balVal;
         }
-        const unifiedSym = allowUnified ? getUnifiedSymbol(group[0]) : null;
-        const symbol = unifiedSym ?? group[0].symbol;
+        const unifiedSym = allowUnified
+          ? getUnifiedSymbol(sortedGroup[0])
+          : null;
+        const symbol = unifiedSym ?? sortedGroup[0].symbol;
         const isStable = ["USDC", "USDT", "DAI", "USDM", "CTUSD"].includes(
           symbol.toUpperCase()
         );
@@ -1263,12 +1292,12 @@ export function SwapAssetSelector({
 
         return {
           symbol,
-          logo: group[0].logo,
+          logo: sortedGroup[0].logo,
           totalFiat: totalFiatVal,
           totalFiatStr: `$${totalFiatVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
           totalBalStr: `${formattedBal} ${symbol}`,
           totalBalRaw: totalBalVal,
-          tokens: group,
+          tokens: sortedGroup,
           isUnifiedCandidate: Boolean(unifiedSym && group.length > 1),
         };
       })
