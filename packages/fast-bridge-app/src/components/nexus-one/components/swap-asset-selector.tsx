@@ -1640,29 +1640,18 @@ export function SwapAssetSelector({
     );
   };
 
-  /* ── Render a unified (multi-chain) group row ── */
-  const renderGroupRow = (group: (typeof groupedFiltered)[0]) => {
-    if (!group.isUnifiedCandidate) {
-      return group.tokens
-        .filter(
-          (token) =>
-            getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
-            isTokenSelectedForVisibility(token) ||
-            isPrioritySearchMatch(token, query)
-        )
-        .map((token) => renderTokenRow(token));
-    }
-
-    const unifiedSelectedInOther =
-      !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
-    if (unifiedSelectedInOther) return null;
-
-    const individualTokens = group.tokens.filter(
+  const getVisibleIndividualTokens = (group: (typeof groupedFiltered)[0]) =>
+    group.tokens.filter(
       (token) =>
         getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(token) ||
         isPrioritySearchMatch(token, query)
     );
+
+  const getUnifiedGroupDisplayState = (group: (typeof groupedFiltered)[0]) => {
+    const unifiedSelectedInOther =
+      !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
+    const individualTokens = getVisibleIndividualTokens(group);
     const hasVisibleUnifiedRow =
       (group.totalFiat >= MIN_FIAT_THRESHOLD ||
         isUnifiedSelectedForVisibility(group.symbol)) &&
@@ -1670,8 +1659,6 @@ export function SwapAssetSelector({
     const visibleTokensCount = individualTokens.filter(
       (t) => !isTokenSelectedInOtherSlot(t)
     ).length;
-    if (!hasVisibleUnifiedRow && visibleTokensCount === 0) return null;
-
     const isExpanded = expandedGroups.has(group.symbol);
     const unifiedSelectedInCurrent = isGroupUnifiedSelectedInCurrentSlot(group);
     const anyIndividualSelectedInOther =
@@ -1709,165 +1696,203 @@ export function SwapAssetSelector({
       unifiedSymbol: group.symbol as "USDC" | "USDT" | "ETH",
     };
 
+    return {
+      areAllChildrenSelected,
+      hasVisibleRows:
+        !unifiedSelectedInOther &&
+        (hasVisibleUnifiedRow || visibleTokensCount > 0),
+      individualTokens,
+      isExpanded,
+      isPartiallySelected,
+      shouldHideIndividualRows,
+      shouldHideUnifiedRow,
+      unifiedSelectedInCurrent,
+      unifiedToken,
+      visibleTokensCount,
+    };
+  };
+
+  /* ── Render a unified (multi-chain) group row ── */
+  const renderGroupRow = (
+    group: (typeof groupedFiltered)[0],
+    options: { onlyUnifiedRow?: boolean } = {}
+  ) => {
+    if (!group.isUnifiedCandidate) {
+      return getVisibleIndividualTokens(group).map((token) =>
+        renderTokenRow(token)
+      );
+    }
+
+    const groupState = getUnifiedGroupDisplayState(group);
+    if (!groupState.hasVisibleRows) return null;
+
+    const unifiedRow = groupState.shouldHideUnifiedRow ? null : (
+      <button
+        onClick={(e) => {
+          if (isMulti) {
+            toggleGroup(group.symbol, e);
+            return;
+          }
+          onSelect(groupState.unifiedToken);
+        }}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          backgroundColor: "transparent",
+          border: "none",
+          cursor: "pointer",
+          borderBottom: "1px solid #F0F0EF",
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isMulti) handleMultiTokenToggle(groupState.unifiedToken);
+              else onSelect(groupState.unifiedToken);
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <SelectionControl
+              indeterminate={isMulti ? groupState.isPartiallySelected : false}
+              multi={Boolean(isMulti)}
+              selected={
+                isMulti
+                  ? groupState.areAllChildrenSelected
+                  : groupState.unifiedSelectedInCurrent
+              }
+            />
+          </div>
+          <div
+            style={{
+              position: "relative",
+              flexShrink: 0,
+              width: 40,
+              height: 40,
+            }}
+          >
+            {group.logo ? (
+              <img
+                alt={group.symbol}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+                src={group.logo}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "999px",
+                  backgroundColor: "#006BF4",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                {group.symbol.slice(0, 2)}
+              </div>
+            )}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontWeight: 500,
+                  fontSize: 15,
+                  color: "#161615",
+                }}
+              >
+                {group.symbol}
+              </span>
+              <span
+                style={{
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#006BF4",
+                  backgroundColor: "#E8F0FF",
+                  borderRadius: 4,
+                  padding: "2px 8px",
+                  letterSpacing: "0.04em",
+                  lineHeight: "18px",
+                }}
+              >
+                UNIFIED
+              </span>
+            </div>
+            <ChainLogos tokens={group.tokens} />
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontWeight: 500,
+                fontSize: 14,
+                color: "#161615",
+              }}
+            >
+              {group.totalBalStr}
+            </span>
+            <span
+              style={{
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: 13,
+                color: "#848483",
+              }}
+            >
+              ≈ {group.totalFiatStr}
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+
+    if (options.onlyUnifiedRow) {
+      return unifiedRow;
+    }
+
     return (
       <div
         key={group.symbol}
         style={{ display: "flex", flexDirection: "column" }}
       >
-        {!shouldHideUnifiedRow && (
-          <button
-            onClick={(e) => {
-              if (isMulti) {
-                toggleGroup(group.symbol, e);
-                return;
-              }
-              onSelect(unifiedToken);
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px 14px",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              borderBottom: "1px solid #F0F0EF",
-              boxSizing: "border-box",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isMulti) handleMultiTokenToggle(unifiedToken);
-                  else onSelect(unifiedToken);
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <SelectionControl
-                  indeterminate={isMulti ? isPartiallySelected : false}
-                  multi={Boolean(isMulti)}
-                  selected={
-                    isMulti ? areAllChildrenSelected : unifiedSelectedInCurrent
-                  }
-                />
-              </div>
-              <div
-                style={{
-                  position: "relative",
-                  flexShrink: 0,
-                  width: 40,
-                  height: 40,
-                }}
-              >
-                {group.logo ? (
-                  <img
-                    alt={group.symbol}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                    src={group.logo}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "999px",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "999px",
-                      backgroundColor: "#006BF4",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {group.symbol.slice(0, 2)}
-                  </div>
-                )}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontWeight: 500,
-                      fontSize: 15,
-                      color: "#161615",
-                    }}
-                  >
-                    {group.symbol}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "#006BF4",
-                      backgroundColor: "#E8F0FF",
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                      letterSpacing: "0.04em",
-                      lineHeight: "18px",
-                    }}
-                  >
-                    UNIFIED
-                  </span>
-                </div>
-                <ChainLogos tokens={group.tokens} />
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-end",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontWeight: 500,
-                    fontSize: 14,
-                    color: "#161615",
-                  }}
-                >
-                  {group.totalBalStr}
-                </span>
-                <span
-                  style={{
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
-                    color: "#848483",
-                  }}
-                >
-                  ≈ {group.totalFiatStr}
-                </span>
-              </div>
-            </div>
-          </button>
-        )}
+        {unifiedRow}
         {isMulti ? (
           <div
             style={{
               display: "grid",
-              gridTemplateRows: isExpanded ? "1fr" : "0fr",
-              opacity: isExpanded ? 1 : 0,
+              gridTemplateRows: groupState.isExpanded ? "1fr" : "0fr",
+              opacity: groupState.isExpanded ? 1 : 0,
               transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
             }}
           >
@@ -1876,12 +1901,92 @@ export function SwapAssetSelector({
             </div>
           </div>
         ) : (
-          !shouldHideIndividualRows &&
-          individualTokens.map((token) => renderTokenRow(token))
+          !groupState.shouldHideIndividualRows &&
+          groupState.individualTokens.map((token) => renderTokenRow(token))
         )}
       </div>
     );
   };
+
+  type VisibleAssetRow =
+    | {
+        group: (typeof groupedFiltered)[0];
+        key: string;
+        kind: "group";
+        sortFiat: number;
+        sortLabel: string;
+      }
+    | {
+        key: string;
+        kind: "token";
+        sortFiat: number;
+        sortLabel: string;
+        token: SwapTokenOption;
+      };
+
+  const visibleAssetRows = isMulti
+    ? []
+    : groupedFiltered
+        .flatMap<VisibleAssetRow>((group) => {
+          if (!group.isUnifiedCandidate) {
+            return getVisibleIndividualTokens(group).map((token) => ({
+              key: `token-${token.contractAddress}-${token.chainId}`,
+              kind: "token",
+              sortFiat: getTokenFiatValue(token),
+              sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
+              token,
+            }));
+          }
+
+          const groupState = getUnifiedGroupDisplayState(group);
+          if (!groupState.hasVisibleRows) return [];
+
+          const rows: VisibleAssetRow[] = [];
+          if (!groupState.shouldHideUnifiedRow) {
+            rows.push({
+              group,
+              key: `unified-${group.symbol}`,
+              kind: "group",
+              sortFiat: group.totalFiat,
+              sortLabel: `${group.symbol} Unified`,
+            });
+          }
+          if (!groupState.shouldHideIndividualRows) {
+            for (const token of groupState.individualTokens) {
+              rows.push({
+                key: `token-${token.contractAddress}-${token.chainId}`,
+                kind: "token",
+                sortFiat: getTokenFiatValue(token),
+                sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
+                token,
+              });
+            }
+          }
+          return rows;
+        })
+        .sort((a, b) => {
+          if (query.trim()) {
+            const getRowSearchScore = (row: VisibleAssetRow) => {
+              if (row.kind === "token") {
+                return (
+                  getTokenSearchRank(row.token, query)?.score ??
+                  Number.MAX_SAFE_INTEGER
+                );
+              }
+              return Math.min(
+                ...row.group.tokens.map(
+                  (token) =>
+                    getTokenSearchRank(token, query)?.score ??
+                    Number.MAX_SAFE_INTEGER
+                )
+              );
+            };
+            const scoreDelta = getRowSearchScore(a) - getRowSearchScore(b);
+            if (scoreDelta !== 0) return scoreDelta;
+          }
+          if (a.sortFiat !== b.sortFiat) return b.sortFiat - a.sortFiat;
+          return a.sortLabel.localeCompare(b.sortLabel);
+        });
 
   const isLoading = !staticOptions && swapBalance === null;
   const selectedAssetCount = activeSelectedTokens.length;
@@ -2321,7 +2426,9 @@ export function SwapAssetSelector({
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {groupedFiltered.length > 0 && (
+            {(isMulti
+              ? groupedFiltered.length > 0
+              : visibleAssetRows.length > 0) && (
               <div
                 style={{
                   border: "1px solid #E8E8E7",
@@ -2331,11 +2438,19 @@ export function SwapAssetSelector({
                   backgroundColor: "#FFFFFE",
                 }}
               >
-                {groupedFiltered.map((group) =>
-                  group.tokens.length === 1
-                    ? renderTokenRow(group.tokens[0])
-                    : renderGroupRow(group)
-                )}
+                {isMulti
+                  ? groupedFiltered.map((group) =>
+                      group.tokens.length === 1
+                        ? renderTokenRow(group.tokens[0])
+                        : renderGroupRow(group)
+                    )
+                  : visibleAssetRows.map((row) => (
+                      <React.Fragment key={row.key}>
+                        {row.kind === "group"
+                          ? renderGroupRow(row.group, { onlyUnifiedRow: true })
+                          : renderTokenRow(row.token)}
+                      </React.Fragment>
+                    ))}
               </div>
             )}
 
