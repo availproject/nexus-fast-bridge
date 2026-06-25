@@ -11,6 +11,7 @@ import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import { AddressIdenticon } from "./address-identicon";
 import { type SwapTokenOption } from "./swap-asset-selector";
 
 export interface SwapIntentSource {
@@ -348,10 +349,12 @@ function TruncatedAddress({ address }: { address: string }) {
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
       style={{
+        alignItems: "center",
         color: brand,
         display: "inline-flex",
         fontFamily,
         fontSize: "13px",
+        gap: "6px",
         fontWeight: 500,
         lineHeight: "15px",
         outline: "none",
@@ -359,6 +362,7 @@ function TruncatedAddress({ address }: { address: string }) {
       }}
       tabIndex={0}
     >
+      <AddressIdenticon address={address} size={16} />
       {label}
       {showTooltip && (
         <span

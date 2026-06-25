@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { AddressIdenticon } from "./address-identicon";
 import {
   formatSelectedTokenBalanceLabel,
   formatUsdBalanceLabel,
@@ -2032,18 +2033,26 @@ export function SwapIdleForm({
               >
                 <div
                   style={{
+                    alignItems: "center",
                     boxSizing: "border-box",
                     color: recipientColor,
+                    display: "inline-flex",
                     fontFamily: '"Geist", system-ui, sans-serif',
                     fontSize: "14px",
                     fontVariantNumeric: "tabular-nums",
+                    gap: "6px",
                     fontWeight: 500,
                     lineHeight: "16px",
                   }}
                 >
-                  {recipientAddress
-                    ? formatShortAddress(recipientAddress)
-                    : "Select recipient"}
+                  {recipientAddress && (
+                    <AddressIdenticon address={recipientAddress} size={16} />
+                  )}
+                  <span>
+                    {recipientAddress
+                      ? formatShortAddress(recipientAddress)
+                      : "Select recipient"}
+                  </span>
                 </div>
                 <button
                   onClick={onOpenRecipientPicker}

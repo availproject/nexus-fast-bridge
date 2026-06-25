@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
+import { AddressIdenticon } from "./address-identicon";
 import { PayWithSources as SharedPayWithSources } from "./pay-with-sources";
 import {
   formatSelectedTokenBalanceLabel,
@@ -675,18 +676,26 @@ export function SendIdleForm({
           >
             <div
               style={{
+                alignItems: "center",
                 boxSizing: "border-box",
                 color: brand,
+                display: "inline-flex",
                 fontFamily: uiFont,
                 fontSize: "15px",
                 fontVariantNumeric: "tabular-nums",
+                gap: "6px",
                 fontWeight: 500,
                 lineHeight: "15px",
               }}
             >
-              {recipientAddress
-                ? `${recipientAddress.slice(0, 6)}…${recipientAddress.slice(-4)}`
-                : "Select recipient"}
+              {recipientAddress && (
+                <AddressIdenticon address={recipientAddress} size={16} />
+              )}
+              <span>
+                {recipientAddress
+                  ? `${recipientAddress.slice(0, 6)}…${recipientAddress.slice(-4)}`
+                  : "Select recipient"}
+              </span>
             </div>
             <button
               onClick={onOpenRecipientPicker}

@@ -2,6 +2,7 @@
 import { useAppKit } from "@reown/appkit/react";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
+import { AddressIdenticon } from "./nexus-one/components/address-identicon";
 
 export default function Navbar() {
   const { isConnected, address } = useAccount();
@@ -56,7 +57,8 @@ export default function Navbar() {
                 onClick={() => open()}
                 type="button"
               >
-                {shortAddress}
+                {address && <AddressIdenticon address={address} size={16} />}
+                <span>{shortAddress}</span>
               </button>
             ) : (
               <button

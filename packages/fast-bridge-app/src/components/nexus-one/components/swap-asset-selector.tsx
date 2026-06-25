@@ -2040,25 +2040,6 @@ export function SwapAssetSelector({
         willChange: "height, max-height",
       }}
     >
-      {/* Drawer Handle */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#E8E8E7",
-          }}
-        />
-      </div>
-
       {/* Header */}
       <div
         style={{
@@ -2789,23 +2770,6 @@ export function SwapAssetSelector({
                   width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginBottom: 8,
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      backgroundColor: "#D8D8D6",
-                      borderRadius: "999px",
-                      height: 4,
-                      width: 32,
-                    }}
-                  />
-                </div>
                 <div
                   style={{
                     alignItems: "center",

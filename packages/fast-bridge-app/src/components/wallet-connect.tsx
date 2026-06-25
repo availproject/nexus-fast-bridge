@@ -222,9 +222,5 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     chainFeatures.walletInitDelayMs,
   ]);
 
-  return (
-    <div className="fastbridge-nexus-stage relative flex w-full max-w-full items-center justify-center">
-      <div className="fastbridge-nexus-scale">{children}</div>
-    </div>
-  );
+  return <>{children}</>;
 }

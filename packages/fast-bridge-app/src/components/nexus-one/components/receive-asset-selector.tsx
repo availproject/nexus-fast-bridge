@@ -5,6 +5,7 @@ import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -421,6 +422,7 @@ export function ReceiveAssetSelector({
     [swapSupportedChainsAndTokens]
   );
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedChainFilter, setSelectedChainFilter] = useState<number | null>(
     null
@@ -553,7 +555,7 @@ export function ReceiveAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, [query, activeTab, selectedChainFilter]);
+  }, [deferredQuery, activeTab, selectedChainFilter]);
 
   const preserveListHeight = useCallback(() => {
     const listEl = listRef.current;
@@ -735,8 +737,10 @@ export function ReceiveAssetSelector({
     let result = tokensWithBalances;
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
-    if (query.trim()) {
-      result = result.filter((t) => getTokenSearchRank(t, query) !== null);
+    if (deferredQuery.trim()) {
+      result = result.filter(
+        (t) => getTokenSearchRank(t, deferredQuery) !== null
+      );
     }
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
@@ -746,16 +750,16 @@ export function ReceiveAssetSelector({
   }, [
     tokensWithBalances,
     selectedChainFilter,
-    query,
+    deferredQuery,
     activeTab,
     dynamicStableSymbols,
   ]);
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      if (query.trim()) {
-        const aRank = getTokenSearchRank(a, query);
-        const bRank = getTokenSearchRank(b, query);
+      if (deferredQuery.trim()) {
+        const aRank = getTokenSearchRank(a, deferredQuery);
+        const bRank = getTokenSearchRank(b, deferredQuery);
         const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
         const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
         if (aScore !== bScore) return aScore - bScore;
@@ -771,7 +775,7 @@ export function ReceiveAssetSelector({
         `${b.symbol} ${b.chainName}`
       );
     });
-  }, [filtered, query]);
+  }, [filtered, deferredQuery]);
 
   const selectedChainMeta =
     selectedChainFilter === null
@@ -802,24 +806,6 @@ export function ReceiveAssetSelector({
         willChange: "height, max-height",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#E8E8E7",
-          }}
-        />
-      </div>
-
       <div
         style={{
           display: "flex",
@@ -1325,23 +1311,6 @@ export function ReceiveAssetSelector({
                   width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginBottom: 8,
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      backgroundColor: "#D8D8D6",
-                      borderRadius: "999px",
-                      height: 4,
-                      width: 32,
-                    }}
-                  />
-                </div>
                 <div
                   style={{
                     alignItems: "center",

@@ -52,6 +52,7 @@ import {
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { AddressIdenticon } from "./components/address-identicon";
 import { DepositIdleForm } from "./components/deposit-idle-form";
 import {
   type NexusOneProgressEvent,
@@ -205,7 +206,8 @@ const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
 const MODAL_HEIGHT_TRANSITION_MS = 220;
 const ROOT_HEIGHT_TRANSITION_MS = 140;
-const ASSET_SELECTOR_DRAWER_HEIGHT = "90%";
+const ASSET_SELECTOR_DRAWER_HEIGHT = "96%";
+const NEXUS_ONE_LIST_MIN_HEIGHT = "min(560px, 90dvh)";
 const BASIS_POINTS = 10000;
 const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
 const PREDICTIVE_EXACT_OUT_BUFFER_BPS = 100;
@@ -1056,10 +1058,12 @@ function TruncatedAddress({
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
       style={{
+        alignItems: "center",
         color,
         display: "inline-flex",
         fontFamily: uiFont,
         fontSize: "15px",
+        gap: "6px",
         fontWeight: 500,
         lineHeight: "20px",
         outline: "none",
@@ -1067,6 +1071,7 @@ function TruncatedAddress({
       }}
       tabIndex={0}
     >
+      <AddressIdenticon address={address} size={16} />
       {label}
       {showTooltip && (
         <span
@@ -2620,6 +2625,7 @@ function NexusOneInner({
   // Global form state
   const [amount, setAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
+  const [isRecipientUserEdited, setIsRecipientUserEdited] = useState(false);
   const [editingAssetIndex, setEditingAssetIndex] = useState<number | null>(
     null
   );
@@ -2786,10 +2792,12 @@ function NexusOneInner({
   }, [activeMode, setExactOutQuoteSourceModeValue]);
 
   useEffect(() => {
+    if (activeMode !== "swap" || !defaultRecipientAddress) return;
+
     const previousDefault = previousDefaultRecipientRef.current;
     previousDefaultRecipientRef.current = defaultRecipientAddress;
 
-    if (activeMode !== "swap" || !defaultRecipientAddress) return;
+    if (isRecipientUserEdited) return;
 
     setRecipientAddress((current) => {
       if (
@@ -2801,7 +2809,7 @@ function NexusOneInner({
       }
       return current;
     });
-  }, [activeMode, defaultRecipientAddress]);
+  }, [activeMode, defaultRecipientAddress, isRecipientUserEdited]);
 
   const {
     steps,
@@ -5358,8 +5366,10 @@ function NexusOneInner({
 
   useEffect(() => {
     if (config.prefill?.amount) setAmount(config.prefill.amount);
-    if (config.prefill?.recipient)
+    if (config.prefill?.recipient) {
       setRecipientAddress(config.prefill.recipient);
+      setIsRecipientUserEdited(true);
+    }
   }, [config.prefill?.amount, config.prefill?.recipient]);
 
   useEffect(() => {
@@ -6110,6 +6120,7 @@ function NexusOneInner({
     clearPendingSwapIntent();
     setAmount("");
     setRecipientAddress("");
+    setIsRecipientUserEdited(false);
     setTxError(null);
     setSwapStep("idle");
     setCurrentSwapId(null);
@@ -6146,6 +6157,7 @@ function NexusOneInner({
   const resetInputsAfterSuccessfulExecution = () => {
     setAmount("");
     setRecipientAddress("");
+    setIsRecipientUserEdited(false);
     setTxError(null);
     setSwapQuoteIssue(null);
     setIntentToAmount(undefined);
@@ -6272,6 +6284,7 @@ function NexusOneInner({
 
   const handleResetRecipientToDefault = () => {
     setRecipientAddress(defaultRecipientAddress);
+    setIsRecipientUserEdited(false);
     setTxError(null);
   };
 
@@ -6295,6 +6308,10 @@ function NexusOneInner({
       return;
     }
     setRecipientAddress(next);
+    setIsRecipientUserEdited(
+      !defaultRecipientAddress ||
+        next.toLowerCase() !== defaultRecipientAddress.toLowerCase()
+    );
     setTxError(null);
     closeDrawerToIdle();
   };
@@ -7735,6 +7752,11 @@ function NexusOneInner({
   };
 
   const canGoBack = swapStep === "preview-intent" || swapStep === "history";
+  const handleHistoryToggle = () => {
+    const nextStep = swapStepRef.current === "history" ? "idle" : "history";
+    swapStepRef.current = nextStep;
+    setSwapStep(nextStep);
+  };
   const handleBack = () => {
     if (swapStep === "history") {
       setSwapStep("idle");
@@ -8374,6 +8396,13 @@ function NexusOneInner({
     swapStep === "choose-receive-asset" ||
     swapStep === "enter-recipient" ||
     closingDrawerStep !== null;
+  const shouldUseListMinHeight =
+    swapStep === "choose-swap-asset" ||
+    swapStep === "choose-receive-asset" ||
+    closingDrawerStep === "choose-swap-asset" ||
+    closingDrawerStep === "choose-receive-asset";
+  const shouldUseMeasuredRootHeight =
+    shouldUseListMinHeight && hasMeasuredRootContent && rootContentHeight;
 
   const widgetContent = (
     <div
@@ -8396,11 +8425,13 @@ function NexusOneInner({
         fontSynthesis: "none",
         fontVariantNumeric: "tabular-nums",
         gap: "7px",
-        height:
-          hasMeasuredRootContent && rootContentHeight
-            ? `${rootContentHeight + 24}px`
-            : "fit-content",
+        height: shouldUseMeasuredRootHeight
+          ? `${rootContentHeight + 24}px`
+          : "fit-content",
         maxHeight: "90dvh",
+        minHeight: shouldUseListMinHeight
+          ? NEXUS_ONE_LIST_MIN_HEIGHT
+          : undefined,
         lineHeight: "17px",
         margin: "auto",
         overflowX: "hidden",
@@ -8419,7 +8450,7 @@ function NexusOneInner({
           return transitions.join(", ");
         })(),
         willChange: "height",
-        width: "392px",
+        width: "420px",
         maxWidth: "100%",
         minWidth: "280px",
         WebkitFontSmoothing: "antialiased",
@@ -8516,56 +8547,59 @@ function NexusOneInner({
                 secondsRemaining={quoteRefreshSecondsRemaining}
               />
             )}
-            <button
-              onClick={() => setSwapStep("history")}
-              style={{
-                alignItems: "center",
-                backgroundColor: theme.primitives.iconButton.backgroundColor,
-                borderColor: theme.primitives.iconButton.borderColor,
-                borderRadius: theme.radius.iconButton,
-                borderStyle: "solid",
-                borderWidth: "1px",
-                boxShadow: theme.primitives.iconButton.boxShadow,
-                boxSizing: "border-box",
-                display: "flex",
-                flexShrink: 0,
-                height: "28px",
-                justifyContent: "center",
-                width: "28px",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <svg
-                fill="none"
-                height="14"
-                style={{ width: "14px", height: "14px", flexShrink: 0 }}
-                viewBox="0 0 16 16"
-                width="14"
-                xmlns="http://www.w3.org/2000/svg"
+            {swapStep !== "history" && (
+              <button
+                aria-label="View transaction history"
+                onClick={handleHistoryToggle}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: theme.primitives.iconButton.backgroundColor,
+                  borderColor: theme.primitives.iconButton.borderColor,
+                  borderRadius: theme.radius.iconButton,
+                  borderStyle: "solid",
+                  borderWidth: "1px",
+                  boxShadow: theme.primitives.iconButton.boxShadow,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexShrink: 0,
+                  height: "28px",
+                  justifyContent: "center",
+                  width: "28px",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
               >
-                <path
-                  d="M8 4V8L10.5 9.5"
-                  stroke={theme.colors.textStrong}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.4"
-                />
-                <path
-                  d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
-                  stroke={theme.colors.textStrong}
-                  strokeLinecap="round"
-                  strokeWidth="1.4"
-                />
-                <path
-                  d="M13.5 2V5H10.5"
-                  stroke={theme.colors.textStrong}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.4"
-                />
-              </svg>
-            </button>
+                <svg
+                  fill="none"
+                  height="14"
+                  style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                  viewBox="0 0 16 16"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 4V8L10.5 9.5"
+                    stroke={theme.colors.textStrong}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.4"
+                  />
+                  <path
+                    d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
+                    stroke={theme.colors.textStrong}
+                    strokeLinecap="round"
+                    strokeWidth="1.4"
+                  />
+                  <path
+                    d="M13.5 2V5H10.5"
+                    stroke={theme.colors.textStrong}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.4"
+                  />
+                </svg>
+              </button>
+            )}
             {showCloseButton && (
               <button
                 aria-label="Close"
@@ -9376,10 +9410,14 @@ function NexusOneInner({
                 hasError={Boolean(txError)}
                 label={null}
                 onChange={(next) => {
+                  setIsRecipientUserEdited(true);
                   setRecipientAddress(next);
                   if (txError) setTxError(null);
                 }}
-                onClear={() => setRecipientAddress("")}
+                onClear={() => {
+                  setRecipientAddress("");
+                  setIsRecipientUserEdited(activeMode === "send");
+                }}
                 placeholder="Wallet address"
                 value={recipientAddress}
               />
