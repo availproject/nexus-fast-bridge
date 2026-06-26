@@ -809,9 +809,10 @@ export function ReceiveAssetSelector({
       <div
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           gap: 12,
           marginBottom: 12,
+          minHeight: 32,
         }}
       >
         <button
@@ -833,12 +834,21 @@ export function ReceiveAssetSelector({
             style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
           />
         </button>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            justifyContent: "center",
+            minHeight: 32,
+          }}
+        >
           <span
             style={{
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 18,
               fontWeight: 600,
+              lineHeight: "24px",
               color: "#161615",
             }}
           >

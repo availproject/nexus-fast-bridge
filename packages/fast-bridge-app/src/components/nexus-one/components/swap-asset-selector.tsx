@@ -2149,9 +2149,10 @@ export function SwapAssetSelector({
       <div
         style={{
           display: "flex",
-          alignItems: "flex-start",
+          alignItems: subtitle ? "flex-start" : "center",
           gap: 12,
           marginBottom: 12,
+          minHeight: 32,
         }}
       >
         <button
@@ -2178,6 +2179,8 @@ export function SwapAssetSelector({
             display: "flex",
             flexDirection: "column",
             gap: "6px",
+            justifyContent: subtitle ? "flex-start" : "center",
+            minHeight: 32,
             minWidth: 0,
             flex: "1 1 auto",
           }}
@@ -2187,6 +2190,7 @@ export function SwapAssetSelector({
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 18,
               fontWeight: 600,
+              lineHeight: "24px",
               color: "#161615",
             }}
           >

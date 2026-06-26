@@ -205,7 +205,7 @@ const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
 const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
 const MODAL_HEIGHT_TRANSITION_MS = 220;
-const ROOT_HEIGHT_TRANSITION_MS = 140;
+const ROOT_HEIGHT_TRANSITION_MS = 220;
 const ASSET_SELECTOR_DRAWER_HEIGHT = "96%";
 const NEXUS_ONE_LIST_MIN_HEIGHT = "min(560px, 90dvh)";
 const BASIS_POINTS = 10000;
@@ -2679,6 +2679,8 @@ function NexusOneInner({
   const rootContentHeightRef = useRef<number | null>(null);
   const [hasMeasuredRootContent, setHasMeasuredRootContent] = useState(false);
   const [shouldAnimateRootHeight, setShouldAnimateRootHeight] = useState(false);
+  const [isRootHeightLockedForTransition, setIsRootHeightLockedForTransition] =
+    useState(false);
   const [isPreviewTransitioning, setIsPreviewTransitioning] = useState(false);
   const rootHeightTransitionTimerRef = useRef<ReturnType<
     typeof setTimeout
@@ -3028,6 +3030,18 @@ function NexusOneInner({
 
     if (rootContentHeightRef.current === nextHeight) {
       setHasMeasuredRootContent(true);
+      if (animate) {
+        setShouldAnimateRootHeight(true);
+        if (rootHeightTransitionTimerRef.current) {
+          clearTimeout(rootHeightTransitionTimerRef.current);
+          rootHeightTransitionTimerRef.current = null;
+        }
+        rootHeightTransitionTimerRef.current = setTimeout(() => {
+          setShouldAnimateRootHeight(false);
+          setIsRootHeightLockedForTransition(false);
+          rootHeightTransitionTimerRef.current = null;
+        }, ROOT_HEIGHT_TRANSITION_MS);
+      }
       return;
     }
 
@@ -3040,6 +3054,7 @@ function NexusOneInner({
     if (animate) {
       rootHeightTransitionTimerRef.current = setTimeout(() => {
         setShouldAnimateRootHeight(false);
+        setIsRootHeightLockedForTransition(false);
         rootHeightTransitionTimerRef.current = null;
       }, ROOT_HEIGHT_TRANSITION_MS);
     }
@@ -7754,11 +7769,13 @@ function NexusOneInner({
   const canGoBack = swapStep === "preview-intent" || swapStep === "history";
   const handleHistoryToggle = () => {
     const nextStep = swapStepRef.current === "history" ? "idle" : "history";
+    setIsRootHeightLockedForTransition(true);
     swapStepRef.current = nextStep;
     setSwapStep(nextStep);
   };
   const handleBack = () => {
     if (swapStep === "history") {
+      setIsRootHeightLockedForTransition(true);
       setSwapStep("idle");
       return;
     }
@@ -8402,7 +8419,11 @@ function NexusOneInner({
     closingDrawerStep === "choose-swap-asset" ||
     closingDrawerStep === "choose-receive-asset";
   const shouldUseMeasuredRootHeight =
-    shouldUseListMinHeight && hasMeasuredRootContent && rootContentHeight;
+    (shouldUseListMinHeight ||
+      swapStep === "history" ||
+      isRootHeightLockedForTransition) &&
+    hasMeasuredRootContent &&
+    rootContentHeight;
 
   const widgetContent = (
     <div
