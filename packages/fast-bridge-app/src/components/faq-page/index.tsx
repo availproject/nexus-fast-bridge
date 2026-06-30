@@ -516,7 +516,7 @@ export default function FAQPage() {
       </section>
 
       {/* Footer */}
-      <footer className="site-footer" id="footer">
+      <footer className="site-footer is-visible" id="footer">
         <div aria-hidden="true" className="site-footer__glow-wrap">
           <div className="site-footer__glow-clip">
             <img

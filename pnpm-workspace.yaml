@@ -11,6 +11,7 @@ allowBuilds:
   utf-8-validate: true
   "@avail-project/ca-common": true
   "@avail-project/nexus-sdk-v2": true
+  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#b5fb4963b8a71107556810b79b375002e09f58ef': true
   "@avail-project/nexus-types": true
   msw: true
   sharp: true
