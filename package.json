@@ -14,9 +14,9 @@
     "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
     "prepare": "husky"
   },
-  "packageManager": "pnpm@11.5.1",
+  "packageManager": "pnpm@11.7.0",
   "dependencies": {
-    "@avail-project/nexus-sdk-v2": "git+https://github.com/availproject/nexus-sdk-v2.git#v0.0.4",
+    "@avail-project/nexus-sdk-v2": "git+https://github.com/availproject/nexus-sdk-v2.git#v0.0.5",
     "@fontsource/geist-sans": "5.2.5",
     "@marsidev/react-turnstile": "1.5.0",
     "@radix-ui/react-accordion": "1.2.12",
