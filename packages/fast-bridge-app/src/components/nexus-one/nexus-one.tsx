@@ -34,6 +34,7 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { reportConnectWalletConversion } from "@/lib/google-tag";
 import { useRuntime } from "@/providers/runtime-context";
 import { ErrorBoundary } from "../common/components/error-boundary";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
@@ -6220,6 +6221,10 @@ function NexusOneInner({
 
   const handleConnectWallet = async () => {
     if (walletActionPending || nexusLoading) return;
+
+    if (walletStatus !== "connected") {
+      reportConnectWalletConversion();
+    }
 
     const clickHandler = config.onConnectWalletClick || onConnectWallet;
     if (clickHandler) {

@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
 import ContactPage from "./components/contact-page";
 import FAQPage from "./components/faq-page";
+import { GooglePageViewTracker } from "./components/google-page-view-tracker";
 import LandingPage from "./components/landing-page";
 import { initPostHog } from "./lib/posthog";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
@@ -48,6 +49,7 @@ export function bootstrapApp() {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
       <BrowserRouter>
+        <GooglePageViewTracker />
         <Routes>
           <Route element={<LandingPage />} path="/" />
           <Route element={<FAQPage />} path="/faqs" />

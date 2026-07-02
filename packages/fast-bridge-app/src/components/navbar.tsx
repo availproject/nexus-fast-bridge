@@ -2,6 +2,7 @@
 import { useAppKit } from "@reown/appkit/react";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
+import { reportConnectWalletConversion } from "@/lib/google-tag";
 import { AddressIdenticon } from "./nexus-one/components/address-identicon";
 
 export default function Navbar() {
@@ -9,14 +10,8 @@ export default function Navbar() {
   const { open } = useAppKit();
 
   const handleWalletClick = () => {
-    if (
-      !isConnected &&
-      typeof window !== "undefined" &&
-      // @ts-expect-error - gtag_report_conversion is added by a global script in index.html
-      typeof window.gtag_report_conversion === "function"
-    ) {
-      // @ts-expect-error - expected injected global method
-      window.gtag_report_conversion();
+    if (!isConnected) {
+      reportConnectWalletConversion();
     }
   };
 
