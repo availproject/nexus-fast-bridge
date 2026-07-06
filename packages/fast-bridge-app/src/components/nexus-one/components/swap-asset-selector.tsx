@@ -189,6 +189,72 @@ const SelectionControl = ({
   );
 };
 
+function TokenLogo({
+  backgroundColor = "#006BF4",
+  color = "#fff",
+  fontSize = 14,
+  size = 40,
+  src,
+  style,
+  symbol,
+}: {
+  backgroundColor?: string;
+  color?: string;
+  fontSize?: number;
+  size?: number;
+  src?: string;
+  style?: React.CSSProperties;
+  symbol: string;
+}) {
+  const [failed, setFailed] = useState(!src);
+
+  useEffect(() => {
+    setFailed(!src);
+  }, [src]);
+
+  const fallbackLabel = symbol.trim().slice(0, 2).toUpperCase() || "?";
+  const baseStyle: React.CSSProperties = {
+    borderRadius: "999px",
+    flexShrink: 0,
+    height: size,
+    width: size,
+    ...style,
+  };
+
+  if (!failed && src) {
+    return (
+      <img
+        alt={symbol}
+        onError={() => setFailed(true)}
+        src={src}
+        style={{
+          ...baseStyle,
+          objectFit: "cover",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      aria-label={symbol}
+      role="img"
+      style={{
+        ...baseStyle,
+        alignItems: "center",
+        backgroundColor,
+        color,
+        display: "flex",
+        fontSize,
+        fontWeight: 700,
+        justifyContent: "center",
+      }}
+    >
+      {fallbackLabel}
+    </div>
+  );
+}
+
 /* ── Chain logo cluster ── */
 const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
   const clusterRef = useRef<HTMLDivElement | null>(null);
@@ -1531,39 +1597,8 @@ export function SwapAssetSelector({
             multi={Boolean(isMulti)}
             selected={selectedInCurrent}
           />
-          <div style={{ flexShrink: 0, width: 40, height: 40 }}>
-            {token.logo ? (
-              <img
-                alt={token.symbol}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-                src={token.logo}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "999px",
-                  backgroundColor: "#006BF4",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                {token.symbol.slice(0, 2)}
-              </div>
-            )}
+          <div style={{ flexShrink: 0, height: 40, width: 40 }}>
+            <TokenLogo src={token.logo} symbol={token.symbol} />
           </div>
           <div
             style={{
@@ -1775,38 +1810,7 @@ export function SwapAssetSelector({
               height: 40,
             }}
           >
-            {group.logo ? (
-              <img
-                alt={group.symbol}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-                src={group.logo}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "999px",
-                  backgroundColor: "#006BF4",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontSize: 14,
-                  fontWeight: 700,
-                }}
-              >
-                {group.symbol.slice(0, 2)}
-              </div>
-            )}
+            <TokenLogo src={group.logo} symbol={group.symbol} />
           </div>
           <div
             style={{
@@ -2544,35 +2548,21 @@ export function SwapAssetSelector({
                   >
                     {/* Small token logo cluster */}
                     <div style={{ display: "flex", alignItems: "center" }}>
-                      {belowMin.slice(0, 3).map((t, i) =>
-                        t.logo ? (
-                          <img
-                            alt=""
-                            key={`bm-${t.contractAddress}-${t.chainId}`}
-                            src={t.logo}
-                            style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: "999px",
-                              objectFit: "cover",
-                              marginLeft: i > 0 ? -6 : 0,
-                              border: "1.5px solid #fff",
-                            }}
-                          />
-                        ) : (
-                          <div
-                            key={`bm-${t.contractAddress}-${t.chainId}`}
-                            style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: "999px",
-                              backgroundColor: "#E8E8E7",
-                              marginLeft: i > 0 ? -6 : 0,
-                              border: "1.5px solid #fff",
-                            }}
-                          />
-                        )
-                      )}
+                      {belowMin.slice(0, 3).map((t, i) => (
+                        <TokenLogo
+                          backgroundColor="#E8E8E7"
+                          color="#848483"
+                          fontSize={7}
+                          key={`bm-${t.contractAddress}-${t.chainId}`}
+                          size={18}
+                          src={t.logo}
+                          style={{
+                            border: "1.5px solid #fff",
+                            marginLeft: i > 0 ? -6 : 0,
+                          }}
+                          symbol={t.symbol}
+                        />
+                      ))}
                       {belowMin.length > 3 && (
                         <div
                           style={{
@@ -2648,36 +2638,14 @@ export function SwapAssetSelector({
                               flexShrink: 0,
                             }}
                           >
-                            {token.logo ? (
-                              <img
-                                alt={token.symbol}
-                                src={token.logo}
-                                style={{
-                                  filter: "grayscale(0.2)",
-                                  width: 22,
-                                  height: 22,
-                                  borderRadius: "999px",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            ) : (
-                              <div
-                                style={{
-                                  width: 22,
-                                  height: 22,
-                                  borderRadius: "999px",
-                                  backgroundColor: "#C8C8C7",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "#fff",
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                }}
-                              >
-                                {token.symbol.slice(0, 2)}
-                              </div>
-                            )}
+                            <TokenLogo
+                              backgroundColor="#C8C8C7"
+                              fontSize={9}
+                              size={22}
+                              src={token.logo}
+                              style={{ filter: "grayscale(0.2)" }}
+                              symbol={token.symbol}
+                            />
                             {token.chainLogo && (
                               <img
                                 alt=""
