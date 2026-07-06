@@ -11,6 +11,7 @@ import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import { resolveTokenVisuals } from "../utils/token-visuals";
 import { AddressIdenticon } from "./address-identicon";
 import { type SwapTokenOption } from "./swap-asset-selector";
 
@@ -78,7 +79,6 @@ export interface SwapIntentPreviewProps {
   opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
   steps?: Array<{ id: number; completed: boolean; step: SwapStepType }>;
-  supportedTokenAssets?: any[] | null;
   swapBalances?: any[] | null;
   swapType?: "exactIn" | "exactOut";
   toAmount?: string;
@@ -664,6 +664,7 @@ export function SwapIntentPreview({
   isExecuting,
   swapType,
   intentData,
+  swapBalances,
   mode,
   opportunity,
   recipientAddress,
@@ -737,6 +738,27 @@ export function SwapIntentPreview({
       : fromToken
         ? [fromToken]
         : [];
+  const tokenVisualSources = {
+    balanceAssets: swapBalances,
+    tokens: [...fallbackSources, ...(toToken ? [toToken] : [])],
+  };
+  const destinationVisuals = resolveTokenVisuals(
+    {
+      chainId: normalizedIntentDest?.chain.id ?? toToken?.chainId,
+      chainLogo: normalizedIntentDest?.chain.logo || toToken?.chainLogo,
+      chainName: normalizedIntentDest?.chain.name || toToken?.chainName,
+      contractAddress:
+        normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress,
+      decimals: normalizedIntentDest?.token.decimals ?? toToken?.decimals,
+      name: toToken?.name,
+      symbol:
+        normalizedIntentDest?.token.symbol ||
+        toToken?.symbol ||
+        opportunity?.tokenSymbol,
+      tokenLogo: normalizedIntentDest?.token.logo || toToken?.logo,
+    },
+    tokenVisualSources
+  );
 
   const baseSourceSymbols =
     normalizedIntentSources.length > 0
@@ -752,16 +774,16 @@ export function SwapIntentPreview({
   const quoteUnavailable = !isLoading && !hasResolvedQuote;
 
   const destTokenSymbol =
-    normalizedIntentDest?.token.symbol ||
-    toToken?.symbol ||
-    opportunity?.tokenSymbol ||
-    "-";
+    destinationVisuals.symbol || opportunity?.tokenSymbol || "-";
   const destChainName =
     flowMode === "deposit"
       ? opportunity?.title || opportunity?.protocol || "App"
       : getShortChainName(
           normalizedIntentDest?.chain.id ?? toToken?.chainId,
-          normalizedIntentDest?.chain.name || toToken?.chainName || ""
+          destinationVisuals.chainName ||
+            normalizedIntentDest?.chain.name ||
+            toToken?.chainName ||
+            ""
         );
 
   const requestedDestinationAmount = isExactOutDisplayFlow
@@ -1045,6 +1067,19 @@ export function SwapIntentPreview({
                 source.token.contractAddress?.toLowerCase() ||
                 token.symbol === source.token.symbol)
           );
+          const sourceVisuals = resolveTokenVisuals(
+            {
+              chainId: source.chain.id,
+              chainLogo: source.chain.logo || fallbackSource?.chainLogo,
+              chainName: source.chain.name || fallbackSource?.chainName,
+              contractAddress: source.token.contractAddress,
+              decimals: source.token.decimals,
+              name: fallbackSource?.name,
+              symbol: source.token.symbol,
+              tokenLogo: source.token.logo || fallbackSource?.logo,
+            },
+            tokenVisualSources
+          );
 
           const sourceKey = [
             source.chain.id,
@@ -1074,10 +1109,13 @@ export function SwapIntentPreview({
 
           return {
             key: `${source.chain.id}-${source.token.contractAddress}-${index}`,
-            tokenLogo: source.token.logo || fallbackSource?.logo || "",
-            chainLogo: source.chain.logo || fallbackSource?.chainLogo || "",
-            symbol: source.token.symbol,
-            chainName: getShortChainName(source.chain.id, source.chain.name),
+            tokenLogo: sourceVisuals.tokenLogo || "",
+            chainLogo: sourceVisuals.chainLogo || "",
+            symbol: sourceVisuals.symbol || source.token.symbol,
+            chainName: getShortChainName(
+              source.chain.id,
+              sourceVisuals.chainName || source.chain.name
+            ),
             tokenAmount: `${tokenAmountValue} ${source.token.symbol}`,
             tokenAmountValue,
             usdAmount:
@@ -1088,6 +1126,19 @@ export function SwapIntentPreview({
           };
         })
       : fallbackSources.map((source, index) => {
+          const sourceVisuals = resolveTokenVisuals(
+            {
+              chainId: source.chainId,
+              chainLogo: source.chainLogo,
+              chainName: source.chainName,
+              contractAddress: source.contractAddress,
+              decimals: source.decimals,
+              name: source.name,
+              symbol: source.symbol,
+              tokenLogo: source.logo,
+            },
+            tokenVisualSources
+          );
           const sourceAmount =
             source.userAmount ||
             (fallbackSources.length === 1 ? fromAmount : "");
@@ -1126,10 +1177,13 @@ export function SwapIntentPreview({
 
           return {
             key: `${source.chainId ?? "chain"}-${source.contractAddress}-${index}`,
-            tokenLogo: source.logo || "",
-            chainLogo: source.chainLogo || "",
-            symbol: source.symbol,
-            chainName: getShortChainName(source.chainId, source.chainName),
+            tokenLogo: sourceVisuals.tokenLogo || "",
+            chainLogo: sourceVisuals.chainLogo || "",
+            symbol: sourceVisuals.symbol || source.symbol,
+            chainName: getShortChainName(
+              source.chainId,
+              sourceVisuals.chainName || source.chainName
+            ),
             tokenAmount: tokenAmountValue
               ? `${tokenAmountValue} ${source.symbol}`
               : pendingLabel,
@@ -1147,13 +1201,15 @@ export function SwapIntentPreview({
     !hasDestinationSourceRow
       ? {
           key: `destination-existing-${normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "chain"}-${normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress ?? "token"}`,
-          tokenLogo: normalizedIntentDest?.token.logo || toToken?.logo || "",
-          chainLogo:
-            normalizedIntentDest?.chain.logo || toToken?.chainLogo || "",
+          tokenLogo: destinationVisuals.tokenLogo || "",
+          chainLogo: destinationVisuals.chainLogo || "",
           symbol: destTokenSymbol,
           chainName: getShortChainName(
             normalizedIntentDest?.chain.id ?? toToken?.chainId,
-            normalizedIntentDest?.chain.name || toToken?.chainName || ""
+            destinationVisuals.chainName ||
+              normalizedIntentDest?.chain.name ||
+              toToken?.chainName ||
+              ""
           ),
           tokenAmount: `${formatTokenAmount(displayOnlyDestinationSourceAmount)} ${destTokenSymbol}`,
           tokenAmountValue: formatTokenAmount(
@@ -1259,8 +1315,8 @@ export function SwapIntentPreview({
     tokenLogo: fromToken?.logo ?? "",
   };
   const destinationProgressLogos = {
-    chain: normalizedIntentDest?.chain.logo || toToken?.chainLogo || "",
-    token: normalizedIntentDest?.token.logo || toToken?.logo || "",
+    chain: destinationVisuals.chainLogo || "",
+    token: destinationVisuals.tokenLogo || "",
   };
 
   const ctaLabel =

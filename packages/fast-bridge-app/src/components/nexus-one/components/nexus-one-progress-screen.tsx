@@ -11,6 +11,7 @@ import type {
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import { resolveTokenVisuals } from "../utils/token-visuals";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
 
@@ -41,6 +42,7 @@ interface NexusOneProgressScreenProps {
   progressEvents?: NexusOneProgressEvent[];
   recipientAddress?: string;
   steps?: ProgressStep[];
+  swapBalances?: unknown[] | null;
   toAmount?: string;
   toAmountUsd?: string;
   toToken?: SwapTokenOption;
@@ -785,6 +787,7 @@ export function NexusOneProgressScreen({
   progressEvents = [],
   failedStep,
   recipientAddress,
+  swapBalances,
 }: NexusOneProgressScreenProps) {
   const intentSources = intentData?.sources ?? [];
   const intentDestination = intentData?.destination;
@@ -892,9 +895,29 @@ export function NexusOneProgressScreen({
     toToken?.symbol ||
     opportunity?.tokenSymbol ||
     "";
+  const destinationVisuals = resolveTokenVisuals(
+    {
+      chainId: intentDestination?.chain.id ?? toToken?.chainId,
+      chainLogo: intentDestination?.chain.logo || toToken?.chainLogo,
+      chainName: intentDestination?.chain.name || toToken?.chainName,
+      contractAddress:
+        intentDestination?.token.contractAddress ?? toToken?.contractAddress,
+      decimals: intentDestination?.token.decimals ?? toToken?.decimals,
+      name: toToken?.name,
+      symbol: destinationSymbol,
+      tokenLogo: (intentDestination?.token as any)?.logo || toToken?.logo,
+    },
+    {
+      balanceAssets: swapBalances as any,
+      tokens: toToken ? [toToken, ...fromTokens] : fromTokens,
+    }
+  );
   const destinationChainName = getShortChainName(
     intentDestination?.chain.id ?? toToken?.chainId,
-    intentDestination?.chain.name || toToken?.chainName || ""
+    destinationVisuals.chainName ||
+      intentDestination?.chain.name ||
+      toToken?.chainName ||
+      ""
   );
   const destinationChain =
     mode === "deposit"
@@ -1036,11 +1059,9 @@ export function NexusOneProgressScreen({
             }}
           >
             <TokenLogoPair
-              chainLogo={intentDestination?.chain.logo || toToken?.chainLogo}
+              chainLogo={destinationVisuals.chainLogo}
               chainName={destinationChain}
-              tokenLogo={
-                (intentDestination?.token as any)?.logo || toToken?.logo
-              }
+              tokenLogo={destinationVisuals.tokenLogo}
               tokenSymbol={destinationSymbol}
             />
             <span>{formatDecimal(destinationAmount, 8)}</span>

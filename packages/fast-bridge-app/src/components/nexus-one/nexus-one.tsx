@@ -92,6 +92,10 @@ import {
   getDepositSourceId,
   resolveDepositSourceSelection,
 } from "./utils/deposit-source-selection";
+import {
+  resolveTokenVisuals,
+  type TokenVisualSources,
+} from "./utils/token-visuals";
 
 // ---------------------------------------------------------------------------
 // Types for swap step machine
@@ -1102,8 +1106,42 @@ function TruncatedAddress({
   );
 }
 
+const getEntryVisualSources = (
+  entry: SwapHistoryEntry,
+  visualSources: TokenVisualSources = {}
+): TokenVisualSources => ({
+  balanceAssets: visualSources.balanceAssets,
+  tokens: [
+    ...(entry.toToken ? [entry.toToken] : []),
+    ...entry.fromTokens,
+    ...(visualSources.tokens ?? []),
+  ],
+});
+
+const getDestinationVisuals = (
+  entry: SwapHistoryEntry,
+  visualSources?: TokenVisualSources
+) => {
+  const destination = entry.intentData?.destination;
+  return resolveTokenVisuals(
+    {
+      chainId: destination?.chain.id ?? entry.toToken?.chainId,
+      chainLogo: destination?.chain.logo || entry.toToken?.chainLogo,
+      chainName: destination?.chain.name || entry.toToken?.chainName,
+      contractAddress:
+        destination?.token.contractAddress ?? entry.toToken?.contractAddress,
+      decimals: destination?.token.decimals ?? entry.toToken?.decimals,
+      name: entry.toToken?.name ?? destination?.token.symbol,
+      symbol: destination?.token.symbol || entry.toToken?.symbol,
+      tokenLogo: (destination?.token as any)?.logo || entry.toToken?.logo,
+    },
+    getEntryVisualSources(entry, visualSources)
+  );
+};
+
 const getDisplayDestinationSourceRow = (
-  entry: SwapHistoryEntry
+  entry: SwapHistoryEntry,
+  visualSources?: TokenVisualSources
 ): HistorySourceRow | null => {
   if (entry.mode !== "deposit" && entry.mode !== "send") return null;
   if (!entry.toToken || !entry.requestedToAmount) return null;
@@ -1131,6 +1169,11 @@ const getDisplayDestinationSourceRow = (
   );
   if (displayAmount.lte(0)) return null;
 
+  const destinationVisuals = getDestinationVisuals(entry, visualSources);
+  const symbol = destinationVisuals.symbol || entry.toToken.symbol;
+  const chainName =
+    destinationVisuals.chainName ||
+    getShortChainName(entry.toToken.chainId, entry.toToken.chainName);
   const requestedValue = parseDecimalLoose(entry.requestedToValue);
   const destinationValue = parseDecimalLoose(
     entry.intentData?.destination.value
@@ -1144,16 +1187,16 @@ const getDisplayDestinationSourceRow = (
 
   return {
     key: `destination-balance-${entry.toToken.chainId}-${entry.toToken.contractAddress}`,
-    tokenLogo: entry.toToken.logo,
-    chainLogo: entry.toToken.chainLogo,
-    symbol: entry.toToken.symbol,
-    chainName: getShortChainName(
-      entry.toToken.chainId,
-      entry.toToken.chainName
-    ),
+    tokenLogo: destinationVisuals.tokenLogo,
+    chainLogo: destinationVisuals.chainLogo,
+    symbol,
+    chainName,
     amount: displayAmount
       .toDecimalPlaces(
-        Math.max(0, entry.toToken.decimals ?? 18),
+        Math.max(
+          0,
+          destinationVisuals.decimals ?? entry.toToken.decimals ?? 18
+        ),
         Decimal.ROUND_DOWN
       )
       .toFixed(),
@@ -1537,9 +1580,16 @@ const getFailureDescriptionForProgressStep = (
   return `${bridgeTokenSymbol} has been bridged and you have those funds in your wallet.`;
 };
 
-const getSourceRows = (entry: SwapHistoryEntry): HistorySourceRow[] => {
+const getSourceRows = (
+  entry: SwapHistoryEntry,
+  visualSources?: TokenVisualSources
+): HistorySourceRow[] => {
   const sources = entry.intentData?.sources ?? [];
-  const displayDestinationSourceRow = getDisplayDestinationSourceRow(entry);
+  const entryVisualSources = getEntryVisualSources(entry, visualSources);
+  const displayDestinationSourceRow = getDisplayDestinationSourceRow(
+    entry,
+    visualSources
+  );
   if (sources.length > 0) {
     const sourceRows = sources.map((source, index) => {
       const fallback = entry.fromTokens.find(
@@ -1549,13 +1599,29 @@ const getSourceRows = (entry: SwapHistoryEntry): HistorySourceRow[] => {
             source.token.contractAddress?.toLowerCase() ||
             token.symbol === source.token.symbol)
       );
+      const sourceVisuals = resolveTokenVisuals(
+        {
+          chainId: source.chain.id,
+          chainLogo: source.chain.logo || fallback?.chainLogo,
+          chainName: source.chain.name || fallback?.chainName,
+          contractAddress:
+            source.token.contractAddress || fallback?.contractAddress,
+          decimals: source.token.decimals ?? fallback?.decimals,
+          name: fallback?.name ?? source.token.symbol,
+          symbol: source.token.symbol || fallback?.symbol,
+          tokenLogo: (source.token as any)?.logo || fallback?.logo,
+        },
+        entryVisualSources
+      );
 
       return {
         key: `${source.chain.id}-${source.token.contractAddress}-${index}`,
-        tokenLogo: fallback?.logo,
-        chainLogo: source.chain.logo || fallback?.chainLogo,
-        symbol: source.token.symbol,
-        chainName: getShortChainName(source.chain.id, source.chain.name),
+        tokenLogo: sourceVisuals.tokenLogo,
+        chainLogo: sourceVisuals.chainLogo,
+        symbol: sourceVisuals.symbol || source.token.symbol,
+        chainName:
+          sourceVisuals.chainName ||
+          getShortChainName(source.chain.id, source.chain.name),
         amount: source.amount,
         value: source.value,
       };
@@ -1566,15 +1632,33 @@ const getSourceRows = (entry: SwapHistoryEntry): HistorySourceRow[] => {
       : sourceRows;
   }
 
-  const fallbackRows = entry.fromTokens.map((token, index) => ({
-    key: `${token.chainId}-${token.contractAddress}-${index}`,
-    tokenLogo: token.logo,
-    chainLogo: token.chainLogo,
-    symbol: token.symbol,
-    chainName: getShortChainName(token.chainId, token.chainName),
-    amount: token.userAmount || "0",
-    value: token.balanceInFiat,
-  }));
+  const fallbackRows = entry.fromTokens.map((token, index) => {
+    const tokenVisuals = resolveTokenVisuals(
+      {
+        chainId: token.chainId,
+        chainLogo: token.chainLogo,
+        chainName: token.chainName,
+        contractAddress: token.contractAddress,
+        decimals: token.decimals,
+        name: token.name,
+        symbol: token.symbol,
+        tokenLogo: token.logo,
+      },
+      entryVisualSources
+    );
+
+    return {
+      key: `${token.chainId}-${token.contractAddress}-${index}`,
+      tokenLogo: tokenVisuals.tokenLogo,
+      chainLogo: tokenVisuals.chainLogo,
+      symbol: tokenVisuals.symbol || token.symbol,
+      chainName:
+        tokenVisuals.chainName ||
+        getShortChainName(token.chainId, token.chainName),
+      amount: token.userAmount || "0",
+      value: token.balanceInFiat,
+    };
+  });
 
   return displayDestinationSourceRow
     ? [displayDestinationSourceRow, ...fallbackRows]
@@ -1586,13 +1670,15 @@ function SourceRowsList({
   maxHeight = 236,
   borderTopFirst = true,
   scrollAfterRows = 4,
+  visualSources,
 }: {
   entry: SwapHistoryEntry;
   maxHeight?: number;
   borderTopFirst?: boolean;
   scrollAfterRows?: number;
+  visualSources?: TokenVisualSources;
 }) {
-  const rows = getSourceRows(entry);
+  const rows = getSourceRows(entry, visualSources);
   const shouldScroll = rows.length > scrollAfterRows;
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -1719,22 +1805,31 @@ function SourceRowsList({
 function SwapReceiptPanel({
   entry,
   onDone,
+  visualSources,
 }: {
   entry: SwapHistoryEntry;
   onDone: () => void;
+  visualSources?: TokenVisualSources;
 }) {
   const [showSourceDetails, setShowSourceDetails] = useState(false);
   const destination = entry.intentData?.destination;
+  const destinationVisuals = getDestinationVisuals(entry, visualSources);
   const isFailed = entry.status === "failed";
   const isTimeout = entry.status === "timeout";
   const isDeposit = entry.mode === "deposit";
   const isSend = entry.mode === "send";
   const isRecipientTransfer = isSend || Boolean(entry.recipientAddress);
-  const tokenSymbol = destination?.token.symbol || entry.toToken?.symbol || "";
-  const chainName = getShortChainName(
-    destination?.chain.id ?? entry.toToken?.chainId,
-    destination?.chain.name || entry.toToken?.chainName || ""
-  );
+  const tokenSymbol =
+    destinationVisuals.symbol ||
+    destination?.token.symbol ||
+    entry.toToken?.symbol ||
+    "";
+  const chainName =
+    destinationVisuals.chainName ||
+    getShortChainName(
+      destination?.chain.id ?? entry.toToken?.chainId,
+      destination?.chain.name || entry.toToken?.chainName || ""
+    );
   const depositVenue =
     entry.opportunity?.title || entry.opportunity?.protocol || chainName;
   const amount = destination?.amount || "";
@@ -1752,7 +1847,7 @@ function SwapReceiptPanel({
   const intentLabel = entry.intentId
     ? `Intent #${entry.intentId}`
     : "View Explorer";
-  const sourceRows = getSourceRows(entry);
+  const sourceRows = getSourceRows(entry, visualSources);
   const sourceCount = sourceRows.length;
   const sourceTotalUsd = sourceRows.reduce(
     (sum, source) => sum.plus(parseDecimalLoose(source.value) ?? 0),
@@ -1815,8 +1910,8 @@ function SwapReceiptPanel({
             size={45}
             src={
               isDeposit
-                ? entry.opportunity?.logo || entry.toToken?.logo
-                : entry.toToken?.logo
+                ? entry.opportunity?.logo || destinationVisuals.tokenLogo
+                : destinationVisuals.tokenLogo
             }
           />
           <div
@@ -1998,6 +2093,7 @@ function SwapReceiptPanel({
               entry={entry}
               maxHeight={isDeposit ? 184 : 212}
               scrollAfterRows={isDeposit ? 3 : 4}
+              visualSources={visualSources}
             />
           </div>
         </div>
@@ -2160,9 +2256,11 @@ function HistoryStatusPill({ status }: { status: SwapHistoryStatus }) {
 function SwapHistoryPanel({
   entries,
   now,
+  visualSources,
 }: {
   entries: SwapHistoryEntry[];
   now: number;
+  visualSources?: TokenVisualSources;
 }) {
   if (entries.length === 0) {
     return (
@@ -2241,15 +2339,20 @@ function SwapHistoryPanel({
     >
       {sortedEntries.map((entry) => {
         const destination = entry.intentData?.destination;
-        const destinationLogo = entry.toToken?.logo;
-        const destinationChainLogo =
-          destination?.chain.logo || entry.toToken?.chainLogo || "";
-        const destinationChainName = getShortChainName(
-          destination?.chain.id ?? entry.toToken?.chainId,
-          destination?.chain.name || entry.toToken?.chainName || ""
-        );
+        const destinationVisuals = getDestinationVisuals(entry, visualSources);
+        const destinationLogo = destinationVisuals.tokenLogo;
+        const destinationChainLogo = destinationVisuals.chainLogo || "";
+        const destinationChainName =
+          destinationVisuals.chainName ||
+          getShortChainName(
+            destination?.chain.id ?? entry.toToken?.chainId,
+            destination?.chain.name || entry.toToken?.chainName || ""
+          );
         const destinationSymbol =
-          destination?.token.symbol || entry.toToken?.symbol || "";
+          destinationVisuals.symbol ||
+          destination?.token.symbol ||
+          entry.toToken?.symbol ||
+          "";
         const destinationValue =
           (entry.mode === "deposit" || entry.mode === "send") &&
           entry.requestedToValue
@@ -2263,7 +2366,7 @@ function SwapHistoryPanel({
         const canShowRefund =
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
-        const sourceRows = getSourceRows(entry);
+        const sourceRows = getSourceRows(entry, visualSources);
         const historyExplorerUrl = getHistoryExplorerUrl(entry);
 
         return (
@@ -8375,6 +8478,16 @@ function NexusOneInner({
       ? tokens
       : [...tokens, destinationBalanceDisplayToken];
   })();
+  const currentTokenVisualSources = useMemo<TokenVisualSources>(
+    () => ({
+      balanceAssets: swapBalance,
+      tokens: [
+        ...displayFromTokens,
+        ...(toTokenWithFetchedBalance ? [toTokenWithFetchedBalance] : []),
+      ],
+    }),
+    [displayFromTokens, swapBalance, toTokenWithFetchedBalance]
+  );
   const displayExactOutRouteLoading =
     isExactOutRouteLoading && !shouldShowPredictiveExactOutDisplay;
   const totalSwapBalanceUsd = getSwapBalanceTotalUsd()
@@ -8730,7 +8843,6 @@ function NexusOneInner({
                       opportunity={selectedOpportunity}
                       recipientAddress={transferRecipientAddress}
                       steps={steps}
-                      supportedTokenAssets={supportedChainsAndTokens}
                       swapBalances={swapBalance}
                       swapType={swapType}
                       toAmount={previewDestinationAmount}
@@ -8757,6 +8869,7 @@ function NexusOneInner({
                     progressEvents={progressEvents}
                     recipientAddress={transferRecipientAddress}
                     steps={steps}
+                    swapBalances={swapBalance}
                     toAmount={previewDestinationAmount}
                     toAmountUsd={previewToAmountUsd}
                     toToken={toTokenWithFetchedBalance}
@@ -8773,6 +8886,7 @@ function NexusOneInner({
                             ? handleFailureBack
                             : handleReset
                         }
+                        visualSources={currentTokenVisualSources}
                       />
                     </div>
                   )}
@@ -8783,7 +8897,11 @@ function NexusOneInner({
           {/* HISTORY SCREEN                                                   */}
           {/* =============================================================== */}
           {swapStep === "history" && (
-            <SwapHistoryPanel entries={swapHistory} now={historyNow} />
+            <SwapHistoryPanel
+              entries={swapHistory}
+              now={historyNow}
+              visualSources={currentTokenVisualSources}
+            />
           )}
 
           {/* =============================================================== */}
