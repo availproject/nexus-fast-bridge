@@ -10,8 +10,6 @@ allowBuilds:
   secp256k1: true
   utf-8-validate: true
   "@avail-project/ca-common": true
-  "@avail-project/nexus-sdk-v2": true
-  "@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#64bf04066c3ad70a0715504f810a99b0c01f77a0": true
   "@avail-project/nexus-types": true
   msw: true
   sharp: true
@@ -21,7 +19,7 @@ blockExoticSubdeps: false
 
 minimumReleaseAge: 5760
 minimumReleaseAgeExclude:
-  - "@avail-project/nexus-sdk-v2"
+  - "@avail-project/nexus-core"
 
 overrides:
   "@protobufjs/utf8": "1.1.1"

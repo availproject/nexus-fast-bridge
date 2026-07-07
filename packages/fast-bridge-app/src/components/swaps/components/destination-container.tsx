@@ -1,4 +1,4 @@
-import type { OnSwapIntentHookData } from "@avail-project/nexus-sdk-v2";
+import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
 import { ChevronDown } from "lucide-react";
 import React, { type RefObject, useMemo } from "react";
 import { cn } from "@/lib/utils";

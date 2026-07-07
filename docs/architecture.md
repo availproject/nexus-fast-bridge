@@ -46,7 +46,7 @@ import { appConfig, chainFeatures } from "@fastbridge/runtime";
 
 and receive chain-specific values from the current app wrapper.
 
-Nexus SDK v2 is imported directly from `@avail-project/nexus-sdk-v2` in shared
+Nexus Core is imported directly from `@avail-project/nexus-core` in shared
 code. Chain-specific behavior should still flow through runtime config and
 feature flags rather than SDK aliases or wrapper forks.
 

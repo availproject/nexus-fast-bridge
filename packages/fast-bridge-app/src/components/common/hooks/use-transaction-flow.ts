@@ -4,7 +4,7 @@ import type {
   OnAllowanceHookData,
   OnIntentHookData,
   TokenBalance,
-} from "@avail-project/nexus-sdk-v2";
+} from "@avail-project/nexus-core";
 import {
   type RefObject,
   useCallback,

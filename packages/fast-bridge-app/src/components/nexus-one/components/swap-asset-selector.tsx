@@ -1,8 +1,8 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
-import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-sdk-v2";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
 import {
   Check,

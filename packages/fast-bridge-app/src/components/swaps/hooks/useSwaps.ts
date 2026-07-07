@@ -5,8 +5,8 @@ import type {
   SwapExactOutParams,
   Source as SwapSource,
   TokenBalance,
-} from "@avail-project/nexus-sdk-v2";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+} from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import {
   type RefObject,
   useCallback,

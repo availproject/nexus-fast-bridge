@@ -10,8 +10,8 @@ import {
   type OnSwapIntentHookData,
   type SupportedChainsAndTokensResult,
   type TokenBalance,
-} from "@avail-project/nexus-sdk-v2";
-import { getCoinbaseRates } from "@avail-project/nexus-sdk-v2/utils";
+} from "@avail-project/nexus-core";
+import { getCoinbaseRates } from "@avail-project/nexus-core/utils";
 
 export type UserAsset = TokenBalance & {
   breakdown: (ChainBalance & {

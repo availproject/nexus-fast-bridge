@@ -2,7 +2,7 @@ import type {
   NexusClient,
   OnAllowanceHookData,
   OnIntentHookData,
-} from "@avail-project/nexus-sdk-v2";
+} from "@avail-project/nexus-core";
 import {
   type Dispatch,
   type RefObject,

@@ -27,9 +27,9 @@ importers:
 
   .:
     dependencies:
-      '@avail-project/nexus-sdk-v2':
-        specifier: git+https://github.com/availproject/nexus-sdk-v2.git#v0.0.5
-        version: git+https://github.com/availproject/nexus-sdk-v2.git#64bf04066c3ad70a0715504f810a99b0c01f77a0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
+      '@avail-project/nexus-core':
+        specifier: 2.0.0
+        version: 2.0.0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -180,9 +180,8 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#64bf04066c3ad70a0715504f810a99b0c01f77a0':
-    resolution: {commit: 64bf04066c3ad70a0715504f810a99b0c01f77a0, repo: https://github.com/availproject/nexus-sdk-v2.git, type: git}
-    version: 0.0.1
+  '@avail-project/nexus-core@2.0.0':
+    resolution: {integrity: sha512-Pcrrw9paW0ZgcHoMk2RPwQkpcKwgV3Be0cu/mp5V6x0MU8F4U/TXKnnjUXSI+2mBhDq4YdkBLGxmAIHx1M8+NA==}
     engines: {node: '>=18.0.0'}
 
   '@avail-project/nexus-types@0.1.21':
@@ -3132,10 +3131,6 @@ packages:
   hash.js@1.1.7:
     resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
 
-  hasown@2.0.2:
-    resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
-    engines: {node: '>= 0.4'}
-
   hasown@2.0.4:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
@@ -4710,7 +4705,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/nexus-sdk-v2@git+https://github.com/availproject/nexus-sdk-v2.git#64bf04066c3ad70a0715504f810a99b0c01f77a0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
+  '@avail-project/nexus-core@2.0.0(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@avail-project/nexus-types': 0.1.21(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)(zod@4.4.3)
       '@opentelemetry/api-logs': 0.219.0
@@ -8846,7 +8841,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   es-toolkit@1.33.0: {}
 
@@ -9065,7 +9060,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       math-intrinsics: 1.1.0
 
   get-nonce@1.0.1: {}
@@ -9140,10 +9135,6 @@ snapshots:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
 
-  hasown@2.0.2:
-    dependencies:
-      function-bind: 1.1.2
-
   hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
@@ -9198,7 +9189,7 @@ snapshots:
 
   is-core-module@2.16.1:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-fullwidth-code-point@3.0.0: {}
 
@@ -9220,7 +9211,7 @@ snapshots:
       call-bound: 1.0.4
       gopd: 1.2.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-retry-allowed@2.2.0: {}
 

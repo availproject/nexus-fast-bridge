@@ -1,5 +1,5 @@
 "use client";
-import type { EthereumProvider } from "@avail-project/nexus-sdk-v2";
+import type { EthereumProvider } from "@avail-project/nexus-core";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

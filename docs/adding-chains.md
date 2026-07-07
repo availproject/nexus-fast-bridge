@@ -43,8 +43,8 @@ Important keys include chain IDs, RPC URLs, explorer URL, colors, token defaults
 2. Tune behavior flags in `apps/<slug>/src/runtime.ts`.
 Use this for chain-specific UX/logic differences.
 
-3. Use the shared Nexus SDK v2 dependency.
-Shared app code imports `@avail-project/nexus-sdk-v2` directly; chain-specific
+3. Use the shared Nexus Core dependency.
+Shared app code imports `@avail-project/nexus-core` directly; chain-specific
 behavior should be configured through runtime flags instead of per-chain SDK
 aliases.
 

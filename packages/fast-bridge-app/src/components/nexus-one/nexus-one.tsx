@@ -1,10 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 "use client";
 
-import {
-  ERROR_CODES,
-  type EthereumProvider,
-} from "@avail-project/nexus-sdk-v2";
+import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {

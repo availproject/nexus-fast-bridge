@@ -1,7 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
 import React, {
   useCallback,

@@ -1,5 +1,5 @@
 "use client";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
 import {
