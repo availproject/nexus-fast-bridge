@@ -71,12 +71,15 @@ interface SwapAssetSelectorProps {
   onClearSelection?: () => void;
   onDone?: () => void;
   onFilterTabSelect?: (tab: Exclude<FilterTab, "custom">) => void;
+  onRestoreAuto?: () => void;
   onSelect: (token: SwapTokenOption) => void;
   onSelectionChange?: (tokens: SwapTokenOption[]) => void;
   onToggle?: (token: SwapTokenOption) => void;
   preserveSelectedBelowMinimum?: boolean;
   requiredUsd?: string;
   selectedTokens?: SwapTokenOption[];
+  showBelowMinimumInline?: boolean;
+  showRestoreAuto?: boolean;
   staticOptions?: SwapTokenOption[];
   swapBalance: UserAsset[] | null;
   swapSupportedChains?: SupportedChainsAndTokensResult | null;
@@ -602,7 +605,7 @@ function isNativeToken(t: SwapTokenOption) {
   return false;
 }
 
-const MIN_FIAT_THRESHOLD = 0;
+const MIN_FIAT_THRESHOLD = 1;
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
@@ -1028,15 +1031,18 @@ export function SwapAssetSelector({
   onDone,
   allowUnified = false,
   preserveSelectedBelowMinimum = false,
+  showBelowMinimumInline = false,
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
   initialFilterTab = "all",
   filterTabBehavior = "select-all",
   onFilterTabSelect,
+  onRestoreAuto,
   lockedTokens = [],
   onSelectionChange,
   requiredUsd,
+  showRestoreAuto = false,
 }: SwapAssetSelectorProps) {
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChains),
@@ -1202,16 +1208,23 @@ export function SwapAssetSelector({
         result = result.filter(isStableToken);
       }
 
+      if (showBelowMinimumInline) {
+        return mergeTokenOptions(result, lockedSelectedTokens);
+      }
+
       return mergeTokenOptions(
         result.filter(
           (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
         ),
-        lockedSelectedTokens.filter(
-          (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
-        )
+        lockedSelectedTokens
       );
     },
-    [allTokens, lockedSelectedTokens, selectedChainFilter]
+    [
+      allTokens,
+      lockedSelectedTokens,
+      selectedChainFilter,
+      showBelowMinimumInline,
+    ]
   );
 
   const selectionMatchesFilterTab = useCallback(
@@ -1277,6 +1290,11 @@ export function SwapAssetSelector({
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
+      if (
+        lockedSelectedTokens.some((locked) => sameTokenOption(locked, token))
+      ) {
+        return true;
+      }
       if (!preserveSelectedBelowMinimum) return false;
 
       return activeSelectedTokens.some(
@@ -1290,7 +1308,7 @@ export function SwapAssetSelector({
           )
       );
     },
-    [activeSelectedTokens, preserveSelectedBelowMinimum]
+    [activeSelectedTokens, lockedSelectedTokens, preserveSelectedBelowMinimum]
   );
 
   const isUnifiedSelectedForVisibility = useCallback(
@@ -1309,6 +1327,7 @@ export function SwapAssetSelector({
     for (const t of filtered) {
       const fiat = getTokenFiatValue(t);
       if (
+        showBelowMinimumInline ||
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
         isPrioritySearchMatch(t, query)
@@ -1317,14 +1336,19 @@ export function SwapAssetSelector({
       else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
-  }, [filtered, isTokenSelectedForVisibility, query]);
+  }, [filtered, isTokenSelectedForVisibility, query, showBelowMinimumInline]);
 
   /* Group by symbol */
   const groupedFiltered = useMemo(() => {
     const groups: Record<string, SwapTokenOption[]> = {};
     for (const token of filtered) {
       const unifiedSym = allowUnified ? getUnifiedSymbol(token) : null;
-      if (unifiedSym && getTokenFiatValue(token) < MIN_FIAT_THRESHOLD) {
+      if (
+        !showBelowMinimumInline &&
+        unifiedSym &&
+        getTokenFiatValue(token) < MIN_FIAT_THRESHOLD &&
+        !isTokenSelectedForVisibility(token)
+      ) {
         continue;
       }
       const key = unifiedSym ?? `${token.contractAddress}-${token.chainId}`;
@@ -1375,6 +1399,9 @@ export function SwapAssetSelector({
         const hasPrioritySearchMatch = group.tokens.some((token) =>
           isPrioritySearchMatch(token, query)
         );
+        if (showBelowMinimumInline) {
+          return true;
+        }
         if (group.isUnifiedCandidate) {
           return (
             group.totalFiat >= MIN_FIAT_THRESHOLD ||
@@ -1416,6 +1443,7 @@ export function SwapAssetSelector({
     isTokenSelectedForVisibility,
     isUnifiedSelectedForVisibility,
     query,
+    showBelowMinimumInline,
   ]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -1678,6 +1706,7 @@ export function SwapAssetSelector({
   const getVisibleIndividualTokens = (group: (typeof groupedFiltered)[0]) =>
     group.tokens.filter(
       (token) =>
+        showBelowMinimumInline ||
         getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(token) ||
         isPrioritySearchMatch(token, query)
@@ -1688,7 +1717,8 @@ export function SwapAssetSelector({
       !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
     const individualTokens = getVisibleIndividualTokens(group);
     const hasVisibleUnifiedRow =
-      (group.totalFiat >= MIN_FIAT_THRESHOLD ||
+      (showBelowMinimumInline ||
+        group.totalFiat >= MIN_FIAT_THRESHOLD ||
         isUnifiedSelectedForVisibility(group.symbol)) &&
       !unifiedSelectedInOther;
     const visibleTokensCount = individualTokens.filter(
@@ -1712,7 +1742,8 @@ export function SwapAssetSelector({
       !isMulti &&
       (anyIndividualSelectedInOther ||
         anyIndividualSelectedInCurrent ||
-        (group.totalFiat < MIN_FIAT_THRESHOLD &&
+        (!showBelowMinimumInline &&
+          group.totalFiat < MIN_FIAT_THRESHOLD &&
           !isUnifiedSelectedForVisibility(group.symbol)));
     const shouldHideIndividualRows =
       !isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent);
@@ -1995,30 +2026,36 @@ export function SwapAssetSelector({
   const isLoading = !staticOptions && swapBalance === null;
   const selectedAssetCount = activeSelectedTokens.length;
   const requiredUsdAmount = parseTokenAmount(requiredUsd);
+  const shouldCountSelectedUsd = (token: SwapTokenOption, value: Decimal) =>
+    value.gt(0) &&
+    (lockedSelectedTokens.some((locked) => sameTokenOption(locked, token)) ||
+      value.gte(MIN_FIAT_THRESHOLD));
   const selectedUsdAmount = activeSelectedTokens.reduce((sum, token) => {
     if (token.isUnified && token.sourceTokens?.length) {
       return sum.plus(
         token.sourceTokens.reduce((sourceSum, source) => {
           const value =
             parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
-          return value.gte(MIN_FIAT_THRESHOLD)
+          return shouldCountSelectedUsd(source, value)
             ? sourceSum.plus(value)
             : sourceSum;
         }, new Decimal(0))
       );
     }
     const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
-    return value.gte(MIN_FIAT_THRESHOLD) ? sum.plus(value) : sum;
+    return shouldCountSelectedUsd(token, value) ? sum.plus(value) : sum;
   }, new Decimal(0));
   const selectionDeficitUsdAmount =
     requiredUsdAmount && selectedUsdAmount.lt(requiredUsdAmount)
       ? requiredUsdAmount.minus(selectedUsdAmount)
       : new Decimal(0);
-  const shouldShowSelectionProgress = Boolean(
-    isMulti &&
-      requiredUsdAmount &&
+  const hasSelectionShortfall = Boolean(
+    requiredUsdAmount &&
       requiredUsdAmount.gt(0) &&
       selectionDeficitUsdAmount.gt(0)
+  );
+  const shouldShowSelectionProgress = Boolean(
+    isMulti && requiredUsdAmount && requiredUsdAmount.gt(0)
   );
   const selectionProgressPercent =
     shouldShowSelectionProgress && requiredUsdAmount
@@ -2027,9 +2064,7 @@ export function SwapAssetSelector({
           selectedUsdAmount.div(requiredUsdAmount).mul(100)
         ).toNumber()
       : 0;
-  const subtitle = isMulti
-    ? `${selectedAssetCount} asset${selectedAssetCount === 1 ? "" : "s"} selected`
-    : "";
+  const subtitle = isMulti ? "Select token and chain" : "";
 
   useEffect(() => {
     setPortalRoot(
@@ -2122,6 +2157,7 @@ export function SwapAssetSelector({
       : selectedChainToken?.chainName || "Chain";
 
   const handleDone = () => {
+    if (hasSelectionShortfall) return;
     if (isMulti && onSelectionChange) {
       onSelectionChange(
         mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
@@ -2732,7 +2768,10 @@ export function SwapAssetSelector({
                     lineHeight: "20px",
                   }}
                 >
-                  Required
+                  <strong style={{ color: "#161615", fontWeight: 500 }}>
+                    Selected
+                  </strong>
+                  /Required
                 </span>
                 <span
                   style={{
@@ -2743,11 +2782,48 @@ export function SwapAssetSelector({
                   }}
                 >
                   <strong style={{ color: "#161615", fontWeight: 600 }}>
-                    {formatUsdBalanceLabel(selectionDeficitUsdAmount)}
+                    {formatUsdBalanceLabel(selectedUsdAmount)}
                   </strong>{" "}
-                  more
+                  / {formatUsdBalanceLabel(requiredUsdAmount)}
                 </span>
               </div>
+              {showRestoreAuto && onRestoreAuto && (
+                <div
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#848483",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 12,
+                    }}
+                  >
+                    Manually-selected · covers{" "}
+                    {formatUsdBalanceLabel(selectedUsdAmount)}
+                  </span>
+                  <button
+                    onClick={onRestoreAuto}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#006BF4",
+                      cursor: "pointer",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      padding: 0,
+                    }}
+                    type="button"
+                  >
+                    Restore Auto
+                  </button>
+                </div>
+              )}
               <div
                 style={{
                   backgroundColor: "#F0F0EF",
@@ -2769,7 +2845,7 @@ export function SwapAssetSelector({
               </div>
             </div>
           )}
-          {!shouldShowSelectionProgress && (
+          {!hasSelectionShortfall && (
             <button
               onClick={handleDone}
               style={{

@@ -143,6 +143,7 @@ const FILTER_TABS = [
   { label: "All", key: "all" },
   { label: "Native", key: "native" },
   { label: "Stables", key: "stables" },
+  { label: "Custom", key: "custom" },
 ];
 
 const getTokenBalanceKey = (chainId?: number, address?: string) => {
@@ -745,6 +746,11 @@ export function ReceiveAssetSelector({
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter((t) => dynamicStableSymbols.has(t.symbol));
+    else if (activeTab === "custom")
+      result = result.filter(
+        (token) =>
+          !isNativeToken(token) && !dynamicStableSymbols.has(token.symbol)
+      );
 
     return result;
   }, [
@@ -852,7 +858,17 @@ export function ReceiveAssetSelector({
               color: "#161615",
             }}
           >
-            Select token to receive
+            Choose assets to receive
+          </span>
+          <span
+            style={{
+              color: "#8E8E89",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 13,
+              lineHeight: "18px",
+            }}
+          >
+            Select token and chain
           </span>
         </div>
       </div>

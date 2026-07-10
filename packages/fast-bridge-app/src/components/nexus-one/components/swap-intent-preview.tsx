@@ -18,7 +18,12 @@ import { type SwapTokenOption } from "./swap-asset-selector";
 export interface SwapIntentSource {
   amount: string;
   chain: { id: number; logo: string; name: string };
-  token: { contractAddress: string; decimals: number; symbol: string };
+  token: {
+    contractAddress: string;
+    decimals: number;
+    logo?: string;
+    symbol: string;
+  };
   value?: string;
 }
 
@@ -28,9 +33,19 @@ export interface SwapIntentDestination {
   gas: {
     amount: string;
     value?: string;
-    token: { contractAddress: string; decimals: number; symbol: string };
+    token: {
+      contractAddress: string;
+      decimals: number;
+      logo?: string;
+      symbol: string;
+    };
   };
-  token: { contractAddress: string; decimals: number; symbol: string };
+  token: {
+    contractAddress: string;
+    decimals: number;
+    logo?: string;
+    symbol: string;
+  };
   value?: string;
 }
 
@@ -59,6 +74,7 @@ export interface SwapIntentData {
 
 export interface SwapIntentPreviewProps {
   activeMode?: NexusOneMode;
+  destinationGasFeeUsd?: string;
   estimatedTime?: string;
   explorerUrls?: {
     sourceExplorerUrl: string | null;
@@ -179,8 +195,25 @@ const isNativeTokenAddress = (address?: string) => {
   );
 };
 
+const getSourceDisplayKey = (
+  chainId?: number | string,
+  address?: string,
+  symbol?: string
+) => {
+  const chainKey = chainId ?? "";
+  const normalizedAddress = address?.toLowerCase();
+  return normalizedAddress
+    ? `${chainKey}-${normalizedAddress}`
+    : `${chainKey}-symbol-${(symbol ?? "").toUpperCase()}`;
+};
+
 const normalizeIntentToken = <
-  T extends { contractAddress?: string; decimals?: number; symbol?: string },
+  T extends {
+    contractAddress?: string;
+    decimals?: number;
+    logo?: string;
+    symbol?: string;
+  },
 >(
   token: T | undefined,
   chainId?: number
@@ -200,7 +233,7 @@ const normalizeIntentToken = <
   return {
     contractAddress: token?.contractAddress ?? "",
     decimals,
-    logo: shouldUseNative ? chainMeta?.logo : undefined,
+    logo: token?.logo || (shouldUseNative ? chainMeta?.logo : undefined),
     symbol,
   };
 };
@@ -650,6 +683,7 @@ function AnimatedDetails({
 }
 
 export function SwapIntentPreview({
+  destinationGasFeeUsd,
   fromTokens,
   fromToken,
   toToken,
@@ -710,8 +744,7 @@ export function SwapIntentPreview({
   const isDepositMode = flowMode === "deposit";
   const isSendMode = flowMode === "send";
   const hasRecipientTransfer = Boolean(recipientAddress) && !isDepositMode;
-  const isExactOutDisplayFlow =
-    (isDepositMode || isSendMode) && swapType === "exactOut";
+  const isExactOutDisplayFlow = swapType === "exactOut";
   const shouldShowSwapBuffer = swapType !== "exactIn";
   const intentSources = intentData?.sources ?? [];
   const intentDest = intentData?.destination;
@@ -769,7 +802,8 @@ export function SwapIntentPreview({
     fallbackSources.length ||
     baseSourceSymbols.length;
   const hasResolvedQuote = Boolean(
-    normalizedIntentDest && normalizedIntentSources.length > 0
+    normalizedIntentDest &&
+      (normalizedIntentSources.length > 0 || isExactOutDisplayFlow)
   );
   const quoteUnavailable = !isLoading && !hasResolvedQuote;
 
@@ -886,26 +920,39 @@ export function SwapIntentPreview({
       : undefined);
   const protocolFeeNumber = parseDecimal(bridgeFeeData?.protocol);
   const solverFeeNumber = parseDecimal(bridgeFeeData?.solver);
-  const gasSuppliedNumber = parseDecimal(bridgeFeeData?.gasSupplied);
+  const bridgeGasSuppliedNumber = parseDecimal(bridgeFeeData?.gasSupplied);
+  const destinationGasValueNumber =
+    parseDecimal(normalizedIntentDest?.gas?.value) ??
+    parseDecimal(destinationGasFeeUsd);
+  const destinationGasSuppliedNumber =
+    bridgeGasSuppliedNumber ?? destinationGasValueNumber;
+  const bridgeTotalWithDestinationGas =
+    bridgeTotalNumber &&
+    !bridgeGasSuppliedNumber &&
+    destinationGasValueNumber &&
+    destinationGasValueNumber.gt(0)
+      ? bridgeTotalNumber.plus(destinationGasValueNumber)
+      : bridgeTotalNumber;
   const swapBufferNumber = parseDecimal(intentData?.feesAndBuffer?.buffer);
   const bridgeComponentsTotalNumber = bridgeFeeData
     ? [
         executionGasFeeNumber,
         protocolFeeNumber,
         solverFeeNumber,
-        gasSuppliedNumber,
+        destinationGasSuppliedNumber,
       ].reduce<Decimal>(
         (sum, value) => sum.plus(value ?? new Decimal(0)),
         new Decimal(0)
       )
     : undefined;
   const explicitFeeNumber =
-    bridgeTotalNumber ??
+    bridgeTotalWithDestinationGas ??
     (bridgeComponentsTotalNumber && bridgeComponentsTotalNumber.gt(0)
       ? bridgeComponentsTotalNumber
       : undefined) ??
     parseDecimal(totalFeeUsd) ??
-    parseDecimal((intentData as any)?.fees?.total);
+    parseDecimal((intentData as any)?.fees?.total) ??
+    destinationGasSuppliedNumber;
   const feeNumber =
     explicitFeeNumber ?? (hasFiatQuote ? new Decimal(0) : undefined);
   const quotedDestinationUsdNumber = parseDecimal(normalizedIntentDest?.value);
@@ -991,13 +1038,25 @@ export function SwapIntentPreview({
           label: "Solver Fee",
           value: solverFeeNumber ?? new Decimal(0),
         },
-        ...(gasSuppliedNumber && gasSuppliedNumber.gt(0)
-          ? [{ label: "Gas Sponsorship", value: gasSuppliedNumber }]
+        ...(destinationGasSuppliedNumber && destinationGasSuppliedNumber.gt(0)
+          ? [{ label: "Gas Sponsorship", value: destinationGasSuppliedNumber }]
           : []),
       ]
-    : feeNumber !== undefined
-      ? [{ label: "Network & protocol", value: feeNumber }]
-      : [];
+    : destinationGasSuppliedNumber && destinationGasSuppliedNumber.gt(0)
+      ? [
+          ...(feeNumber && feeNumber.gt(destinationGasSuppliedNumber)
+            ? [
+                {
+                  label: "Network & protocol",
+                  value: feeNumber.minus(destinationGasSuppliedNumber),
+                },
+              ]
+            : []),
+          { label: "Gas Sponsorship", value: destinationGasSuppliedNumber },
+        ]
+      : feeNumber !== undefined
+        ? [{ label: "Network & protocol", value: feeNumber }]
+        : [];
 
   const pendingLabel = isLoading ? "Fetching quote" : "Quote unavailable";
   const pendingValue = isLoading ? "..." : "--";
@@ -1027,29 +1086,30 @@ export function SwapIntentPreview({
   const destinationTokenDisplay = hasResolvedQuote
     ? `${formatTokenAmount(destinationTokenAmount)} ${destTokenSymbol}`
     : pendingLabel;
-  const destinationSourceKey = [
-    normalizedIntentDest?.chain.id ?? toToken?.chainId ?? "",
-    (
-      normalizedIntentDest?.token.contractAddress ??
-      toToken?.contractAddress ??
-      ""
-    ).toLowerCase(),
-  ].join("-");
+  const destinationSourceAddress =
+    normalizedIntentDest?.token.contractAddress || toToken?.contractAddress;
+  const destinationSourceKey = getSourceDisplayKey(
+    normalizedIntentDest?.chain.id ?? toToken?.chainId,
+    destinationSourceAddress,
+    destTokenSymbol
+  );
   const hasDestinationSourceRow = Boolean(
-    destinationSourceKey !== "-" &&
+    destinationSourceKey &&
       (normalizedIntentSources.length > 0
         ? normalizedIntentSources.some((source) => {
-            const sourceKey = [
+            const sourceKey = getSourceDisplayKey(
               source.chain.id,
-              source.token.contractAddress.toLowerCase(),
-            ].join("-");
+              source.token.contractAddress,
+              source.token.symbol
+            );
             return sourceKey === destinationSourceKey;
           })
         : fallbackSources.some((source) => {
-            const sourceKey = [
+            const sourceKey = getSourceDisplayKey(
               source.chainId ?? "",
-              source.contractAddress.toLowerCase(),
-            ].join("-");
+              source.contractAddress,
+              source.symbol
+            );
             return sourceKey === destinationSourceKey;
           }))
   );
@@ -1081,10 +1141,11 @@ export function SwapIntentPreview({
             tokenVisualSources
           );
 
-          const sourceKey = [
+          const sourceKey = getSourceDisplayKey(
             source.chain.id,
-            source.token.contractAddress.toLowerCase(),
-          ].join("-");
+            source.token.contractAddress,
+            source.token.symbol
+          );
           const isDestinationSource =
             sourceKey === destinationSourceKey &&
             displayOnlyDestinationSourceAmount !== undefined;
@@ -1142,10 +1203,11 @@ export function SwapIntentPreview({
           const sourceAmount =
             source.userAmount ||
             (fallbackSources.length === 1 ? fromAmount : "");
-          const sourceKey = [
+          const sourceKey = getSourceDisplayKey(
             source.chainId ?? "",
-            source.contractAddress.toLowerCase(),
-          ].join("-");
+            source.contractAddress,
+            source.symbol
+          );
           const isDestinationSource =
             sourceKey === destinationSourceKey &&
             displayOnlyDestinationSourceAmount !== undefined;

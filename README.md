@@ -1,60 +1,45 @@
-# Nexus Fast Bridge Monorepo
+# Nexus Fast Bridge
 
-Fast Bridge is a Turborepo + pnpm monorepo with:
-- Chain apps (`apps/<chain>`) that are thin wrappers.
-- A shared app package (`packages/fast-bridge-app`) that contains almost all UI/logic.
-- A root landing app (`apps/root`) that links to chain deployments and serves built chain bundles.
+FastBridge is a single Vite SPA that serves a landing page and route-driven bridge experiences such as `/ethereum`, `/arbitrum`, and `/megaeth`.
 
 ## Quick Start
 
 ```bash
 pnpm install
-pnpm dev:all
+pnpm dev
 ```
 
 Useful commands:
 
 ```bash
-pnpm dev:root
-pnpm build:all
-pnpm chain:add <slug> --name "Chain Name"
-pnpm chains:sync
-pnpm vercel:env
+pnpm build
+pnpm preview
+pnpm check
+pnpm fix
 ```
 
-## Documentation Map
+The production bundle is written to `apps/root/dist`.
 
-- Architecture: `docs/architecture.md`
-- Add a chain: `docs/adding-chains.md`
-- Chain customization and feature flags: `docs/customization.md`
-- Agent workflow rules for this repo: `AGENTS.md`
+## Architecture
 
-## Common Workflows
+- Shared application code: `packages/fast-bridge-app/src/**`
+- Chain registry: `packages/fast-bridge-app/src/config/chain-settings.ts`
+- Optional RPC registry: `packages/fast-bridge-app/src/config/rpcs.json`
+- Route/runtime context: `packages/fast-bridge-app/src/providers/runtime-context.tsx`
+- Root Vite configuration: `vite.config.ts`
 
-### Add a new chain
+Chain routes all render the same shared application. Chain identity and behavior come from the active `CHAIN_REGISTRY` entry through `useRuntime()`.
 
-```bash
-pnpm chain:add sonic --name "Sonic"
-```
+## Documentation
 
-Then:
-1. Fill `apps/sonic/.env.sonic`.
-2. Adjust `apps/sonic/src/runtime.ts` feature flags.
-3. Run `pnpm --filter @fastbridge/sonic dev`.
-4. Run `pnpm vercel:env` and sync prefixed env vars in deployment.
+- [Architecture](docs/architecture.md)
+- [Adding chains](docs/adding-chains.md)
+- [Customization](docs/customization.md)
+- [Agent workflow](AGENTS.md)
 
-### Ship a shared bug fix once
+## Core Rules
 
-Edit shared code in `packages/fast-bridge-app/src/**`.
-All chain wrappers pick it up automatically through Vite aliasing.
-
-### Add chain-specific behavior
-
-Use `apps/<slug>/src/runtime.ts` (`chainFeatures`) first.
-If needed, add a new flag in `packages/fast-bridge-app/src/types/runtime.ts` and consume it in shared code.
-
-## Notes
-
-- If you add new env keys in `.env.<slug>`, run `pnpm chains:sync` so `turbo.json` tracks them.
-- If runtime image URLs are relative (for example `/logo.svg`), route them through `withBasePath(...)` in shared code.
-- If shared files move, keep Tailwind source scanning updated in `packages/fast-bridge-app/src/index.css`.
+- Implement shared behavior once under `packages/fast-bridge-app/src/**`.
+- Keep chain differences in `CHAIN_REGISTRY` and `ChainFeatures`.
+- Read runtime values through `useRuntime()`; do not import a static per-chain config.
+- Do not introduce chain-specific environment variables or wrapper applications.

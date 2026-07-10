@@ -10,7 +10,11 @@ import type {
   SwapStepType,
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
-import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import {
+  type NexusOneDepositMetadata,
+  type NexusOneMode,
+  type SwapType,
+} from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
@@ -43,6 +47,7 @@ interface NexusOneProgressScreenProps {
   recipientAddress?: string;
   steps?: ProgressStep[];
   swapBalances?: unknown[] | null;
+  swapType?: SwapType;
   toAmount?: string;
   toAmountUsd?: string;
   toToken?: SwapTokenOption;
@@ -387,6 +392,7 @@ const hasStartedStatus = (
 const buildStatusRows = ({
   events,
   failedStep,
+  isExactOut,
   mode,
   steps,
   approvalTotalCount,
@@ -394,6 +400,7 @@ const buildStatusRows = ({
 }: {
   events: NexusOneProgressEvent[];
   failedStep?: ProgressSdkStep | null;
+  isExactOut?: boolean;
   mode: NexusOneMode;
   steps: ProgressStep[];
   approvalTotalCount?: number | null;
@@ -475,7 +482,8 @@ const buildStatusRows = ({
   ]);
   const swapSkipped = hasCompletedType(events, steps, ["SWAP_SKIPPED"]);
   const shouldShowSwapRows =
-    hasSwapList && !(swapSkipped && (mode === "deposit" || mode === "send"));
+    hasSwapList &&
+    !(swapSkipped && (mode === "deposit" || mode === "send" || isExactOut));
   const swapTokensComplete = hasReceiveTokenStep
     ? receiveTokenStarted
     : swapComplete;
@@ -788,7 +796,10 @@ export function NexusOneProgressScreen({
   failedStep,
   recipientAddress,
   swapBalances,
+  swapType,
 }: NexusOneProgressScreenProps) {
+  const isExactOutDisplayFlow =
+    mode === "deposit" || mode === "send" || swapType === "exactOut";
   const intentSources = intentData?.sources ?? [];
   const intentDestination = intentData?.destination;
   const destinationSourceToken = fromTokens.find((token) => {
@@ -840,7 +851,7 @@ export function NexusOneProgressScreen({
           )
         : undefined;
   const destinationCoverageUsd =
-    (mode === "deposit" || mode === "send") &&
+    isExactOutDisplayFlow &&
     requestedDestinationAmount &&
     requestedDestinationAmount.gt(0) &&
     quotedDestinationAmount &&
@@ -856,38 +867,37 @@ export function NexusOneProgressScreen({
       : undefined;
   const quotedDestinationUsd = parseDecimal(intentDestination?.value);
   const feeUsd = parseDecimal(totalFeeUsd);
-  const sourceUsd =
-    mode === "deposit" || mode === "send"
-      ? [
-          destinationCoverageUsd !== undefined
-            ? (intentSourceUsd ?? new Decimal(0)).plus(destinationCoverageUsd)
-            : intentSourceUsd,
-          requestedDestinationUsd,
-          requestedDestinationUsd &&
-          requestedDestinationUsd.gt(0) &&
-          intentSourceUsd &&
-          intentSourceUsd.gt(0) &&
-          quotedDestinationUsd &&
-          quotedDestinationUsd.gt(0)
-            ? requestedDestinationUsd.plus(
-                Decimal.max(intentSourceUsd.minus(quotedDestinationUsd), 0)
-              )
-            : undefined,
-          requestedDestinationUsd &&
-          requestedDestinationUsd.gt(0) &&
-          feeUsd &&
-          feeUsd.gt(0)
-            ? requestedDestinationUsd.plus(feeUsd)
-            : undefined,
-        ]
-          .filter((value): value is Decimal => Boolean(value && value.gt(0)))
-          .reduce<Decimal | undefined>(
-            (max, value) => (!max || value.gt(max) ? value : max),
-            undefined
-          )
-      : intentSourceUsd;
+  const sourceUsd = isExactOutDisplayFlow
+    ? [
+        destinationCoverageUsd !== undefined
+          ? (intentSourceUsd ?? new Decimal(0)).plus(destinationCoverageUsd)
+          : intentSourceUsd,
+        requestedDestinationUsd,
+        requestedDestinationUsd &&
+        requestedDestinationUsd.gt(0) &&
+        intentSourceUsd &&
+        intentSourceUsd.gt(0) &&
+        quotedDestinationUsd &&
+        quotedDestinationUsd.gt(0)
+          ? requestedDestinationUsd.plus(
+              Decimal.max(intentSourceUsd.minus(quotedDestinationUsd), 0)
+            )
+          : undefined,
+        requestedDestinationUsd &&
+        requestedDestinationUsd.gt(0) &&
+        feeUsd &&
+        feeUsd.gt(0)
+          ? requestedDestinationUsd.plus(feeUsd)
+          : undefined,
+      ]
+        .filter((value): value is Decimal => Boolean(value && value.gt(0)))
+        .reduce<Decimal | undefined>(
+          (max, value) => (!max || value.gt(max) ? value : max),
+          undefined
+        )
+    : intentSourceUsd;
   const destinationAmount =
-    (mode === "deposit" || mode === "send") && toAmount
+    isExactOutDisplayFlow && toAmount
       ? toAmount
       : (intentDestination?.amount ?? toAmount ?? "0");
   const destinationSymbol =
@@ -952,6 +962,7 @@ export function NexusOneProgressScreen({
   const statusRows = buildStatusRows({
     events: progressEvents,
     failedStep,
+    isExactOut: swapType === "exactOut",
     mode,
     steps: steps ?? [],
     approvalTotalCount,
