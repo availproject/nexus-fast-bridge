@@ -4228,7 +4228,7 @@ function NexusOneInner({
     token?: SwapTokenOption;
   }) => {
     if (
-      !isExactOutPaymentFlow ||
+      (activeMode !== "deposit" && activeMode !== "send") ||
       !token ||
       !requestedAmount ||
       requestedAmount.lte(0)
@@ -4655,6 +4655,37 @@ function NexusOneInner({
     });
   };
 
+  const isSwapExactOutDestinationToken = (token?: SwapTokenOption) =>
+    Boolean(
+      isSwapExactOut &&
+        token &&
+        toToken &&
+        token.chainId === toToken.chainId &&
+        (isSameTokenSelection(token, toToken) ||
+          (isNativeTokenAddress(token.contractAddress) &&
+            isNativeTokenAddress(toToken.contractAddress)))
+    );
+
+  const excludeSwapExactOutDestinationTokens = (
+    tokens: SwapTokenOption[]
+  ): SwapTokenOption[] => {
+    if (!isSwapExactOut || !toToken) return tokens;
+
+    return tokens.flatMap((token) => {
+      if (token.isUnified && token.sourceTokens?.length) {
+        const sourceTokens = token.sourceTokens.filter(
+          (source) => !isSwapExactOutDestinationToken(source)
+        );
+        return sourceTokens.length > 0 ? [{ ...token, sourceTokens }] : [];
+      }
+      return isSwapExactOutDestinationToken(token) ? [] : [token];
+    });
+  };
+
+  const isSwapExactOutDestinationIntentSource = (
+    source: NonNullable<SwapIntentData["sources"]>[number]
+  ) => isSwapExactOutDestinationToken(buildIntentSourceToken(source));
+
   const getNativeGasBalanceForChain = (chainId: number) => {
     const nativeSymbol =
       CHAIN_METADATA[chainId]?.nativeCurrency?.symbol?.toUpperCase();
@@ -4934,24 +4965,34 @@ function NexusOneInner({
 
     if (mode === "selected" && fromTokens.length > 0) {
       return filterMinimumSourceUsdTokens(
-        getExpandedSourceTokens(fromTokens)
+        getExpandedSourceTokens(
+          excludeSwapExactOutDestinationTokens(fromTokens)
+        )
       ).filter(hasGasForSource);
     }
 
-    return getGasCapableBalanceSourceTokens();
+    return excludeSwapExactOutDestinationTokens(
+      getGasCapableBalanceSourceTokens()
+    );
   };
 
   const buildFromSourcesPayload = (tokens: SwapTokenOption[]) => {
     const explicitSources =
       activeMode === "deposit"
         ? getResolvedDepositSourceSelection().fromSources
-        : filterMinimumSourceUsdTokens(tokens)
+        : filterMinimumSourceUsdTokens(
+            getExpandedSourceTokens(
+              excludeSwapExactOutDestinationTokens(tokens)
+            )
+          )
             .filter((token) => token.chainId && token.contractAddress)
             .map((token) => ({
               chainId: token.chainId!,
               tokenAddress: token.contractAddress as `0x${string}`,
             }));
-    const heldDestinationToken = getHeldDestinationTokenOption();
+    const heldDestinationToken = isSwapExactOut
+      ? undefined
+      : getHeldDestinationTokenOption();
     const heldDestinationSource =
       heldDestinationToken?.chainId && heldDestinationToken.contractAddress
         ? {
@@ -5076,11 +5117,16 @@ function NexusOneInner({
     sourceTokensOverride?: SwapTokenOption[]
   ): Decimal => {
     const sumTokensWithDestinationCredit = (tokens: SwapTokenOption[]) => {
-      const heldDestinationToken = getHeldDestinationTokenOption();
+      const sourceTokens = isSwapExactOut
+        ? getExpandedSourceTokens(excludeSwapExactOutDestinationTokens(tokens))
+        : tokens;
+      const heldDestinationToken = isSwapExactOut
+        ? undefined
+        : getHeldDestinationTokenOption();
       const heldDestinationKey = getTokenSelectionKey(heldDestinationToken);
       let hasHeldDestinationToken = false;
 
-      const sourceTotal = tokens.reduce((sum, token) => {
+      const sourceTotal = sourceTokens.reduce((sum, token) => {
         const value = parseFiatNumber(token.balanceInFiat) ?? new Decimal(0);
         const isHeldDestinationToken =
           Boolean(heldDestinationKey) &&
@@ -5113,19 +5159,23 @@ function NexusOneInner({
     const allSourceTotal = getExactOutAvailableSourceUsd(
       getMinimumBalanceSourceTokens()
     );
-    return allSourceTotal.gt(0) ? allSourceTotal : getSwapBalanceTotalUsd();
+    if (isSwapExactOut || allSourceTotal.gt(0)) return allSourceTotal;
+    return getSwapBalanceTotalUsd();
   };
 
   const getExactOutIntentSourceUsd = () => {
-    const sourceUsd = (intentData?.sources ?? []).reduce(
-      (sum, source) =>
-        sum.plus(parseFiatNumber((source as any).value) ?? new Decimal(0)),
-      new Decimal(0)
-    );
+    const sourceUsd = (intentData?.sources ?? [])
+      .filter((source) => !isSwapExactOutDestinationIntentSource(source))
+      .reduce(
+        (sum, source) =>
+          sum.plus(parseFiatNumber((source as any).value) ?? new Decimal(0)),
+        new Decimal(0)
+      );
     return sourceUsd.gt(0) ? sourceUsd : undefined;
   };
 
   const getExactOutHeldDestinationUsd = () => {
+    if (isSwapExactOut) return new Decimal(0);
     const value = parseFiatNumber(
       getHeldDestinationTokenOption()?.balanceInFiat
     );
@@ -5133,6 +5183,7 @@ function NexusOneInner({
   };
 
   const exactOutIntentIncludesHeldDestination = () => {
+    if (isSwapExactOut) return false;
     const heldDestinationKey = getTokenSelectionKey(
       getHeldDestinationTokenOption()
     );
@@ -5158,7 +5209,19 @@ function NexusOneInner({
         : getExactOutHeldDestinationUsd();
       return intentSourceUsd.plus(destinationCreditUsd);
     }
-    return getExactOutRequestedUsd();
+
+    const requestedUsd = getExactOutRequestedUsd();
+    if (!isSwapExactOut || !requestedUsd) return requestedUsd;
+
+    const baseline =
+      predictiveQuoteCacheRef.current[getPredictiveQuoteCacheKey()];
+    const cachedSourceUsdRatio = parseFiatNumber(
+      baseline?.exactOutSourceUsdPerDestinationUsd
+    );
+    return getPredictiveExactOutSourceTargetUsd(
+      requestedUsd,
+      cachedSourceUsdRatio
+    );
   };
 
   const getExactInSourceDeficitUsd = () => {
@@ -5221,6 +5284,10 @@ function NexusOneInner({
         : requiredFromError && availableFromError
           ? requiredFromError.minus(availableFromError)
           : undefined;
+
+    if (isSwapExactOut && requestedUsd) {
+      missingUsd = requestedUsd.minus(availableUsd);
+    }
 
     if (
       requestedUsd &&
@@ -5658,9 +5725,12 @@ function NexusOneInner({
 
   const applySwapIntent = useCallback(
     (intent: SwapIntentData) => {
+      const sourceIntent = (intent.sources ?? []).filter(
+        (source) => !isSwapExactOutDestinationIntentSource(source)
+      );
       const sortedIntent = {
         ...intent,
-        sources: sortIntentSourcesByUsdDesc(intent.sources ?? []),
+        sources: sortIntentSourcesByUsdDesc(sourceIntent),
       };
       const sortedIntentSourceTokens = sortSwapTokensByUsdDesc(
         (sortedIntent.sources ?? []).map(buildIntentSourceToken)
@@ -6823,6 +6893,7 @@ function NexusOneInner({
   ]);
   const lockedDestinationSourceTokens = useMemo<SwapTokenOption[]>(() => {
     if (
+      isSwapExactOut ||
       !isExactOutPaymentFlow ||
       !toToken?.chainId ||
       !requiredDestinationTokenAmount ||
@@ -6886,6 +6957,7 @@ function NexusOneInner({
     return [];
   }, [
     activeMode,
+    isSwapExactOut,
     requiredDestinationTokenAmount?.toFixed(),
     swapBalance,
     toToken?.chainId,
@@ -9209,9 +9281,11 @@ function NexusOneInner({
         ((predictiveExactOutQuote.sources?.length ?? 0) > 0 ||
           destinationBalanceDisplayToken)
     );
-  const baseDisplayFromTokens = shouldShowPredictiveExactOutDisplay
-    ? (predictiveExactOutQuote?.sources ?? fromTokens)
-    : fromTokens;
+  const baseDisplayFromTokens = excludeSwapExactOutDestinationTokens(
+    shouldShowPredictiveExactOutDisplay
+      ? (predictiveExactOutQuote?.sources ?? fromTokens)
+      : fromTokens
+  );
   const displayFromTokens = (() => {
     if (!destinationBalanceDisplayToken || !isExactOutPaymentFlow) {
       return mergeDisplaySourceTokens(
@@ -9269,11 +9343,14 @@ function NexusOneInner({
       : 0;
   const exactOutRequiredUsdAmount = (() => {
     if (!isExactOutPaymentFlow) return undefined;
+    const requiredFundingUsd = getExactOutRequiredFundingUsd();
+    if (isSwapExactOut && requiredFundingUsd?.gt(0)) {
+      return requiredFundingUsd;
+    }
     const missingUsd = parseFiatNumber(insufficientSourceIssue?.missingUsd);
     if (missingUsd?.gt(0)) {
       return getExactOutAvailableSourceUsd().plus(missingUsd);
     }
-    const requiredFundingUsd = getExactOutRequiredFundingUsd();
     if (requiredFundingUsd?.gt(0)) return requiredFundingUsd;
     return sendAmountUsd > 0 ? new Decimal(sendAmountUsd) : undefined;
   })();
@@ -10539,6 +10616,11 @@ function NexusOneInner({
                 }
                 autoSelectFilterTabs={isExactOutPaymentFlow}
                 editingAssetIndex={editingAssetIndex}
+                excludedTokens={
+                  isSwapExactOut && toTokenWithFetchedBalance
+                    ? [toTokenWithFetchedBalance]
+                    : []
+                }
                 filterTabBehavior={
                   activeMode === "deposit" ? "source-pool" : "select-all"
                 }
@@ -10593,11 +10675,13 @@ function NexusOneInner({
                           keepQuoteRefreshing: true,
                         });
                         setQuoteRefreshing(true);
-                        closeDrawerToIdle();
                       }
                     : undefined
                 }
                 onSelect={(token) => {
+                  if (isSwapExactOutDestinationToken(token)) {
+                    return;
+                  }
                   if (activeMode === "swap" && !isSwapExactOut) {
                     const next = [...fromTokens];
                     const targetIndex =
@@ -10650,6 +10734,8 @@ function NexusOneInner({
                 onSelectionChange={
                   isExactOutPaymentFlow
                     ? (tokens) => {
+                        const eligibleTokens =
+                          excludeSwapExactOutDestinationTokens(tokens);
                         const toSelectionKeySet = (
                           sourceTokens: SwapTokenOption[]
                         ) =>
@@ -10658,7 +10744,7 @@ function NexusOneInner({
                               getTokenSelectionKey
                             )
                           );
-                        const selectedKeys = toSelectionKeySet(tokens);
+                        const selectedKeys = toSelectionKeySet(eligibleTokens);
                         const autoKeys = toSelectionKeySet([
                           ...getExactOutSourceTokens("all"),
                           ...lockedDestinationSourceTokens,
@@ -10678,7 +10764,7 @@ function NexusOneInner({
                         invalidateExactOutQuoteForRefresh();
                         setSourceSelectionRevision((current) => current + 1);
                         setFromTokens(
-                          tokens.map((token) => ({
+                          eligibleTokens.map((token) => ({
                             ...token,
                             userAmount: "",
                           }))
@@ -10833,7 +10919,18 @@ function NexusOneInner({
                       ? exactOutRequiredUsdDisplay
                       : undefined
                 }
-                selectedTokens={fromTokens}
+                restoreAutoTokens={
+                  isExactOutPaymentFlow
+                    ? excludeSwapExactOutDestinationTokens(
+                        lastIntentSourceTokensRef.current.length > 0
+                          ? lastIntentSourceTokensRef.current
+                          : getExactOutSourceTokens("all")
+                      )
+                    : undefined
+                }
+                selectedTokens={excludeSwapExactOutDestinationTokens(
+                  fromTokens
+                )}
                 showBelowMinimumInline={
                   activeMode === "swap" && swapType === "exactIn"
                 }

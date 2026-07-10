@@ -62,6 +62,7 @@ interface SwapAssetSelectorProps {
   allowUnified?: boolean;
   autoSelectFilterTabs?: boolean;
   editingAssetIndex?: number | null;
+  excludedTokens?: SwapTokenOption[];
   filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
   initialFilterTab?: FilterTab;
@@ -77,6 +78,7 @@ interface SwapAssetSelectorProps {
   onToggle?: (token: SwapTokenOption) => void;
   preserveSelectedBelowMinimum?: boolean;
   requiredUsd?: string;
+  restoreAutoTokens?: SwapTokenOption[];
   selectedTokens?: SwapTokenOption[];
   showBelowMinimumInline?: boolean;
   showRestoreAuto?: boolean;
@@ -966,6 +968,18 @@ function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
   );
 }
 
+function getTokenOptionSelectionKey(token: SwapTokenOption) {
+  if (token.isUnified) return `unified:${token.unifiedSymbol ?? token.symbol}`;
+  const address = isNativeLikeAddress(token.contractAddress)
+    ? "native"
+    : token.contractAddress.toLowerCase();
+  return `${token.chainId ?? "unknown"}:${address}`;
+}
+
+function getTokenOptionsSelectionKey(tokens: SwapTokenOption[]) {
+  return tokens.map(getTokenOptionSelectionKey).sort().join("|");
+}
+
 function dedupeTokenOptions(tokens: SwapTokenOption[]) {
   return tokens.reduce<SwapTokenOption[]>((acc, token) => {
     if (!acc.some((item) => sameTokenOption(item, token))) {
@@ -1026,6 +1040,7 @@ export function SwapAssetSelector({
   isMulti,
   selectedTokens = [],
   editingAssetIndex = null,
+  excludedTokens = [],
   onToggle,
   onClearSelection,
   onDone,
@@ -1042,6 +1057,7 @@ export function SwapAssetSelector({
   lockedTokens = [],
   onSelectionChange,
   requiredUsd,
+  restoreAutoTokens,
   showRestoreAuto = false,
 }: SwapAssetSelectorProps) {
   const sdkSwapSupportedChainIds = useMemo(
@@ -1073,6 +1089,15 @@ export function SwapAssetSelector({
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
   );
+  const excludedTokenOptions = useMemo(
+    () => dedupeTokenOptions(excludedTokens),
+    [excludedTokens]
+  );
+  const isExcludedToken = useCallback(
+    (token: SwapTokenOption) =>
+      excludedTokenOptions.some((excluded) => sameTokenOption(excluded, token)),
+    [excludedTokenOptions]
+  );
   const isLockedToken = useCallback(
     (token: SwapTokenOption) =>
       lockedSelectedTokens.some((locked) => sameTokenOption(locked, token)),
@@ -1081,17 +1106,31 @@ export function SwapAssetSelector({
   const [draftSelectedTokens, setDraftSelectedTokens] = useState<
     SwapTokenOption[]
   >(() => mergeTokenOptions(selectedTokens, lockedSelectedTokens));
+  const [restoreAutoRequested, setRestoreAutoRequested] = useState(false);
+  const selectedTokensSelectionKey =
+    getTokenOptionsSelectionKey(selectedTokens);
+  const lockedTokensSelectionKey =
+    getTokenOptionsSelectionKey(lockedSelectedTokens);
+  const selectedTokensRef = useRef(selectedTokens);
+  const lockedSelectedTokensRef = useRef(lockedSelectedTokens);
+  selectedTokensRef.current = selectedTokens;
+  lockedSelectedTokensRef.current = lockedSelectedTokens;
   useEffect(() => {
     if (!isMulti) return;
     setDraftSelectedTokens(
-      mergeTokenOptions(selectedTokens, lockedSelectedTokens)
+      mergeTokenOptions(
+        selectedTokensRef.current,
+        lockedSelectedTokensRef.current
+      )
     );
-  }, [isMulti, lockedSelectedTokens, selectedTokens]);
+    setRestoreAutoRequested(false);
+  }, [isMulti, lockedTokensSelectionKey, selectedTokensSelectionKey]);
   const activeSelectedTokens = isMulti ? draftSelectedTokens : selectedTokens;
   const emitSelectionChange = useCallback(
     (tokens: SwapTokenOption[]) => {
       const next = mergeTokenOptions(tokens, lockedSelectedTokens);
       if (isMulti) {
+        setRestoreAutoRequested(false);
         setDraftSelectedTokens(next);
         return;
       }
@@ -1156,11 +1195,13 @@ export function SwapAssetSelector({
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
 
-    const baseTokens = staticOptions
-      ? staticOptions.filter(isSwapSupportedToken)
-      : swapBalance
-        ? deriveTokenOptions(swapBalance, swapSupportedChains)
-        : [];
+    const baseTokens = (
+      staticOptions
+        ? staticOptions.filter(isSwapSupportedToken)
+        : swapBalance
+          ? deriveTokenOptions(swapBalance, swapSupportedChains)
+          : []
+    ).filter((token) => !isExcludedToken(token));
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return sortTokensByUsdBalance(baseTokens);
@@ -1177,6 +1218,7 @@ export function SwapAssetSelector({
     );
 
     for (const selectedToken of selectedSourceTokens) {
+      if (isExcludedToken(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
       );
@@ -1190,6 +1232,7 @@ export function SwapAssetSelector({
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
     activeSelectedTokens,
+    isExcludedToken,
     swapBalance,
     swapSupportedChains,
     staticOptions,
@@ -2054,9 +2097,7 @@ export function SwapAssetSelector({
       requiredUsdAmount.gt(0) &&
       selectionDeficitUsdAmount.gt(0)
   );
-  const shouldShowSelectionProgress = Boolean(
-    isMulti && requiredUsdAmount && requiredUsdAmount.gt(0)
-  );
+  const shouldShowSelectionProgress = Boolean(isMulti && hasSelectionShortfall);
   const selectionProgressPercent =
     shouldShowSelectionProgress && requiredUsdAmount
       ? Decimal.min(
@@ -2158,12 +2199,29 @@ export function SwapAssetSelector({
 
   const handleDone = () => {
     if (hasSelectionShortfall) return;
+    if (restoreAutoRequested && onRestoreAuto) {
+      onRestoreAuto();
+      onDone?.();
+      return;
+    }
     if (isMulti && onSelectionChange) {
       onSelectionChange(
         mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
       );
     }
     onDone?.();
+  };
+
+  const handleRestoreAuto = () => {
+    if (isMulti && restoreAutoTokens) {
+      setActiveTab("all");
+      setRestoreAutoRequested(true);
+      setDraftSelectedTokens(
+        mergeTokenOptions(restoreAutoTokens, lockedSelectedTokens)
+      );
+      return;
+    }
+    onRestoreAuto?.();
   };
 
   return (
@@ -2807,7 +2865,7 @@ export function SwapAssetSelector({
                     {formatUsdBalanceLabel(selectedUsdAmount)}
                   </span>
                   <button
-                    onClick={onRestoreAuto}
+                    onClick={handleRestoreAuto}
                     style={{
                       background: "transparent",
                       border: "none",
