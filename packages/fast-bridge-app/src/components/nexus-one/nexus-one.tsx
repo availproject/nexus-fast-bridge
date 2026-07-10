@@ -1277,11 +1277,7 @@ const getDisplayDestinationSourceRow = (
   entry: SwapHistoryEntry,
   visualSources?: TokenVisualSources
 ): HistorySourceRow | null => {
-  if (
-    entry.mode !== "deposit" &&
-    entry.mode !== "send" &&
-    entry.swapType !== "exactOut"
-  ) {
+  if (entry.mode !== "deposit" && entry.mode !== "send") {
     return null;
   }
   if (!entry.toToken || !entry.requestedToAmount) return null;
@@ -1346,6 +1342,59 @@ const getDisplayDestinationSourceRow = (
       ? displayAmount.mul(rate).toFixed()
       : entry.toToken.balanceInFiat,
   };
+};
+
+const isNativeHistorySourceAddress = (address?: string) => {
+  const normalizedAddress = (address ?? "").toLowerCase();
+  return (
+    !normalizedAddress ||
+    normalizedAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    normalizedAddress === "0x0000000000000000000000000000000000000000"
+  );
+};
+
+const isSwapExactOutDestinationHistorySource = (
+  entry: SwapHistoryEntry,
+  source: {
+    chainId?: number;
+    contractAddress?: string;
+    symbol?: string;
+  }
+) => {
+  const isSwapExactOutEntry =
+    entry.mode === "swap" &&
+    (entry.swapType === "exactOut" || Boolean(entry.requestedToAmount));
+  if (!isSwapExactOutEntry) return false;
+
+  const destination = entry.intentData?.destination;
+  const destinationChainId = destination?.chain.id ?? entry.toToken?.chainId;
+  if (!source.chainId || source.chainId !== destinationChainId) return false;
+
+  const destinationAddress =
+    destination?.token.contractAddress ?? entry.toToken?.contractAddress;
+  const sourceAddress = source.contractAddress?.toLowerCase();
+  const normalizedDestinationAddress = destinationAddress?.toLowerCase();
+  if (
+    sourceAddress &&
+    normalizedDestinationAddress &&
+    sourceAddress === normalizedDestinationAddress
+  ) {
+    return true;
+  }
+  if (
+    isNativeHistorySourceAddress(source.contractAddress) &&
+    isNativeHistorySourceAddress(destinationAddress)
+  ) {
+    return true;
+  }
+
+  const destinationSymbol = destination?.token.symbol ?? entry.toToken?.symbol;
+  return Boolean(
+    (!sourceAddress || !normalizedDestinationAddress) &&
+      source.symbol &&
+      destinationSymbol &&
+      source.symbol.toUpperCase() === destinationSymbol.toUpperCase()
+  );
 };
 
 const getHistorySourceRowMergeKey = (row: HistorySourceRow) => {
@@ -1910,7 +1959,22 @@ const getSourceRows = (
   entry: SwapHistoryEntry,
   visualSources?: TokenVisualSources
 ): HistorySourceRow[] => {
-  const sources = entry.intentData?.sources ?? [];
+  const sources = (entry.intentData?.sources ?? []).filter(
+    (source) =>
+      !isSwapExactOutDestinationHistorySource(entry, {
+        chainId: source.chain.id,
+        contractAddress: source.token.contractAddress,
+        symbol: source.token.symbol,
+      })
+  );
+  const fallbackSourceTokens = entry.fromTokens.filter(
+    (token) =>
+      !isSwapExactOutDestinationHistorySource(entry, {
+        chainId: token.chainId,
+        contractAddress: token.contractAddress,
+        symbol: token.symbol,
+      })
+  );
   const entryVisualSources = getEntryVisualSources(entry, visualSources);
   const displayDestinationSourceRow = getDisplayDestinationSourceRow(
     entry,
@@ -1918,7 +1982,7 @@ const getSourceRows = (
   );
   if (sources.length > 0) {
     const sourceRows = sources.map((source, index) => {
-      const fallback = entry.fromTokens.find(
+      const fallback = fallbackSourceTokens.find(
         (token) =>
           token.chainId === source.chain.id &&
           (token.contractAddress?.toLowerCase() ===
@@ -1962,7 +2026,7 @@ const getSourceRows = (
     );
   }
 
-  const fallbackRows = entry.fromTokens.map((token, index) => {
+  const fallbackRows = fallbackSourceTokens.map((token, index) => {
     const tokenVisuals = resolveTokenVisuals(
       {
         chainId: token.chainId,

@@ -745,13 +745,10 @@ export function SwapIntentPreview({
   const isSendMode = flowMode === "send";
   const hasRecipientTransfer = Boolean(recipientAddress) && !isDepositMode;
   const isExactOutDisplayFlow = swapType === "exactOut";
+  const isSwapExactOutPreview = flowMode === "swap" && isExactOutDisplayFlow;
   const shouldShowSwapBuffer = swapType !== "exactIn";
   const intentSources = intentData?.sources ?? [];
   const intentDest = intentData?.destination;
-  const normalizedIntentSources = intentSources.map((source) => ({
-    ...source,
-    token: normalizeIntentToken(source.token, source.chain.id),
-  }));
   const normalizedIntentDest = intentDest
     ? {
         ...intentDest,
@@ -765,12 +762,75 @@ export function SwapIntentPreview({
         },
       }
     : undefined;
-  const fallbackSources =
+  const isDestinationSource = ({
+    chainId,
+    contractAddress,
+    symbol,
+  }: {
+    chainId?: number;
+    contractAddress?: string;
+    symbol?: string;
+  }) => {
+    if (!isSwapExactOutPreview) return false;
+
+    const destinationChainId =
+      normalizedIntentDest?.chain.id ?? toToken?.chainId;
+    if (!chainId || chainId !== destinationChainId) return false;
+
+    const destinationAddress =
+      normalizedIntentDest?.token.contractAddress ?? toToken?.contractAddress;
+    const normalizedSourceAddress = contractAddress?.toLowerCase();
+    const normalizedDestinationAddress = destinationAddress?.toLowerCase();
+    if (
+      normalizedSourceAddress &&
+      normalizedDestinationAddress &&
+      normalizedSourceAddress === normalizedDestinationAddress
+    ) {
+      return true;
+    }
+    if (
+      isNativeTokenAddress(contractAddress) &&
+      isNativeTokenAddress(destinationAddress)
+    ) {
+      return true;
+    }
+
+    const destinationSymbol =
+      normalizedIntentDest?.token.symbol ?? toToken?.symbol;
+    return Boolean(
+      (!normalizedSourceAddress || !normalizedDestinationAddress) &&
+        symbol &&
+        destinationSymbol &&
+        symbol.toUpperCase() === destinationSymbol.toUpperCase()
+    );
+  };
+  const normalizedIntentSources = intentSources
+    .map((source) => ({
+      ...source,
+      token: normalizeIntentToken(source.token, source.chain.id),
+    }))
+    .filter(
+      (source) =>
+        !isDestinationSource({
+          chainId: source.chain.id,
+          contractAddress: source.token.contractAddress,
+          symbol: source.token.symbol,
+        })
+    );
+  const unfilteredFallbackSources =
     fromTokens && fromTokens.length > 0
       ? fromTokens
       : fromToken
         ? [fromToken]
         : [];
+  const fallbackSources = unfilteredFallbackSources.filter(
+    (source) =>
+      !isDestinationSource({
+        chainId: source.chainId,
+        contractAddress: source.contractAddress,
+        symbol: source.symbol,
+      })
+  );
   const tokenVisualSources = {
     balanceAssets: swapBalances,
     tokens: [...fallbackSources, ...(toToken ? [toToken] : [])],
@@ -826,6 +886,7 @@ export function SwapIntentPreview({
   const quotedDestinationAmount = parseDecimal(normalizedIntentDest?.amount);
   const destinationBalanceAmount = parseDecimal(toToken?.balance);
   const displayOnlyDestinationCoverage =
+    !isSwapExactOutPreview &&
     requestedDestinationAmount &&
     requestedDestinationAmount.gt(0) &&
     quotedDestinationAmount &&
@@ -839,6 +900,7 @@ export function SwapIntentPreview({
       : undefined;
   const displayOnlyDestinationSourceAmount =
     isExactOutDisplayFlow &&
+    !isSwapExactOutPreview &&
     destinationBalanceAmount &&
     destinationBalanceAmount.gt(0)
       ? destinationBalanceAmount

@@ -84,6 +84,15 @@ const formatUsd = (value: unknown) => `$${formatDecimal(value, 2)}`;
 const unique = (values: Array<string | undefined>) =>
   Array.from(new Set(values.filter(Boolean) as string[]));
 
+const isNativeProgressSourceAddress = (address?: string) => {
+  const normalizedAddress = (address ?? "").toLowerCase();
+  return (
+    !normalizedAddress ||
+    normalizedAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    normalizedAddress === "0x0000000000000000000000000000000000000000"
+  );
+};
+
 const formatSymbolSummary = (symbols: string[]) => {
   if (symbols.length <= 2) return symbols.join(", ");
   return `${symbols.slice(0, 2).join(", ")} and ${symbols.length - 2} others`;
@@ -800,9 +809,66 @@ export function NexusOneProgressScreen({
 }: NexusOneProgressScreenProps) {
   const isExactOutDisplayFlow =
     mode === "deposit" || mode === "send" || swapType === "exactOut";
-  const intentSources = intentData?.sources ?? [];
+  const isSwapExactOutDisplayFlow = mode === "swap" && swapType === "exactOut";
   const intentDestination = intentData?.destination;
-  const destinationSourceToken = fromTokens.find((token) => {
+  const isDestinationSource = ({
+    chainId,
+    contractAddress,
+    symbol,
+  }: {
+    chainId?: number;
+    contractAddress?: string;
+    symbol?: string;
+  }) => {
+    if (!isSwapExactOutDisplayFlow) return false;
+
+    const destinationChainId = intentDestination?.chain.id ?? toToken?.chainId;
+    if (!chainId || chainId !== destinationChainId) return false;
+
+    const destinationTokenAddress =
+      intentDestination?.token.contractAddress ?? toToken?.contractAddress;
+    const sourceAddress = contractAddress?.toLowerCase();
+    const normalizedDestinationAddress = destinationTokenAddress?.toLowerCase();
+    if (
+      sourceAddress &&
+      normalizedDestinationAddress &&
+      sourceAddress === normalizedDestinationAddress
+    ) {
+      return true;
+    }
+    if (
+      isNativeProgressSourceAddress(contractAddress) &&
+      isNativeProgressSourceAddress(destinationTokenAddress)
+    ) {
+      return true;
+    }
+
+    const destinationSymbol =
+      intentDestination?.token.symbol ?? toToken?.symbol;
+    return Boolean(
+      (!sourceAddress || !normalizedDestinationAddress) &&
+        symbol &&
+        destinationSymbol &&
+        symbol.toUpperCase() === destinationSymbol.toUpperCase()
+    );
+  };
+  const intentSources = (intentData?.sources ?? []).filter(
+    (source) =>
+      !isDestinationSource({
+        chainId: source.chain.id,
+        contractAddress: source.token.contractAddress,
+        symbol: source.token.symbol,
+      })
+  );
+  const eligibleFromTokens = fromTokens.filter(
+    (token) =>
+      !isDestinationSource({
+        chainId: token.chainId,
+        contractAddress: token.contractAddress,
+        symbol: token.symbol,
+      })
+  );
+  const destinationSourceToken = eligibleFromTokens.find((token) => {
     const destinationChainId = intentDestination?.chain.id ?? toToken?.chainId;
     const destinationTokenAddress = (
       intentDestination?.token.contractAddress ??
@@ -824,7 +890,7 @@ export function NexusOneProgressScreen({
     ...(destinationSourceToken ? [destinationSourceToken.symbol] : []),
     ...(intentSources.length > 0
       ? intentSources.map((source) => source.token.symbol)
-      : fromTokens.map((token) => token.symbol)),
+      : eligibleFromTokens.map((token) => token.symbol)),
   ]);
   const intentSourceUsd =
     intentSources.length > 0
@@ -852,6 +918,7 @@ export function NexusOneProgressScreen({
         : undefined;
   const destinationCoverageUsd =
     isExactOutDisplayFlow &&
+    !isSwapExactOutDisplayFlow &&
     requestedDestinationAmount &&
     requestedDestinationAmount.gt(0) &&
     quotedDestinationAmount &&
@@ -919,7 +986,7 @@ export function NexusOneProgressScreen({
     },
     {
       balanceAssets: swapBalances as any,
-      tokens: toToken ? [toToken, ...fromTokens] : fromTokens,
+      tokens: toToken ? [toToken, ...eligibleFromTokens] : eligibleFromTokens,
     }
   );
   const destinationChainName = getShortChainName(
