@@ -42,7 +42,7 @@ interface SwapIdleFormProps {
 const ChevronDownIcon = () => (
   <svg
     height="10"
-    style={{ width: "12px", height: "12px", flexShrink: 0 }}
+    style={{ width: "13.2px", height: "13.2px", flexShrink: 0 }}
     viewBox="0 0 10 10"
     width="10"
     xmlns="http://www.w3.org/2000/svg"
@@ -78,11 +78,13 @@ const ArrowUpDownIcon = () => (
 );
 
 /** Reusable percentage quick-select buttons row with transition wrapper */
-function PercentButtons({
+export function PercentButtons({
+  disabled = false,
   visible,
   onSelect,
   maxLabel = "Max",
 }: {
+  disabled?: boolean;
   visible: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
@@ -94,18 +96,18 @@ function PercentButtons({
       style={{
         alignItems: "center",
         backgroundColor: "#F0F3F9",
-        borderRadius: "6px",
+        borderRadius: "6.6px",
         boxShadow: "#2A388B0F 0px 1px 2px inset",
         boxSizing: "border-box",
         display: "flex",
         flexShrink: 0,
-        gap: "2px",
-        padding: "2px",
+        gap: "2.2px",
+        padding: "2.2px",
         opacity: visible ? 1 : 0,
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
-        width: "97px",
+        width: "106.7px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -114,9 +116,11 @@ function PercentButtons({
 
         return (
           <button
+            disabled={disabled}
             key={pct}
             onClick={(e) => {
               e.stopPropagation();
+              if (disabled) return;
               onSelect(pct);
             }}
             onMouseDown={(e) => {
@@ -127,20 +131,21 @@ function PercentButtons({
             style={{
               alignItems: "center",
               backgroundColor: isHovered ? "#FFFFFF" : "transparent",
-              borderRadius: "4px",
+              borderRadius: "4.4px",
               boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
               boxSizing: "border-box",
               color: isHovered ? "#1F1F1F" : "#8E8E89",
-              cursor: "pointer",
+              cursor: disabled ? "default" : "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "10px",
+              fontSize: "11px",
               fontWeight: 500,
-              height: "18px",
+              height: "20px",
               justifyContent: "center",
               flex: "1 1 0%",
               minWidth: 0,
-              paddingInline: "3px",
+              opacity: disabled ? 0.55 : 1,
+              paddingInline: "3.3px",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -1199,13 +1204,13 @@ export function SwapIdleForm({
                           alignItems: "center",
                           display: "flex",
                           flexShrink: 0,
-                          height: "25px",
-                          width: "90px",
+                          height: "27.5px",
+                          width: "99px",
                         }}
                       >
                         <SkeletonBar
                           borderRadius="999px"
-                          height="23px"
+                          height="25.3px"
                           width="100%"
                         />
                       </div>
@@ -1223,11 +1228,11 @@ export function SwapIdleForm({
                           boxShadow: token ? "#1616150A 0px 1px 2px" : "none",
                           boxSizing: "border-box",
                           display: "flex",
-                          gap: "6px",
-                          paddingBottom: "3px",
-                          paddingLeft: token ? "3px" : "7px",
-                          paddingRight: "8px",
-                          paddingTop: "3px",
+                          gap: "6.6px",
+                          paddingBottom: "3.3px",
+                          paddingLeft: token ? "3.3px" : "7.7px",
+                          paddingRight: "8.8px",
+                          paddingTop: "3.3px",
                           cursor: isSourcePickerDisabled
                             ? "not-allowed"
                             : "pointer",
@@ -1237,31 +1242,31 @@ export function SwapIdleForm({
                       >
                         {token ? (
                           token.isUnified ? (
-                            <UnifiedTokenLogoBadge size={20} token={token} />
+                            <UnifiedTokenLogoBadge size={22} token={token} />
                           ) : (
                             <div
                               style={{
                                 boxSizing: "border-box",
                                 flexShrink: 0,
-                                height: "20px",
+                                height: "22px",
                                 position: "relative" as const,
-                                width: "20px",
+                                width: "22px",
                               }}
                             >
                               <LogoCircle
                                 alt={token.symbol}
-                                fontSize={10}
+                                fontSize={11}
                                 label={token.symbol}
-                                size={20}
+                                size={22}
                                 src={token.logo}
                               />
                               {token.chainLogo && (
                                 <LogoCircle
                                   alt={token.chainName}
-                                  fontSize={5}
+                                  fontSize={5.5}
                                   label={token.chainName}
                                   outline="1px solid #FFFFFE"
-                                  size={10}
+                                  size={11}
                                   src={token.chainLogo}
                                   style={{
                                     bottom: -2,
@@ -1281,8 +1286,8 @@ export function SwapIdleForm({
                               borderWidth: "1.5px",
                               boxSizing: "border-box",
                               flexShrink: 0,
-                              height: "18px",
-                              width: "18px",
+                              height: "19.8px",
+                              width: "19.8px",
                             }}
                           />
                         )}
@@ -1291,9 +1296,9 @@ export function SwapIdleForm({
                             boxSizing: "border-box",
                             color: "#161615",
                             fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: token ? "12px" : "14px",
+                            fontSize: token ? "13.2px" : "15.4px",
                             fontWeight: 500,
-                            lineHeight: token ? "16px" : "20px",
+                            lineHeight: token ? "17.6px" : "22px",
                           }}
                         >
                           {token ? token.symbol : "Assets"}
@@ -1791,11 +1796,11 @@ export function SwapIdleForm({
                 boxShadow: toToken ? "#1616150A 0px 1px 2px" : "none",
                 boxSizing: "border-box",
                 display: "flex",
-                gap: "5px",
-                paddingBottom: "3px",
-                paddingLeft: toToken ? "4px" : "7px",
-                paddingRight: "8px",
-                paddingTop: "3px",
+                gap: "5.5px",
+                paddingBottom: "3.3px",
+                paddingLeft: toToken ? "4.4px" : "7.7px",
+                paddingRight: "8.8px",
+                paddingTop: "3.3px",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
@@ -1805,25 +1810,25 @@ export function SwapIdleForm({
                   style={{
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "20px",
+                    height: "22px",
                     position: "relative" as const,
-                    width: "20px",
+                    width: "22px",
                   }}
                 >
                   <LogoCircle
                     alt={toToken.symbol}
-                    fontSize={10}
+                    fontSize={11}
                     label={toToken.symbol}
-                    size={20}
+                    size={22}
                     src={toToken.logo}
                   />
                   {toToken.chainLogo && (
                     <LogoCircle
                       alt={toToken.chainName}
-                      fontSize={5}
+                      fontSize={5.5}
                       label={toToken.chainName}
                       outline="1px solid #FFFFFE"
-                      size={10}
+                      size={11}
                       src={toToken.chainLogo}
                       style={{
                         bottom: -2,
@@ -1842,8 +1847,8 @@ export function SwapIdleForm({
                     borderWidth: "1.5px",
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "18px",
-                    width: "18px",
+                    height: "19.8px",
+                    width: "19.8px",
                   }}
                 />
               )}
@@ -1852,9 +1857,9 @@ export function SwapIdleForm({
                   boxSizing: "border-box",
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "14px",
+                  fontSize: "15.4px",
                   fontWeight: 500,
-                  lineHeight: "19px",
+                  lineHeight: "20.9px",
                 }}
               >
                 {toToken ? toToken.symbol : "Assets"}

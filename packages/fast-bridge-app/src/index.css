@@ -76,7 +76,8 @@ body,
   flex-direction: column;
   width: 100%;
   min-height: 100svh;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   color: #161615;
 }
 
@@ -155,7 +156,7 @@ body,
   z-index: 1;
   display: flex;
   flex: 1;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   min-height: 0;
   padding: clamp(24px, 4.5vh, 64px) 18px clamp(20px, 4vh, 56px);

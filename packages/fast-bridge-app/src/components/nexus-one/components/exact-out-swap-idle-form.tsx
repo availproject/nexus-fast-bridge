@@ -1,14 +1,17 @@
 import Decimal from "decimal.js";
 import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { AddressIdenticon } from "./address-identicon";
 import { EstimatedFeesDisclosure } from "./estimated-fees-disclosure";
-import type { SwapTokenOption } from "./swap-asset-selector";
+import {
+  formatSelectedTokenBalanceLabel,
+  type SwapTokenOption,
+} from "./swap-asset-selector";
+import { PercentButtons } from "./swap-idle-form";
 import type { SwapIntentData } from "./swap-intent-preview";
 
 interface ExactOutSwapIdleFormProps {
   amount: string;
-  calculatingPercent: number | null;
   defaultRecipientAddress?: string;
   destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
@@ -126,12 +129,12 @@ function TokenLogo({
           style={{
             borderRadius: "999px",
             bottom: -2,
-            height: Math.max(12, size * 0.42),
+            height: Math.max(11, size * 0.42),
             objectFit: "cover",
             outline: "1.5px solid #FFFFFE",
             position: "absolute",
             right: -2,
-            width: Math.max(12, size * 0.42),
+            width: Math.max(11, size * 0.42),
           }}
         />
       )}
@@ -152,7 +155,7 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
             chainLogo={token.chainLogo}
             label={token.symbol}
             logo={token.logo}
-            size={28}
+            size={24}
           />
         </div>
       ))}
@@ -167,11 +170,11 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
             fontFamily: '"Geist", system-ui, sans-serif',
             fontSize: "11px",
             fontWeight: 500,
-            height: 28,
+            height: 24,
             justifyContent: "center",
             marginLeft: -8,
             outline: "2px solid #FFFFFE",
-            width: 28,
+            width: 24,
           }}
         >
           +{tokens.length - visible.length}
@@ -181,46 +184,8 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
   );
 }
 
-function PercentButton({
-  active,
-  children,
-  disabled,
-  onClick,
-}: {
-  active: boolean;
-  children: string;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      style={{
-        background: active ? "#FFFFFE" : "transparent",
-        border: "none",
-        borderRadius: "8px",
-        boxShadow: active ? "0 1px 3px #3C28641A" : "none",
-        color: active ? "#1F1F1F" : "#8E8E89",
-        cursor: disabled ? "default" : "pointer",
-        fontFamily: '"Geist", system-ui, sans-serif',
-        fontSize: "12px",
-        fontWeight: 500,
-        height: 30,
-        minWidth: 48,
-        opacity: disabled ? 0.6 : 1,
-        padding: "0 10px",
-      }}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
-
 export function ExactOutSwapIdleForm({
   amount,
-  calculatingPercent,
   defaultRecipientAddress,
   destinationGasFeeUsd,
   fromTokens,
@@ -241,6 +206,7 @@ export function ExactOutSwapIdleForm({
   totalFeeUsd,
   usdValue,
 }: ExactOutSwapIdleFormProps) {
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
   const sourceSummary = useMemo(() => {
     const chainCount = new Set(
       fromTokens.map((token) => token.chainId).filter(Boolean)
@@ -254,17 +220,17 @@ export function ExactOutSwapIdleForm({
     recipientAddress?.toLowerCase() === defaultRecipientAddress?.toLowerCase();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
       <section
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           boxShadow: "#1616150A 0 1px 2px",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
-          padding: "16px",
+          gap: "6px",
+          padding: "9px",
         }}
       >
         <div
@@ -290,7 +256,8 @@ export function ExactOutSwapIdleForm({
             style={{
               color: "#8E8E89",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
+              fontSize: "11px",
+              lineHeight: "16px",
             }}
           >
             You can swap up to{" "}
@@ -304,18 +271,20 @@ export function ExactOutSwapIdleForm({
           style={{
             alignItems: "center",
             display: "flex",
-            gap: "12px",
+            gap: "9px",
             justifyContent: "space-between",
           }}
         >
           <input
             aria-label="Receive amount"
             inputMode="decimal"
+            onBlur={() => setIsAmountFocused(false)}
             onChange={(event) =>
               onAmountChange(
                 sanitizeAmount(event.target.value, toToken?.decimals ?? 18)
               )
             }
+            onFocus={() => setIsAmountFocused(true)}
             placeholder="0"
             style={{
               background: "transparent",
@@ -323,9 +292,9 @@ export function ExactOutSwapIdleForm({
               color: amount ? "#1F1F1F" : "#C8C8C7",
               flex: 1,
               fontFamily: '"Delight-Medium", "Delight", system-ui, sans-serif',
-              fontSize: "40px",
+              fontSize: "29px",
               fontWeight: 500,
-              lineHeight: "48px",
+              lineHeight: "34px",
               minWidth: 0,
               outline: "none",
               padding: 0,
@@ -343,8 +312,10 @@ export function ExactOutSwapIdleForm({
               cursor: "pointer",
               display: "flex",
               flexShrink: 0,
-              gap: "8px",
-              padding: "7px 12px 7px 7px",
+              gap: "5.5px",
+              padding: toToken
+                ? "3.3px 8.8px 3.3px 4.4px"
+                : "3.3px 8.8px 3.3px 7.7px",
             }}
             type="button"
           >
@@ -353,15 +324,15 @@ export function ExactOutSwapIdleForm({
                 chainLogo={toToken.chainLogo}
                 label={toToken.symbol}
                 logo={toToken.logo}
-                size={32}
+                size={22}
               />
             ) : (
               <span
                 style={{
                   border: "1.5px dashed #C8C8C7",
                   borderRadius: "999px",
-                  height: 28,
-                  width: 28,
+                  height: 19.8,
+                  width: 19.8,
                 }}
               />
             )}
@@ -369,13 +340,17 @@ export function ExactOutSwapIdleForm({
               style={{
                 color: "#1F1F1F",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "15px",
-                fontWeight: 600,
+                fontSize: "15.4px",
+                fontWeight: 500,
+                lineHeight: "20.9px",
               }}
             >
               {toToken?.symbol ?? "Select asset"}
             </span>
-            <span aria-hidden="true" style={{ color: "#848483" }}>
+            <span
+              aria-hidden="true"
+              style={{ color: "#848483", fontSize: "13.2px" }}
+            >
               ⌄
             </span>
           </button>
@@ -385,65 +360,49 @@ export function ExactOutSwapIdleForm({
           style={{
             alignItems: "center",
             display: "flex",
-            gap: "10px",
+            gap: "7px",
             justifyContent: "space-between",
+            minHeight: "22px",
           }}
         >
           <span
             style={{
               color: "#8E8E89",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "11px",
+              lineHeight: "16px",
             }}
           >
             ≈ {formatUsd(usdValue)}
           </span>
-          <div style={{ alignItems: "center", display: "flex", gap: "8px" }}>
-            <div
-              style={{
-                background: "#F5F6F8",
-                borderRadius: "10px",
-                display: "flex",
-                padding: "2px",
-              }}
-            >
-              <PercentButton
-                active={calculatingPercent === 20}
-                disabled={!toToken || isQuoteLoading}
-                onClick={() => onSetPercent(20)}
-              >
-                20%
-              </PercentButton>
-              <PercentButton
-                active={calculatingPercent === 75}
-                disabled={!toToken || isQuoteLoading}
-                onClick={() => onSetPercent(75)}
-              >
-                75%
-              </PercentButton>
-              <PercentButton
-                active={calculatingPercent === 100}
-                disabled={!toToken || isQuoteLoading}
-                onClick={() => onSetPercent(100)}
-              >
-                Max
-              </PercentButton>
-            </div>
+          <div style={{ alignItems: "center", display: "flex", gap: "5px" }}>
+            <PercentButtons
+              disabled={!toToken || isQuoteLoading}
+              onSelect={onSetPercent}
+              visible={Boolean(toToken) && isAmountFocused}
+            />
             {toToken && (
               <span
                 style={{
                   color: "#8E8E89",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
+                  fontSize: "11px",
+                  lineHeight: "16px",
                 }}
               >
-                Balance · {formatNumber(toToken.balance)} {toToken.symbol}
+                Balance · {formatSelectedTokenBalanceLabel(toToken)}
               </span>
             )}
           </div>
         </div>
 
-        <div style={{ borderTop: "1px solid #E8E8E7", paddingTop: "12px" }}>
+        <div
+          style={{
+            borderTop: "1px solid #E8E8E7",
+            marginTop: "4px",
+            paddingTop: "6px",
+          }}
+        >
           <div
             style={{
               color: "#848483",
@@ -451,7 +410,8 @@ export function ExactOutSwapIdleForm({
               fontSize: "12px",
               fontWeight: 500,
               letterSpacing: "0.08em",
-              marginBottom: "8px",
+              lineHeight: "18px",
+              marginBottom: "4px",
               textTransform: "uppercase",
             }}
           >
@@ -483,16 +443,16 @@ export function ExactOutSwapIdleForm({
             <button
               onClick={onOpenRecipientPicker}
               style={{
-                background: "#FFFFFE",
-                border: "1px solid #E8E8E7",
-                borderRadius: "999px",
-                boxShadow: "#3C28640F 0 1px 2px",
-                color: "#1F1F1F",
+                background: "#F4F6FF",
+                border: "none",
+                borderRadius: "4px",
+                color: "#006BF4",
                 cursor: "pointer",
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "13px",
                 fontWeight: 500,
-                padding: "7px 14px",
+                lineHeight: "13px",
+                padding: "6px 9px",
               }}
               type="button"
             >
@@ -506,12 +466,12 @@ export function ExactOutSwapIdleForm({
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "12px",
+          borderRadius: "9px",
           boxShadow: "#1616150A 0 1px 2px",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
-          padding: "16px",
+          gap: "9px",
+          padding: "9px",
         }}
       >
         <div
@@ -528,7 +488,7 @@ export function ExactOutSwapIdleForm({
                 color: "#161615",
                 display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 500,
                 gap: "8px",
               }}
@@ -555,7 +515,8 @@ export function ExactOutSwapIdleForm({
               style={{
                 color: "#9A9A99",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "12px",
+                lineHeight: "16px",
               }}
             >
               {sourceSelectionTouched
@@ -569,16 +530,16 @@ export function ExactOutSwapIdleForm({
             disabled={isSourcePickerDisabled}
             onClick={onOpenSourcePicker}
             style={{
-              background: "#FFFFFE",
-              border: "1px solid #0000000A",
-              borderRadius: "999px",
-              boxShadow: "#3C28640F 0 1px 2px",
-              color: isSourcePickerDisabled ? "#B8B8B5" : "#1F1F1F",
+              background: isSourcePickerDisabled ? "#F5F6F8" : "#F4F6FF",
+              border: "none",
+              borderRadius: "4px",
+              color: isSourcePickerDisabled ? "#B8B8B5" : "#006BF4",
               cursor: isSourcePickerDisabled ? "default" : "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "13px",
               fontWeight: 500,
-              padding: "7px 14px",
+              lineHeight: "13px",
+              padding: "6px 9px",
             }}
             type="button"
           >
@@ -593,7 +554,7 @@ export function ExactOutSwapIdleForm({
               color: "#006BF4",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "12px",
               gap: "8px",
               minHeight: 36,
             }}
@@ -605,9 +566,7 @@ export function ExactOutSwapIdleForm({
             Calculating best route…
           </div>
         ) : showQuotedAmounts && fromTokens.length > 0 ? (
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
             {fromTokens.map((token) => (
               <div
                 key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
@@ -618,13 +577,13 @@ export function ExactOutSwapIdleForm({
                 }}
               >
                 <div
-                  style={{ alignItems: "center", display: "flex", gap: "12px" }}
+                  style={{ alignItems: "center", display: "flex", gap: "9px" }}
                 >
                   <TokenLogo
                     chainLogo={token.chainLogo}
                     label={token.symbol}
                     logo={token.logo}
-                    size={36}
+                    size={28}
                   />
                   <div
                     style={{
@@ -637,7 +596,7 @@ export function ExactOutSwapIdleForm({
                       style={{
                         color: "#1F1F1F",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "14px",
+                        fontSize: "13px",
                         fontWeight: 600,
                       }}
                     >
@@ -647,7 +606,8 @@ export function ExactOutSwapIdleForm({
                       style={{
                         color: "#8E8E89",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "13px",
+                        fontSize: "11px",
+                        lineHeight: "16px",
                       }}
                     >
                       on {token.chainName || "Unknown chain"}
@@ -666,7 +626,7 @@ export function ExactOutSwapIdleForm({
                     style={{
                       color: "#1F1F1F",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "14px",
+                      fontSize: "13px",
                       fontWeight: 600,
                     }}
                   >
@@ -677,7 +637,8 @@ export function ExactOutSwapIdleForm({
                     style={{
                       color: "#8E8E89",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
+                      fontSize: "11px",
+                      lineHeight: "16px",
                     }}
                   >
                     {formatUsd(token.userAmountUsd || token.balanceInFiat)}
@@ -687,14 +648,14 @@ export function ExactOutSwapIdleForm({
             ))}
           </div>
         ) : fromTokens.length > 0 ? (
-          <div style={{ alignItems: "center", display: "flex", gap: "12px" }}>
+          <div style={{ alignItems: "center", display: "flex", gap: "9px" }}>
             <SourceLogoStack tokens={fromTokens} />
             <span
               style={{
                 color: "#848483",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
-                lineHeight: "18px",
+                fontSize: "12px",
+                lineHeight: "16px",
               }}
             >
               Pay with {sourceSummary.assetCount} token
@@ -709,7 +670,8 @@ export function ExactOutSwapIdleForm({
             style={{
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "12px",
+              lineHeight: "16px",
             }}
           >
             Sources will be auto-selected from your balances.

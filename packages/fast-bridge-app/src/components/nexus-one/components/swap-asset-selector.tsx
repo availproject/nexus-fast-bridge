@@ -746,12 +746,12 @@ export const formatTokenAmountDisplay = (value: unknown) => {
     }
   }
 
-  const minDisplay = new Decimal("0.00000001");
+  const minDisplay = new Decimal("0.0001");
   if (amount.gt(0) && amount.lt(minDisplay)) {
-    return `>${minDisplay.toFixed()}`;
+    return `<${minDisplay.toFixed()}`;
   }
 
-  return amount.toDecimalPlaces(8, Decimal.ROUND_DOWN).toFixed();
+  return amount.toDecimalPlaces(4, Decimal.ROUND_DOWN).toFixed();
 };
 
 const addThousandsSeparators = (value: string) => {

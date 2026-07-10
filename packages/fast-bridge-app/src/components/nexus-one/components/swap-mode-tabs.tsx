@@ -28,9 +28,28 @@ export function SwapModeTabs({
         boxSizing: "border-box",
         display: "flex",
         padding: "4px",
+        position: "relative",
         width: "100%",
       }}
     >
+      <span
+        aria-hidden="true"
+        style={{
+          backgroundColor: "#FFFFFF",
+          borderRadius: "999px",
+          bottom: "4px",
+          boxShadow:
+            "#FFFFFFE6 0 1px 0 inset, #3C286414 0 1px 2px, #3C28640F 0 2px 6px",
+          left: "4px",
+          position: "absolute",
+          top: "4px",
+          transform:
+            value === "exactOut" ? "translateX(100%)" : "translateX(0)",
+          transition: "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)",
+          width: "calc((100% - 8px) / 2)",
+          willChange: "transform",
+        }}
+      />
       {(Object.keys(TAB_COPY) as SwapType[]).map((mode) => {
         const active = value === mode;
         const copy = TAB_COPY[mode];
@@ -44,21 +63,20 @@ export function SwapModeTabs({
             role="tab"
             style={{
               alignItems: "center",
-              backgroundColor: active ? "#FFFFFF" : "transparent",
+              backgroundColor: "transparent",
               border: "none",
-              borderRadius: active ? "999px" : "8px",
-              boxShadow: active
-                ? "#FFFFFFE6 0 1px 0 inset, #3C286414 0 1px 2px, #3C28640F 0 2px 6px"
-                : "none",
+              borderRadius: "999px",
               boxSizing: "border-box",
               cursor: disabled ? "default" : "pointer",
               display: "flex",
               flex: 1,
               flexDirection: "column",
-              height: "48px",
+              height: "46px",
               justifyContent: "center",
               opacity: disabled ? 0.65 : 1,
               padding: "6px 12px",
+              position: "relative",
+              zIndex: 1,
             }}
             type="button"
           >
@@ -66,9 +84,10 @@ export function SwapModeTabs({
               style={{
                 color: active ? "#1F1F1F" : "#8E8E89",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "16px",
+                fontSize: "13.2px",
                 fontWeight: 500,
-                lineHeight: "20px",
+                lineHeight: "17px",
+                transition: "color 180ms ease-out",
               }}
             >
               {copy.label}
@@ -77,8 +96,9 @@ export function SwapModeTabs({
               style={{
                 color: active ? "#8E8E89" : "#C9C9C5",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
-                lineHeight: "16px",
+                fontSize: "10.4px",
+                lineHeight: "13px",
+                transition: "color 180ms ease-out",
               }}
             >
               {copy.description}

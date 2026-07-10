@@ -1,6 +1,7 @@
 import { isAddress } from "viem";
 
 type SupportedBridgeToken = "USDC" | "USDT";
+export type SwapParam = "in" | "out";
 
 const ALLOWED_TOKENS = new Set<SupportedBridgeToken>(["USDC", "USDT"]);
 const FILTERED_CHAIN_ID = 728_126_428;
@@ -84,6 +85,21 @@ export function readBridgeParams(): BridgeParams {
     recipient: recipientAddress,
     amount: sanitizedAmount,
   };
+}
+
+export function readSwapParam(): SwapParam {
+  if (typeof window === "undefined") {
+    return "in";
+  }
+  return new URLSearchParams(window.location.search).get("swap") === "out"
+    ? "out"
+    : "in";
+}
+
+export function writeSwapParam(mode: SwapParam): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set("swap", mode);
+  window.history.replaceState(window.history.state, "", url.toString());
 }
 
 export function writeBridgeParams(params: BridgeParams): void {

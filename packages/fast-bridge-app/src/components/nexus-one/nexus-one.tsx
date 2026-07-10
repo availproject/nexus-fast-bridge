@@ -32,6 +32,7 @@ import {
   useWalletClient,
 } from "wagmi";
 import { reportConnectWalletConversion } from "@/lib/google-tag";
+import { readSwapParam, writeSwapParam } from "@/lib/url-params";
 import { useRuntime } from "@/providers/runtime-context";
 import { ErrorBoundary } from "../common/components/error-boundary";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
@@ -79,6 +80,7 @@ import {
   SwapIntentPreview,
   type SwapIntentSource,
 } from "./components/swap-intent-preview";
+import { SwapModeContentTransition } from "./components/swap-mode-content-transition";
 import { SwapModeTabs } from "./components/swap-mode-tabs";
 import { nexusOneTheme } from "./theme";
 import {
@@ -3096,7 +3098,9 @@ function NexusOneInner({
   const previousDefaultRecipientRef = useRef(defaultRecipientAddress);
 
   // Swap-specific
-  const [swapType, setSwapType] = useState<SwapType>("exactIn");
+  const [swapType, setSwapType] = useState<SwapType>(() =>
+    activeMode === "swap" && readSwapParam() === "out" ? "exactOut" : "exactIn"
+  );
   const isSwapExactOut = activeMode === "swap" && swapType === "exactOut";
   const isExactOutPaymentFlow =
     activeMode === "deposit" || activeMode === "send" || isSwapExactOut;
@@ -6174,7 +6178,6 @@ function NexusOneInner({
           : destinationToken
       );
     }
-    setSwapType("exactIn");
     appliedTokenPrefillRef.current = prefillKey;
   }, [
     activeMode,
@@ -6327,12 +6330,6 @@ function NexusOneInner({
     if (activeMode !== "send") return;
     setSwapType("exactOut");
   }, [activeMode]);
-
-  useEffect(() => {
-    if (activeMode === "swap" && swapType !== "exactIn") {
-      setSwapType("exactIn");
-    }
-  }, [activeMode, swapType]);
 
   useEffect(() => {
     if (!toToken?.symbol) return;
@@ -8720,8 +8717,12 @@ function NexusOneInner({
     setFromTokens(tokens);
   };
 
-  const handleSwapTypeChange = (nextType: SwapType) => {
-    if (nextType === swapType || swapStep !== "idle") return;
+  const applySwapTypeChange = (nextType: SwapType, syncQuery: boolean) => {
+    if (activeMode !== "swap" || swapStepRef.current !== "idle") return;
+    if (syncQuery) {
+      writeSwapParam(nextType === "exactOut" ? "out" : "in");
+    }
+    if (nextType === swapType) return;
 
     syncingIntentSourcesRef.current = false;
     maxPercentRunRef.current += 1;
@@ -8739,6 +8740,22 @@ function NexusOneInner({
     }
     clearSelectedSources();
   };
+
+  const handleSwapTypeChange = (nextType: SwapType) => {
+    applySwapTypeChange(nextType, true);
+  };
+
+  useEffect(() => {
+    if (activeMode !== "swap") return;
+
+    const handlePopState = () => {
+      const nextType = readSwapParam() === "out" ? "exactOut" : "exactIn";
+      applySwapTypeChange(nextType, false);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [activeMode, swapType]);
 
   const handleDepositAmountChange = (val: string) => {
     syncingIntentSourcesRef.current = false;
@@ -9274,8 +9291,9 @@ function NexusOneInner({
       ? displayFromTokens
       : exactOutBalanceSourceTokens;
   const exactOutShowQuotedAmounts = Boolean(
-    hasCurrentExactOutPaymentIntent &&
-      (hasIntentSources || destinationBalanceDisplayToken)
+    shouldShowPredictiveExactOutDisplay ||
+      (hasCurrentExactOutPaymentIntent &&
+        (hasIntentSources || destinationBalanceDisplayToken))
   );
   const exactOutReceiveUsd =
     previewToAmountUsd ??
@@ -9344,15 +9362,15 @@ function NexusOneInner({
         height: shouldUseMeasuredRootHeight
           ? `${rootContentHeight + 24}px`
           : "fit-content",
-        maxHeight: "90dvh",
+        maxHeight: isDrawerOverlayActive ? "90dvh" : undefined,
         minHeight: shouldUseListMinHeight
           ? NEXUS_ONE_LIST_MIN_HEIGHT
           : undefined,
         lineHeight: "17px",
         margin: "auto",
-        overflowX: "hidden",
-        overflowY: isDrawerOverlayActive ? "hidden" : "auto",
-        overscrollBehavior: isDrawerOverlayActive ? "contain" : "auto",
+        overflowX: isDrawerOverlayActive ? "hidden" : "clip",
+        overflowY: isDrawerOverlayActive ? "hidden" : "visible",
+        overscrollBehavior: isDrawerOverlayActive ? "contain" : undefined,
         padding: "12px",
         scrollbarColor: `${theme.colors.textEmpty} transparent`,
         scrollbarWidth: "thin",
@@ -9701,86 +9719,87 @@ function NexusOneInner({
                   value={swapType}
                 />
 
-                {swapType === "exactIn" ? (
-                  <>
-                    <SwapIdleForm
+                <SwapModeContentTransition mode={swapType}>
+                  {swapType === "exactIn" ? (
+                    <>
+                      <SwapIdleForm
+                        amount={amount}
+                        defaultRecipientAddress={defaultRecipientAddress}
+                        fromTokens={fromTokens}
+                        isReceiveAmountLoading={isReceiveAmountLoading}
+                        isReceiveUsdLoading={isReceiveUsdLoading}
+                        onAmountChange={(val, panel) => {
+                          handleSwapAmountChange(val, panel);
+                        }}
+                        onOpenDestPicker={() =>
+                          openDrawerStep("choose-receive-asset")
+                        }
+                        onOpenRecipientPicker={handleOpenRecipientEditor}
+                        onOpenSourcePicker={(index) => {
+                          if (needsWalletConnection) {
+                            void handleConnectWallet();
+                            return;
+                          }
+                          setEditingAssetIndex(index ?? null);
+                          openDrawerStep("choose-swap-asset");
+                        }}
+                        onUpdateTokens={handleSwapTokensUpdate}
+                        receiveQuoteAmount={idleReceiveQuoteAmount}
+                        receiveQuoteUsd={idleReceiveQuoteUsd}
+                        recipientAddress={effectiveRecipientAddress}
+                        sourceRouteMessage={insufficientSourceIssue?.message}
+                        swapType={swapType}
+                        toToken={toTokenWithFetchedBalance}
+                        totalBalance={totalSwapBalanceUsd}
+                        usdValue={
+                          amount && usdValue > 0 ? usdValue.toFixed(2) : ""
+                        }
+                      />
+                      <EstimatedFeesDisclosure
+                        destinationGasFeeUsd={previewDestinationGasFeeUsd}
+                        intentData={intentData}
+                        totalFeeUsd={intentFeeUsd}
+                      />
+                    </>
+                  ) : (
+                    <ExactOutSwapIdleForm
                       amount={amount}
                       defaultRecipientAddress={defaultRecipientAddress}
-                      fromTokens={fromTokens}
-                      isReceiveAmountLoading={isReceiveAmountLoading}
-                      isReceiveUsdLoading={isReceiveUsdLoading}
-                      onAmountChange={(val, panel) => {
-                        handleSwapAmountChange(val, panel);
-                      }}
-                      onOpenDestPicker={() =>
+                      destinationGasFeeUsd={previewDestinationGasFeeUsd}
+                      fromTokens={exactOutIdleSourceTokens}
+                      intentData={intentData}
+                      isQuoteLoading={displayExactOutRouteLoading}
+                      isSourcePickerDisabled={isExactOutSourcePickerDisabled}
+                      onAmountChange={handleSendAmountChange}
+                      onOpenDestinationPicker={() =>
                         openDrawerStep("choose-receive-asset")
                       }
                       onOpenRecipientPicker={handleOpenRecipientEditor}
-                      onOpenSourcePicker={(index) => {
+                      onOpenSourcePicker={() => {
+                        if (isExactOutSourcePickerDisabled) return;
                         if (needsWalletConnection) {
                           void handleConnectWallet();
                           return;
                         }
-                        setEditingAssetIndex(index ?? null);
+                        setEditingAssetIndex(null);
                         openDrawerStep("choose-swap-asset");
                       }}
-                      onUpdateTokens={handleSwapTokensUpdate}
-                      receiveQuoteAmount={idleReceiveQuoteAmount}
-                      receiveQuoteUsd={idleReceiveQuoteUsd}
+                      onSetPercent={handleSendPercentSelect}
                       recipientAddress={effectiveRecipientAddress}
-                      sourceRouteMessage={insufficientSourceIssue?.message}
-                      swapType={swapType}
+                      routeMessage={insufficientSourceIssue?.message}
+                      showQuotedAmounts={exactOutShowQuotedAmounts}
+                      sourceSelectionTouched={sourceSelectionTouched}
                       toToken={toTokenWithFetchedBalance}
-                      totalBalance={totalSwapBalanceUsd}
-                      usdValue={
-                        amount && usdValue > 0 ? usdValue.toFixed(2) : ""
+                      totalBalanceUsd={
+                        exactOutAvailableBalanceUsd.gt(0)
+                          ? exactOutAvailableBalanceUsd.toFixed()
+                          : totalSwapBalanceUsd
                       }
-                    />
-                    <EstimatedFeesDisclosure
-                      destinationGasFeeUsd={previewDestinationGasFeeUsd}
-                      intentData={intentData}
                       totalFeeUsd={intentFeeUsd}
+                      usdValue={exactOutReceiveUsd}
                     />
-                  </>
-                ) : (
-                  <ExactOutSwapIdleForm
-                    amount={amount}
-                    calculatingPercent={maxCalculationPercent}
-                    defaultRecipientAddress={defaultRecipientAddress}
-                    destinationGasFeeUsd={previewDestinationGasFeeUsd}
-                    fromTokens={exactOutIdleSourceTokens}
-                    intentData={intentData}
-                    isQuoteLoading={displayExactOutRouteLoading}
-                    isSourcePickerDisabled={isExactOutSourcePickerDisabled}
-                    onAmountChange={handleSendAmountChange}
-                    onOpenDestinationPicker={() =>
-                      openDrawerStep("choose-receive-asset")
-                    }
-                    onOpenRecipientPicker={handleOpenRecipientEditor}
-                    onOpenSourcePicker={() => {
-                      if (isExactOutSourcePickerDisabled) return;
-                      if (needsWalletConnection) {
-                        void handleConnectWallet();
-                        return;
-                      }
-                      setEditingAssetIndex(null);
-                      openDrawerStep("choose-swap-asset");
-                    }}
-                    onSetPercent={handleSendPercentSelect}
-                    recipientAddress={effectiveRecipientAddress}
-                    routeMessage={insufficientSourceIssue?.message}
-                    showQuotedAmounts={exactOutShowQuotedAmounts}
-                    sourceSelectionTouched={sourceSelectionTouched}
-                    toToken={toTokenWithFetchedBalance}
-                    totalBalanceUsd={
-                      exactOutAvailableBalanceUsd.gt(0)
-                        ? exactOutAvailableBalanceUsd.toFixed()
-                        : totalSwapBalanceUsd
-                    }
-                    totalFeeUsd={intentFeeUsd}
-                    usdValue={exactOutReceiveUsd}
-                  />
-                )}
+                  )}
+                </SwapModeContentTransition>
 
                 {receiveAmountIssue && (
                   <StatusAlert
