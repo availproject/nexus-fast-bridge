@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
-import { Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AddressIdenticon } from "./address-identicon";
 import { EstimatedFeesDisclosure } from "./estimated-fees-disclosure";
 import {
@@ -83,6 +83,12 @@ function TokenLogo({
   logo?: string;
   size?: number;
 }) {
+  const [failed, setFailed] = useState(!logo);
+
+  useEffect(() => {
+    setFailed(!logo);
+  }, [logo]);
+
   return (
     <div
       style={{
@@ -92,9 +98,10 @@ function TokenLogo({
         width: size,
       }}
     >
-      {logo ? (
+      {!failed && logo ? (
         <img
           alt={label}
+          onError={() => setFailed(true)}
           src={logo}
           style={{
             borderRadius: "999px",
@@ -151,12 +158,7 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
           key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
           style={{ marginLeft: index === 0 ? 0 : -8 }}
         >
-          <TokenLogo
-            chainLogo={token.chainLogo}
-            label={token.symbol}
-            logo={token.logo}
-            size={24}
-          />
+          <TokenLogo label={token.symbol} logo={token.logo} size={24} />
         </div>
       ))}
       {tokens.length > visible.length && (
@@ -347,12 +349,15 @@ export function ExactOutSwapIdleForm({
             >
               {toToken?.symbol ?? "Select asset"}
             </span>
-            <span
+            <ChevronDown
               aria-hidden="true"
-              style={{ color: "#848483", fontSize: "13.2px" }}
-            >
-              ⌄
-            </span>
+              style={{
+                color: "#848483",
+                flexShrink: 0,
+                height: 13.2,
+                width: 13.2,
+              }}
+            />
           </button>
         </div>
 
@@ -579,12 +584,7 @@ export function ExactOutSwapIdleForm({
                 <div
                   style={{ alignItems: "center", display: "flex", gap: "9px" }}
                 >
-                  <TokenLogo
-                    chainLogo={token.chainLogo}
-                    label={token.symbol}
-                    logo={token.logo}
-                    size={28}
-                  />
+                  <TokenLogo label={token.symbol} logo={token.logo} size={28} />
                   <div
                     style={{
                       display: "flex",

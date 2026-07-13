@@ -18,7 +18,6 @@ import {
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -70,7 +69,7 @@ interface SwapAssetSelectorProps {
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
   onClearSelection?: () => void;
-  onDone?: () => void;
+  onDone?: (tokens?: SwapTokenOption[]) => void;
   onFilterTabSelect?: (tab: Exclude<FilterTab, "custom">) => void;
   onRestoreAuto?: () => void;
   onSelect: (token: SwapTokenOption) => void;
@@ -1083,8 +1082,6 @@ export function SwapAssetSelector({
     null
   );
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
-  const stableListHeightRef = useRef(0);
-  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const lockedSelectedTokens = useMemo(
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
@@ -1106,7 +1103,6 @@ export function SwapAssetSelector({
   const [draftSelectedTokens, setDraftSelectedTokens] = useState<
     SwapTokenOption[]
   >(() => mergeTokenOptions(selectedTokens, lockedSelectedTokens));
-  const [restoreAutoRequested, setRestoreAutoRequested] = useState(false);
   const selectedTokensSelectionKey =
     getTokenOptionsSelectionKey(selectedTokens);
   const lockedTokensSelectionKey =
@@ -1123,16 +1119,13 @@ export function SwapAssetSelector({
         lockedSelectedTokensRef.current
       )
     );
-    setRestoreAutoRequested(false);
   }, [isMulti, lockedTokensSelectionKey, selectedTokensSelectionKey]);
   const activeSelectedTokens = isMulti ? draftSelectedTokens : selectedTokens;
   const emitSelectionChange = useCallback(
     (tokens: SwapTokenOption[]) => {
       const next = mergeTokenOptions(tokens, lockedSelectedTokens);
       if (isMulti) {
-        setRestoreAutoRequested(false);
         setDraftSelectedTokens(next);
-        return;
       }
       onSelectionChange?.(next);
     },
@@ -1165,31 +1158,6 @@ export function SwapAssetSelector({
       listRef.current.scrollTop = 0;
     }
   }, [query, activeTab, selectedChainFilter]);
-
-  const preserveListHeight = useCallback(() => {
-    const listEl = listRef.current;
-    if (!listEl) return;
-
-    const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) return;
-
-    stableListHeightRef.current = nextHeight;
-    setStableListHeight(nextHeight);
-  }, []);
-
-  useLayoutEffect(() => {
-    preserveListHeight();
-
-    const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver(() => {
-      preserveListHeight();
-    });
-    observer.observe(listEl);
-
-    return () => observer.disconnect();
-  }, [preserveListHeight]);
 
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const isSwapSupportedToken = (token: SwapTokenOption) =>
@@ -1295,7 +1263,8 @@ export function SwapAssetSelector({
       !autoSelectFilterTabs ||
       filterTabBehavior === "source-pool" ||
       !isMulti ||
-      activeTab === "custom"
+      activeTab === "custom" ||
+      (activeTab === "all" && Boolean(onFilterTabSelect))
     )
       return;
     if (activeSelectedTokens.length === 0 && lockedSelectedTokens.length === 0)
@@ -1310,6 +1279,7 @@ export function SwapAssetSelector({
     filterTabBehavior,
     isMulti,
     lockedSelectedTokens.length,
+    onFilterTabSelect,
     selectionMatchesFilterTab,
   ]);
 
@@ -1575,6 +1545,10 @@ export function SwapAssetSelector({
   const handleFilterTabClick = (tab: FilterTab) => {
     setActiveTab(tab);
     if (autoSelectFilterTabs && isMulti && tab !== "custom") {
+      if (tab === "all" && onFilterTabSelect) {
+        onFilterTabSelect(tab);
+        return;
+      }
       if (filterTabBehavior === "source-pool") {
         onFilterTabSelect?.(tab);
         return;
@@ -2199,26 +2173,20 @@ export function SwapAssetSelector({
 
   const handleDone = () => {
     if (hasSelectionShortfall) return;
-    if (restoreAutoRequested && onRestoreAuto) {
-      onRestoreAuto();
-      onDone?.();
-      return;
-    }
-    if (isMulti && onSelectionChange) {
-      onSelectionChange(
-        mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
-      );
-    }
-    onDone?.();
+    onDone?.(
+      isMulti
+        ? mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
+        : undefined
+    );
   };
 
   const handleRestoreAuto = () => {
     if (isMulti && restoreAutoTokens) {
       setActiveTab("all");
-      setRestoreAutoRequested(true);
       setDraftSelectedTokens(
         mergeTokenOptions(restoreAutoTokens, lockedSelectedTokens)
       );
+      onRestoreAuto?.();
       return;
     }
     onRestoreAuto?.();
@@ -2228,7 +2196,6 @@ export function SwapAssetSelector({
     <div
       ref={selectorRef}
       style={{
-        ...modalHeightTransitionStyle,
         boxSizing: "border-box",
         display: "flex",
         flex: "1 1 auto",
@@ -2237,19 +2204,17 @@ export function SwapAssetSelector({
         maxHeight: "100%",
         minHeight: 0,
         overflow: "hidden",
-        padding: "12px",
-        transition: modalHeightTransition,
+        padding: "16px",
         width: "100%",
-        willChange: "height, max-height",
       }}
     >
       {/* Header */}
       <div
         style={{
           display: "flex",
-          alignItems: subtitle ? "flex-start" : "center",
+          alignItems: "center",
           gap: 12,
-          marginBottom: 12,
+          marginBottom: 16,
           minHeight: 32,
         }}
       >
@@ -2258,26 +2223,32 @@ export function SwapAssetSelector({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
-            border: "1px solid #E8E8E7",
+            borderRadius: 99,
+            border: "1px solid #0000000A",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FFFFFE",
+            backgroundColor: "#FFFFFF",
+            boxShadow: "#3C28640F 0px 1px 2px, #3C28640A 0px 2px 6px",
             cursor: "pointer",
             flexShrink: 0,
           }}
         >
           <ChevronDown
-            style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
+            style={{
+              color: "#5B5B5A",
+              height: 14,
+              transform: "rotate(90deg)",
+              width: 14,
+            }}
           />
         </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
-            justifyContent: subtitle ? "flex-start" : "center",
+            gap: "2px",
+            justifyContent: "center",
             minHeight: 32,
             minWidth: 0,
             flex: "1 1 auto",
@@ -2286,10 +2257,10 @@ export function SwapAssetSelector({
           <span
             style={{
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 18,
-              fontWeight: 600,
-              lineHeight: "24px",
-              color: "#161615",
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: "22px",
+              color: "#1F1F1F",
             }}
           >
             {title}
@@ -2299,7 +2270,8 @@ export function SwapAssetSelector({
               style={{
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
-                color: "#848483",
+                color: "#8E8E89",
+                lineHeight: "18px",
               }}
             >
               {subtitle}
@@ -2330,24 +2302,24 @@ export function SwapAssetSelector({
       </div>
 
       {/* Search */}
-      <div style={{ paddingBottom: 6 }}>
+      <div style={{ paddingBottom: 16 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            height: 42,
-            gap: 8,
-            borderRadius: 12,
-            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
+            height: 56,
+            gap: 10,
+            borderRadius: 14,
+            border: "none",
             boxShadow: isSearchFocused
-              ? "0 0 0 1px rgba(0,107,244,0.16)"
-              : "none",
-            padding: "0 8px 0 16px",
-            backgroundColor: "#F0F0EF",
+              ? "0 0 0 1px #A8C9FF, #3C28640F 0px 1px 2px inset"
+              : "#3C28640F 0px 1px 2px inset",
+            padding: "0 8px 0 14px",
+            backgroundColor: "#FAFAFC",
           }}
         >
           <Search
-            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
+            style={{ width: 18, height: 18, color: "#848483", flexShrink: 0 }}
           />
           <input
             onBlur={() => setIsSearchFocused(false)}
@@ -2361,8 +2333,12 @@ export function SwapAssetSelector({
               outline: "none",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 14,
+              lineHeight: "20px",
               color: "#161615",
               minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
             value={query}
           />
@@ -2385,22 +2361,22 @@ export function SwapAssetSelector({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 5,
-              padding: "4px 8px 4px 5px",
+              gap: 6,
+              padding: "6px 10px",
               borderRadius: 999,
               backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              border: "1px solid #0000000A",
               cursor: "pointer",
-              height: 38,
+              height: 32,
               flexShrink: 0,
-              boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+              boxShadow: "#3C28640F 0px 1px 2px",
             }}
           >
             {selectedChainFilter === null ? (
               <Globe
                 style={{
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   color: "#161615",
                   flexShrink: 0,
                 }}
@@ -2424,7 +2400,7 @@ export function SwapAssetSelector({
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "20px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -2433,7 +2409,7 @@ export function SwapAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
+            <ChevronDown style={{ width: 12, height: 12, color: "#848483" }} />
           </button>
         </div>
       </div>
@@ -2441,12 +2417,14 @@ export function SwapAssetSelector({
       {/* Filter tabs */}
       <div
         style={{
+          alignItems: "center",
           display: "flex",
           gap: 0,
-          backgroundColor: "#F0F0EF",
-          borderRadius: 8,
+          backgroundColor: "#F5F6F8",
+          borderRadius: 12,
+          boxShadow: "#2A388B0F 0px 1px 2px inset",
           padding: 4,
-          marginBottom: 6,
+          marginBottom: 16,
         }}
       >
         {visibleFilterTabs.map((tab) => (
@@ -2454,20 +2432,27 @@ export function SwapAssetSelector({
             key={tab.key}
             onClick={() => handleFilterTabClick(tab.key)}
             style={{
+              alignItems: "center",
+              display: "flex",
               flex: 1,
-              padding: "6px 0",
+              height: activeTab === tab.key ? 40 : 32,
+              justifyContent: "center",
+              padding: 0,
               backgroundColor:
-                activeTab === tab.key ? "#FFFFFE" : "transparent",
+                activeTab === tab.key ? "#FFFFFF" : "transparent",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 8,
               cursor: "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
-              fontWeight: 500,
-              color: activeTab === tab.key ? "#161615" : "#848483",
+              fontSize: 14,
+              fontWeight: activeTab === tab.key ? 600 : 500,
+              color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
               boxShadow:
-                activeTab === tab.key ? "0px 1px 2px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s",
+                activeTab === tab.key
+                  ? "#FFFFFFE6 0px 1px 0px inset, #3C286414 0px 1px 2px, #3C28640F 0px 2px 6px"
+                  : "none",
+              transition:
+                "background-color 150ms ease, box-shadow 150ms ease, color 150ms ease",
             }}
           >
             {autoSelectFilterTabs && tab.key === "all" ? "Any" : tab.label}
@@ -2480,7 +2465,7 @@ export function SwapAssetSelector({
         ref={listRef}
         style={{
           flex: "1 1 auto",
-          minHeight: stableListHeight ? `${stableListHeight}px` : 0,
+          minHeight: 0,
           overflowY: "auto",
           paddingBottom: 6,
         }}
@@ -2534,10 +2519,10 @@ export function SwapAssetSelector({
               <div
                 style={{
                   border: "1px solid #E8E8E7",
-                  borderRadius: 14,
-                  overflowX: "hidden",
-                  overflowY: "visible",
-                  backgroundColor: "#FFFFFE",
+                  borderRadius: 12,
+                  boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
+                  overflow: "hidden",
+                  backgroundColor: "#FFFFFF",
                 }}
               >
                 {isMulti
