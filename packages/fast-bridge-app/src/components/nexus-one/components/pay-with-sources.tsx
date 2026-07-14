@@ -1,58 +1,29 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 import Decimal from "decimal.js";
-import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
-import React, { useRef, useState } from "react";
-import { type SwapTokenOption } from "./swap-asset-selector";
+import { Loader2 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import type { SwapTokenOption } from "./swap-asset-selector";
 
 const uiFont = '"Geist", system-ui, sans-serif';
 const primary = "#161615";
 const muted = "#848483";
-const border = "#E8E8E7";
 const brand = "#006BF4";
-
-const parseDecimal = (value: unknown) => {
-  if (value === null || value === undefined || value === "") return undefined;
-  if (Decimal.isDecimal(value)) return value;
-  const cleaned = String(value).replace(/[^0-9.-]/g, "");
-  if (!cleaned || cleaned === "-" || cleaned === "." || cleaned === "-.") {
-    return undefined;
-  }
-  try {
-    const parsed = new Decimal(cleaned);
-    return parsed.isFinite() ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-const formatToken = (value: unknown) => {
-  const amount = parseDecimal(value) ?? new Decimal(0);
-  return amount.toDecimalPlaces(8).toFixed();
-};
-
-const formatUsd = (value: unknown) => {
-  const amount = parseDecimal(value) ?? new Decimal(0);
-  if (amount.gt(0) && amount.lt(0.01)) return "<$0.01";
-  return `$${amount.toDecimalPlaces(2).toFixed()}`;
-};
 
 function TokenLogo({
   src,
   label,
-  size = 30,
-  fontSize = 12,
+  size = 28,
   style,
 }: {
   src?: string;
   label?: string;
   size?: number;
-  fontSize?: number;
   style?: React.CSSProperties;
 }) {
   const [failed, setFailed] = useState(!src);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setFailed(!src);
   }, [src]);
 
@@ -75,15 +46,15 @@ function TokenLogo({
   }
 
   return (
-    <div
+    <span
       style={{
         alignItems: "center",
         backgroundColor: "#E8F0FF",
         borderRadius: "999px",
         color: brand,
-        display: "flex",
+        display: "inline-flex",
         fontFamily: uiFont,
-        fontSize,
+        fontSize: Math.max(10, Math.round(size * 0.4)),
         fontWeight: 700,
         height: size,
         justifyContent: "center",
@@ -91,39 +62,19 @@ function TokenLogo({
         ...style,
       }}
     >
-      {(label || "?").slice(0, 1).toUpperCase()}
-    </div>
+      {(label || "?").trim().slice(0, 1).toUpperCase()}
+    </span>
   );
 }
 
-function SourceLogoPair({ token }: { token: SwapTokenOption }) {
-  return (
-    <div style={{ flexShrink: 0, height: 32, position: "relative", width: 32 }}>
-      <TokenLogo label={token.symbol} size={32} src={token.logo} />
-      {token.chainLogo && (
-        <TokenLogo
-          label={token.chainName}
-          size={14}
-          src={token.chainLogo}
-          style={{
-            bottom: -2,
-            outline: "1px solid #FFFFFE",
-            position: "absolute",
-            right: -2,
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function SkeletonRow() {
+function SkeletonSummary() {
   return (
     <div
       style={{
         alignItems: "center",
         display: "flex",
-        justifyContent: "space-between",
+        gap: "12px",
+        width: "100%",
       }}
     >
       <div
@@ -132,9 +83,9 @@ function SkeletonRow() {
           background:
             "linear-gradient(90deg, #F0F0EF 0%, #F7F7F6 48%, #F0F0EF 100%)",
           backgroundSize: "200% 100%",
-          borderRadius: "6px",
-          height: "32px",
-          width: "128px",
+          borderRadius: "999px",
+          height: "28px",
+          width: "72px",
         }}
       />
       <div
@@ -143,14 +94,62 @@ function SkeletonRow() {
           background:
             "linear-gradient(90deg, #F0F0EF 0%, #F7F7F6 48%, #F0F0EF 100%)",
           backgroundSize: "200% 100%",
-          borderRadius: "999px",
-          height: "32px",
-          width: "108px",
+          borderRadius: "6px",
+          height: "16px",
+          width: "68%",
         }}
       />
     </div>
   );
 }
+
+const getSourceTokenKey = (token: SwapTokenOption) =>
+  `${token.chainId ?? "unified"}:${token.contractAddress.toLowerCase()}`;
+
+const getConcreteSourceTokens = (tokens: SwapTokenOption[]) => {
+  const concreteTokens = tokens.flatMap((token) =>
+    token.isUnified && token.sourceTokens?.length ? token.sourceTokens : [token]
+  );
+  const uniqueTokens = new Map<string, SwapTokenOption>();
+  for (const token of concreteTokens) {
+    uniqueTokens.set(getSourceTokenKey(token), token);
+  }
+  return [...uniqueTokens.values()];
+};
+
+const pluralize = (count: number, singular: string) =>
+  `${count} ${singular}${count === 1 ? "" : "s"}`;
+
+const parseAmount = (value: unknown) => {
+  const cleaned = String(value ?? "").replace(/[^0-9.-]/g, "");
+  if (!cleaned || cleaned === "-" || cleaned === ".") return undefined;
+  try {
+    const amount = new Decimal(cleaned);
+    return amount.isFinite() ? amount : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const formatSourceAmount = (token: SwapTokenOption) => {
+  const amount = parseAmount(token.userAmount || token.balance);
+  if (!amount) return token.symbol;
+  return `${amount.toDecimalPlaces(6).toFixed()} ${token.symbol}`;
+};
+
+const formatSourceUsd = (token: SwapTokenOption) => {
+  const quotedUsd = parseAmount(token.userAmountUsd);
+  if (quotedUsd) return `$${quotedUsd.toDecimalPlaces(2).toFixed(2)}`;
+
+  const balance = parseAmount(token.balance);
+  const balanceUsd = parseAmount(token.balanceInFiat);
+  const selectedAmount = parseAmount(token.userAmount);
+  const selectedUsd =
+    selectedAmount && balance?.gt(0) && balanceUsd
+      ? selectedAmount.mul(balanceUsd).div(balance)
+      : balanceUsd;
+  return selectedUsd ? `$${selectedUsd.toDecimalPlaces(2).toFixed(2)}` : "";
+};
 
 export function PayWithSources({
   fromTokens,
@@ -159,7 +158,6 @@ export function PayWithSources({
   routeMessage,
   showAutoBadge = true,
   isSourcePickerDisabled = false,
-  reserveSourceRows = false,
 }: {
   fromTokens: SwapTokenOption[];
   onOpenSourcePicker: () => void;
@@ -169,137 +167,226 @@ export function PayWithSources({
   isSourcePickerDisabled?: boolean;
   reserveSourceRows?: boolean;
 }) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const isRouteLoading = routeStatus === "loading";
-  const shouldShowSourceSummary = !isRouteLoading && fromTokens.length > 0;
-  const shouldScroll = shouldShowSourceSummary && fromTokens.length > 3;
-  const autoBadge = (
-    <span
-      style={{
-        border: `1px solid ${brand}`,
-        borderRadius: "999px",
-        color: brand,
-        fontFamily: uiFont,
-        fontSize: "9px",
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        lineHeight: "14px",
-        padding: "1px 5px",
-      }}
-    >
-      AUTO
-    </span>
+  const sourceTokens = useMemo(
+    () => getConcreteSourceTokens(fromTokens),
+    [fromTokens]
   );
+  const sourceChainCount = useMemo(
+    () =>
+      new Set(
+        sourceTokens
+          .map((token) => token.chainId)
+          .filter((chainId): chainId is number => chainId !== undefined)
+      ).size,
+    [sourceTokens]
+  );
+  const visibleLogoTokens = sourceTokens.slice(0, 3);
+  const hiddenLogoCount = Math.max(0, sourceTokens.length - 3);
+  const hasSources = sourceTokens.length > 0;
+  const isRouteLoading = routeStatus === "loading";
+  const editDisabled = isSourcePickerDisabled || !hasSources;
+  const selectionLabel = showAutoBadge ? "Auto-selected" : "Manually selected";
+  const sourceSummary = `Pay with ${pluralize(sourceTokens.length, "token")} across ${pluralize(sourceChainCount, "chain")} · auto-converted to selected chains`;
 
   return (
     <div
       style={{
-        backgroundColor: "#FFFFFE",
-        border: `1px solid ${border}`,
-        borderRadius: "10px",
-        boxShadow: "#1616150A 0px 1px 2px",
+        alignItems: "stretch",
+        backgroundColor: "#FFFFFF",
+        borderRadius: "12px",
+        boxShadow: "#3C286433 0px 0px 3px",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
-        padding: "11px",
+        gap: "12px",
+        padding: "16px",
+        width: "100%",
       }}
     >
       <div
         style={{
-          alignItems: "center",
+          alignItems: "flex-start",
           display: "flex",
+          gap: "4px",
           justifyContent: "space-between",
+          width: "100%",
         }}
       >
         <div
           style={{
-            alignItems: "center",
-            color: muted,
+            alignItems: "flex-start",
             display: "flex",
-            fontFamily: uiFont,
-            fontSize: "10.5px",
-            fontWeight: 500,
-            gap: "6px",
-            letterSpacing: "0.08em",
-            lineHeight: "17px",
-            textTransform: "uppercase",
+            flexDirection: "column",
+            gap: "4px",
           }}
         >
-          <span>
-            Pay With
-            {shouldShowSourceSummary ? ` · ${fromTokens.length} assets` : ""}
-          </span>
-          {showAutoBadge ? autoBadge : null}
-        </div>
-        {shouldShowSourceSummary && (
-          <button
-            disabled={isSourcePickerDisabled}
-            onClick={onOpenSourcePicker}
+          <span
             style={{
-              backgroundColor: isSourcePickerDisabled ? "#F4F4F3" : "#F4F7FE",
-              border: "none",
-              borderRadius: "5px",
-              color: isSourcePickerDisabled ? "#A8A8A6" : brand,
-              cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
+              color: primary,
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "15px",
               fontWeight: 500,
-              lineHeight: "14px",
-              opacity: isSourcePickerDisabled ? 0.75 : 1,
-              padding: "5.5px 8px",
+              lineHeight: "18px",
             }}
-            type="button"
           >
-            Edit tokens
-          </button>
-        )}
+            Send
+          </span>
+          <span
+            style={{
+              color: "#9A9A99",
+              fontFamily: uiFont,
+              fontSize: "14px",
+              lineHeight: "16px",
+            }}
+          >
+            {selectionLabel}
+          </span>
+        </div>
+
+        <button
+          disabled={editDisabled}
+          onClick={onOpenSourcePicker}
+          style={{
+            alignItems: "center",
+            backgroundColor: editDisabled ? "#F5F6F8" : "#FFFFFF",
+            border: "1px solid #0000000A",
+            borderRadius: "999px",
+            boxShadow: editDisabled ? "none" : "#3C28640F 0px 1px 2px",
+            color: editDisabled ? "#B6B6B3" : "#9E9E9C",
+            cursor: editDisabled ? "not-allowed" : "pointer",
+            display: "flex",
+            flexShrink: 0,
+            fontFamily: uiFont,
+            fontSize: "13px",
+            fontWeight: 500,
+            lineHeight: "16px",
+            padding: "6px 14px",
+          }}
+          type="button"
+        >
+          Edit
+        </button>
       </div>
 
-      {isRouteLoading ? (
-        <>
-          <SkeletonRow />
+      {hasSources ? (
+        <div
+          style={{
+            alignItems: "flex-start",
+            display: "flex",
+            gap: "12px",
+            minWidth: 0,
+          }}
+        >
           <div
             style={{
               alignItems: "center",
-              color: brand,
               display: "flex",
-              fontFamily: uiFont,
-              fontSize: "11.5px",
-              gap: "6px",
+              flexShrink: 0,
             }}
           >
-            <Loader2
-              className="animate-spin"
-              style={{ height: 13, width: 13 }}
-            />
-            Calculating best route...
+            {visibleLogoTokens.map((token, index) => (
+              <TokenLogo
+                key={getSourceTokenKey(token)}
+                label={token.symbol}
+                src={token.logo}
+                style={{
+                  flexShrink: 0,
+                  marginLeft: index === 0 ? 0 : "-8px",
+                  outline: "2px solid #FFFFFE",
+                }}
+              />
+            ))}
+            {hiddenLogoCount > 0 && (
+              <span
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#F0F0EF",
+                  borderRadius: "999px",
+                  color: muted,
+                  display: "flex",
+                  flexShrink: 0,
+                  fontFamily: uiFont,
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  height: "28px",
+                  justifyContent: "center",
+                  lineHeight: "12px",
+                  marginLeft: "-8px",
+                  outline: "2px solid #FFFFFE",
+                  width: "28px",
+                }}
+              >
+                +{hiddenLogoCount}
+              </span>
+            )}
           </div>
-        </>
-      ) : shouldShowSourceSummary ? (
-        <div style={{ position: "relative" }}>
-          <div
-            ref={scrollRef}
+          <span
             style={{
-              display: "flex",
-              flexDirection: "column",
-              maxHeight: shouldScroll ? "184px" : undefined,
-              minHeight:
-                reserveSourceRows && !shouldScroll ? "156px" : undefined,
-              overflowY: shouldScroll ? "auto" : undefined,
-              paddingRight: shouldScroll ? "6px" : 0,
+              color: muted,
+              flex: 1,
+              fontFamily: uiFont,
+              fontSize: "14px",
+              lineHeight: "16px",
+              minWidth: 0,
             }}
           >
-            {fromTokens.map((token, index) => (
+            {sourceSummary}
+          </span>
+        </div>
+      ) : isRouteLoading ? (
+        <SkeletonSummary />
+      ) : (
+        <span
+          style={{
+            color: muted,
+            fontFamily: uiFont,
+            fontSize: "14px",
+            lineHeight: "16px",
+          }}
+        >
+          Source assets will be auto-selected after you set a receive amount.
+        </span>
+      )}
+
+      {isRouteLoading && (
+        <div
+          style={{
+            alignItems: "center",
+            color: brand,
+            display: "flex",
+            fontFamily: uiFont,
+            fontSize: "12px",
+            gap: "6px",
+            lineHeight: "16px",
+          }}
+        >
+          <Loader2 className="animate-spin" size={14} />
+          Calculating best route...
+        </div>
+      )}
+
+      {routeStatus === "insufficient" && hasSources && (
+        <div
+          style={{
+            borderTop: "1px solid #ECECEB",
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: "220px",
+            overflowY: sourceTokens.length > 3 ? "auto" : undefined,
+          }}
+        >
+          {sourceTokens.map((token, index) => {
+            const sourceUsd = formatSourceUsd(token);
+            return (
               <div
-                key={`${token.contractAddress}-${token.chainId ?? "unified"}-${index}`}
+                key={getSourceTokenKey(token)}
                 style={{
                   alignItems: "center",
                   borderTop: index === 0 ? "none" : "1px solid #F0F0EF",
                   display: "flex",
                   justifyContent: "space-between",
-                  minHeight: "52px",
-                  padding: "6px 0",
+                  minHeight: "58px",
+                  padding: "8px 0",
                 }}
               >
                 <div
@@ -310,7 +397,7 @@ export function PayWithSources({
                     minWidth: 0,
                   }}
                 >
-                  <SourceLogoPair token={token} />
+                  <TokenLogo label={token.symbol} size={32} src={token.logo} />
                   <div
                     style={{
                       display: "flex",
@@ -324,7 +411,8 @@ export function PayWithSources({
                         color: primary,
                         fontFamily: uiFont,
                         fontSize: "14px",
-                        fontWeight: 600,
+                        fontWeight: 500,
+                        lineHeight: "18px",
                       }}
                     >
                       {token.symbol}
@@ -333,22 +421,23 @@ export function PayWithSources({
                       style={{
                         color: muted,
                         fontFamily: uiFont,
-                        fontSize: "10.5px",
+                        fontSize: "13px",
+                        lineHeight: "16px",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {token.isUnified
-                        ? "Unified balance"
-                        : `on ${token.chainName || "Unknown chain"}`}
+                      on {token.chainName || "Unknown chain"}
                     </span>
                   </div>
                 </div>
                 <div
                   style={{
+                    alignItems: "flex-end",
                     display: "flex",
                     flexDirection: "column",
+                    flexShrink: 0,
                     gap: "3px",
                     textAlign: "right",
                   }}
@@ -357,82 +446,43 @@ export function PayWithSources({
                     style={{
                       color: primary,
                       fontFamily: uiFont,
-                      fontSize: "11.5px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      lineHeight: "18px",
                     }}
                   >
-                    {formatToken(token.userAmount || token.balance)}{" "}
-                    {token.symbol}
+                    {formatSourceAmount(token)}
                   </span>
-                  <span
-                    style={{
-                      color: muted,
-                      fontFamily: uiFont,
-                      fontSize: "10.5px",
-                    }}
-                  >
-                    {formatUsd(token.userAmountUsd || token.balanceInFiat)}
-                  </span>
+                  {sourceUsd && (
+                    <span
+                      style={{
+                        color: muted,
+                        fontFamily: uiFont,
+                        fontSize: "13px",
+                        lineHeight: "16px",
+                      }}
+                    >
+                      {sourceUsd}
+                    </span>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-          {shouldScroll && (
-            <button
-              aria-label="Scroll payment sources"
-              onClick={() =>
-                scrollRef.current?.scrollBy({ behavior: "smooth", top: 64 })
-              }
-              style={{
-                alignItems: "center",
-                background: "#FFFFFE",
-                border: `1px solid ${border}`,
-                borderRadius: "999px",
-                bottom: "4px",
-                boxShadow: "0 2px 8px rgba(22,22,21,0.08)",
-                cursor: "pointer",
-                display: "flex",
-                height: "22px",
-                justifyContent: "center",
-                left: "50%",
-                padding: 0,
-                position: "absolute",
-                transform: "translateX(-50%)",
-                width: "22px",
-              }}
-              type="button"
-            >
-              <ChevronDown style={{ color: muted, height: 14, width: 14 }} />
-            </button>
-          )}
-        </div>
-      ) : (
-        <div
-          style={{
-            color: primary,
-            fontFamily: uiFont,
-            fontSize: "11.5px",
-            lineHeight: "17px",
-          }}
-        >
-          Sources will be auto selected
+            );
+          })}
         </div>
       )}
 
       {routeStatus === "insufficient" && routeMessage && (
-        <div
+        <span
           style={{
-            alignItems: "center",
-            color: "#D32F2F",
-            display: "flex",
+            color: "#E92C2C",
             fontFamily: uiFont,
-            fontSize: "11.5px",
-            gap: "8px",
-            lineHeight: "17px",
+            fontSize: "13px",
+            lineHeight: "18px",
           }}
         >
-          <AlertCircle style={{ flexShrink: 0, height: 15, width: 15 }} />
           {routeMessage}
-        </div>
+        </span>
       )}
     </div>
   );

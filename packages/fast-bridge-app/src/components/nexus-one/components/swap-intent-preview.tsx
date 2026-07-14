@@ -178,9 +178,9 @@ const formatHeaderTokenAmount = (value: unknown) => {
 const getFontSize = (amountStr: string, symbolStr: string) => {
   const totalLength =
     String(amountStr || "").length + String(symbolStr || "").length;
-  if (totalLength > 16) return "13px";
-  if (totalLength > 12) return "15px";
-  return "17px";
+  if (totalLength > 16) return "17px";
+  if (totalLength > 12) return "20px";
+  return "24px";
 };
 
 const unique = (values: string[]) =>
@@ -348,9 +348,9 @@ function DetailToggle({
         cursor: "pointer",
         display: "flex",
         fontFamily,
-        fontSize: "12px",
+        fontSize: "14px",
         gap: "3px",
-        lineHeight: "14px",
+        lineHeight: "20px",
         padding: 0,
       }}
       type="button"
@@ -433,17 +433,17 @@ function RecipientRow({ address }: { address: string }) {
         borderTop: `1px solid ${border}`,
         display: "flex",
         justifyContent: "space-between",
-        padding: "13px 14px",
+        padding: "16px",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
         <div
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
-            fontWeight: 600,
-            lineHeight: "18px",
+            fontSize: "16px",
+            fontWeight: 500,
+            lineHeight: "24px",
           }}
         >
           Recipient
@@ -452,8 +452,8 @@ function RecipientRow({ address }: { address: string }) {
           style={{
             color: muted,
             fontFamily,
-            fontSize: "12px",
-            lineHeight: "14px",
+            fontSize: "14px",
+            lineHeight: "24px",
           }}
         >
           Wallet address
@@ -572,17 +572,17 @@ function Row({
         borderTop: `1px solid ${border}`,
         display: "flex",
         justifyContent: "space-between",
-        padding: "16px 16px",
+        padding: "16px",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
         <div
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
-            fontWeight: 600,
-            lineHeight: "20px",
+            fontSize: "16px",
+            fontWeight: 500,
+            lineHeight: "24px",
           }}
         >
           {title}
@@ -591,8 +591,8 @@ function Row({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "12px",
-            lineHeight: "15px",
+            fontSize: "14px",
+            lineHeight: "24px",
           }}
         >
           {subtitle}
@@ -603,7 +603,7 @@ function Row({
           alignItems: "flex-end",
           display: "flex",
           flexDirection: "column",
-          gap: "5px",
+          gap: "3px",
           textAlign: "right",
         }}
       >
@@ -611,9 +611,9 @@ function Row({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "14px",
-            fontWeight: 600,
-            lineHeight: "18px",
+            fontSize: "16px",
+            fontWeight: 500,
+            lineHeight: "24px",
           }}
         >
           {value}
@@ -623,8 +623,8 @@ function Row({
             style={{
               color: muted,
               fontFamily,
-              fontSize: "12px",
-              lineHeight: "14px",
+              fontSize: "14px",
+              lineHeight: "24px",
             }}
           >
             {secondaryValue}
@@ -1452,9 +1452,10 @@ export function SwapIntentPreview({
   const shouldPulseCta =
     !isLoading && !isRefreshing && !isExecuting && !quoteUnavailable;
   const shouldShowMayanBadge = intentData?.bridgeProvider === "mayan";
+  const swapBufferRefundMessage = `Excess funds are refunded as USDC on ${destChainName || "the destination chain"}`;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <style>
         {`
           @keyframes nexusPreviewCtaPulse {
@@ -1480,8 +1481,8 @@ export function SwapIntentPreview({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "9px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
           overflow: "hidden",
           width: "100%",
         }}
@@ -1491,25 +1492,25 @@ export function SwapIntentPreview({
             background: "linear-gradient(180deg, #FFFFFE 0%, #EEF5FF 100%)",
             display: "grid",
             gridTemplateColumns: "1fr auto 1fr",
-            minHeight: "79px",
-            padding: "19px 14px 16px",
+            minHeight: "114px",
+            padding: "23px 21px 17px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div
               style={{
                 alignItems: "baseline",
                 color: primary,
                 display: "flex",
-                gap: "5px",
+                gap: "6px",
                 fontFamily,
                 fontSize: getFontSize(sourceHeaderAmount, sourceHeaderUnit),
                 fontWeight: 600,
-                lineHeight: "22px",
+                lineHeight: "32px",
               }}
             >
               {sourceHeaderAmount}
-              <span style={{ color: muted, fontSize: "9px", fontWeight: 500 }}>
+              <span style={{ color: muted, fontSize: "14px", fontWeight: 500 }}>
                 {sourceHeaderUnit}
               </span>
             </div>
@@ -1517,8 +1518,8 @@ export function SwapIntentPreview({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "9px",
-                lineHeight: "14px",
+                fontSize: "15px",
+                lineHeight: "24px",
               }}
             >
               {sourceHeaderSubtitle}
@@ -1530,9 +1531,9 @@ export function SwapIntentPreview({
             style={{
               alignItems: "center",
               display: "flex",
-              gap: "5px",
+              gap: "4px",
               justifyContent: "center",
-              padding: "0 12px",
+              padding: "0 10px",
             }}
           >
             {[0, 1, 2, 3, 4].map((index) => (
@@ -1540,11 +1541,11 @@ export function SwapIntentPreview({
                 key={index}
                 style={{
                   background: index === 2 ? "#006BF4" : "#9FC4FF",
-                  borderRadius: "2px",
+                  borderRadius: "1.5px",
                   display: "block",
-                  height: "4px",
+                  height: "6px",
                   opacity: index === 2 ? 1 : 0.55,
-                  width: "4px",
+                  width: "6px",
                 }}
               />
             ))}
@@ -1555,7 +1556,7 @@ export function SwapIntentPreview({
               alignItems: "flex-end",
               display: "flex",
               flexDirection: "column",
-              gap: "5px",
+              gap: "4px",
               textAlign: "right",
             }}
           >
@@ -1564,15 +1565,15 @@ export function SwapIntentPreview({
                 alignItems: "baseline",
                 color: primary,
                 display: "flex",
-                gap: "5px",
+                gap: "6px",
                 fontFamily,
                 fontSize: getFontSize(destinationHeaderAmount, destTokenSymbol),
                 fontWeight: 600,
-                lineHeight: "22px",
+                lineHeight: "32px",
               }}
             >
               {destinationHeaderAmount}
-              <span style={{ color: muted, fontSize: "9px", fontWeight: 500 }}>
+              <span style={{ color: muted, fontSize: "14px", fontWeight: 500 }}>
                 {destTokenSymbol}
               </span>
             </div>
@@ -1580,8 +1581,8 @@ export function SwapIntentPreview({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "9px",
-                lineHeight: "14px",
+                fontSize: "15px",
+                lineHeight: "24px",
               }}
             >
               {destChainName ? `on ${destChainName}` : destTokenSymbol}
@@ -1649,7 +1650,7 @@ export function SwapIntentPreview({
                         display: "flex",
                         gap: "9px",
                         justifyContent: "space-between",
-                        minHeight: "47px",
+                        minHeight: "52px",
                         padding: "6px 0",
                       }}
                     >
@@ -1704,9 +1705,9 @@ export function SwapIntentPreview({
                             style={{
                               color: primary,
                               fontFamily,
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              lineHeight: "16px",
+                              fontSize: "14px",
+                              fontWeight: 500,
+                              lineHeight: "20px",
                             }}
                           >
                             {source.symbol}
@@ -1715,8 +1716,8 @@ export function SwapIntentPreview({
                             style={{
                               color: muted,
                               fontFamily,
-                              fontSize: "12px",
-                              lineHeight: "16px",
+                              fontSize: "13px",
+                              lineHeight: "18px",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
@@ -1740,7 +1741,7 @@ export function SwapIntentPreview({
                           style={{
                             color: primary,
                             fontFamily,
-                            fontSize: "12px",
+                            fontSize: "13px",
                           }}
                         >
                           {source.tokenAmount}
@@ -1750,7 +1751,7 @@ export function SwapIntentPreview({
                             style={{
                               color: muted,
                               fontFamily,
-                              fontSize: "12px",
+                              fontSize: "13px",
                             }}
                           >
                             {source.usdAmount}
@@ -1802,7 +1803,7 @@ export function SwapIntentPreview({
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                   {pendingLabel}
                 </span>
               </div>
@@ -1852,10 +1853,10 @@ export function SwapIntentPreview({
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                   {row.label}
                 </span>
-                <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+                <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
                   {formatUsdValue(row.value)}
                 </span>
               </div>
@@ -1868,10 +1869,10 @@ export function SwapIntentPreview({
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+              <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
                 Network & protocol
               </span>
-              <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+              <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
                 {pendingValue}
               </span>
             </div>
@@ -1905,7 +1906,7 @@ export function SwapIntentPreview({
               justifyContent: "space-between",
             }}
           >
-            <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
               Swap Impact
             </span>
             <span
@@ -1917,7 +1918,7 @@ export function SwapIntentPreview({
                     ? "#168A47"
                     : primary,
                 fontFamily,
-                fontSize: "12px",
+                fontSize: "14px",
               }}
             >
               {impactPercent}
@@ -1930,10 +1931,10 @@ export function SwapIntentPreview({
               justifyContent: "space-between",
             }}
           >
-            <span style={{ color: muted, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: muted, fontFamily, fontSize: "14px" }}>
               Max. Slippage
             </span>
-            <span style={{ color: primary, fontFamily, fontSize: "12px" }}>
+            <span style={{ color: primary, fontFamily, fontSize: "14px" }}>
               Auto
             </span>
           </div>
@@ -1941,7 +1942,7 @@ export function SwapIntentPreview({
 
         {shouldShowSwapBuffer && (
           <Row
-            subtitle="Excess funds are refunded"
+            subtitle={swapBufferRefundMessage}
             title={
               <span
                 style={{
@@ -1951,7 +1952,9 @@ export function SwapIntentPreview({
                 }}
               >
                 Swap Buffer
-                <InlineInfoTooltip message="Temporary buffer collected to ensure swaps succeed. Excess funds are refunded." />
+                <InlineInfoTooltip
+                  message={`Temporary buffer collected to ensure successful swaps. ${swapBufferRefundMessage}.`}
+                />
               </span>
             }
             value={swapBufferDisplay}
@@ -1964,7 +1967,7 @@ export function SwapIntentPreview({
           style={{
             background: "#FFFFFE",
             border: `1px solid ${border}`,
-            borderRadius: "9px",
+            borderRadius: "12px",
             boxShadow: "0px 1px 12px 0px #5B5B5B0D",
             padding: "11px 13px",
             width: "100%",
@@ -2002,13 +2005,14 @@ export function SwapIntentPreview({
             ? "nexusPreviewCtaPulse 1800ms ease-in-out infinite"
             : undefined,
           background: "#1F1F1F",
-          borderRadius: "10px",
-          boxShadow: "0px 1px 4px 0px #5555550D",
+          borderRadius: "14px",
+          boxShadow:
+            "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 8px 20px",
           color: "#FFFFFE",
           fontFamily,
-          fontSize: "14px",
+          fontSize: "16px",
           fontWeight: 500,
-          height: "42px",
+          height: "48px",
           transformOrigin: "center",
           willChange: shouldPulseCta
             ? "box-shadow, transform, background-color"

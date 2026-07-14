@@ -2278,7 +2278,7 @@ function SwapReceiptPanel({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "7px",
+        gap: "16px",
         width: "100%",
       }}
     >
@@ -2286,9 +2286,9 @@ function SwapReceiptPanel({
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "9px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
-          padding: "16px 13px",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
+          padding: "20px 16px",
           textAlign: "center",
         }}
       >
@@ -2335,7 +2335,7 @@ function SwapReceiptPanel({
             {isFailed ? "x" : isTimeout ? "!" : "✓"}
           </div>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}>
           {isTimeout
             ? timeoutHeadline
             : isFailed
@@ -2351,8 +2351,8 @@ function SwapReceiptPanel({
             style={{
               color: "#848483",
               fontFamily: uiFont,
-              fontSize: "12px",
-              lineHeight: "16px",
+              fontSize: "13px",
+              lineHeight: "18px",
               margin: "6px auto 0",
               maxWidth: "260px",
             }}
@@ -2381,7 +2381,7 @@ function SwapReceiptPanel({
             {tokenSymbol}
           </span>
         </div>
-        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}>
+        <div style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}>
           ≈ {formatUsdDisplay(value)}
         </div>
         {receiptSummary && (
@@ -2389,7 +2389,7 @@ function SwapReceiptPanel({
             style={{
               color: "#848483",
               fontFamily: uiFont,
-              fontSize: "13px",
+              fontSize: "14px",
               marginTop: "8px",
             }}
           >
@@ -2402,8 +2402,8 @@ function SwapReceiptPanel({
         style={{
           background: "#FFFFFE",
           border: "1px solid #E8E8E7",
-          borderRadius: "9px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
           overflow: "hidden",
         }}
       >
@@ -2412,11 +2412,11 @@ function SwapReceiptPanel({
             alignItems: "center",
             display: "flex",
             justifyContent: "space-between",
-            padding: "12px 14px",
+            padding: "16px",
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
           >
             {isDeposit || isSend ? "You Paid" : "You Swapped"}
           </span>
@@ -2433,8 +2433,8 @@ function SwapReceiptPanel({
               style={{
                 color: "#161615",
                 fontFamily: uiFont,
-                fontSize: "14px",
-                fontWeight: 700,
+                fontSize: "16px",
+                fontWeight: 500,
               }}
             >
               {formatUsdDisplay(sourceTotalUsd)}
@@ -2449,7 +2449,7 @@ function SwapReceiptPanel({
                 cursor: "pointer",
                 display: "inline-flex",
                 fontFamily: uiFont,
-                fontSize: "12px",
+                fontSize: "14px",
                 gap: "4px",
                 padding: 0,
               }}
@@ -2459,7 +2459,7 @@ function SwapReceiptPanel({
                 ? "Hide Details"
                 : `${sourceCount} asset${sourceCount === 1 ? "" : "s"}`}
               <ChevronDown
-                size={12}
+                size={14}
                 style={{
                   transform: showSourceDetails
                     ? "rotate(180deg)"
@@ -2499,11 +2499,11 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "10px 14px",
+              padding: "13px 16px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
             >
               Recipient
             </span>
@@ -2517,18 +2517,18 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "10px 14px",
+              padding: "13px 16px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
             >
               Intent Explorer
             </span>
             <a
               href={entry.intentExplorerUrl ?? undefined}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "14px" }}
               target="_blank"
             >
               {intentLabel} ↗
@@ -2542,18 +2542,18 @@ function SwapReceiptPanel({
               borderTop: "1px solid #E8E8E7",
               display: "flex",
               justifyContent: "space-between",
-              padding: "10px 14px",
+              padding: "13px 16px",
             }}
           >
             <span
-              style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
             >
               Final Transaction
             </span>
             <a
               href={entry.finalExplorerUrl}
               rel="noopener noreferrer"
-              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "13px" }}
+              style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "14px" }}
               target="_blank"
             >
               View Explorer ↗
@@ -2566,16 +2566,16 @@ function SwapReceiptPanel({
             borderTop: "1px solid #E8E8E7",
             display: "flex",
             justifyContent: "space-between",
-            padding: "10px 14px",
+            padding: "13px 16px",
           }}
         >
           <span
-            style={{ color: "#848483", fontFamily: uiFont, fontSize: "13px" }}
+            style={{ color: "#848483", fontFamily: uiFont, fontSize: "14px" }}
           >
             Total Fees
           </span>
           <span
-            style={{ color: "#161615", fontFamily: uiFont, fontSize: "13px" }}
+            style={{ color: "#161615", fontFamily: uiFont, fontSize: "14px" }}
           >
             {formatUsdDisplay(entry.feeUsd)}
           </span>
@@ -2588,15 +2588,16 @@ function SwapReceiptPanel({
           alignItems: "center",
           background: "#1F1F1F",
           border: "none",
-          borderRadius: "10px",
-          boxShadow: "0px 1px 4px 0px #5555550D",
+          borderRadius: "14px",
+          boxShadow:
+            "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 8px 20px",
           color: "#FFFFFE",
           cursor: "pointer",
           display: "flex",
           fontFamily: uiFont,
-          fontSize: "15px",
-          fontWeight: 600,
-          height: "40px",
+          fontSize: "16px",
+          fontWeight: 500,
+          height: "48px",
           justifyContent: "center",
           width: "100%",
         }}
@@ -10412,6 +10413,9 @@ function NexusOneInner({
                         !hasCurrentIntentSources &&
                         (quoteRefreshing || intentLoading)
                       }
+                      isSourcePickerDisabled={
+                        !toTokenWithFetchedBalance || !hasPositiveRootAmount
+                      }
                       onAmountChange={handleDepositAmountChange}
                       onAmountModeToggle={handleDepositAmountModeToggle}
                       onOpenSourcePicker={() => {
@@ -10558,6 +10562,9 @@ function NexusOneInner({
                   isQuoteRefreshing={
                     !hasCurrentIntentSources &&
                     (quoteRefreshing || intentLoading)
+                  }
+                  isSourcePickerDisabled={
+                    !toTokenWithFetchedBalance || !hasPositiveRootAmount
                   }
                   onAmountChange={handleSendAmountChange}
                   onOpenAssetPicker={() =>

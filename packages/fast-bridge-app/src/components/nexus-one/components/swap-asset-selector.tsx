@@ -1606,29 +1606,101 @@ export function SwapAssetSelector({
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
     const disabled = isDisabledByUnified || locked;
+    const handleTokenSelection = () => {
+      if (disabled) return;
+      if (isMulti) {
+        handleMultiTokenToggle(token);
+      } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
+        onToggle(token);
+      } else {
+        onSelect(token);
+      }
+    };
+
+    if (indent) {
+      return (
+        <button
+          disabled={disabled}
+          key={`${token.contractAddress}-${token.chainId}`}
+          onClick={handleTokenSelection}
+          style={{
+            alignItems: "center",
+            backgroundColor: "transparent",
+            border: "none",
+            boxSizing: "border-box",
+            cursor: disabled ? "not-allowed" : "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            minHeight: "42px",
+            opacity: isDisabledByUnified ? 0.5 : 1,
+            padding: "8px 0",
+            width: "100%",
+          }}
+        >
+          <span
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: "12px",
+              minWidth: 0,
+            }}
+          >
+            <SelectionControl
+              multi={Boolean(isMulti)}
+              selected={selectedInCurrent}
+            />
+            <TokenLogo
+              backgroundColor="#F0F0EF"
+              color="#5B5B5A"
+              fontSize={8}
+              size={18}
+              src={token.chainLogo}
+              symbol={token.chainName || token.symbol}
+            />
+            <span
+              style={{
+                color: "#1F1F1F",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontWeight: 500,
+                lineHeight: "20px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {token.chainName || "Unknown chain"}
+            </span>
+          </span>
+          <span
+            style={{
+              color: "#1F1F1F",
+              flexShrink: 0,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "14px",
+              fontVariantNumeric: "tabular-nums",
+              fontWeight: 500,
+              lineHeight: "20px",
+            }}
+          >
+            {formatTokenAmountDisplay(token.balance)}
+          </span>
+        </button>
+      );
+    }
+
     return (
       <button
         disabled={disabled}
         key={`${token.contractAddress}-${token.chainId}`}
-        onClick={() => {
-          if (disabled) return;
-          if (isMulti) {
-            handleMultiTokenToggle(token);
-          } else if (
-            allowSelectedTokenRemoval &&
-            selectedInCurrent &&
-            onToggle
-          ) {
-            onToggle(token);
-          } else onSelect(token);
-        }}
+        onClick={handleTokenSelection}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "10px 14px",
-          paddingLeft: indent ? "36px" : "14px",
+          paddingLeft: "14px",
           backgroundColor: "transparent",
           border: "none",
           cursor: disabled ? "not-allowed" : "pointer",
@@ -1827,7 +1899,8 @@ export function SwapAssetSelector({
           backgroundColor: "transparent",
           border: "none",
           cursor: "pointer",
-          borderBottom: "1px solid #F0F0EF",
+          borderBottom:
+            isMulti && groupState.isExpanded ? "none" : "1px solid #F0F0EF",
           boxSizing: "border-box",
         }}
       >
@@ -1925,6 +1998,20 @@ export function SwapAssetSelector({
               ≈ {group.totalFiatStr}
             </span>
           </div>
+          {isMulti && !options.onlyUnifiedRow && (
+            <ChevronDown
+              aria-hidden="true"
+              style={{
+                color: "#848483",
+                height: 15,
+                transform: groupState.isExpanded
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)",
+                transition: "transform 180ms ease",
+                width: 15,
+              }}
+            />
+          )}
         </div>
       </button>
     );
@@ -1948,7 +2035,16 @@ export function SwapAssetSelector({
               transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
             }}
           >
-            <div style={{ overflow: "hidden" }}>
+            <div
+              style={{
+                backgroundColor: "#F9F9F8",
+                overflow: "hidden",
+                padding: groupState.isExpanded
+                  ? "4px 16px 10px 46px"
+                  : "0 16px 0 46px",
+                transition: "padding 0.3s ease",
+              }}
+            >
               {group.tokens.map((token) => renderTokenRow(token, true, false))}
             </div>
           </div>

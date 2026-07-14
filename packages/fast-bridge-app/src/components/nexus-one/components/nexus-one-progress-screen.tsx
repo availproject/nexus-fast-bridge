@@ -767,16 +767,16 @@ function TokenLogoPair({
       style={{
         display: "inline-flex",
         flexShrink: 0,
-        height: 27,
+        height: 31,
         position: "relative",
-        width: 27,
+        width: 31,
       }}
     >
-      <MiniLogo label={tokenSymbol} size={27} src={tokenLogo} />
+      <MiniLogo label={tokenSymbol} size={31} src={tokenLogo} />
       {chainLogo && (
         <MiniLogo
           label={chainName}
-          size={12}
+          size={13}
           src={chainLogo}
           style={{
             bottom: -1,
@@ -1050,8 +1050,8 @@ export function NexusOneProgressScreen({
     statusRows[statusRows.length - 1];
   const visibleRows = stepsExpanded ? statusRows : activeRow ? [activeRow] : [];
   const canExpand = statusRows.length > 1;
-  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 47 : 40);
-  const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 40;
+  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 64 : 52);
+  const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 52;
   const expandedStatusHeight = statusRows.reduce(
     (sum, row) => sum + getRowHeight(row),
     0
@@ -1062,7 +1062,7 @@ export function NexusOneProgressScreen({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "7px",
+        gap: "18px",
         width: "100%",
       }}
     >
@@ -1070,10 +1070,11 @@ export function NexusOneProgressScreen({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "8px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
           boxSizing: "border-box",
-          padding: "12px 13px 9px",
+          minHeight: "312px",
+          padding: "17px 15px 14px",
           width: "100%",
         }}
       >
@@ -1081,8 +1082,8 @@ export function NexusOneProgressScreen({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "10px",
-            lineHeight: "14px",
+            fontSize: "13px",
+            lineHeight: "18px",
             textAlign: "center",
           }}
         >
@@ -1092,10 +1093,11 @@ export function NexusOneProgressScreen({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "16px",
-            fontWeight: 600,
-            lineHeight: "22px",
-            marginTop: "2px",
+            fontSize: "22px",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
+            lineHeight: "30px",
+            marginTop: "4px",
             textAlign: "center",
           }}
         >
@@ -1108,8 +1110,8 @@ export function NexusOneProgressScreen({
           src="https://files.availproject.org/nexus-elements/nexus-one/progress-grid.gif"
           style={{
             display: "block",
-            height: "148px",
-            margin: "13px auto 9px",
+            height: "152px",
+            margin: "14px auto 12px",
             objectFit: "cover",
             objectPosition: "center",
             width: "100%",
@@ -1130,10 +1132,10 @@ export function NexusOneProgressScreen({
               color: primary,
               display: "flex",
               fontFamily,
-              fontSize: "15px",
-              fontWeight: 600,
-              gap: "5px",
-              lineHeight: "22px",
+              fontSize: "22px",
+              fontWeight: 500,
+              gap: "8px",
+              lineHeight: "30px",
             }}
           >
             <TokenLogoPair
@@ -1143,7 +1145,7 @@ export function NexusOneProgressScreen({
               tokenSymbol={destinationSymbol}
             />
             <span>{formatDecimal(destinationAmount, 8)}</span>
-            <span style={{ fontSize: "10px", lineHeight: "14px" }}>
+            <span style={{ fontSize: "13px", lineHeight: "18px" }}>
               {destinationSymbol}
             </span>
           </div>
@@ -1152,8 +1154,8 @@ export function NexusOneProgressScreen({
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "9px",
-                lineHeight: "13px",
+                fontSize: "13px",
+                lineHeight: "18px",
               }}
             >
               on {destinationChain}
@@ -1167,8 +1169,8 @@ export function NexusOneProgressScreen({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "8px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
           boxSizing: "border-box",
           overflow: "hidden",
           transition: "box-shadow 220ms ease, border-color 220ms ease",
@@ -1180,7 +1182,7 @@ export function NexusOneProgressScreen({
             display: "grid",
             gridTemplateRows: "1fr",
             maxHeight: stepsExpanded
-              ? `${Math.max(43, expandedStatusHeight)}px`
+              ? `${Math.max(52, expandedStatusHeight)}px`
               : `${collapsedStatusHeight}px`,
             overflow: "hidden",
             transition: "max-height 220ms ease",
@@ -1220,11 +1222,11 @@ export function NexusOneProgressScreen({
                     cursor: canExpand ? "pointer" : "default",
                     display: "flex",
                     fontFamily,
-                    fontSize: "11px",
+                    fontSize: "14px",
                     fontWeight: 400,
-                    gap: "7px",
+                    gap: "12px",
                     minHeight: `${getRowHeight(row)}px`,
-                    padding: "8px 11px",
+                    padding: "14px 16px",
                     textAlign: "left",
                     transition:
                       "color 220ms ease, min-height 220ms ease, opacity 220ms ease",
@@ -1240,15 +1242,15 @@ export function NexusOneProgressScreen({
                         borderRadius: "999px",
                         color: "#FFFFFE",
                         display: "inline-flex",
-                        height: "15px",
+                        height: "22px",
                         justifyContent: "center",
-                        width: "15px",
+                        width: "22px",
                       }}
                     >
                       {isError ? (
-                        <X style={{ height: 10, width: 10 }} />
+                        <X style={{ height: 13, width: 13 }} />
                       ) : (
-                        <Check style={{ height: 11, width: 11 }} />
+                        <Check style={{ height: 14, width: 14 }} />
                       )}
                     </span>
                   ) : isDefault ? (
@@ -1259,14 +1261,14 @@ export function NexusOneProgressScreen({
                         borderRadius: "999px",
                         boxSizing: "border-box",
                         display: "inline-flex",
-                        height: "15px",
-                        width: "15px",
+                        height: "22px",
+                        width: "22px",
                       }}
                     />
                   ) : (
                     <Loader2
                       className="animate-spin"
-                      style={{ color: brand, height: 15, width: 15 }}
+                      style={{ color: brand, height: 22, width: 22 }}
                     />
                   )}
                   <span
@@ -1290,10 +1292,10 @@ export function NexusOneProgressScreen({
                       <span
                         style={{
                           color: isLoading ? brand : muted,
-                          fontSize: "10px",
+                          fontSize: "12px",
                           fontStyle: "italic",
                           fontWeight: 400,
-                          lineHeight: "13px",
+                          lineHeight: "16px",
                         }}
                       >
                         {row.description}
@@ -1305,14 +1307,14 @@ export function NexusOneProgressScreen({
                       style={{
                         color: muted,
                         flexShrink: 0,
-                        height: 16,
+                        height: 14,
                         marginLeft: "auto",
                         marginTop: hasDescription ? 2 : 0,
                         transform: stepsExpanded
                           ? "rotate(180deg)"
                           : "rotate(0deg)",
                         transition: "transform 220ms ease",
-                        width: 16,
+                        width: 14,
                       }}
                     />
                   )}

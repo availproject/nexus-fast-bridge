@@ -158,7 +158,7 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
           key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
           style={{ marginLeft: index === 0 ? 0 : -8 }}
         >
-          <TokenLogo label={token.symbol} logo={token.logo} size={24} />
+          <TokenLogo label={token.symbol} logo={token.logo} size={28} />
         </div>
       ))}
       {tokens.length > visible.length && (
@@ -172,11 +172,11 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
             fontFamily: '"Geist", system-ui, sans-serif',
             fontSize: "11px",
             fontWeight: 500,
-            height: 24,
+            height: 28,
             justifyContent: "center",
             marginLeft: -8,
             outline: "2px solid #FFFFFE",
-            width: 24,
+            width: 28,
           }}
         >
           +{tokens.length - visible.length}
@@ -469,14 +469,13 @@ export function ExactOutSwapIdleForm({
 
       <section
         style={{
-          background: "#FFFFFE",
-          border: "1px solid #E8E8E7",
-          borderRadius: "9px",
-          boxShadow: "#1616150A 0 1px 2px",
+          background: "#FFFFFF",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0 0 3px",
           display: "flex",
           flexDirection: "column",
-          gap: "9px",
-          padding: "9px",
+          gap: "12px",
+          padding: "16px",
         }}
       >
         <div
@@ -493,34 +492,36 @@ export function ExactOutSwapIdleForm({
                 color: "#161615",
                 display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "15px",
                 fontWeight: 500,
                 gap: "8px",
+                lineHeight: "18px",
               }}
             >
               Send
-              {showQuotedAmounts && sourceSummary.assetCount > 0 && (
-                <span
-                  style={{
-                    background: "#E8F0FF",
-                    borderRadius: "999px",
-                    color: "#3D7BFF",
-                    fontSize: "10px",
-                    fontWeight: 600,
-                    letterSpacing: "0.05em",
-                    padding: "3px 8px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {sourceSummary.assetCount} assets
-                </span>
-              )}
+              {(showQuotedAmounts || routeMessage) &&
+                sourceSummary.assetCount > 0 && (
+                  <span
+                    style={{
+                      background: "#E8F0FF",
+                      borderRadius: "999px",
+                      color: "#3D7BFF",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      letterSpacing: "0.05em",
+                      padding: "3px 8px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {sourceSummary.assetCount} assets
+                  </span>
+                )}
             </span>
             <span
               style={{
                 color: "#9A9A99",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 lineHeight: "16px",
               }}
             >
@@ -535,16 +536,19 @@ export function ExactOutSwapIdleForm({
             disabled={isSourcePickerDisabled}
             onClick={onOpenSourcePicker}
             style={{
-              background: isSourcePickerDisabled ? "#F5F6F8" : "#F4F6FF",
-              border: "none",
-              borderRadius: "4px",
-              color: isSourcePickerDisabled ? "#B8B8B5" : "#006BF4",
-              cursor: isSourcePickerDisabled ? "default" : "pointer",
+              background: isSourcePickerDisabled ? "#F5F6F8" : "#FFFFFF",
+              border: "1px solid #0000000A",
+              borderRadius: "999px",
+              boxShadow: isSourcePickerDisabled
+                ? "none"
+                : "#3C28640F 0 1px 2px",
+              color: isSourcePickerDisabled ? "#B8B8B5" : "#9E9E9C",
+              cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "13px",
               fontWeight: 500,
-              lineHeight: "13px",
-              padding: "6px 9px",
+              lineHeight: "16px",
+              padding: "6px 14px",
             }}
             type="button"
           >
@@ -552,26 +556,16 @@ export function ExactOutSwapIdleForm({
           </button>
         </div>
 
-        {isQuoteLoading ? (
+        {(showQuotedAmounts || routeMessage) && fromTokens.length > 0 ? (
           <div
             style={{
-              alignItems: "center",
-              color: "#006BF4",
               display: "flex",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
-              gap: "8px",
-              minHeight: 36,
+              flexDirection: "column",
+              gap: "9px",
+              maxHeight: "220px",
+              overflowY: fromTokens.length > 3 ? "auto" : undefined,
             }}
           >
-            <Loader2
-              className="animate-spin"
-              style={{ height: 16, width: 16 }}
-            />
-            Calculating best route…
-          </div>
-        ) : showQuotedAmounts && fromTokens.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
             {fromTokens.map((token) => (
               <div
                 key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
@@ -596,8 +590,9 @@ export function ExactOutSwapIdleForm({
                       style={{
                         color: "#1F1F1F",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "13px",
-                        fontWeight: 600,
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        lineHeight: "18px",
                       }}
                     >
                       {token.symbol}
@@ -606,7 +601,7 @@ export function ExactOutSwapIdleForm({
                       style={{
                         color: "#8E8E89",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "11px",
+                        fontSize: "13px",
                         lineHeight: "16px",
                       }}
                     >
@@ -626,8 +621,9 @@ export function ExactOutSwapIdleForm({
                     style={{
                       color: "#1F1F1F",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
-                      fontWeight: 600,
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      lineHeight: "18px",
                     }}
                   >
                     {formatNumber(token.userAmount || token.balance)}{" "}
@@ -637,7 +633,7 @@ export function ExactOutSwapIdleForm({
                     style={{
                       color: "#8E8E89",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "11px",
+                      fontSize: "13px",
                       lineHeight: "16px",
                     }}
                   >
@@ -654,7 +650,7 @@ export function ExactOutSwapIdleForm({
               style={{
                 color: "#848483",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
+                fontSize: "14px",
                 lineHeight: "16px",
               }}
             >
@@ -670,12 +666,32 @@ export function ExactOutSwapIdleForm({
             style={{
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
+              fontSize: "14px",
               lineHeight: "16px",
             }}
           >
             Sources will be auto-selected from your balances.
           </span>
+        )}
+
+        {isQuoteLoading && (
+          <div
+            style={{
+              alignItems: "center",
+              color: "#006BF4",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "12px",
+              gap: "8px",
+              minHeight: 20,
+            }}
+          >
+            <Loader2
+              className="animate-spin"
+              style={{ height: 16, width: 16 }}
+            />
+            Calculating best route…
+          </div>
         )}
 
         {routeMessage && (
