@@ -467,7 +467,7 @@ export function ExactOutSwapIdleForm({
                 color: isDefaultRecipient ? "#006BF4" : "#B7791F",
                 display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "13px",
                 fontWeight: 500,
                 gap: "6px",
               }}
@@ -530,7 +530,7 @@ export function ExactOutSwapIdleForm({
                 color: "#161615",
                 display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 500,
                 gap: "8px",
                 lineHeight: "16px",
@@ -543,15 +543,22 @@ export function ExactOutSwapIdleForm({
                     style={{
                       background: "#E8F0FF",
                       borderRadius: "999px",
+                      boxSizing: "border-box",
                       color: "#3D7BFF",
-                      fontSize: "10px",
+                      display: "inline-flex",
+                      fontSize: "8px",
                       fontWeight: 600,
-                      letterSpacing: "0.05em",
-                      padding: "2px 7px",
+                      height: "16px",
+                      alignItems: "center",
+                      letterSpacing: "0.06em",
+                      lineHeight: "10px",
+                      padding: "0 5px",
                       textTransform: "uppercase",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {sourceSummary.assetCount} assets
+                    {sourceSummary.assetCount} asset
+                    {sourceSummary.assetCount === 1 ? "" : "s"}
                   </span>
                 )}
             </span>
