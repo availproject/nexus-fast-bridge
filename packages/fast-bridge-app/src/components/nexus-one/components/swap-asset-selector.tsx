@@ -1074,7 +1074,6 @@ export function SwapAssetSelector({
     normalizedInitialFilterTab
   );
   const [showBelowMin, setShowBelowMin] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showChainSelector, setShowChainSelector] = useState(false);
   const [isChainSelectorClosing, setIsChainSelectorClosing] = useState(false);
   const [chainQuery, setChainQuery] = useState("");
@@ -2407,9 +2406,8 @@ export function SwapAssetSelector({
             gap: 10,
             borderRadius: 14,
             border: "none",
-            boxShadow: isSearchFocused
-              ? "0 0 0 1px #A8C9FF, #3C28640F 0px 1px 2px inset"
-              : "#3C28640F 0px 1px 2px inset",
+            boxShadow: "#3C28640F 0px 1px 2px inset",
+            boxSizing: "border-box",
             padding: "0 8px 0 14px",
             backgroundColor: "#FAFAFC",
           }}
@@ -2418,9 +2416,7 @@ export function SwapAssetSelector({
             style={{ width: 18, height: 18, color: "#848483", flexShrink: 0 }}
           />
           <input
-            onBlur={() => setIsSearchFocused(false)}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
             placeholder="Search token, chain or address"
             style={{
               flex: 1,
@@ -2428,8 +2424,8 @@ export function SwapAssetSelector({
               border: "none",
               outline: "none",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
-              lineHeight: "20px",
+              fontSize: 16,
+              lineHeight: "24px",
               color: "#161615",
               minWidth: 0,
               overflow: "hidden",
@@ -2460,7 +2456,7 @@ export function SwapAssetSelector({
               gap: 6,
               padding: "6px 10px",
               borderRadius: 999,
-              backgroundColor: "#FFFFFE",
+              backgroundColor: "#FFFFFF",
               border: "1px solid #0000000A",
               cursor: "pointer",
               height: 32,
@@ -2614,7 +2610,7 @@ export function SwapAssetSelector({
               : visibleAssetRows.length > 0) && (
               <div
                 style={{
-                  border: "1px solid #E8E8E7",
+                  border: "none",
                   borderRadius: 12,
                   boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
                   overflow: "hidden",
@@ -2641,8 +2637,9 @@ export function SwapAssetSelector({
               <div
                 style={{
                   backgroundColor: "#FFFFFE",
-                  border: "1px solid #E8E8E7",
+                  border: "none",
                   borderRadius: 12,
+                  boxShadow: "#1616150A 0px 1px 2px",
                   overflow: "hidden",
                 }}
               >

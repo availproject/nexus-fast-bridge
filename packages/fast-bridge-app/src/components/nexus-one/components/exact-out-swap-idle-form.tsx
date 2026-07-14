@@ -224,11 +224,13 @@ export function ExactOutSwapIdleForm({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
       <section
+        className="nexus-focus-container"
         style={{
-          background: "#FFFFFE",
-          border: "1px solid #E8E8E7",
-          borderRadius: "9px",
-          boxShadow: "#1616150A 0 1px 2px",
+          background: "#FFFFFF",
+          border: "1px solid transparent",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0 0 3px",
+          boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
           gap: "6px",
@@ -448,16 +450,20 @@ export function ExactOutSwapIdleForm({
             <button
               onClick={onOpenRecipientPicker}
               style={{
-                background: "#F4F6FF",
-                border: "none",
-                borderRadius: "4px",
-                color: "#006BF4",
+                alignItems: "center",
+                background: "#FFFFFF",
+                border: "1px solid #0000000A",
+                borderRadius: "999px",
+                boxShadow: "#3C28640F 0 1px 2px",
+                boxSizing: "border-box",
+                color: "#1F1F1F",
                 cursor: "pointer",
+                display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "13px",
                 fontWeight: 500,
-                lineHeight: "13px",
-                padding: "6px 9px",
+                lineHeight: "16px",
+                padding: "6px 14px",
               }}
               type="button"
             >
@@ -542,7 +548,8 @@ export function ExactOutSwapIdleForm({
               boxShadow: isSourcePickerDisabled
                 ? "none"
                 : "#3C28640F 0 1px 2px",
-              color: isSourcePickerDisabled ? "#B8B8B5" : "#9E9E9C",
+              boxSizing: "border-box",
+              color: isSourcePickerDisabled ? "#B8B8B5" : "#1F1F1F",
               cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "13px",
