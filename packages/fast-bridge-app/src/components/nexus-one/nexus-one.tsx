@@ -2588,17 +2588,19 @@ function SwapReceiptPanel({
           alignItems: "center",
           background: "#1F1F1F",
           border: "none",
-          borderRadius: "14px",
+          borderRadius: "10px",
           boxShadow:
-            "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 8px 20px",
+            "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 7px 18px",
           color: "#FFFFFE",
           cursor: "pointer",
           display: "flex",
           fontFamily: uiFont,
-          fontSize: "16px",
+          fontSize: "14px",
           fontWeight: 500,
-          height: "48px",
+          height: "42px",
           justifyContent: "center",
+          lineHeight: "19px",
+          paddingInline: "16px",
           width: "100%",
         }}
       >
@@ -5039,11 +5041,14 @@ function NexusOneInner({
     }
 
     if (mode === "selected" && fromTokens.length > 0) {
+      // A committed manual selection must be forwarded exactly as chosen.
+      // The SDK owns source-chain gas handling for explicit sources; applying
+      // the automatic gas-capability filter here silently drops valid assets.
       return filterMinimumSourceUsdTokens(
         getExpandedSourceTokens(
           excludeSwapExactOutDestinationTokens(fromTokens)
         )
-      ).filter(hasGasForSource);
+      );
     }
 
     return excludeSwapExactOutDestinationTokens(
@@ -10255,6 +10260,7 @@ function NexusOneInner({
                       destinationGasFeeUsd={previewDestinationGasFeeUsd}
                       fromTokens={exactOutIdleSourceTokens}
                       intentData={intentData}
+                      isBalanceLoading={swapBalance === null}
                       isQuoteLoading={displayExactOutRouteLoading}
                       isSourcePickerDisabled={isExactOutSourcePickerDisabled}
                       onAmountChange={handleSendAmountChange}

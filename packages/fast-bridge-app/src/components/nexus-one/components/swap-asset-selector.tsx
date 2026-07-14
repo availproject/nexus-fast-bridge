@@ -2402,18 +2402,18 @@ export function SwapAssetSelector({
           style={{
             display: "flex",
             alignItems: "center",
-            height: 56,
-            gap: 10,
-            borderRadius: 14,
+            height: 48,
+            gap: 8,
+            borderRadius: 12,
             border: "none",
             boxShadow: "#3C28640F 0px 1px 2px inset",
             boxSizing: "border-box",
-            padding: "0 8px 0 14px",
+            padding: "0 7px 0 12px",
             backgroundColor: "#FAFAFC",
           }}
         >
           <Search
-            style={{ width: 18, height: 18, color: "#848483", flexShrink: 0 }}
+            style={{ width: 16, height: 16, color: "#848483", flexShrink: 0 }}
           />
           <input
             onChange={(e) => setQuery(e.target.value)}
@@ -2424,8 +2424,8 @@ export function SwapAssetSelector({
               border: "none",
               outline: "none",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 16,
-              lineHeight: "24px",
+              fontSize: 14,
+              lineHeight: "20px",
               color: "#161615",
               minWidth: 0,
               overflow: "hidden",
@@ -2513,10 +2513,10 @@ export function SwapAssetSelector({
           display: "flex",
           gap: 0,
           backgroundColor: "#F5F6F8",
-          borderRadius: 12,
+          borderRadius: 10,
           boxShadow: "#2A388B0F 0px 1px 2px inset",
-          padding: 4,
-          marginBottom: 16,
+          padding: 3,
+          marginBottom: 12,
         }}
       >
         {visibleFilterTabs.map((tab) => (
@@ -2527,16 +2527,16 @@ export function SwapAssetSelector({
               alignItems: "center",
               display: "flex",
               flex: 1,
-              height: activeTab === tab.key ? 40 : 32,
+              height: 36,
               justifyContent: "center",
               padding: 0,
               backgroundColor:
                 activeTab === tab.key ? "#FFFFFF" : "transparent",
               border: "none",
-              borderRadius: 8,
+              borderRadius: 7,
               cursor: "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: activeTab === tab.key ? 600 : 500,
               color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
               boxShadow:
@@ -2637,10 +2637,11 @@ export function SwapAssetSelector({
               <div
                 style={{
                   backgroundColor: "#FFFFFE",
-                  border: "none",
+                  border: "1px solid #E8E8E7",
                   borderRadius: 12,
                   boxShadow: "#1616150A 0px 1px 2px",
-                  overflow: "hidden",
+                  boxSizing: "border-box",
+                  overflow: "clip",
                 }}
               >
                 <button
@@ -2650,7 +2651,7 @@ export function SwapAssetSelector({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "11px 12px",
+                    padding: "10px 12px",
                     backgroundColor: "transparent",
                     border: "none",
                     cursor: "pointer",
@@ -2661,59 +2662,38 @@ export function SwapAssetSelector({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 10,
+                      gap: 8,
                       minWidth: 0,
                     }}
                   >
                     <span
                       style={{
                         alignItems: "center",
-                        backgroundColor: "#FFF0D6",
+                        backgroundColor: "#FFF1E0",
                         borderRadius: "999px",
                         display: "flex",
                         flexShrink: 0,
-                        height: 22,
+                        height: 30,
                         justifyContent: "center",
-                        width: 22,
+                        width: 30,
                       }}
                     >
                       <Info
-                        style={{ width: 12, height: 12, color: "#D98A1C" }}
+                        style={{ width: 12, height: 12, color: "#B87709" }}
                       />
                     </span>
-                    <div
+                    <span
                       style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
+                        color: "#1F1F1F",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        lineHeight: "16px",
                         minWidth: 0,
                       }}
                     >
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontWeight: 600,
-                          fontSize: 13,
-                          color: "#161615",
-                          lineHeight: "20px",
-                        }}
-                      >
-                        Tokens below minimum
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: 12,
-                          color: "#848483",
-                          lineHeight: "18px",
-                          textAlign: "left",
-                        }}
-                      >
-                        {showBelowMin
-                          ? "Tokens under $1 are unavailable for swaps"
-                          : "Hidden to prevent failed swaps"}
-                      </span>
-                    </div>
+                      Tokens below minimum
+                    </span>
                   </div>
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 6 }}
@@ -2724,13 +2704,13 @@ export function SwapAssetSelector({
                         <TokenLogo
                           backgroundColor="#E8E8E7"
                           color="#848483"
-                          fontSize={7}
+                          fontSize={6}
                           key={`bm-${t.contractAddress}-${t.chainId}`}
-                          size={18}
+                          size={16}
                           src={t.logo}
                           style={{
                             border: "1.5px solid #fff",
-                            marginLeft: i > 0 ? -6 : 0,
+                            marginLeft: i > 0 ? -4 : 0,
                           }}
                           symbol={t.symbol}
                         />
@@ -2738,17 +2718,17 @@ export function SwapAssetSelector({
                       {belowMin.length > 3 && (
                         <div
                           style={{
-                            width: 18,
-                            height: 18,
+                            width: 16,
+                            height: 16,
                             borderRadius: "999px",
                             backgroundColor: "#161615",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: "#fff",
-                            marginLeft: -6,
+                            fontSize: 7,
+                            fontWeight: 600,
+                            color: "#8E8E89",
+                            marginLeft: -4,
                             border: "1.5px solid #fff",
                           }}
                         >
@@ -2758,11 +2738,11 @@ export function SwapAssetSelector({
                     </div>
                     {showBelowMin ? (
                       <ChevronUp
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{ width: 12, height: 12, color: "#848483" }}
                       />
                     ) : (
                       <ChevronDown
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{ width: 12, height: 12, color: "#848483" }}
                       />
                     )}
                   </div>

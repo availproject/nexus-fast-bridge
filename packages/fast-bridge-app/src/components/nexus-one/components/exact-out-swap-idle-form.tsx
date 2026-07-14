@@ -16,6 +16,7 @@ interface ExactOutSwapIdleFormProps {
   destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
   intentData?: SwapIntentData | null;
+  isBalanceLoading?: boolean;
   isQuoteLoading?: boolean;
   isSourcePickerDisabled?: boolean;
   onAmountChange: (value: string) => void;
@@ -71,6 +72,22 @@ const sanitizeAmount = (value: string, decimals = 18) => {
 
 const shortAddress = (address?: string) =>
   address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Select recipient";
+
+function BalanceSkeleton({ width }: { width: number }) {
+  return (
+    <span
+      aria-label="Loading balance"
+      className="nexus-balance-skeleton"
+      role="status"
+      style={{
+        borderRadius: "5px",
+        display: "inline-block",
+        height: 12,
+        width,
+      }}
+    />
+  );
+}
 
 function TokenLogo({
   chainLogo,
@@ -192,6 +209,7 @@ export function ExactOutSwapIdleForm({
   destinationGasFeeUsd,
   fromTokens,
   intentData,
+  isBalanceLoading = false,
   isQuoteLoading = false,
   isSourcePickerDisabled = false,
   onAmountChange,
@@ -266,7 +284,11 @@ export function ExactOutSwapIdleForm({
           >
             You can swap up to{" "}
             <strong style={{ color: "#1F1F1F" }}>
-              {formatUsd(totalBalanceUsd)}
+              {isBalanceLoading ? (
+                <BalanceSkeleton width={48} />
+              ) : (
+                formatUsd(totalBalanceUsd)
+              )}
             </strong>
           </span>
         </div>
@@ -391,13 +413,21 @@ export function ExactOutSwapIdleForm({
             {toToken && (
               <span
                 style={{
+                  alignItems: "center",
                   color: "#8E8E89",
+                  display: "flex",
                   fontFamily: '"Geist", system-ui, sans-serif',
                   fontSize: "11px",
+                  gap: "4px",
                   lineHeight: "16px",
                 }}
               >
-                Balance · {formatSelectedTokenBalanceLabel(toToken)}
+                Balance ·{" "}
+                {isBalanceLoading ? (
+                  <BalanceSkeleton width={78} />
+                ) : (
+                  formatSelectedTokenBalanceLabel(toToken)
+                )}
               </span>
             )}
           </div>
@@ -478,10 +508,12 @@ export function ExactOutSwapIdleForm({
           background: "#FFFFFF",
           borderRadius: "12px",
           boxShadow: "#3C286433 0 0 3px",
+          boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
-          padding: "16px",
+          gap: "9px",
+          padding: "9px",
+          width: "100%",
         }}
       >
         <div
@@ -498,10 +530,10 @@ export function ExactOutSwapIdleForm({
                 color: "#161615",
                 display: "flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "15px",
+                fontSize: "13px",
                 fontWeight: 500,
                 gap: "8px",
-                lineHeight: "18px",
+                lineHeight: "16px",
               }}
             >
               Send
@@ -512,10 +544,10 @@ export function ExactOutSwapIdleForm({
                       background: "#E8F0FF",
                       borderRadius: "999px",
                       color: "#3D7BFF",
-                      fontSize: "11px",
+                      fontSize: "10px",
                       fontWeight: 600,
                       letterSpacing: "0.05em",
-                      padding: "3px 8px",
+                      padding: "2px 7px",
                       textTransform: "uppercase",
                     }}
                   >
@@ -527,7 +559,7 @@ export function ExactOutSwapIdleForm({
               style={{
                 color: "#9A9A99",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "12px",
                 lineHeight: "16px",
               }}
             >
@@ -566,28 +598,75 @@ export function ExactOutSwapIdleForm({
         {(showQuotedAmounts || routeMessage) && fromTokens.length > 0 ? (
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "9px",
-              maxHeight: "220px",
-              overflowY: fromTokens.length > 3 ? "auto" : undefined,
+              position: "relative",
             }}
           >
-            {fromTokens.map((token) => (
-              <div
-                key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
-                style={{
-                  alignItems: "center",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
+            <div
+              className="nexus-source-token-scroll"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "9px",
+                maxHeight: fromTokens.length > 3 ? "132px" : undefined,
+                overflowY: fromTokens.length > 3 ? "auto" : undefined,
+                paddingBottom: fromTokens.length > 3 ? "14px" : undefined,
+                paddingRight: fromTokens.length > 3 ? "7px" : undefined,
+              }}
+            >
+              {fromTokens.map((token) => (
                 <div
-                  style={{ alignItems: "center", display: "flex", gap: "9px" }}
+                  key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
                 >
-                  <TokenLogo label={token.symbol} logo={token.logo} size={28} />
                   <div
                     style={{
+                      alignItems: "center",
+                      display: "flex",
+                      gap: "9px",
+                    }}
+                  >
+                    <TokenLogo
+                      label={token.symbol}
+                      logo={token.logo}
+                      size={28}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#1F1F1F",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          lineHeight: "16px",
+                        }}
+                      >
+                        {token.symbol}
+                      </span>
+                      <span
+                        style={{
+                          color: "#8E8E89",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "12px",
+                          lineHeight: "16px",
+                        }}
+                      >
+                        on {token.chainName || "Unknown chain"}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      alignItems: "flex-end",
                       display: "flex",
                       flexDirection: "column",
                       gap: "2px",
@@ -597,58 +676,42 @@ export function ExactOutSwapIdleForm({
                       style={{
                         color: "#1F1F1F",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "14px",
+                        fontSize: "13px",
                         fontWeight: 500,
-                        lineHeight: "18px",
+                        lineHeight: "16px",
                       }}
                     >
+                      {formatNumber(token.userAmount || token.balance)}{" "}
                       {token.symbol}
                     </span>
                     <span
                       style={{
                         color: "#8E8E89",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "13px",
+                        fontSize: "12px",
                         lineHeight: "16px",
                       }}
                     >
-                      on {token.chainName || "Unknown chain"}
+                      {formatUsd(token.userAmountUsd || token.balanceInFiat)}
                     </span>
                   </div>
                 </div>
-                <div
-                  style={{
-                    alignItems: "flex-end",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#1F1F1F",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      lineHeight: "18px",
-                    }}
-                  >
-                    {formatNumber(token.userAmount || token.balance)}{" "}
-                    {token.symbol}
-                  </span>
-                  <span
-                    style={{
-                      color: "#8E8E89",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
-                      lineHeight: "16px",
-                    }}
-                  >
-                    {formatUsd(token.userAmountUsd || token.balanceInFiat)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            {fromTokens.length > 3 && (
+              <div
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)",
+                  bottom: 0,
+                  height: "22px",
+                  left: 0,
+                  pointerEvents: "none",
+                  position: "absolute",
+                  right: "7px",
+                }}
+              />
+            )}
           </div>
         ) : fromTokens.length > 0 ? (
           <div style={{ alignItems: "center", display: "flex", gap: "9px" }}>
@@ -657,7 +720,7 @@ export function ExactOutSwapIdleForm({
               style={{
                 color: "#848483",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "12px",
                 lineHeight: "16px",
               }}
             >
@@ -673,7 +736,7 @@ export function ExactOutSwapIdleForm({
             style={{
               color: "#848483",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
+              fontSize: "12px",
               lineHeight: "16px",
             }}
           >
@@ -706,7 +769,7 @@ export function ExactOutSwapIdleForm({
             style={{
               color: "#D32F2F",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
+              fontSize: "12px",
             }}
           >
             {routeMessage}
