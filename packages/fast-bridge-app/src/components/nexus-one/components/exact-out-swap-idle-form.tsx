@@ -175,7 +175,12 @@ function SourceLogoStack({ tokens }: { tokens: SwapTokenOption[] }) {
           key={`${token.chainId ?? "unified"}:${token.contractAddress}`}
           style={{ marginLeft: index === 0 ? 0 : -8 }}
         >
-          <TokenLogo label={token.symbol} logo={token.logo} size={28} />
+          <TokenLogo
+            chainLogo={token.chainLogo}
+            label={token.symbol}
+            logo={token.logo}
+            size={28}
+          />
         </div>
       ))}
       {tokens.length > visible.length && (
@@ -637,6 +642,7 @@ export function ExactOutSwapIdleForm({
                     }}
                   >
                     <TokenLogo
+                      chainLogo={token.chainLogo}
                       label={token.symbol}
                       logo={token.logo}
                       size={28}
@@ -684,7 +690,7 @@ export function ExactOutSwapIdleForm({
                         color: "#1F1F1F",
                         fontFamily: '"Geist", system-ui, sans-serif',
                         fontSize: "13px",
-                        fontWeight: 500,
+                        fontWeight: 600,
                         lineHeight: "16px",
                       }}
                     >

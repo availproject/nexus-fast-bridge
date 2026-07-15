@@ -612,7 +612,7 @@ function Row({
             color: primary,
             fontFamily,
             fontSize: "15px",
-            fontWeight: 500,
+            fontWeight: 600,
             lineHeight: "23px",
           }}
         >
@@ -624,6 +624,7 @@ function Row({
               color: muted,
               fontFamily,
               fontSize: "13px",
+              fontWeight: 600,
               lineHeight: "23px",
             }}
           >

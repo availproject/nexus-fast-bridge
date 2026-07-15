@@ -1094,7 +1094,7 @@ export function NexusOneProgressScreen({
             color: primary,
             fontFamily,
             fontSize: "22px",
-            fontWeight: 500,
+            fontWeight: 600,
             letterSpacing: "0.02em",
             lineHeight: "30px",
             marginTop: "4px",
@@ -1133,7 +1133,7 @@ export function NexusOneProgressScreen({
               display: "flex",
               fontFamily,
               fontSize: "22px",
-              fontWeight: 500,
+              fontWeight: 600,
               gap: "8px",
               lineHeight: "30px",
             }}
@@ -1145,9 +1145,7 @@ export function NexusOneProgressScreen({
               tokenSymbol={destinationSymbol}
             />
             <span>{formatDecimal(destinationAmount, 8)}</span>
-            <span style={{ fontSize: "13px", lineHeight: "18px" }}>
-              {destinationSymbol}
-            </span>
+            <span>{destinationSymbol}</span>
           </div>
           {destinationChain && (
             <div
