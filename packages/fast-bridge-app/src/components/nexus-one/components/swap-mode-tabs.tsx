@@ -71,10 +71,10 @@ export function SwapModeTabs({
               display: "flex",
               flex: 1,
               flexDirection: "column",
-              height: "46px",
+              height: "38px",
               justifyContent: "center",
               opacity: disabled ? 0.65 : 1,
-              padding: "6px 12px",
+              padding: "4px 12px",
               position: "relative",
               zIndex: 1,
             }}

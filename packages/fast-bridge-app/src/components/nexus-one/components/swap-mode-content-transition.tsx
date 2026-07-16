@@ -34,6 +34,7 @@ export function SwapModeContentTransition({
     <div
       style={{
         height: contentHeight === null ? "auto" : `${contentHeight}px`,
+        marginTop: "4px",
         overflow: "clip",
         overflowClipMargin: "4px",
         transition: "height 280ms cubic-bezier(0.22, 1, 0.36, 1)",
