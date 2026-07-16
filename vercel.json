@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/(multi-chain-crypto-bridge|fastbridge|best-cross-chain-bridge-2026)\\.html",
+      "destination": "/$1.html"
+    },
+    {
       "source": "/:slug(megaeth|monad|citrea)",
       "destination": "/:slug/index.html"
     },
