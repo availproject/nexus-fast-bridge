@@ -10,32 +10,33 @@ allowBuilds:
   secp256k1: true
   utf-8-validate: true
   "@avail-project/ca-common": true
-  "@avail-project/nexus-sdk-v2": true
   "@avail-project/nexus-types": true
   msw: true
   sharp: true
   unrs-resolver: true
+  "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/186e1ba010d45cebd06516be71116c21e35d202f": true
 
 blockExoticSubdeps: false
 
+minimumReleaseAge: 5760
 minimumReleaseAgeExclude:
-  - axios@1.17.0
-  - "@posthog/core@1.30.6"
-  - "@posthog/types@1.379.3"
-  - posthog-js@1.379.3
+  - "@avail-project/nexus-core"
 
 overrides:
   "@protobufjs/utf8": "1.1.1"
+  "@remix-run/router": "1.23.2"
   axios: "1.17.0"
   brace-expansion: "5.0.6"
   dompurify: "3.4.7"
   elliptic: "6.6.1"
   esbuild: "0.28.0"
   follow-redirects: "1.16.0"
+  form-data: "4.0.6"
   hono: "4.12.23"
   postcss: "8.5.15"
   protobufjs: "8.5.0"
   qs: "6.15.2"
   uuid: "14.0.0"
   viem: "2.47.12"
+  vite: "6.4.3"
   ws: "8.21.0"

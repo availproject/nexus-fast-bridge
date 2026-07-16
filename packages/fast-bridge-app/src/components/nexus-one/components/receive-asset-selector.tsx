@@ -1,12 +1,12 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -142,6 +142,7 @@ const FILTER_TABS = [
   { label: "All", key: "all" },
   { label: "Native", key: "native" },
   { label: "Stables", key: "stables" },
+  { label: "Custom", key: "custom" },
 ];
 
 const getTokenBalanceKey = (chainId?: number, address?: string) => {
@@ -407,10 +408,8 @@ export function ReceiveAssetSelector({
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const stableListHeightRef = useRef(0);
   const chainCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const {
     supportedChainsAndTokens,
     swapBalance,
@@ -421,6 +420,7 @@ export function ReceiveAssetSelector({
     [swapSupportedChainsAndTokens]
   );
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedChainFilter, setSelectedChainFilter] = useState<number | null>(
     null
@@ -553,32 +553,7 @@ export function ReceiveAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, [query, activeTab, selectedChainFilter]);
-
-  const preserveListHeight = useCallback(() => {
-    const listEl = listRef.current;
-    if (!listEl) return;
-
-    const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) return;
-
-    stableListHeightRef.current = nextHeight;
-    setStableListHeight(nextHeight);
-  }, []);
-
-  useLayoutEffect(() => {
-    preserveListHeight();
-
-    const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver(() => {
-      preserveListHeight();
-    });
-    observer.observe(listEl);
-
-    return () => observer.disconnect();
-  }, [preserveListHeight]);
+  }, [deferredQuery, activeTab, selectedChainFilter]);
 
   // Cross-reference map for chain names & logos, and balances
   const chainMetaMap = useMemo(() => {
@@ -735,27 +710,34 @@ export function ReceiveAssetSelector({
     let result = tokensWithBalances;
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
-    if (query.trim()) {
-      result = result.filter((t) => getTokenSearchRank(t, query) !== null);
+    if (deferredQuery.trim()) {
+      result = result.filter(
+        (t) => getTokenSearchRank(t, deferredQuery) !== null
+      );
     }
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter((t) => dynamicStableSymbols.has(t.symbol));
+    else if (activeTab === "custom")
+      result = result.filter(
+        (token) =>
+          !isNativeToken(token) && !dynamicStableSymbols.has(token.symbol)
+      );
 
     return result;
   }, [
     tokensWithBalances,
     selectedChainFilter,
-    query,
+    deferredQuery,
     activeTab,
     dynamicStableSymbols,
   ]);
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      if (query.trim()) {
-        const aRank = getTokenSearchRank(a, query);
-        const bRank = getTokenSearchRank(b, query);
+      if (deferredQuery.trim()) {
+        const aRank = getTokenSearchRank(a, deferredQuery);
+        const bRank = getTokenSearchRank(b, deferredQuery);
         const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
         const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
         if (aScore !== bScore) return aScore - bScore;
@@ -771,7 +753,7 @@ export function ReceiveAssetSelector({
         `${b.symbol} ${b.chainName}`
       );
     });
-  }, [filtered, query]);
+  }, [filtered, deferredQuery]);
 
   const selectedChainMeta =
     selectedChainFilter === null
@@ -786,7 +768,6 @@ export function ReceiveAssetSelector({
     <div
       ref={selectorRef}
       style={{
-        ...modalHeightTransitionStyle,
         boxSizing: "border-box",
         display: "flex",
         flex: "1 1 auto",
@@ -795,37 +776,18 @@ export function ReceiveAssetSelector({
         maxHeight: "100%",
         minHeight: 0,
         overflow: "hidden",
-        padding: "12px",
+        padding: "16px",
         position: "relative",
-        transition: modalHeightTransition,
         width: "100%",
-        willChange: "height, max-height",
       }}
     >
       <div
         style={{
-          width: "100%",
           display: "flex",
-          justifyContent: "center",
-          marginBottom: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#E8E8E7",
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
+          alignItems: "center",
           gap: 12,
-          marginBottom: 12,
+          marginBottom: 16,
+          minHeight: 32,
         }}
       >
         <button
@@ -833,40 +795,65 @@ export function ReceiveAssetSelector({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
-            border: "1px solid #E8E8E7",
+            borderRadius: 99,
+            border: "1px solid #0000000A",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FFFFFE",
+            backgroundColor: "#FFFFFF",
+            boxShadow: "#3C28640F 0px 1px 2px, #3C28640A 0px 2px 6px",
             cursor: "pointer",
             flexShrink: 0,
           }}
         >
           <ChevronDown
-            style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
+            style={{
+              color: "#5B5B5A",
+              height: 14,
+              transform: "rotate(90deg)",
+              width: 14,
+            }}
           />
         </button>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "2px",
+            justifyContent: "center",
+            minHeight: 32,
+          }}
+        >
           <span
             style={{
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 18,
-              fontWeight: 600,
-              color: "#161615",
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: "22px",
+              color: "#1F1F1F",
             }}
           >
-            Select token to receive
+            Choose assets to receive
+          </span>
+          <span
+            style={{
+              color: "#8E8E89",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 13,
+              lineHeight: "18px",
+            }}
+          >
+            Select token and chain
           </span>
         </div>
       </div>
 
       <div
         style={{
-          padding: "0 0 12px",
+          padding: "0 0 16px",
           display: "flex",
           flexDirection: "column",
-          gap: 10,
+          gap: 16,
           position: "relative",
           zIndex: 10,
         }}
@@ -876,19 +863,19 @@ export function ReceiveAssetSelector({
           style={{
             display: "flex",
             alignItems: "center",
-            height: 42,
-            gap: 8,
-            borderRadius: 12,
-            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
+            height: 56,
+            gap: 10,
+            borderRadius: 14,
+            border: "none",
             boxShadow: isSearchFocused
-              ? "0 0 0 1px rgba(0,107,244,0.16)"
-              : "none",
+              ? "0 0 0 1px #A8C9FF, #3C28640F 0px 1px 2px inset"
+              : "#3C28640F 0px 1px 2px inset",
             padding: "0 8px 0 14px",
-            backgroundColor: "#F0F0EF",
+            backgroundColor: "#FAFAFC",
           }}
         >
           <Search
-            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
+            style={{ width: 18, height: 18, color: "#848483", flexShrink: 0 }}
           />
           <input
             onBlur={() => setIsSearchFocused(false)}
@@ -902,8 +889,12 @@ export function ReceiveAssetSelector({
               outline: "none",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 14,
+              lineHeight: "20px",
               color: "#161615",
               minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
             value={query}
           />
@@ -925,22 +916,22 @@ export function ReceiveAssetSelector({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 5,
-              padding: "4px 8px 4px 5px",
+              gap: 6,
+              padding: "6px 10px",
               borderRadius: 999,
               backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              border: "1px solid #0000000A",
               cursor: "pointer",
-              height: 38,
+              height: 32,
               flexShrink: 0,
-              boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+              boxShadow: "#3C28640F 0px 1px 2px",
             }}
           >
             {selectedChainFilter === null ? (
               <Globe
                 style={{
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   color: "#161615",
                   flexShrink: 0,
                 }}
@@ -964,7 +955,7 @@ export function ReceiveAssetSelector({
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "20px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -973,17 +964,19 @@ export function ReceiveAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
+            <ChevronDown style={{ width: 12, height: 12, color: "#848483" }} />
           </button>
         </div>
 
         {/* Filter tabs */}
         <div
           style={{
+            alignItems: "center",
             display: "flex",
             gap: 0,
-            backgroundColor: "#F0F0EF",
-            borderRadius: 8,
+            backgroundColor: "#F5F6F8",
+            borderRadius: 12,
+            boxShadow: "#2A388B0F 0px 1px 2px inset",
             padding: 4,
           }}
         >
@@ -992,22 +985,27 @@ export function ReceiveAssetSelector({
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
+                alignItems: "center",
+                display: "flex",
                 flex: 1,
-                padding: "6px 0",
+                height: activeTab === tab.key ? 40 : 32,
+                justifyContent: "center",
+                padding: 0,
                 backgroundColor:
-                  activeTab === tab.key ? "#FFFFFE" : "transparent",
+                  activeTab === tab.key ? "#FFFFFF" : "transparent",
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 cursor: "pointer",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 13,
-                fontWeight: 500,
-                color: activeTab === tab.key ? "#161615" : "#848483",
+                fontSize: 14,
+                fontWeight: activeTab === tab.key ? 600 : 500,
+                color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
                 boxShadow:
                   activeTab === tab.key
-                    ? "0px 1px 2px rgba(0,0,0,0.05)"
+                    ? "#FFFFFFE6 0px 1px 0px inset, #3C286414 0px 1px 2px, #3C28640F 0px 2px 6px"
                     : "none",
-                transition: "all 0.15s",
+                transition:
+                  "background-color 150ms ease, box-shadow 150ms ease, color 150ms ease",
               }}
             >
               {tab.label}
@@ -1027,7 +1025,12 @@ export function ReceiveAssetSelector({
         ref={listRef}
         style={{
           flex: "1 1 auto",
-          minHeight: stableListHeight ? `${stableListHeight}px` : 0,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #E8E8E7",
+          borderRadius: 12,
+          boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
+          minHeight: 0,
+          overflowX: "hidden",
           overflowY: "auto",
           position: "relative",
           zIndex: hoveredHash || tooltipState ? 20 : 1,
@@ -1325,23 +1328,6 @@ export function ReceiveAssetSelector({
                   width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginBottom: 8,
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      backgroundColor: "#D8D8D6",
-                      borderRadius: "999px",
-                      height: 4,
-                      width: 32,
-                    }}
-                  />
-                </div>
                 <div
                   style={{
                     alignItems: "center",

@@ -1,5 +1,5 @@
-import type { OnSwapIntentHookData } from "@avail-project/nexus-sdk-v2";
-import { formatTokenBalance } from "@avail-project/nexus-sdk-v2/utils";
+import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
+import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { ChevronDown, ChevronUp, Info, MoveDown, XIcon } from "lucide-react";
 import { type FC, type RefObject, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";

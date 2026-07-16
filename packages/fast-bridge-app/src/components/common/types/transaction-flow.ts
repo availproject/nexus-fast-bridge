@@ -1,4 +1,4 @@
-import type { BridgeEvent } from "@avail-project/nexus-sdk-v2";
+import type { BridgeEvent } from "@avail-project/nexus-core";
 import type { Address } from "viem";
 
 export type TransactionFlowType = "bridge" | "transfer";

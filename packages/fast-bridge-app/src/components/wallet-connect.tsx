@@ -1,5 +1,5 @@
 "use client";
-import type { EthereumProvider } from "@avail-project/nexus-sdk-v2";
+import type { EthereumProvider } from "@avail-project/nexus-core";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -222,9 +222,5 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
     chainFeatures.walletInitDelayMs,
   ]);
 
-  return (
-    <div className="fastbridge-nexus-stage relative flex w-full max-w-full items-center justify-center">
-      <div className="fastbridge-nexus-scale">{children}</div>
-    </div>
-  );
+  return <>{children}</>;
 }

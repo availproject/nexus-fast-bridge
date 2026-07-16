@@ -1,4 +1,4 @@
-import { ERROR_CODES, NexusError } from "@avail-project/nexus-sdk-v2";
+import { ERROR_CODES, NexusError } from "@avail-project/nexus-core";
 
 const DEFAULT_ERROR_MESSAGE = "Oops! Something went wrong. Please try again.";
 const USER_REJECTED_MESSAGE = "Transaction was rejected in your wallet.";

@@ -14,9 +14,9 @@
     "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
     "prepare": "husky"
   },
-  "packageManager": "pnpm@11.5.1",
+  "packageManager": "pnpm@11.7.0",
   "dependencies": {
-    "@avail-project/nexus-sdk-v2": "git+https://github.com/availproject/nexus-sdk-v2.git#v0.0.2",
+    "@avail-project/nexus-core": "2.1.0",
     "@fontsource/geist-sans": "5.2.5",
     "@marsidev/react-turnstile": "1.5.0",
     "@radix-ui/react-accordion": "1.2.12",
@@ -43,13 +43,13 @@
     "posthog-js": "1.336.4",
     "react": "19.2.2",
     "react-dom": "19.2.2",
-    "react-router-dom": "6.22.3",
+    "react-router-dom": "6.30.3",
     "sonner": "2.0.7",
     "tailwind-merge": "3.3.1",
     "tailwindcss": "4.1.13",
     "tw-animate-css": "1.4.0",
     "viem": "2.47.12",
-    "vite": "6.4.2",
+    "vite": "6.4.3",
     "vite-plugin-node-polyfills": "0.24.0",
     "wagmi": "2.19.5"
   },
