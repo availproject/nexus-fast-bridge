@@ -1,93 +1,35 @@
-# Adding a New Chain
+# Adding a Chain
 
-This guide is the canonical process for creating and shipping a new chain app.
+FastBridge uses one SPA and one chain registry. Adding a chain does not require a wrapper application or chain-specific environment file.
 
-## Fast Path (Recommended)
+## Workflow
 
-```bash
-pnpm chain:add <slug> --name "Chain Name"
-```
+1. Add a `ChainSettings` entry to `CHAIN_REGISTRY` in `packages/fast-bridge-app/src/config/chain-settings.ts`.
+2. Fill every required `AppConfig` value, including chain ID, RPC, explorer, native currency, branding, metadata, and Nexus destination defaults.
+3. Configure `chainFeatures` for supported tokens, limits, and any existing behavior flags.
+4. Add an RPC to `packages/fast-bridge-app/src/config/rpcs.json` only when the shared code path reads it from that file.
+5. Add local visual assets under `public/` when remote assets are not appropriate.
+6. If the chain needs new behavior, follow `docs/customization.md` and implement it once in shared code.
 
-Example:
-
-```bash
-pnpm chain:add sonic --name "Sonic"
-```
-
-### Useful options
-
-- `--description "..."`
-- `--base-path "/sonic/"`
-- `--primary "#hex"`
-- `--secondary "#hex"`
-- `--logo-url "https://..."`
-- `--icon-url "https://..."`
-- `--template monad`
-
-## What the Scaffold Command Does
-
-- Clones `apps/<template>` to `apps/<slug>`.
-- Updates app package name to `@fastbridge/<slug>`.
-- Sets `dev`/`build` scripts to call `prepare-env` with your slug.
-- Sets Vite default base path in `apps/<slug>/vite.config.ts`.
-- Applies default text branding updates in `apps/<slug>/get-config.ts`.
-- Creates/renames env file to `apps/<slug>/.env.<slug>`.
-- Appends and sorts entry in `chains.config.json`.
-- Runs `pnpm chains:sync`.
-
-## Post-Scaffold Checklist
-
-1. Update env values in `apps/<slug>/.env.<slug>`.
-Important keys include chain IDs, RPC URLs, explorer URL, colors, token defaults, and metadata.
-
-2. Tune behavior flags in `apps/<slug>/src/runtime.ts`.
-Use this for chain-specific UX/logic differences.
-
-3. Use the shared Nexus Core dependency.
-Shared app code imports `@avail-project/nexus-core` directly; chain-specific
-behavior should be configured through runtime flags instead of per-chain SDK
-aliases.
-
-4. Add or update chain assets in `apps/<slug>/public`.
-
-5. Smoke test locally:
+## Validation
 
 ```bash
-pnpm --filter @fastbridge/<slug> dev
-pnpm --filter @fastbridge/<slug> build
-pnpm dev:all
+pnpm check
+pnpm build
 ```
 
-6. Export deployment env:
+Then verify that:
 
-```bash
-pnpm vercel:env
-```
+- `/:slug` resolves to the new registry entry.
+- The route survives a page refresh.
+- Changing destinations updates the route without a notification loop.
+- The configured receive token exists on the destination chain.
+- Logos and metadata load from production-safe URLs.
+- Existing chain routes retain their defaults and feature behavior.
 
-Then sync the generated `<SLUG>_...` vars into your deployment provider.
+## Avoid
 
-## Manual Path (When Not Using `chain:add`)
-
-If you edit chain list or app folders manually, always run:
-
-```bash
-pnpm chains:sync
-```
-
-This updates:
-- `apps/root/package.json` workspace devDependencies for all chain apps.
-- `turbo.json` `globalEnv` based on `.env.<slug>` keys.
-
-## Validation Before Merge
-
-- `chains.config.json` has correct `slug`, `basePath`, `appDir`.
-- `apps/<slug>/vite.config.ts` base path matches chain `basePath`.
-- `apps/<slug>/src/runtime.ts` exports valid `appConfig` and `chainFeatures`.
-- Root landing shows chain card correctly (`apps/root/src/chains.ts` reads `chains.config.json`).
-- `pnpm build:all` succeeds and chain bundle appears in `apps/root/public/<slug>`.
-
-## Common Pitfalls
-
-- Missing prefixed env vars in CI/deploy causes fallback defaults in `get-config.ts`.
-- Inconsistent `basePath` causes asset loading issues.
-- Adding new env keys without running `pnpm chains:sync` causes stale turbo env tracking.
+- Creating `apps/<slug>` wrappers.
+- Adding `.env.<slug>` files for chain behavior.
+- Duplicating shared components for one chain.
+- Importing a static `appConfig` instead of using `useRuntime()`.

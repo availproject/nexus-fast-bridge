@@ -76,7 +76,8 @@ body,
   flex-direction: column;
   width: 100%;
   min-height: 100svh;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   color: #161615;
 }
 
@@ -155,7 +156,7 @@ body,
   z-index: 1;
   display: flex;
   flex: 1;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   min-height: 0;
   padding: clamp(24px, 4.5vh, 64px) 18px clamp(20px, 4vh, 56px);
@@ -517,6 +518,7 @@ body,
 }
 
 .nexus-focus-container {
+  border-color: transparent !important;
   transition:
     background-color 0.15s ease-out,
     box-shadow 0.15s ease-out;
@@ -524,4 +526,41 @@ body,
 .nexus-focus-container:focus-within {
   background-color: #fafafc !important;
   box-shadow: #3c28640f 0px 1px 2px inset !important;
+}
+
+.nexus-source-token-scroll {
+  scrollbar-color: #9e9e9c #e8e8e7;
+  scrollbar-width: thin;
+}
+.nexus-source-token-scroll::-webkit-scrollbar {
+  width: 2px;
+}
+.nexus-source-token-scroll::-webkit-scrollbar-track {
+  background: #e8e8e7;
+  border-radius: 999px;
+}
+.nexus-source-token-scroll::-webkit-scrollbar-thumb {
+  background: #9e9e9c;
+  border-radius: 999px;
+}
+
+@keyframes nexusBalanceSkeletonShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.nexus-balance-skeleton {
+  background: linear-gradient(90deg, #f0f0ef 0%, #e6eeff 48%, #f0f0ef 100%);
+  background-size: 200% 100%;
+  animation: nexusBalanceSkeletonShimmer 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-balance-skeleton {
+    animation: none;
+  }
 }

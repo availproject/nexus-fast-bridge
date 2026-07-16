@@ -119,7 +119,7 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (resolvedSlug === undefined) {
       const target = loadLastChain();
-      navigate(`/${target}`, { replace: true });
+      navigate(`/${target}${window.location.search}`, { replace: true });
     }
   }, [resolvedSlug, navigate]);
 
@@ -192,7 +192,7 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       }
       // Use View Transitions API for smooth theme swap, with fallback
       const doNavigate = () => {
-        navigate(`/${slug}`);
+        navigate(`/${slug}${window.location.search}`);
       };
 
       if (

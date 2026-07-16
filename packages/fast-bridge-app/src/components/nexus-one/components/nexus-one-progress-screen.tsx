@@ -10,7 +10,11 @@ import type {
   SwapStepType,
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
-import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
+import {
+  type NexusOneDepositMetadata,
+  type NexusOneMode,
+  type SwapType,
+} from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
@@ -43,6 +47,7 @@ interface NexusOneProgressScreenProps {
   recipientAddress?: string;
   steps?: ProgressStep[];
   swapBalances?: unknown[] | null;
+  swapType?: SwapType;
   toAmount?: string;
   toAmountUsd?: string;
   toToken?: SwapTokenOption;
@@ -78,6 +83,15 @@ const formatUsd = (value: unknown) => `$${formatDecimal(value, 2)}`;
 
 const unique = (values: Array<string | undefined>) =>
   Array.from(new Set(values.filter(Boolean) as string[]));
+
+const isNativeProgressSourceAddress = (address?: string) => {
+  const normalizedAddress = (address ?? "").toLowerCase();
+  return (
+    !normalizedAddress ||
+    normalizedAddress === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    normalizedAddress === "0x0000000000000000000000000000000000000000"
+  );
+};
 
 const formatSymbolSummary = (symbols: string[]) => {
   if (symbols.length <= 2) return symbols.join(", ");
@@ -387,6 +401,7 @@ const hasStartedStatus = (
 const buildStatusRows = ({
   events,
   failedStep,
+  isExactOut,
   mode,
   steps,
   approvalTotalCount,
@@ -394,6 +409,7 @@ const buildStatusRows = ({
 }: {
   events: NexusOneProgressEvent[];
   failedStep?: ProgressSdkStep | null;
+  isExactOut?: boolean;
   mode: NexusOneMode;
   steps: ProgressStep[];
   approvalTotalCount?: number | null;
@@ -475,7 +491,8 @@ const buildStatusRows = ({
   ]);
   const swapSkipped = hasCompletedType(events, steps, ["SWAP_SKIPPED"]);
   const shouldShowSwapRows =
-    hasSwapList && !(swapSkipped && (mode === "deposit" || mode === "send"));
+    hasSwapList &&
+    !(swapSkipped && (mode === "deposit" || mode === "send" || isExactOut));
   const swapTokensComplete = hasReceiveTokenStep
     ? receiveTokenStarted
     : swapComplete;
@@ -750,16 +767,16 @@ function TokenLogoPair({
       style={{
         display: "inline-flex",
         flexShrink: 0,
-        height: 27,
+        height: 31,
         position: "relative",
-        width: 27,
+        width: 31,
       }}
     >
-      <MiniLogo label={tokenSymbol} size={27} src={tokenLogo} />
+      <MiniLogo label={tokenSymbol} size={31} src={tokenLogo} />
       {chainLogo && (
         <MiniLogo
           label={chainName}
-          size={12}
+          size={13}
           src={chainLogo}
           style={{
             bottom: -1,
@@ -788,10 +805,70 @@ export function NexusOneProgressScreen({
   failedStep,
   recipientAddress,
   swapBalances,
+  swapType,
 }: NexusOneProgressScreenProps) {
-  const intentSources = intentData?.sources ?? [];
+  const isExactOutDisplayFlow =
+    mode === "deposit" || mode === "send" || swapType === "exactOut";
+  const isSwapExactOutDisplayFlow = mode === "swap" && swapType === "exactOut";
   const intentDestination = intentData?.destination;
-  const destinationSourceToken = fromTokens.find((token) => {
+  const isDestinationSource = ({
+    chainId,
+    contractAddress,
+    symbol,
+  }: {
+    chainId?: number;
+    contractAddress?: string;
+    symbol?: string;
+  }) => {
+    if (!isSwapExactOutDisplayFlow) return false;
+
+    const destinationChainId = intentDestination?.chain.id ?? toToken?.chainId;
+    if (!chainId || chainId !== destinationChainId) return false;
+
+    const destinationTokenAddress =
+      intentDestination?.token.contractAddress ?? toToken?.contractAddress;
+    const sourceAddress = contractAddress?.toLowerCase();
+    const normalizedDestinationAddress = destinationTokenAddress?.toLowerCase();
+    if (
+      sourceAddress &&
+      normalizedDestinationAddress &&
+      sourceAddress === normalizedDestinationAddress
+    ) {
+      return true;
+    }
+    if (
+      isNativeProgressSourceAddress(contractAddress) &&
+      isNativeProgressSourceAddress(destinationTokenAddress)
+    ) {
+      return true;
+    }
+
+    const destinationSymbol =
+      intentDestination?.token.symbol ?? toToken?.symbol;
+    return Boolean(
+      (!sourceAddress || !normalizedDestinationAddress) &&
+        symbol &&
+        destinationSymbol &&
+        symbol.toUpperCase() === destinationSymbol.toUpperCase()
+    );
+  };
+  const intentSources = (intentData?.sources ?? []).filter(
+    (source) =>
+      !isDestinationSource({
+        chainId: source.chain.id,
+        contractAddress: source.token.contractAddress,
+        symbol: source.token.symbol,
+      })
+  );
+  const eligibleFromTokens = fromTokens.filter(
+    (token) =>
+      !isDestinationSource({
+        chainId: token.chainId,
+        contractAddress: token.contractAddress,
+        symbol: token.symbol,
+      })
+  );
+  const destinationSourceToken = eligibleFromTokens.find((token) => {
     const destinationChainId = intentDestination?.chain.id ?? toToken?.chainId;
     const destinationTokenAddress = (
       intentDestination?.token.contractAddress ??
@@ -813,7 +890,7 @@ export function NexusOneProgressScreen({
     ...(destinationSourceToken ? [destinationSourceToken.symbol] : []),
     ...(intentSources.length > 0
       ? intentSources.map((source) => source.token.symbol)
-      : fromTokens.map((token) => token.symbol)),
+      : eligibleFromTokens.map((token) => token.symbol)),
   ]);
   const intentSourceUsd =
     intentSources.length > 0
@@ -840,7 +917,8 @@ export function NexusOneProgressScreen({
           )
         : undefined;
   const destinationCoverageUsd =
-    (mode === "deposit" || mode === "send") &&
+    isExactOutDisplayFlow &&
+    !isSwapExactOutDisplayFlow &&
     requestedDestinationAmount &&
     requestedDestinationAmount.gt(0) &&
     quotedDestinationAmount &&
@@ -856,38 +934,37 @@ export function NexusOneProgressScreen({
       : undefined;
   const quotedDestinationUsd = parseDecimal(intentDestination?.value);
   const feeUsd = parseDecimal(totalFeeUsd);
-  const sourceUsd =
-    mode === "deposit" || mode === "send"
-      ? [
-          destinationCoverageUsd !== undefined
-            ? (intentSourceUsd ?? new Decimal(0)).plus(destinationCoverageUsd)
-            : intentSourceUsd,
-          requestedDestinationUsd,
-          requestedDestinationUsd &&
-          requestedDestinationUsd.gt(0) &&
-          intentSourceUsd &&
-          intentSourceUsd.gt(0) &&
-          quotedDestinationUsd &&
-          quotedDestinationUsd.gt(0)
-            ? requestedDestinationUsd.plus(
-                Decimal.max(intentSourceUsd.minus(quotedDestinationUsd), 0)
-              )
-            : undefined,
-          requestedDestinationUsd &&
-          requestedDestinationUsd.gt(0) &&
-          feeUsd &&
-          feeUsd.gt(0)
-            ? requestedDestinationUsd.plus(feeUsd)
-            : undefined,
-        ]
-          .filter((value): value is Decimal => Boolean(value && value.gt(0)))
-          .reduce<Decimal | undefined>(
-            (max, value) => (!max || value.gt(max) ? value : max),
-            undefined
-          )
-      : intentSourceUsd;
+  const sourceUsd = isExactOutDisplayFlow
+    ? [
+        destinationCoverageUsd !== undefined
+          ? (intentSourceUsd ?? new Decimal(0)).plus(destinationCoverageUsd)
+          : intentSourceUsd,
+        requestedDestinationUsd,
+        requestedDestinationUsd &&
+        requestedDestinationUsd.gt(0) &&
+        intentSourceUsd &&
+        intentSourceUsd.gt(0) &&
+        quotedDestinationUsd &&
+        quotedDestinationUsd.gt(0)
+          ? requestedDestinationUsd.plus(
+              Decimal.max(intentSourceUsd.minus(quotedDestinationUsd), 0)
+            )
+          : undefined,
+        requestedDestinationUsd &&
+        requestedDestinationUsd.gt(0) &&
+        feeUsd &&
+        feeUsd.gt(0)
+          ? requestedDestinationUsd.plus(feeUsd)
+          : undefined,
+      ]
+        .filter((value): value is Decimal => Boolean(value && value.gt(0)))
+        .reduce<Decimal | undefined>(
+          (max, value) => (!max || value.gt(max) ? value : max),
+          undefined
+        )
+    : intentSourceUsd;
   const destinationAmount =
-    (mode === "deposit" || mode === "send") && toAmount
+    isExactOutDisplayFlow && toAmount
       ? toAmount
       : (intentDestination?.amount ?? toAmount ?? "0");
   const destinationSymbol =
@@ -909,7 +986,7 @@ export function NexusOneProgressScreen({
     },
     {
       balanceAssets: swapBalances as any,
-      tokens: toToken ? [toToken, ...fromTokens] : fromTokens,
+      tokens: toToken ? [toToken, ...eligibleFromTokens] : eligibleFromTokens,
     }
   );
   const destinationChainName = getShortChainName(
@@ -952,6 +1029,7 @@ export function NexusOneProgressScreen({
   const statusRows = buildStatusRows({
     events: progressEvents,
     failedStep,
+    isExactOut: swapType === "exactOut",
     mode,
     steps: steps ?? [],
     approvalTotalCount,
@@ -972,8 +1050,8 @@ export function NexusOneProgressScreen({
     statusRows[statusRows.length - 1];
   const visibleRows = stepsExpanded ? statusRows : activeRow ? [activeRow] : [];
   const canExpand = statusRows.length > 1;
-  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 47 : 40);
-  const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 40;
+  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 64 : 52);
+  const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 52;
   const expandedStatusHeight = statusRows.reduce(
     (sum, row) => sum + getRowHeight(row),
     0
@@ -984,7 +1062,7 @@ export function NexusOneProgressScreen({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "7px",
+        gap: "18px",
         width: "100%",
       }}
     >
@@ -992,10 +1070,11 @@ export function NexusOneProgressScreen({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "8px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
           boxSizing: "border-box",
-          padding: "12px 13px 9px",
+          minHeight: "312px",
+          padding: "17px 15px 14px",
           width: "100%",
         }}
       >
@@ -1003,8 +1082,8 @@ export function NexusOneProgressScreen({
           style={{
             color: muted,
             fontFamily,
-            fontSize: "10px",
-            lineHeight: "14px",
+            fontSize: "13px",
+            lineHeight: "18px",
             textAlign: "center",
           }}
         >
@@ -1014,10 +1093,11 @@ export function NexusOneProgressScreen({
           style={{
             color: primary,
             fontFamily,
-            fontSize: "16px",
+            fontSize: "22px",
             fontWeight: 600,
-            lineHeight: "22px",
-            marginTop: "2px",
+            letterSpacing: "0.02em",
+            lineHeight: "30px",
+            marginTop: "4px",
             textAlign: "center",
           }}
         >
@@ -1030,8 +1110,8 @@ export function NexusOneProgressScreen({
           src="https://files.availproject.org/nexus-elements/nexus-one/progress-grid.gif"
           style={{
             display: "block",
-            height: "148px",
-            margin: "13px auto 9px",
+            height: "152px",
+            margin: "14px auto 12px",
             objectFit: "cover",
             objectPosition: "center",
             width: "100%",
@@ -1052,10 +1132,10 @@ export function NexusOneProgressScreen({
               color: primary,
               display: "flex",
               fontFamily,
-              fontSize: "15px",
+              fontSize: "22px",
               fontWeight: 600,
-              gap: "5px",
-              lineHeight: "22px",
+              gap: "8px",
+              lineHeight: "30px",
             }}
           >
             <TokenLogoPair
@@ -1065,17 +1145,15 @@ export function NexusOneProgressScreen({
               tokenSymbol={destinationSymbol}
             />
             <span>{formatDecimal(destinationAmount, 8)}</span>
-            <span style={{ fontSize: "10px", lineHeight: "14px" }}>
-              {destinationSymbol}
-            </span>
+            <span>{destinationSymbol}</span>
           </div>
           {destinationChain && (
             <div
               style={{
                 color: muted,
                 fontFamily,
-                fontSize: "9px",
-                lineHeight: "13px",
+                fontSize: "13px",
+                lineHeight: "18px",
               }}
             >
               on {destinationChain}
@@ -1089,8 +1167,8 @@ export function NexusOneProgressScreen({
         style={{
           background: "#FFFFFE",
           border: `1px solid ${border}`,
-          borderRadius: "8px",
-          boxShadow: "0px 1px 12px 0px #5B5B5B0D",
+          borderRadius: "12px",
+          boxShadow: "#3C286433 0px 0px 3px",
           boxSizing: "border-box",
           overflow: "hidden",
           transition: "box-shadow 220ms ease, border-color 220ms ease",
@@ -1102,7 +1180,7 @@ export function NexusOneProgressScreen({
             display: "grid",
             gridTemplateRows: "1fr",
             maxHeight: stepsExpanded
-              ? `${Math.max(43, expandedStatusHeight)}px`
+              ? `${Math.max(52, expandedStatusHeight)}px`
               : `${collapsedStatusHeight}px`,
             overflow: "hidden",
             transition: "max-height 220ms ease",
@@ -1142,11 +1220,11 @@ export function NexusOneProgressScreen({
                     cursor: canExpand ? "pointer" : "default",
                     display: "flex",
                     fontFamily,
-                    fontSize: "11px",
+                    fontSize: "14px",
                     fontWeight: 400,
-                    gap: "7px",
+                    gap: "12px",
                     minHeight: `${getRowHeight(row)}px`,
-                    padding: "8px 11px",
+                    padding: "14px 16px",
                     textAlign: "left",
                     transition:
                       "color 220ms ease, min-height 220ms ease, opacity 220ms ease",
@@ -1162,15 +1240,15 @@ export function NexusOneProgressScreen({
                         borderRadius: "999px",
                         color: "#FFFFFE",
                         display: "inline-flex",
-                        height: "15px",
+                        height: "22px",
                         justifyContent: "center",
-                        width: "15px",
+                        width: "22px",
                       }}
                     >
                       {isError ? (
-                        <X style={{ height: 10, width: 10 }} />
+                        <X style={{ height: 13, width: 13 }} />
                       ) : (
-                        <Check style={{ height: 11, width: 11 }} />
+                        <Check style={{ height: 14, width: 14 }} />
                       )}
                     </span>
                   ) : isDefault ? (
@@ -1181,14 +1259,14 @@ export function NexusOneProgressScreen({
                         borderRadius: "999px",
                         boxSizing: "border-box",
                         display: "inline-flex",
-                        height: "15px",
-                        width: "15px",
+                        height: "22px",
+                        width: "22px",
                       }}
                     />
                   ) : (
                     <Loader2
                       className="animate-spin"
-                      style={{ color: brand, height: 15, width: 15 }}
+                      style={{ color: brand, height: 22, width: 22 }}
                     />
                   )}
                   <span
@@ -1212,10 +1290,10 @@ export function NexusOneProgressScreen({
                       <span
                         style={{
                           color: isLoading ? brand : muted,
-                          fontSize: "10px",
+                          fontSize: "12px",
                           fontStyle: "italic",
                           fontWeight: 400,
-                          lineHeight: "13px",
+                          lineHeight: "16px",
                         }}
                       >
                         {row.description}
@@ -1227,14 +1305,14 @@ export function NexusOneProgressScreen({
                       style={{
                         color: muted,
                         flexShrink: 0,
-                        height: 16,
+                        height: 14,
                         marginLeft: "auto",
                         marginTop: hasDescription ? 2 : 0,
                         transform: stepsExpanded
                           ? "rotate(180deg)"
                           : "rotate(0deg)",
                         transition: "transform 220ms ease",
-                        width: 16,
+                        width: 14,
                       }}
                     />
                   )}

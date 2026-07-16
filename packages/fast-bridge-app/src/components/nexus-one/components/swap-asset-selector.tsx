@@ -18,7 +18,6 @@ import {
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -62,6 +61,7 @@ interface SwapAssetSelectorProps {
   allowUnified?: boolean;
   autoSelectFilterTabs?: boolean;
   editingAssetIndex?: number | null;
+  excludedTokens?: SwapTokenOption[];
   filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
   initialFilterTab?: FilterTab;
@@ -69,14 +69,18 @@ interface SwapAssetSelectorProps {
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
   onClearSelection?: () => void;
-  onDone?: () => void;
+  onDone?: (tokens?: SwapTokenOption[]) => void;
   onFilterTabSelect?: (tab: Exclude<FilterTab, "custom">) => void;
+  onRestoreAuto?: () => void;
   onSelect: (token: SwapTokenOption) => void;
   onSelectionChange?: (tokens: SwapTokenOption[]) => void;
   onToggle?: (token: SwapTokenOption) => void;
   preserveSelectedBelowMinimum?: boolean;
   requiredUsd?: string;
+  restoreAutoTokens?: SwapTokenOption[];
   selectedTokens?: SwapTokenOption[];
+  showBelowMinimumInline?: boolean;
+  showRestoreAuto?: boolean;
   staticOptions?: SwapTokenOption[];
   swapBalance: UserAsset[] | null;
   swapSupportedChains?: SupportedChainsAndTokensResult | null;
@@ -602,7 +606,7 @@ function isNativeToken(t: SwapTokenOption) {
   return false;
 }
 
-const MIN_FIAT_THRESHOLD = 0;
+const MIN_FIAT_THRESHOLD = 1;
 const CHAIN_SELECTOR_CLOSE_MS = 220;
 const MODAL_HEIGHT_TRANSITION_MS = 260;
 const modalHeightTransitionStyle = {
@@ -743,12 +747,12 @@ export const formatTokenAmountDisplay = (value: unknown) => {
     }
   }
 
-  const minDisplay = new Decimal("0.00000001");
+  const minDisplay = new Decimal("0.0001");
   if (amount.gt(0) && amount.lt(minDisplay)) {
-    return `>${minDisplay.toFixed()}`;
+    return `<${minDisplay.toFixed()}`;
   }
 
-  return amount.toDecimalPlaces(8, Decimal.ROUND_DOWN).toFixed();
+  return amount.toDecimalPlaces(4, Decimal.ROUND_DOWN).toFixed();
 };
 
 const addThousandsSeparators = (value: string) => {
@@ -963,6 +967,18 @@ function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
   );
 }
 
+function getTokenOptionSelectionKey(token: SwapTokenOption) {
+  if (token.isUnified) return `unified:${token.unifiedSymbol ?? token.symbol}`;
+  const address = isNativeLikeAddress(token.contractAddress)
+    ? "native"
+    : token.contractAddress.toLowerCase();
+  return `${token.chainId ?? "unknown"}:${address}`;
+}
+
+function getTokenOptionsSelectionKey(tokens: SwapTokenOption[]) {
+  return tokens.map(getTokenOptionSelectionKey).sort().join("|");
+}
+
 function dedupeTokenOptions(tokens: SwapTokenOption[]) {
   return tokens.reduce<SwapTokenOption[]>((acc, token) => {
     if (!acc.some((item) => sameTokenOption(item, token))) {
@@ -1023,20 +1039,25 @@ export function SwapAssetSelector({
   isMulti,
   selectedTokens = [],
   editingAssetIndex = null,
+  excludedTokens = [],
   onToggle,
   onClearSelection,
   onDone,
   allowUnified = false,
   preserveSelectedBelowMinimum = false,
+  showBelowMinimumInline = false,
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
   initialFilterTab = "all",
   filterTabBehavior = "select-all",
   onFilterTabSelect,
+  onRestoreAuto,
   lockedTokens = [],
   onSelectionChange,
   requiredUsd,
+  restoreAutoTokens,
+  showRestoreAuto = false,
 }: SwapAssetSelectorProps) {
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChains),
@@ -1053,7 +1074,6 @@ export function SwapAssetSelector({
     normalizedInitialFilterTab
   );
   const [showBelowMin, setShowBelowMin] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showChainSelector, setShowChainSelector] = useState(false);
   const [isChainSelectorClosing, setIsChainSelectorClosing] = useState(false);
   const [chainQuery, setChainQuery] = useState("");
@@ -1061,11 +1081,18 @@ export function SwapAssetSelector({
     null
   );
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
-  const stableListHeightRef = useRef(0);
-  const [stableListHeight, setStableListHeight] = useState<number | null>(null);
   const lockedSelectedTokens = useMemo(
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
+  );
+  const excludedTokenOptions = useMemo(
+    () => dedupeTokenOptions(excludedTokens),
+    [excludedTokens]
+  );
+  const isExcludedToken = useCallback(
+    (token: SwapTokenOption) =>
+      excludedTokenOptions.some((excluded) => sameTokenOption(excluded, token)),
+    [excludedTokenOptions]
   );
   const isLockedToken = useCallback(
     (token: SwapTokenOption) =>
@@ -1075,19 +1102,29 @@ export function SwapAssetSelector({
   const [draftSelectedTokens, setDraftSelectedTokens] = useState<
     SwapTokenOption[]
   >(() => mergeTokenOptions(selectedTokens, lockedSelectedTokens));
+  const selectedTokensSelectionKey =
+    getTokenOptionsSelectionKey(selectedTokens);
+  const lockedTokensSelectionKey =
+    getTokenOptionsSelectionKey(lockedSelectedTokens);
+  const selectedTokensRef = useRef(selectedTokens);
+  const lockedSelectedTokensRef = useRef(lockedSelectedTokens);
+  selectedTokensRef.current = selectedTokens;
+  lockedSelectedTokensRef.current = lockedSelectedTokens;
   useEffect(() => {
     if (!isMulti) return;
     setDraftSelectedTokens(
-      mergeTokenOptions(selectedTokens, lockedSelectedTokens)
+      mergeTokenOptions(
+        selectedTokensRef.current,
+        lockedSelectedTokensRef.current
+      )
     );
-  }, [isMulti, lockedSelectedTokens, selectedTokens]);
+  }, [isMulti, lockedTokensSelectionKey, selectedTokensSelectionKey]);
   const activeSelectedTokens = isMulti ? draftSelectedTokens : selectedTokens;
   const emitSelectionChange = useCallback(
     (tokens: SwapTokenOption[]) => {
       const next = mergeTokenOptions(tokens, lockedSelectedTokens);
       if (isMulti) {
         setDraftSelectedTokens(next);
-        return;
       }
       onSelectionChange?.(next);
     },
@@ -1121,40 +1158,17 @@ export function SwapAssetSelector({
     }
   }, [query, activeTab, selectedChainFilter]);
 
-  const preserveListHeight = useCallback(() => {
-    const listEl = listRef.current;
-    if (!listEl) return;
-
-    const nextHeight = Math.ceil(listEl.getBoundingClientRect().height);
-    if (nextHeight <= stableListHeightRef.current) return;
-
-    stableListHeightRef.current = nextHeight;
-    setStableListHeight(nextHeight);
-  }, []);
-
-  useLayoutEffect(() => {
-    preserveListHeight();
-
-    const listEl = listRef.current;
-    if (!listEl || typeof ResizeObserver === "undefined") return;
-
-    const observer = new ResizeObserver(() => {
-      preserveListHeight();
-    });
-    observer.observe(listEl);
-
-    return () => observer.disconnect();
-  }, [preserveListHeight]);
-
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
 
-    const baseTokens = staticOptions
-      ? staticOptions.filter(isSwapSupportedToken)
-      : swapBalance
-        ? deriveTokenOptions(swapBalance, swapSupportedChains)
-        : [];
+    const baseTokens = (
+      staticOptions
+        ? staticOptions.filter(isSwapSupportedToken)
+        : swapBalance
+          ? deriveTokenOptions(swapBalance, swapSupportedChains)
+          : []
+    ).filter((token) => !isExcludedToken(token));
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return sortTokensByUsdBalance(baseTokens);
@@ -1171,6 +1185,7 @@ export function SwapAssetSelector({
     );
 
     for (const selectedToken of selectedSourceTokens) {
+      if (isExcludedToken(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
       );
@@ -1184,6 +1199,7 @@ export function SwapAssetSelector({
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
     activeSelectedTokens,
+    isExcludedToken,
     swapBalance,
     swapSupportedChains,
     staticOptions,
@@ -1202,16 +1218,23 @@ export function SwapAssetSelector({
         result = result.filter(isStableToken);
       }
 
+      if (showBelowMinimumInline) {
+        return mergeTokenOptions(result, lockedSelectedTokens);
+      }
+
       return mergeTokenOptions(
         result.filter(
           (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
         ),
-        lockedSelectedTokens.filter(
-          (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
-        )
+        lockedSelectedTokens
       );
     },
-    [allTokens, lockedSelectedTokens, selectedChainFilter]
+    [
+      allTokens,
+      lockedSelectedTokens,
+      selectedChainFilter,
+      showBelowMinimumInline,
+    ]
   );
 
   const selectionMatchesFilterTab = useCallback(
@@ -1239,7 +1262,8 @@ export function SwapAssetSelector({
       !autoSelectFilterTabs ||
       filterTabBehavior === "source-pool" ||
       !isMulti ||
-      activeTab === "custom"
+      activeTab === "custom" ||
+      (activeTab === "all" && Boolean(onFilterTabSelect))
     )
       return;
     if (activeSelectedTokens.length === 0 && lockedSelectedTokens.length === 0)
@@ -1254,6 +1278,7 @@ export function SwapAssetSelector({
     filterTabBehavior,
     isMulti,
     lockedSelectedTokens.length,
+    onFilterTabSelect,
     selectionMatchesFilterTab,
   ]);
 
@@ -1277,6 +1302,11 @@ export function SwapAssetSelector({
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
+      if (
+        lockedSelectedTokens.some((locked) => sameTokenOption(locked, token))
+      ) {
+        return true;
+      }
       if (!preserveSelectedBelowMinimum) return false;
 
       return activeSelectedTokens.some(
@@ -1290,7 +1320,7 @@ export function SwapAssetSelector({
           )
       );
     },
-    [activeSelectedTokens, preserveSelectedBelowMinimum]
+    [activeSelectedTokens, lockedSelectedTokens, preserveSelectedBelowMinimum]
   );
 
   const isUnifiedSelectedForVisibility = useCallback(
@@ -1309,6 +1339,7 @@ export function SwapAssetSelector({
     for (const t of filtered) {
       const fiat = getTokenFiatValue(t);
       if (
+        showBelowMinimumInline ||
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
         isPrioritySearchMatch(t, query)
@@ -1317,14 +1348,19 @@ export function SwapAssetSelector({
       else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
-  }, [filtered, isTokenSelectedForVisibility, query]);
+  }, [filtered, isTokenSelectedForVisibility, query, showBelowMinimumInline]);
 
   /* Group by symbol */
   const groupedFiltered = useMemo(() => {
     const groups: Record<string, SwapTokenOption[]> = {};
     for (const token of filtered) {
       const unifiedSym = allowUnified ? getUnifiedSymbol(token) : null;
-      if (unifiedSym && getTokenFiatValue(token) < MIN_FIAT_THRESHOLD) {
+      if (
+        !showBelowMinimumInline &&
+        unifiedSym &&
+        getTokenFiatValue(token) < MIN_FIAT_THRESHOLD &&
+        !isTokenSelectedForVisibility(token)
+      ) {
         continue;
       }
       const key = unifiedSym ?? `${token.contractAddress}-${token.chainId}`;
@@ -1375,6 +1411,9 @@ export function SwapAssetSelector({
         const hasPrioritySearchMatch = group.tokens.some((token) =>
           isPrioritySearchMatch(token, query)
         );
+        if (showBelowMinimumInline) {
+          return true;
+        }
         if (group.isUnifiedCandidate) {
           return (
             group.totalFiat >= MIN_FIAT_THRESHOLD ||
@@ -1416,6 +1455,7 @@ export function SwapAssetSelector({
     isTokenSelectedForVisibility,
     isUnifiedSelectedForVisibility,
     query,
+    showBelowMinimumInline,
   ]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -1504,6 +1544,10 @@ export function SwapAssetSelector({
   const handleFilterTabClick = (tab: FilterTab) => {
     setActiveTab(tab);
     if (autoSelectFilterTabs && isMulti && tab !== "custom") {
+      if (tab === "all" && onFilterTabSelect) {
+        onFilterTabSelect(tab);
+        return;
+      }
       if (filterTabBehavior === "source-pool") {
         onFilterTabSelect?.(tab);
         return;
@@ -1561,29 +1605,101 @@ export function SwapAssetSelector({
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
     const disabled = isDisabledByUnified || locked;
+    const handleTokenSelection = () => {
+      if (disabled) return;
+      if (isMulti) {
+        handleMultiTokenToggle(token);
+      } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
+        onToggle(token);
+      } else {
+        onSelect(token);
+      }
+    };
+
+    if (indent) {
+      return (
+        <button
+          disabled={disabled}
+          key={`${token.contractAddress}-${token.chainId}`}
+          onClick={handleTokenSelection}
+          style={{
+            alignItems: "center",
+            backgroundColor: "transparent",
+            border: "none",
+            boxSizing: "border-box",
+            cursor: disabled ? "not-allowed" : "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            minHeight: "42px",
+            opacity: isDisabledByUnified ? 0.5 : 1,
+            padding: "8px 0",
+            width: "100%",
+          }}
+        >
+          <span
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: "12px",
+              minWidth: 0,
+            }}
+          >
+            <SelectionControl
+              multi={Boolean(isMulti)}
+              selected={selectedInCurrent}
+            />
+            <TokenLogo
+              backgroundColor="#F0F0EF"
+              color="#5B5B5A"
+              fontSize={8}
+              size={18}
+              src={token.chainLogo}
+              symbol={token.chainName || token.symbol}
+            />
+            <span
+              style={{
+                color: "#1F1F1F",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontWeight: 500,
+                lineHeight: "20px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {token.chainName || "Unknown chain"}
+            </span>
+          </span>
+          <span
+            style={{
+              color: "#1F1F1F",
+              flexShrink: 0,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "14px",
+              fontVariantNumeric: "tabular-nums",
+              fontWeight: 500,
+              lineHeight: "20px",
+            }}
+          >
+            {formatTokenAmountDisplay(token.balance)}
+          </span>
+        </button>
+      );
+    }
+
     return (
       <button
         disabled={disabled}
         key={`${token.contractAddress}-${token.chainId}`}
-        onClick={() => {
-          if (disabled) return;
-          if (isMulti) {
-            handleMultiTokenToggle(token);
-          } else if (
-            allowSelectedTokenRemoval &&
-            selectedInCurrent &&
-            onToggle
-          ) {
-            onToggle(token);
-          } else onSelect(token);
-        }}
+        onClick={handleTokenSelection}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "10px 14px",
-          paddingLeft: indent ? "36px" : "14px",
+          paddingLeft: "14px",
           backgroundColor: "transparent",
           border: "none",
           cursor: disabled ? "not-allowed" : "pointer",
@@ -1678,6 +1794,7 @@ export function SwapAssetSelector({
   const getVisibleIndividualTokens = (group: (typeof groupedFiltered)[0]) =>
     group.tokens.filter(
       (token) =>
+        showBelowMinimumInline ||
         getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(token) ||
         isPrioritySearchMatch(token, query)
@@ -1688,7 +1805,8 @@ export function SwapAssetSelector({
       !isMulti && isGroupUnifiedSelectedInOtherSlot(group);
     const individualTokens = getVisibleIndividualTokens(group);
     const hasVisibleUnifiedRow =
-      (group.totalFiat >= MIN_FIAT_THRESHOLD ||
+      (showBelowMinimumInline ||
+        group.totalFiat >= MIN_FIAT_THRESHOLD ||
         isUnifiedSelectedForVisibility(group.symbol)) &&
       !unifiedSelectedInOther;
     const visibleTokensCount = individualTokens.filter(
@@ -1712,7 +1830,8 @@ export function SwapAssetSelector({
       !isMulti &&
       (anyIndividualSelectedInOther ||
         anyIndividualSelectedInCurrent ||
-        (group.totalFiat < MIN_FIAT_THRESHOLD &&
+        (!showBelowMinimumInline &&
+          group.totalFiat < MIN_FIAT_THRESHOLD &&
           !isUnifiedSelectedForVisibility(group.symbol)));
     const shouldHideIndividualRows =
       !isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent);
@@ -1779,7 +1898,8 @@ export function SwapAssetSelector({
           backgroundColor: "transparent",
           border: "none",
           cursor: "pointer",
-          borderBottom: "1px solid #F0F0EF",
+          borderBottom:
+            isMulti && groupState.isExpanded ? "none" : "1px solid #F0F0EF",
           boxSizing: "border-box",
         }}
       >
@@ -1877,6 +1997,20 @@ export function SwapAssetSelector({
               ≈ {group.totalFiatStr}
             </span>
           </div>
+          {isMulti && !options.onlyUnifiedRow && (
+            <ChevronDown
+              aria-hidden="true"
+              style={{
+                color: "#848483",
+                height: 15,
+                transform: groupState.isExpanded
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)",
+                transition: "transform 180ms ease",
+                width: 15,
+              }}
+            />
+          )}
         </div>
       </button>
     );
@@ -1900,7 +2034,16 @@ export function SwapAssetSelector({
               transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
             }}
           >
-            <div style={{ overflow: "hidden" }}>
+            <div
+              style={{
+                backgroundColor: "#F9F9F8",
+                overflow: "hidden",
+                padding: groupState.isExpanded
+                  ? "4px 16px 10px 46px"
+                  : "0 16px 0 46px",
+                transition: "padding 0.3s ease",
+              }}
+            >
               {group.tokens.map((token) => renderTokenRow(token, true, false))}
             </div>
           </div>
@@ -1995,31 +2138,35 @@ export function SwapAssetSelector({
   const isLoading = !staticOptions && swapBalance === null;
   const selectedAssetCount = activeSelectedTokens.length;
   const requiredUsdAmount = parseTokenAmount(requiredUsd);
+  const shouldCountSelectedUsd = (token: SwapTokenOption, value: Decimal) =>
+    value.gt(0) &&
+    (lockedSelectedTokens.some((locked) => sameTokenOption(locked, token)) ||
+      value.gte(MIN_FIAT_THRESHOLD));
   const selectedUsdAmount = activeSelectedTokens.reduce((sum, token) => {
     if (token.isUnified && token.sourceTokens?.length) {
       return sum.plus(
         token.sourceTokens.reduce((sourceSum, source) => {
           const value =
             parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
-          return value.gte(MIN_FIAT_THRESHOLD)
+          return shouldCountSelectedUsd(source, value)
             ? sourceSum.plus(value)
             : sourceSum;
         }, new Decimal(0))
       );
     }
     const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
-    return value.gte(MIN_FIAT_THRESHOLD) ? sum.plus(value) : sum;
+    return shouldCountSelectedUsd(token, value) ? sum.plus(value) : sum;
   }, new Decimal(0));
   const selectionDeficitUsdAmount =
     requiredUsdAmount && selectedUsdAmount.lt(requiredUsdAmount)
       ? requiredUsdAmount.minus(selectedUsdAmount)
       : new Decimal(0);
-  const shouldShowSelectionProgress = Boolean(
-    isMulti &&
-      requiredUsdAmount &&
+  const hasSelectionShortfall = Boolean(
+    requiredUsdAmount &&
       requiredUsdAmount.gt(0) &&
       selectionDeficitUsdAmount.gt(0)
   );
+  const shouldShowSelectionProgress = Boolean(isMulti && hasSelectionShortfall);
   const selectionProgressPercent =
     shouldShowSelectionProgress && requiredUsdAmount
       ? Decimal.min(
@@ -2027,9 +2174,7 @@ export function SwapAssetSelector({
           selectedUsdAmount.div(requiredUsdAmount).mul(100)
         ).toNumber()
       : 0;
-  const subtitle = isMulti
-    ? `${selectedAssetCount} asset${selectedAssetCount === 1 ? "" : "s"} selected`
-    : "";
+  const subtitle = isMulti ? "Select token and chain" : "";
 
   useEffect(() => {
     setPortalRoot(
@@ -2122,19 +2267,30 @@ export function SwapAssetSelector({
       : selectedChainToken?.chainName || "Chain";
 
   const handleDone = () => {
-    if (isMulti && onSelectionChange) {
-      onSelectionChange(
-        mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
+    if (hasSelectionShortfall) return;
+    onDone?.(
+      isMulti
+        ? mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
+        : undefined
+    );
+  };
+
+  const handleRestoreAuto = () => {
+    if (isMulti && restoreAutoTokens) {
+      setActiveTab("all");
+      setDraftSelectedTokens(
+        mergeTokenOptions(restoreAutoTokens, lockedSelectedTokens)
       );
+      onRestoreAuto?.();
+      return;
     }
-    onDone?.();
+    onRestoreAuto?.();
   };
 
   return (
     <div
       ref={selectorRef}
       style={{
-        ...modalHeightTransitionStyle,
         boxSizing: "border-box",
         display: "flex",
         flex: "1 1 auto",
@@ -2143,19 +2299,17 @@ export function SwapAssetSelector({
         maxHeight: "100%",
         minHeight: 0,
         overflow: "hidden",
-        padding: "12px",
-        transition: modalHeightTransition,
+        padding: "16px",
         width: "100%",
-        willChange: "height, max-height",
       }}
     >
       {/* Header */}
       <div
         style={{
           display: "flex",
-          alignItems: subtitle ? "flex-start" : "center",
+          alignItems: "center",
           gap: 12,
-          marginBottom: 12,
+          marginBottom: 16,
           minHeight: 32,
         }}
       >
@@ -2164,26 +2318,32 @@ export function SwapAssetSelector({
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
-            border: "1px solid #E8E8E7",
+            borderRadius: 99,
+            border: "1px solid #0000000A",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FFFFFE",
+            backgroundColor: "#FFFFFF",
+            boxShadow: "#3C28640F 0px 1px 2px, #3C28640A 0px 2px 6px",
             cursor: "pointer",
             flexShrink: 0,
           }}
         >
           <ChevronDown
-            style={{ width: 16, height: 16, transform: "rotate(90deg)" }}
+            style={{
+              color: "#5B5B5A",
+              height: 14,
+              transform: "rotate(90deg)",
+              width: 14,
+            }}
           />
         </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
-            justifyContent: subtitle ? "flex-start" : "center",
+            gap: "2px",
+            justifyContent: "center",
             minHeight: 32,
             minWidth: 0,
             flex: "1 1 auto",
@@ -2192,10 +2352,10 @@ export function SwapAssetSelector({
           <span
             style={{
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 18,
-              fontWeight: 600,
-              lineHeight: "24px",
-              color: "#161615",
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: "22px",
+              color: "#1F1F1F",
             }}
           >
             {title}
@@ -2205,7 +2365,8 @@ export function SwapAssetSelector({
               style={{
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: 13,
-                color: "#848483",
+                color: "#8E8E89",
+                lineHeight: "18px",
               }}
             >
               {subtitle}
@@ -2236,29 +2397,26 @@ export function SwapAssetSelector({
       </div>
 
       {/* Search */}
-      <div style={{ paddingBottom: 6 }}>
+      <div style={{ paddingBottom: 16 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            height: 42,
+            height: 48,
             gap: 8,
             borderRadius: 12,
-            border: `1px solid ${isSearchFocused ? "#A8C9FF" : "#E8E8E7"}`,
-            boxShadow: isSearchFocused
-              ? "0 0 0 1px rgba(0,107,244,0.16)"
-              : "none",
-            padding: "0 8px 0 16px",
-            backgroundColor: "#F0F0EF",
+            border: "none",
+            boxShadow: "#3C28640F 0px 1px 2px inset",
+            boxSizing: "border-box",
+            padding: "0 7px 0 12px",
+            backgroundColor: "#FAFAFC",
           }}
         >
           <Search
-            style={{ width: 20, height: 20, color: "#848483", flexShrink: 0 }}
+            style={{ width: 16, height: 16, color: "#848483", flexShrink: 0 }}
           />
           <input
-            onBlur={() => setIsSearchFocused(false)}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
             placeholder="Search token, chain or address"
             style={{
               flex: 1,
@@ -2267,8 +2425,12 @@ export function SwapAssetSelector({
               outline: "none",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 14,
+              lineHeight: "20px",
               color: "#161615",
               minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
             value={query}
           />
@@ -2291,22 +2453,22 @@ export function SwapAssetSelector({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 5,
-              padding: "4px 8px 4px 5px",
+              gap: 6,
+              padding: "6px 10px",
               borderRadius: 999,
-              backgroundColor: "#FFFFFE",
-              border: "1px solid #E8E8E7",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #0000000A",
               cursor: "pointer",
-              height: 38,
+              height: 32,
               flexShrink: 0,
-              boxShadow: "0px 1px 2px rgba(0,0,0,0.05)",
+              boxShadow: "#3C28640F 0px 1px 2px",
             }}
           >
             {selectedChainFilter === null ? (
               <Globe
                 style={{
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   color: "#161615",
                   flexShrink: 0,
                 }}
@@ -2330,7 +2492,7 @@ export function SwapAssetSelector({
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "14px",
                 fontWeight: 500,
-                lineHeight: "18px",
+                lineHeight: "20px",
                 maxWidth: "86px",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -2339,7 +2501,7 @@ export function SwapAssetSelector({
             >
               {selectedChainLabel}
             </span>
-            <ChevronDown style={{ width: 14, height: 14, color: "#848483" }} />
+            <ChevronDown style={{ width: 12, height: 12, color: "#848483" }} />
           </button>
         </div>
       </div>
@@ -2347,12 +2509,14 @@ export function SwapAssetSelector({
       {/* Filter tabs */}
       <div
         style={{
+          alignItems: "center",
           display: "flex",
           gap: 0,
-          backgroundColor: "#F0F0EF",
-          borderRadius: 8,
-          padding: 4,
-          marginBottom: 6,
+          backgroundColor: "#F5F6F8",
+          borderRadius: 10,
+          boxShadow: "#2A388B0F 0px 1px 2px inset",
+          padding: 3,
+          marginBottom: 12,
         }}
       >
         {visibleFilterTabs.map((tab) => (
@@ -2360,20 +2524,27 @@ export function SwapAssetSelector({
             key={tab.key}
             onClick={() => handleFilterTabClick(tab.key)}
             style={{
+              alignItems: "center",
+              display: "flex",
               flex: 1,
-              padding: "6px 0",
+              height: 36,
+              justifyContent: "center",
+              padding: 0,
               backgroundColor:
-                activeTab === tab.key ? "#FFFFFE" : "transparent",
+                activeTab === tab.key ? "#FFFFFF" : "transparent",
               border: "none",
-              borderRadius: 6,
+              borderRadius: 7,
               cursor: "pointer",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: 13,
-              fontWeight: 500,
-              color: activeTab === tab.key ? "#161615" : "#848483",
+              fontWeight: activeTab === tab.key ? 600 : 500,
+              color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
               boxShadow:
-                activeTab === tab.key ? "0px 1px 2px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s",
+                activeTab === tab.key
+                  ? "#FFFFFFE6 0px 1px 0px inset, #3C286414 0px 1px 2px, #3C28640F 0px 2px 6px"
+                  : "none",
+              transition:
+                "background-color 150ms ease, box-shadow 150ms ease, color 150ms ease",
             }}
           >
             {autoSelectFilterTabs && tab.key === "all" ? "Any" : tab.label}
@@ -2386,7 +2557,7 @@ export function SwapAssetSelector({
         ref={listRef}
         style={{
           flex: "1 1 auto",
-          minHeight: stableListHeight ? `${stableListHeight}px` : 0,
+          minHeight: 0,
           overflowY: "auto",
           paddingBottom: 6,
         }}
@@ -2439,11 +2610,11 @@ export function SwapAssetSelector({
               : visibleAssetRows.length > 0) && (
               <div
                 style={{
-                  border: "1px solid #E8E8E7",
-                  borderRadius: 14,
-                  overflowX: "hidden",
-                  overflowY: "visible",
-                  backgroundColor: "#FFFFFE",
+                  border: "none",
+                  borderRadius: 12,
+                  boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
+                  overflow: "hidden",
+                  backgroundColor: "#FFFFFF",
                 }}
               >
                 {isMulti
@@ -2468,7 +2639,9 @@ export function SwapAssetSelector({
                   backgroundColor: "#FFFFFE",
                   border: "1px solid #E8E8E7",
                   borderRadius: 12,
-                  overflow: "hidden",
+                  boxShadow: "#1616150A 0px 1px 2px",
+                  boxSizing: "border-box",
+                  overflow: "clip",
                 }}
               >
                 <button
@@ -2478,7 +2651,7 @@ export function SwapAssetSelector({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "11px 12px",
+                    padding: "10px 12px",
                     backgroundColor: "transparent",
                     border: "none",
                     cursor: "pointer",
@@ -2489,59 +2662,38 @@ export function SwapAssetSelector({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 10,
+                      gap: 8,
                       minWidth: 0,
                     }}
                   >
                     <span
                       style={{
                         alignItems: "center",
-                        backgroundColor: "#FFF0D6",
+                        backgroundColor: "#FFF1E0",
                         borderRadius: "999px",
                         display: "flex",
                         flexShrink: 0,
-                        height: 22,
+                        height: 30,
                         justifyContent: "center",
-                        width: 22,
+                        width: 30,
                       }}
                     >
                       <Info
-                        style={{ width: 12, height: 12, color: "#D98A1C" }}
+                        style={{ width: 12, height: 12, color: "#B87709" }}
                       />
                     </span>
-                    <div
+                    <span
                       style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
+                        color: "#1F1F1F",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        lineHeight: "16px",
                         minWidth: 0,
                       }}
                     >
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontWeight: 600,
-                          fontSize: 13,
-                          color: "#161615",
-                          lineHeight: "20px",
-                        }}
-                      >
-                        Tokens below minimum
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: 12,
-                          color: "#848483",
-                          lineHeight: "18px",
-                          textAlign: "left",
-                        }}
-                      >
-                        {showBelowMin
-                          ? "Tokens under $1 are unavailable for swaps"
-                          : "Hidden to prevent failed swaps"}
-                      </span>
-                    </div>
+                      Tokens below minimum
+                    </span>
                   </div>
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 6 }}
@@ -2552,13 +2704,13 @@ export function SwapAssetSelector({
                         <TokenLogo
                           backgroundColor="#E8E8E7"
                           color="#848483"
-                          fontSize={7}
+                          fontSize={6}
                           key={`bm-${t.contractAddress}-${t.chainId}`}
-                          size={18}
+                          size={16}
                           src={t.logo}
                           style={{
                             border: "1.5px solid #fff",
-                            marginLeft: i > 0 ? -6 : 0,
+                            marginLeft: i > 0 ? -4 : 0,
                           }}
                           symbol={t.symbol}
                         />
@@ -2566,17 +2718,17 @@ export function SwapAssetSelector({
                       {belowMin.length > 3 && (
                         <div
                           style={{
-                            width: 18,
-                            height: 18,
+                            width: 16,
+                            height: 16,
                             borderRadius: "999px",
                             backgroundColor: "#161615",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: "#fff",
-                            marginLeft: -6,
+                            fontSize: 7,
+                            fontWeight: 600,
+                            color: "#8E8E89",
+                            marginLeft: -4,
                             border: "1.5px solid #fff",
                           }}
                         >
@@ -2586,11 +2738,11 @@ export function SwapAssetSelector({
                     </div>
                     {showBelowMin ? (
                       <ChevronUp
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{ width: 12, height: 12, color: "#848483" }}
                       />
                     ) : (
                       <ChevronDown
-                        style={{ width: 18, height: 18, color: "#848483" }}
+                        style={{ width: 12, height: 12, color: "#848483" }}
                       />
                     )}
                   </div>
@@ -2732,7 +2884,10 @@ export function SwapAssetSelector({
                     lineHeight: "20px",
                   }}
                 >
-                  Required
+                  <strong style={{ color: "#161615", fontWeight: 500 }}>
+                    Selected
+                  </strong>
+                  /Required
                 </span>
                 <span
                   style={{
@@ -2743,11 +2898,48 @@ export function SwapAssetSelector({
                   }}
                 >
                   <strong style={{ color: "#161615", fontWeight: 600 }}>
-                    {formatUsdBalanceLabel(selectionDeficitUsdAmount)}
+                    {formatUsdBalanceLabel(selectedUsdAmount)}
                   </strong>{" "}
-                  more
+                  / {formatUsdBalanceLabel(requiredUsdAmount)}
                 </span>
               </div>
+              {showRestoreAuto && onRestoreAuto && (
+                <div
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#848483",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 12,
+                    }}
+                  >
+                    Manually-selected · covers{" "}
+                    {formatUsdBalanceLabel(selectedUsdAmount)}
+                  </span>
+                  <button
+                    onClick={handleRestoreAuto}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#006BF4",
+                      cursor: "pointer",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      padding: 0,
+                    }}
+                    type="button"
+                  >
+                    Restore Auto
+                  </button>
+                </div>
+              )}
               <div
                 style={{
                   backgroundColor: "#F0F0EF",
@@ -2769,7 +2961,7 @@ export function SwapAssetSelector({
               </div>
             </div>
           )}
-          {!shouldShowSelectionProgress && (
+          {!hasSelectionShortfall && (
             <button
               onClick={handleDone}
               style={{
