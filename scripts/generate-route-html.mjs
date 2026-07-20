@@ -35,43 +35,138 @@ const LANDING_META_IMAGE_URL =
 const CHAIN_META = [
   {
     slug: "megaeth",
-    title:
-      "MegaETH FastBridge by Avail | Unified Cross-Chain Swaps and Transfers on MegaETH",
+    title: "Bridge to MegaETH – Instant Cross-Chain Transfers | FastBridge",
     description:
-      "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to MegaETH in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus.",
+      "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to MegaETH in one transaction. FastBridge is the fastest way to bridge to MegaETH with low fees from any chain.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/megaeth",
-    themeColor: "#19191A",
-    faviconUrl: "/avail_logo.svg",
+    themeColor: "#2B2B2B",
   },
   {
     slug: "monad",
-    title:
-      "Monad FastBridge by Avail | Unified Cross-Chain Swaps and Transfers on Monad",
+    title: "Bridge to Monad – Fast & Cheap Cross-Chain Transfers | FastBridge",
     description:
-      "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to Monad in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus.",
+      "Bridge USDC and other tokens from major EVM chains to Monad in one transaction. FastBridge offers the fastest, lowest-fee routes from multiple chains to Monad mainnet.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/monad",
-    themeColor: "#6E54FF",
-    faviconUrl: "/avail_logo.svg",
+    themeColor: "#836EF9",
   },
   {
     slug: "citrea",
     title:
-      "Citrea FastBridge by Avail | Unified Cross-Chain Swaps and Transfers on Citrea",
+      "Bridge to Citrea – Bitcoin ZK Rollup Cross-Chain Bridge | FastBridge",
     description:
-      "Bridge USDC, USDT, ETH, and other tokens from major EVM chains to Citrea in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus.",
+      "Bridge USDC, USDT, and other tokens from multiple EVM chains to Citrea in one transaction. FastBridge is the easiest way to bridge to Citrea with fast, low-fee transfers.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/citrea",
-    themeColor: "#EF8F36",
-    faviconUrl: "/avail_logo.svg",
+    themeColor: "#1A1A1A",
+  },
+  {
+    slug: "arbitrum",
+    title:
+      "Bridge to Arbitrum from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge ETH, USDC, and USDT to Arbitrum One from Ethereum and other chains, all at once. FastBridge offers instant, low-cost cross-chain swaps and transfers to Arbitrum.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/arbitrum",
+    themeColor: "#28A0F0",
+  },
+  {
+    slug: "ethereum",
+    title:
+      "Bridge to Ethereum – Combine Your L2 Balances in One Transaction | FastBridge",
+    description:
+      "Bridge from L2 chains like Base, Arbitrum, Optimism, Polygon, and more back to Ethereum mainnet. FastBridge enables cross-chain transfers and swaps with your assets consolidated.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/ethereum",
+    themeColor: "#627EEA",
+  },
+  {
+    slug: "polygon",
+    title:
+      "Bridge to Polygon – Instant Cross-Chain Swaps & Transfers | FastBridge",
+    description:
+      "Bridge USDC, USDT and POL to Polygon from Ethereum, Arbitrum, and more. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to Polygon PoS.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/polygon",
+    themeColor: "#8247E5",
+  },
+  {
+    slug: "base",
+    title:
+      "Bridge to Base – Fastest ETH & USDC Transfers to Base Chain | FastBridge",
+    description:
+      "Bridge ETH, and USDC from Ethereum, and other L2 chains to Base, in one transaction. FastBridge combines your multi-chain balances and delivers fast, low-fee transfers to Coinbase’s L2 instantly.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/base",
+    themeColor: "#0052FF",
+  },
+  {
+    slug: "optimism",
+    aliases: ["op-mainnet"],
+    title:
+      "Bridge to Optimism from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge ETH, USDC, and USDT to Optimism from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to OP Mainnet.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/optimism",
+    themeColor: "#FF0420",
+  },
+  {
+    slug: "scroll",
+    title:
+      "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
+    description:
+      "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/scroll",
+    themeColor: "#C4A882",
+  },
+  {
+    slug: "kaia",
+    title:
+      "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",
+    description:
+      "Bridge USDT and KAIA tokens to Kaia blockchain from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Kaia (formerly Klaytn).",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/kaia",
+    themeColor: "#31C48D",
+  },
+  {
+    slug: "bnb-smart-chain",
+    aliases: ["bsc"],
+    title: "Bridge to BNB Smart Chain – Fast ETH to BNB Transfers | FastBridge",
+    description:
+      "Bridge ETH, BNB, USDT and USDC to BNB chain from Ethereum, Polygon, Arbitrum and other EVM chains, all at once. FastBridge combines your balances from multiple chains and delivers low-fee cross-chain transfers to BSC.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/bnb-smart-chain",
+    themeColor: "#F3BA2F",
+  },
+  {
+    slug: "hyperevm",
+    title:
+      "Bridge to HyperEVM from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge USDC, USDT and HYPE to HyperEVM, Hyperliquid's EVM L1. FastBridge combines your balances from Ethereum, Arbitrum, and other EVM chains in a single transaction and delivers unified cross-chain swaps and transfers to HyperEVM.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/hyperevm",
+    themeColor: "#50E3C2",
+  },
+  {
+    slug: "avalanche",
+    title:
+      "Bridge to Avalanche from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge USDC, USDT and AVAX to Avalanche C-Chain from Ethereum, Arbitrum, BNB and other EVM chains. FastBridge consolidates your funds across chains and delivers fast, unified cross-chain transfers to Avax chain, in a single transaction.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/avalanche",
+    themeColor: "#E84142",
   },
 ];
 
 // Top-level regex constants (required by Biome's useTopLevelRegex rule)
 const RE_TITLE = /<title>[^<]*<\/title>/;
 const RE_CANONICAL = /<link rel="canonical"[^>]*>/;
-const RE_FAVICON = /<link\s+rel="icon"[^>]*>/;
 const RE_THEME_COLOR = /<meta name="theme-color"[^>]*>/;
 const RE_META_DESCRIPTION = /<meta\s+name="description"[^>]*>/;
 const RE_META_TITLE = /<meta\s+name="title"[^>]*>/;
@@ -86,16 +181,11 @@ const RE_TWITTER_IMAGE = /<meta\s+name="twitter:image"[^>]*>/;
 const RE_TWITTER_SITE = /<meta\s+name="twitter:site"[^>]*>/;
 
 function injectMeta(baseHtml, chain) {
-  const { title, description, imageUrl, canonicalUrl, themeColor, faviconUrl } =
-    chain;
+  const { title, description, imageUrl, canonicalUrl, themeColor } = chain;
 
   return baseHtml
     .replace(RE_TITLE, `<title>${title}</title>`)
     .replace(RE_CANONICAL, `<link rel="canonical" href="${canonicalUrl}">`)
-    .replace(
-      RE_FAVICON,
-      `<link rel="icon" href="${faviconUrl}" type="image/svg+xml">`
-    )
     .replace(
       RE_THEME_COLOR,
       `<meta name="theme-color" content="${themeColor}">`
@@ -140,13 +230,17 @@ const baseHtml = fs.readFileSync(indexPath, "utf-8");
 let generated = 0;
 
 for (const chain of CHAIN_META) {
-  const outDir = path.join(distDir, chain.slug);
-  fs.mkdirSync(outDir, { recursive: true });
-  const outFile = path.join(outDir, "index.html");
+  const routeSlugs = [chain.slug, ...(chain.aliases ?? [])];
   const html = injectMeta(baseHtml, chain);
-  fs.writeFileSync(outFile, html, "utf-8");
-  generated++;
-  console.log(`✅  Generated ${chain.slug}/index.html`);
+
+  for (const routeSlug of routeSlugs) {
+    const outDir = path.join(distDir, routeSlug);
+    fs.mkdirSync(outDir, { recursive: true });
+    const outFile = path.join(outDir, "index.html");
+    fs.writeFileSync(outFile, html, "utf-8");
+    generated++;
+    console.log(`✅  Generated ${routeSlug}/index.html`);
+  }
 }
 
 console.log(`\n🎉  Done — generated ${generated} route-specific HTML files.\n`);
