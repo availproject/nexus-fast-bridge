@@ -533,7 +533,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
           "Bridge to Optimism from Multiple Chains in One Transaction | FastBridge",
         description:
           "Bridge ETH, USDC, and USDT to Optimism from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, low-fee cross-chain swaps and transfers to OP Mainnet.",
-        canonicalUrl: "https://fastbridge.availproject.org/op-mainnet",
+        canonicalUrl: "https://fastbridge.availproject.org/optimism",
         imageUrl: LANDING_META_IMAGE_URL,
         faviconUrl: "/avail_logo.svg",
         themeColor: "#FF0420",
@@ -542,7 +542,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     },
     chainFeatures: {
       supportedTokens: ["USDC", "USDT", "ETH"],
-      slug: "op-mainnet",
+      slug: "optimism",
       buttonFg: "white",
       analyticsFastBridgeKey: "optimism",
       maxBridgeAmount: 550,
@@ -849,21 +849,26 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+const CHAIN_SLUG_ALIASES: Record<string, string> = {
+  bsc: "bnb-smart-chain",
+  optimism: "op-mainnet",
+};
+
+function resolveChainSlugAlias(slug: string): string {
+  return CHAIN_SLUG_ALIASES[slug] ?? slug;
+}
+
 export function getChainSettings(slug: string): ChainSettings {
-  const normalized = slug === "optimism" ? "op-mainnet" : slug;
+  const normalized = resolveChainSlugAlias(slug);
   return CHAIN_REGISTRY[normalized] ?? CHAIN_REGISTRY[DEFAULT_CHAIN_SLUG];
 }
 
 export function getAllChainSlugs(): string[] {
-  const slugs = Object.keys(CHAIN_REGISTRY);
-  if (!slugs.includes("optimism")) {
-    slugs.push("optimism");
-  }
-  return slugs;
+  return [...Object.keys(CHAIN_REGISTRY), ...Object.keys(CHAIN_SLUG_ALIASES)];
 }
 
 export function isValidChainSlug(slug: string): boolean {
-  const normalized = slug === "optimism" ? "op-mainnet" : slug;
+  const normalized = resolveChainSlugAlias(slug);
   return normalized in CHAIN_REGISTRY;
 }
 

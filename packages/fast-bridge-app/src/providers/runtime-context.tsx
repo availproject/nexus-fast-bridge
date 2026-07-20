@@ -161,14 +161,6 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       canonical.href = meta.canonicalUrl;
     }
 
-    // Favicon
-    const favicon = document.querySelector(
-      'link[rel="icon"]'
-    ) as HTMLLinkElement | null;
-    if (favicon) {
-      favicon.href = meta.faviconUrl;
-    }
-
     // Open Graph
     setMeta('meta[property="og:title"]', title);
     setMeta('meta[property="og:description"]', meta.description);
