@@ -3097,9 +3097,6 @@ function NexusOneInner({
   // Preload receive tokens once SDK is available
   useEffect(() => {
     if (nexusSDK) {
-      console.log(
-        "[preloadReceiveTokens] Calling preloadReceiveTokens from NexusOne useEffect (nexusSDK available)"
-      );
       preloadReceiveTokens();
     }
   }, [nexusSDK]);

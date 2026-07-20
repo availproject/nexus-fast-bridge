@@ -169,6 +169,20 @@ type RawReceiveToken = {
   name?: string;
   priceUSD?: number | string;
   symbol?: string;
+  verificationStatus?: TokenVerificationStatus;
+};
+
+type TokenVerificationStatus = "flagged" | "unverified" | "verified";
+
+const getTokenVerificationRank = (status?: TokenVerificationStatus) => {
+  if (status === "verified") return 0;
+  if (status === "flagged") return 2;
+  return 1;
+};
+
+type ReceiveTokenOption = SwapTokenOption & {
+  hasBalance?: boolean;
+  verificationStatus?: TokenVerificationStatus;
 };
 
 type RawReceiveTokensData = {
@@ -189,9 +203,21 @@ const LEGACY_RECEIVE_TOKEN_STORAGE_KEYS = [
   "nexus_receive_tokens_time_v2",
 ] as const;
 const LEGACY_RECEIVE_TOKEN_STORAGE_PREFIX = "nexus_receive_tokens_";
+const RECEIVE_TOKEN_DB_NAME = "nexus-fastbridge-cache";
+const RECEIVE_TOKEN_DB_VERSION = 1;
+const RECEIVE_TOKEN_STORE_NAME = "api-responses";
+const RECEIVE_TOKEN_CACHE_KEY = "liquest-receive-tokens-v1";
+
+type PersistedReceiveTokens = {
+  data: RawReceiveTokensData;
+  schemaVersion: 1;
+  storedAt: number;
+};
 
 let rawTokensCache: RawReceiveTokensData | null = null;
 let rawTokensPromise: Promise<RawReceiveTokensData> | null = null;
+let rawTokensRefreshPromise: Promise<RawReceiveTokensData> | null = null;
+let receiveTokenDbPromise: Promise<IDBDatabase | null> | null = null;
 let legacyReceiveTokenStorageCleared = false;
 
 const clearLegacyReceiveTokenStorageCache = () => {
@@ -217,6 +243,133 @@ const clearLegacyReceiveTokenStorageCache = () => {
   } catch {
     // localStorage can be unavailable; the in-memory token cache still works.
   }
+};
+
+const hasReceiveTokens = (data: RawReceiveTokensData) =>
+  Object.keys(data.tokens).length > 0;
+
+const isRawReceiveTokensData = (
+  value: unknown
+): value is RawReceiveTokensData => {
+  if (!(value && typeof value === "object")) {
+    return false;
+  }
+
+  const candidate = value as {
+    stableSymbols?: unknown;
+    tokens?: unknown;
+  };
+  return (
+    Array.isArray(candidate.stableSymbols) &&
+    candidate.stableSymbols.every((symbol) => typeof symbol === "string") &&
+    Boolean(
+      candidate.tokens &&
+        typeof candidate.tokens === "object" &&
+        !Array.isArray(candidate.tokens)
+    )
+  );
+};
+
+const openReceiveTokenCacheDb = (): Promise<IDBDatabase | null> => {
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(null);
+  }
+  if (receiveTokenDbPromise) {
+    return receiveTokenDbPromise;
+  }
+
+  receiveTokenDbPromise = new Promise((resolve) => {
+    let settled = false;
+    const settle = (db: IDBDatabase | null) => {
+      if (settled) {
+        db?.close();
+        return;
+      }
+      settled = true;
+      resolve(db);
+    };
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(RECEIVE_TOKEN_DB_NAME, RECEIVE_TOKEN_DB_VERSION);
+    } catch {
+      settle(null);
+      return;
+    }
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(RECEIVE_TOKEN_STORE_NAME)) {
+        db.createObjectStore(RECEIVE_TOKEN_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
+      settle(db);
+    };
+    request.onerror = () => settle(null);
+    request.onblocked = () => settle(null);
+  });
+
+  return receiveTokenDbPromise;
+};
+
+const readPersistedReceiveTokens = async () => {
+  const db = await openReceiveTokenCacheDb();
+  if (!db) {
+    return null;
+  }
+
+  return new Promise<RawReceiveTokensData | null>((resolve) => {
+    try {
+      const transaction = db.transaction(RECEIVE_TOKEN_STORE_NAME, "readonly");
+      const request = transaction
+        .objectStore(RECEIVE_TOKEN_STORE_NAME)
+        .get(RECEIVE_TOKEN_CACHE_KEY);
+
+      request.onsuccess = () => {
+        const record = request.result as PersistedReceiveTokens | undefined;
+        resolve(
+          record?.schemaVersion === 1 &&
+            isRawReceiveTokensData(record.data) &&
+            hasReceiveTokens(record.data)
+            ? record.data
+            : null
+        );
+      };
+      request.onerror = () => resolve(null);
+      transaction.onabort = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+};
+
+const persistReceiveTokens = async (data: RawReceiveTokensData) => {
+  const db = await openReceiveTokenCacheDb();
+  if (!db) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    try {
+      const transaction = db.transaction(RECEIVE_TOKEN_STORE_NAME, "readwrite");
+      const record: PersistedReceiveTokens = {
+        data,
+        schemaVersion: 1,
+        storedAt: Date.now(),
+      };
+      transaction
+        .objectStore(RECEIVE_TOKEN_STORE_NAME)
+        .put(record, RECEIVE_TOKEN_CACHE_KEY);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+      transaction.onabort = () => resolve();
+    } catch {
+      // IndexedDB can be unavailable or over quota; memory caching still works.
+      resolve();
+    }
+  });
 };
 
 const normalizeReceiveTokenAddress = (address?: string) => {
@@ -261,146 +414,121 @@ export const getCachedReceiveTokenMatch = (
   };
 };
 
-export const preloadReceiveTokens = () => {
-  console.log(
-    "[preloadReceiveTokens] Function invoked. Current state: hasCache =",
-    !!rawTokensCache,
-    "hasPromise =",
-    !!rawTokensPromise
-  );
-  if (typeof window === "undefined") {
-    console.log(
-      "[preloadReceiveTokens] Aborted preload: window is undefined (SSR)."
+const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
+  let data: RawReceiveTokensData = EMPTY_RECEIVE_TOKENS_DATA;
+  try {
+    const [resAll, resStables] = await Promise.all([
+      fetch("https://li.quest/v1/tokens"),
+      fetch("https://li.quest/v1/tokens?tags=stablecoin"),
+    ]);
+
+    let allTokens: RawReceiveTokensData["tokens"] = {};
+    if (resAll.ok) {
+      try {
+        const allData = await resAll.json();
+        allTokens = allData.tokens || {};
+      } catch (jsonErr) {
+        console.error(
+          "[preloadReceiveTokens] Failed to parse all tokens JSON response:",
+          jsonErr
+        );
+      }
+    } else {
+      console.warn(
+        "[preloadReceiveTokens] resAll response was not ok:",
+        resAll.status,
+        resAll.statusText
+      );
+    }
+
+    const stableSymbols = new Set<string>();
+    if (resStables.ok) {
+      try {
+        const stablesData = await resStables.json();
+        const stableChains = stablesData.tokens || {};
+        for (const chainId of Object.keys(stableChains)) {
+          for (const token of stableChains[chainId]) {
+            stableSymbols.add(token.symbol);
+          }
+        }
+      } catch (jsonErr) {
+        console.error(
+          "[preloadReceiveTokens] Failed to parse stable tokens JSON response:",
+          jsonErr
+        );
+      }
+    } else {
+      console.warn(
+        "[preloadReceiveTokens] resStables response was not ok:",
+        resStables.status,
+        resStables.statusText
+      );
+    }
+
+    data = {
+      tokens: allTokens,
+      stableSymbols: Array.from(stableSymbols),
+    };
+  } catch (error) {
+    console.error(
+      "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest:",
+      error
     );
+  }
+
+  return data;
+};
+
+const refreshReceiveTokens = (): Promise<RawReceiveTokensData> => {
+  if (rawTokensRefreshPromise) {
+    return rawTokensRefreshPromise;
+  }
+
+  rawTokensRefreshPromise = (async () => {
+    const data = await fetchReceiveTokens();
+    if (!hasReceiveTokens(data)) {
+      rawTokensRefreshPromise = null;
+      return data;
+    }
+
+    rawTokensCache = data;
+    await persistReceiveTokens(data);
+    return data;
+  })();
+
+  return rawTokensRefreshPromise;
+};
+
+export const preloadReceiveTokens = () => {
+  if (typeof window === "undefined") {
     return null;
   }
   clearLegacyReceiveTokenStorageCache();
+
   if (rawTokensCache) {
-    console.log("[preloadReceiveTokens] Using in-memory token cache.");
+    refreshReceiveTokens();
     return Promise.resolve(rawTokensCache);
   }
+
   if (!rawTokensPromise) {
-    console.log(
-      "[preloadReceiveTokens] No active promise found. Creating a new promise to load tokens..."
-    );
     rawTokensPromise = (async () => {
-      let data: RawReceiveTokensData = EMPTY_RECEIVE_TOKENS_DATA;
-      try {
-        console.log(
-          "[preloadReceiveTokens] Initiating network request to li.quest..."
-        );
-        const [resAll, resStables] = await Promise.all([
-          fetch("https://li.quest/v1/tokens"),
-          fetch("https://li.quest/v1/tokens?tags=stablecoin"),
-        ]);
-
-        console.log(
-          "[preloadReceiveTokens] li.quest APIs responded. Status resAll =",
-          resAll.status,
-          "status resStables =",
-          resStables.status
-        );
-
-        let allTokens: RawReceiveTokensData["tokens"] = {};
-        if (resAll.ok) {
-          try {
-            const allData = await resAll.json();
-            allTokens = allData.tokens || {};
-            console.log(
-              "[preloadReceiveTokens] Successfully parsed all tokens. Count of chains =",
-              Object.keys(allTokens).length
-            );
-          } catch (jsonErr) {
-            console.error(
-              "[preloadReceiveTokens] Failed to parse all tokens JSON response:",
-              jsonErr
-            );
-          }
-        } else {
-          console.warn(
-            "[preloadReceiveTokens] resAll response was not ok:",
-            resAll.status,
-            resAll.statusText
-          );
-        }
-
-        const stableSymbols = new Set<string>();
-        if (resStables.ok) {
-          try {
-            const stablesData = await resStables.json();
-            const stableChains = stablesData.tokens || {};
-            for (const chainId of Object.keys(stableChains)) {
-              for (const t of stableChains[chainId]) {
-                stableSymbols.add(t.symbol);
-              }
-            }
-            console.log(
-              "[preloadReceiveTokens] Successfully parsed stable tokens. Stable symbols count =",
-              stableSymbols.size
-            );
-          } catch (jsonErr) {
-            console.error(
-              "[preloadReceiveTokens] Failed to parse stable tokens JSON response:",
-              jsonErr
-            );
-          }
-        } else {
-          console.warn(
-            "[preloadReceiveTokens] resStables response was not ok:",
-            resStables.status,
-            resStables.statusText
-          );
-        }
-
-        data = {
-          tokens: allTokens,
-          stableSymbols: Array.from(stableSymbols),
-        };
-        console.log(
-          "[preloadReceiveTokens] Finished composing network token data.",
-          {
-            chainsCount: Object.keys(data.tokens).length,
-            stablesCount: data.stableSymbols.length,
-          }
-        );
-      } catch (err) {
-        console.error(
-          "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest:",
-          err
-        );
+      const persistedData = await readPersistedReceiveTokens();
+      if (persistedData) {
+        rawTokensCache = persistedData;
+        refreshReceiveTokens();
+        return persistedData;
       }
 
-      if (Object.keys(data.tokens).length > 0) {
-        rawTokensCache = data;
-        console.log(
-          "[preloadReceiveTokens] Cached non-empty token data in memory."
-        );
-      } else {
-        console.warn(
-          "[preloadReceiveTokens] Token data is empty (likely due to fetch failure). Resetting rawTokensPromise to allow retry."
-        );
+      const freshData = await refreshReceiveTokens();
+      if (!hasReceiveTokens(freshData)) {
         rawTokensPromise = null;
       }
-
-      return data;
+      return freshData;
     })();
-  } else {
-    console.log(
-      "[preloadReceiveTokens] Using existing promise (single-flight / in-flight request)."
-    );
   }
+
   return rawTokensPromise;
 };
-
-// Start preloading immediately in the background
-if (typeof window !== "undefined") {
-  setTimeout(() => {
-    console.log(
-      "[preloadReceiveTokens] Calling preloadReceiveTokens from initial background timeout (1s)"
-    );
-    preloadReceiveTokens();
-  }, 1000);
-}
 
 export function ReceiveAssetSelector({
   onSelect,
@@ -445,7 +573,7 @@ export function ReceiveAssetSelector({
     t: SwapTokenOption;
   } | null>(null);
 
-  const [apiTokens, setApiTokens] = useState<SwapTokenOption[]>([]);
+  const [apiTokens, setApiTokens] = useState<ReceiveTokenOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dynamicStableSymbols, setDynamicStableSymbols] =
     useState<Set<string>>(STABLE_SYMBOLS);
@@ -491,7 +619,7 @@ export function ReceiveAssetSelector({
   const balanceMap = useMemo(() => {
     const map = new Map<
       string,
-      Pick<SwapTokenOption, "balance" | "balanceInFiat">
+      Pick<ReceiveTokenOption, "balance" | "balanceInFiat" | "hasBalance">
     >();
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
@@ -506,7 +634,8 @@ export function ReceiveAssetSelector({
         const key = getTokenBalanceKey(bd.chain?.id, bd.contractAddress);
         if (!key) continue;
         const fiatBalance = parseFiatValue(bd.balanceInFiat);
-        if (fiatBalance < 1) continue;
+        const tokenBalance = parseFiatValue(bd.balance);
+        if (fiatBalance <= 0 && tokenBalance <= 0) continue;
 
         const symbol = bd.symbol ?? asset.symbol;
         const decimals = bd.decimals ?? asset.decimals ?? 18;
@@ -514,6 +643,7 @@ export function ReceiveAssetSelector({
           balance: bd.balance ?? "0",
           balanceInFiat:
             bd.balanceInFiat != null ? `$${fiatBalance.toFixed(2)}` : "$0.00",
+          hasBalance: true,
         });
         const nativeAlias = getNativeAddressAlias(bd.contractAddress);
         const aliasKey = getTokenBalanceKey(
@@ -533,7 +663,9 @@ export function ReceiveAssetSelector({
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
-      return balance ? { ...token, ...balance } : token;
+      return balance
+        ? { ...token, ...balance }
+        : { ...token, hasBalance: false };
     });
   }, [apiTokens, balanceMap]);
 
@@ -615,9 +747,6 @@ export function ReceiveAssetSelector({
     const fetchTokens = async () => {
       try {
         setIsLoading(true);
-        console.log(
-          "[preloadReceiveTokens] Calling preloadReceiveTokens from ReceiveAssetSelector useEffect (fetchTokens)"
-        );
         const data = await preloadReceiveTokens();
         if (!active) return;
         if (!data) return;
@@ -632,7 +761,7 @@ export function ReceiveAssetSelector({
           );
         }
 
-        const allParsed: SwapTokenOption[] = [];
+        const allParsed: ReceiveTokenOption[] = [];
         const chains = data.tokens || {};
         for (const chainIdStr of Object.keys(chains)) {
           const chainId = parseInt(chainIdStr, 10);
@@ -669,10 +798,11 @@ export function ReceiveAssetSelector({
               chainLogo: meta.logo,
               balance: "0",
               balanceInFiat: "$0.00",
+              verificationStatus: t.verificationStatus,
             });
           }
         }
-        const tokensByKey = new Map<string, SwapTokenOption>();
+        const tokensByKey = new Map<string, ReceiveTokenOption>();
         for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
           const address =
             token.contractAddress.toLowerCase() ===
@@ -707,7 +837,12 @@ export function ReceiveAssetSelector({
       "0x0000000000000000000000000000000000000000";
 
   const filtered = useMemo(() => {
-    let result = tokensWithBalances;
+    let result = tokensWithBalances.filter(
+      (token) =>
+        token.verificationStatus !== "flagged" ||
+        token.hasBalance ||
+        isNativeToken(token)
+    );
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
     if (deferredQuery.trim()) {
@@ -735,6 +870,21 @@ export function ReceiveAssetSelector({
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
+      const aHasBalance = a.hasBalance === true;
+      const bHasBalance = b.hasBalance === true;
+      if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
+
+      const aFiat = parseFiatValue(a.balanceInFiat);
+      const bFiat = parseFiatValue(b.balanceInFiat);
+      if (aHasBalance && aFiat !== bFiat) return bFiat - aFiat;
+
+      if (!aHasBalance) {
+        const statusDifference =
+          getTokenVerificationRank(a.verificationStatus) -
+          getTokenVerificationRank(b.verificationStatus);
+        if (statusDifference !== 0) return statusDifference;
+      }
+
       if (deferredQuery.trim()) {
         const aRank = getTokenSearchRank(a, deferredQuery);
         const bRank = getTokenSearchRank(b, deferredQuery);
@@ -746,9 +896,6 @@ export function ReceiveAssetSelector({
         const bMatched = bRank?.matchedTerms ?? 0;
         if (aMatched !== bMatched) return bMatched - aMatched;
       }
-      const aFiat = parseFiatValue(a.balanceInFiat);
-      const bFiat = parseFiatValue(b.balanceInFiat);
-      if (aFiat !== bFiat) return bFiat - aFiat;
       return `${a.symbol} ${a.chainName}`.localeCompare(
         `${b.symbol} ${b.chainName}`
       );
