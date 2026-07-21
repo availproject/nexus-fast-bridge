@@ -6,6 +6,7 @@ import ContactPage from "./components/contact-page";
 import FAQPage from "./components/faq-page";
 import { GooglePageViewTracker } from "./components/google-page-view-tracker";
 import LandingPage from "./components/landing-page";
+import { preloadReceiveTokens } from "./components/nexus-one/components/receive-asset-selector";
 import { initPostHog } from "./lib/posthog";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
 import { initGlobalAppKit } from "./providers/web3-provider";
@@ -37,6 +38,9 @@ const cleanupWalletConnectSubscription = () => {
 };
 
 export function bootstrapApp() {
+  // Warm the shared Li.quest token cache before wallet and analytics startup.
+  // Later callers reuse the same in-memory data or in-flight request.
+  preloadReceiveTokens();
   initGlobalAppKit();
   initPostHog();
   cleanupWalletConnectSubscription();
