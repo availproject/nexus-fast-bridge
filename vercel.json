@@ -3,21 +3,21 @@
     {
       "source": "/bsc",
       "destination": "/bnb-smart-chain",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/bsc/:path*",
       "destination": "/bnb-smart-chain",
-      "permanent": true
+      "statusCode": 301
     }
   ],
   "rewrites": [
     {
-      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|bsc|hyperevm|avalanche)",
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)",
       "destination": "/:slug/index.html"
     },
     {
-      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|bsc|hyperevm|avalanche)/(.*)",
+      "source": "/:slug(megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)/(.*)",
       "destination": "/:slug/index.html"
     },
     {

@@ -9,10 +9,9 @@ export default function Navbar() {
   const { isConnected, address } = useAccount();
   const { open } = useAppKit();
 
-  const handleWalletClick = () => {
-    if (!isConnected) {
-      reportConnectWalletConversion();
-    }
+  const handleConnectWalletClick = () => {
+    reportConnectWalletConversion();
+    open({ view: "Connect" });
   };
 
   const shortAddress = useMemo(() => {
@@ -42,10 +41,7 @@ export default function Navbar() {
             </a>
           </div>
 
-          <div
-            className="flex shrink-0 items-center"
-            onClickCapture={handleWalletClick}
-          >
+          <div className="flex shrink-0 items-center">
             {isConnected ? (
               <button
                 className="fastbridge-wallet-button"
@@ -58,7 +54,7 @@ export default function Navbar() {
             ) : (
               <button
                 className="fastbridge-wallet-button"
-                onClick={() => open({ view: "Connect" })}
+                onClick={handleConnectWalletClick}
                 type="button"
               >
                 Connect Wallet

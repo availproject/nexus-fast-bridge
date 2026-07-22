@@ -850,7 +850,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
 // ---------------------------------------------------------------------------
 
 const CHAIN_SLUG_ALIASES: Record<string, string> = {
-  bsc: "bnb-smart-chain",
   optimism: "op-mainnet",
 };
 
