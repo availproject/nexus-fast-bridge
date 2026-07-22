@@ -7497,10 +7497,12 @@ function NexusOneInner({
     onClose?.();
   };
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = async (
+    options: { reportConversion?: boolean } = {}
+  ) => {
     if (walletActionPending || nexusLoading) return;
 
-    if (walletStatus !== "connected") {
+    if (options.reportConversion && walletStatus !== "connected") {
       reportConnectWalletConversion();
     }
 
@@ -10315,7 +10317,7 @@ function NexusOneInner({
                     disabled={isSwapCtaDisabled}
                     onClick={() => {
                       if (needsWalletConnection) {
-                        void handleConnectWallet();
+                        void handleConnectWallet({ reportConversion: true });
                         return;
                       }
                       void handleEnterPreview();
@@ -10467,7 +10469,9 @@ function NexusOneInner({
                         disabled={isDepositCtaDisabled}
                         onClick={() => {
                           if (needsWalletConnection) {
-                            void handleConnectWallet();
+                            void handleConnectWallet({
+                              reportConversion: true,
+                            });
                             return;
                           }
                           void handleEnterPreview();
@@ -10623,7 +10627,7 @@ function NexusOneInner({
                     disabled={isSendCtaDisabled}
                     onClick={() => {
                       if (needsWalletConnection) {
-                        void handleConnectWallet();
+                        void handleConnectWallet({ reportConversion: true });
                         return;
                       }
                       if (sendNeedsRecipient) {

@@ -134,7 +134,6 @@ const CHAIN_META = [
   },
   {
     slug: "bnb-smart-chain",
-    aliases: ["bsc"],
     title: "Bridge to BNB Smart Chain – Fast ETH to BNB Transfers | FastBridge",
     description:
       "Bridge ETH, BNB, USDT and USDC to BNB chain from Ethereum, Polygon, Arbitrum and other EVM chains, all at once. FastBridge combines your balances from multiple chains and delivers low-fee cross-chain transfers to BSC.",

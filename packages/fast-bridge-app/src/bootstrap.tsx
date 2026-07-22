@@ -60,6 +60,10 @@ export function bootstrapApp() {
           <Route element={<FAQPage />} path="/faq" />
           <Route element={<ContactPage />} path="/contact" />
           <Route
+            element={<Navigate replace to="/bnb-smart-chain" />}
+            path="/bsc"
+          />
+          <Route
             element={
               <RuntimeProvider>
                 <App />
