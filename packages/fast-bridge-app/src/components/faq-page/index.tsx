@@ -359,12 +359,6 @@ export default function FAQPage() {
           <button
             className="page-hero__cta"
             onClick={handleBridgeClick}
-            style={{
-              background: "none",
-              border: "none",
-              font: "inherit",
-              cursor: "pointer",
-            }}
             type="button"
           >
             Bridge Now

@@ -156,12 +156,6 @@ export default function ContactPage() {
           <button
             className="page-hero__cta"
             onClick={handleBridgeClick}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              font: "inherit",
-            }}
             type="button"
           >
             Bridge Now
