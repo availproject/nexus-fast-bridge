@@ -69,6 +69,7 @@ import { SendIdleForm } from "./components/send-idle-form";
 import { StatusAlert } from "./components/status-alerts";
 import {
   deriveTokenOptions,
+  isSameTokenChainPair,
   SwapAssetSelector,
   type SwapTokenOption,
 } from "./components/swap-asset-selector";
@@ -3209,6 +3210,17 @@ function NexusOneInner({
   const exactOutQuoteSourceModeRef = useRef<"all" | "selected">("all");
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
+  );
+  const exactInReceiveExcludedTokens = useMemo(
+    () =>
+      activeMode === "swap" && swapType === "exactIn"
+        ? fromTokens.flatMap((token) =>
+            token.isUnified && token.sourceTokens?.length
+              ? token.sourceTokens
+              : [token]
+          )
+        : [],
+    [activeMode, fromTokens, swapType]
   );
   const [fromTokensQuoteKey, setFromTokensQuoteKey] = useState("");
 
@@ -11046,7 +11058,9 @@ function NexusOneInner({
                 excludedTokens={
                   isSwapExactOut && toTokenWithFetchedBalance
                     ? [toTokenWithFetchedBalance]
-                    : []
+                    : activeMode === "swap" && swapType === "exactIn" && toToken
+                      ? [toToken]
+                      : []
                 }
                 filterTabBehavior={
                   activeMode === "deposit" ? "source-pool" : "select-all"
@@ -11088,6 +11102,9 @@ function NexusOneInner({
                     return;
                   }
                   if (activeMode === "swap" && !isSwapExactOut) {
+                    if (isSameTokenChainPair(token, toToken)) {
+                      return;
+                    }
                     const next = [...fromTokens];
                     const targetIndex =
                       editingAssetIndex !== null &&
@@ -11376,8 +11393,16 @@ function NexusOneInner({
               }}
             >
               <ReceiveAssetSelector
+                excludedTokens={exactInReceiveExcludedTokens}
                 onBack={closeDrawerToIdle}
                 onSelect={(token) => {
+                  if (
+                    exactInReceiveExcludedTokens.some((sourceToken) =>
+                      isSameTokenChainPair(sourceToken, token)
+                    )
+                  ) {
+                    return;
+                  }
                   const tokenChanged = !isSameTokenSelection(toToken, token);
                   if (tokenChanged) {
                     onReceiveAssetChange?.({

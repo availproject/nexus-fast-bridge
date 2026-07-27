@@ -954,6 +954,15 @@ function getUnifiedSymbol(token: Pick<SwapTokenOption, "symbol" | "chainId">) {
   return null;
 }
 
+export function isSameTokenChainPair(a?: SwapTokenOption, b?: SwapTokenOption) {
+  if (!a || !b) return false;
+  if (a.isUnified || b.isUnified) return false;
+  return (
+    sameContractAddress(a.contractAddress, b.contractAddress) &&
+    a.chainId === b.chainId
+  );
+}
+
 function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
   if (!a || !b) return false;
   if (a.isUnified || b.isUnified) {
@@ -961,10 +970,7 @@ function sameTokenOption(a?: SwapTokenOption, b?: SwapTokenOption) {
       a.isUnified && b.isUnified && a.unifiedSymbol === b.unifiedSymbol
     );
   }
-  return (
-    sameContractAddress(a.contractAddress, b.contractAddress) &&
-    a.chainId === b.chainId
-  );
+  return isSameTokenChainPair(a, b);
 }
 
 function getTokenOptionSelectionKey(token: SwapTokenOption) {
