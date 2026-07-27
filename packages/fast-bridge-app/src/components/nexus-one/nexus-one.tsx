@@ -362,6 +362,56 @@ const isSameTokenSelection = (
   b?: SwapTokenOption | null
 ) => Boolean(a && b && getTokenSelectionKey(a) === getTokenSelectionKey(b));
 
+const sourceSelectionIncludesTokenChainPair = (
+  source: SwapTokenOption,
+  token: SwapTokenOption
+) =>
+  source.isUnified && source.sourceTokens?.length
+    ? source.sourceTokens.some((sourceToken) =>
+        isSameTokenChainPair(sourceToken, token)
+      )
+    : isSameTokenChainPair(source, token);
+
+const removeTokenChainPairFromSources = (
+  sources: SwapTokenOption[],
+  token: SwapTokenOption
+) => {
+  let removed = false;
+  const remainingSources: SwapTokenOption[] = [];
+
+  for (const source of sources) {
+    if (source.isUnified && source.sourceTokens?.length) {
+      const remainingSourceTokens = source.sourceTokens.filter(
+        (sourceToken) => !isSameTokenChainPair(sourceToken, token)
+      );
+      if (remainingSourceTokens.length === source.sourceTokens.length) {
+        remainingSources.push(source);
+        continue;
+      }
+
+      removed = true;
+      if (remainingSourceTokens.length > 0) {
+        remainingSources.push({
+          ...source,
+          sourceTokens: remainingSourceTokens,
+        });
+      }
+      continue;
+    }
+
+    if (isSameTokenChainPair(source, token)) {
+      removed = true;
+    } else {
+      remainingSources.push(source);
+    }
+  }
+
+  return {
+    removed,
+    sources: removed ? remainingSources : sources,
+  };
+};
+
 const getDepositConfigIdentity = (deposit?: NexusOneDepositMetadata | null) => {
   if (!deposit) return "";
   return [
@@ -3210,17 +3260,6 @@ function NexusOneInner({
   const exactOutQuoteSourceModeRef = useRef<"all" | "selected">("all");
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
-  );
-  const exactInReceiveExcludedTokens = useMemo(
-    () =>
-      activeMode === "swap" && swapType === "exactIn"
-        ? fromTokens.flatMap((token) =>
-            token.isUnified && token.sourceTokens?.length
-              ? token.sourceTokens
-              : [token]
-          )
-        : [],
-    [activeMode, fromTokens, swapType]
   );
   const [fromTokensQuoteKey, setFromTokensQuoteKey] = useState("");
 
@@ -11058,9 +11097,7 @@ function NexusOneInner({
                 excludedTokens={
                   isSwapExactOut && toTokenWithFetchedBalance
                     ? [toTokenWithFetchedBalance]
-                    : activeMode === "swap" && swapType === "exactIn" && toToken
-                      ? [toToken]
-                      : []
+                    : []
                 }
                 filterTabBehavior={
                   activeMode === "deposit" ? "source-pool" : "select-all"
@@ -11102,9 +11139,10 @@ function NexusOneInner({
                     return;
                   }
                   if (activeMode === "swap" && !isSwapExactOut) {
-                    if (isSameTokenChainPair(token, toToken)) {
-                      return;
-                    }
+                    const shouldClearDestination = Boolean(
+                      toToken &&
+                        sourceSelectionIncludesTokenChainPair(token, toToken)
+                    );
                     const next = [...fromTokens];
                     const targetIndex =
                       editingAssetIndex !== null &&
@@ -11132,9 +11170,14 @@ function NexusOneInner({
                       next.push(newToken);
                     }
 
-                    if (tokenChanged) {
+                    if (tokenChanged || shouldClearDestination) {
                       clearPendingSwapIntent();
+                    }
+                    if (tokenChanged) {
                       setAmount(getSourceAmountInput(next));
+                    }
+                    if (shouldClearDestination) {
+                      setToToken(undefined);
                     }
                     if (swapType !== "exactIn") {
                       setSwapType("exactIn");
@@ -11393,16 +11436,8 @@ function NexusOneInner({
               }}
             >
               <ReceiveAssetSelector
-                excludedTokens={exactInReceiveExcludedTokens}
                 onBack={closeDrawerToIdle}
                 onSelect={(token) => {
-                  if (
-                    exactInReceiveExcludedTokens.some((sourceToken) =>
-                      isSameTokenChainPair(sourceToken, token)
-                    )
-                  ) {
-                    return;
-                  }
                   const tokenChanged = !isSameTokenSelection(toToken, token);
                   if (tokenChanged) {
                     onReceiveAssetChange?.({
@@ -11432,6 +11467,17 @@ function NexusOneInner({
                   }
                   if (swapType !== "exactIn") {
                     setSwapType("exactIn");
+                  }
+                  const sourceUpdate = removeTokenChainPairFromSources(
+                    fromTokens,
+                    token
+                  );
+                  if (sourceUpdate.removed) {
+                    if (!tokenChanged) {
+                      clearPendingSwapIntent();
+                    }
+                    setFromTokens(sourceUpdate.sources);
+                    setAmount(getSourceAmountInput(sourceUpdate.sources));
                   }
                   setToToken(token);
                   closeDrawerToIdle();
