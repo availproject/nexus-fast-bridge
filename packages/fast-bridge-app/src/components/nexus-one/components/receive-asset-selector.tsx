@@ -28,7 +28,6 @@ import {
 } from "../utils/citrea-tokens";
 import {
   getTokenSearchRank,
-  isSameTokenChainPair,
   RadioDot,
   SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
@@ -36,7 +35,6 @@ import {
 } from "./swap-asset-selector";
 
 interface ReceiveAssetSelectorProps {
-  excludedTokens?: SwapTokenOption[];
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
 }
@@ -533,7 +531,6 @@ export const preloadReceiveTokens = () => {
 };
 
 export function ReceiveAssetSelector({
-  excludedTokens = [],
   onSelect,
   onBack,
 }: ReceiveAssetSelectorProps) {
@@ -842,12 +839,9 @@ export function ReceiveAssetSelector({
   const filtered = useMemo(() => {
     let result = tokensWithBalances.filter(
       (token) =>
-        !excludedTokens.some((excludedToken) =>
-          isSameTokenChainPair(token, excludedToken)
-        ) &&
-        (token.verificationStatus !== "flagged" ||
-          token.hasBalance ||
-          isNativeToken(token))
+        token.verificationStatus !== "flagged" ||
+        token.hasBalance ||
+        isNativeToken(token)
     );
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
@@ -872,7 +866,6 @@ export function ReceiveAssetSelector({
     deferredQuery,
     activeTab,
     dynamicStableSymbols,
-    excludedTokens,
   ]);
 
   const sortedFiltered = useMemo(() => {
