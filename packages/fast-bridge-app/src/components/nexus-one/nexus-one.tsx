@@ -4656,8 +4656,7 @@ function NexusOneInner({
       (source) =>
         source.chainId &&
         source.contractAddress &&
-        getTokenBalanceAmount(source).gt(0) &&
-        hasMinimumSourceUsdBalance(source)
+        getTokenBalanceAmount(source).gt(0)
     );
     const allocated: SwapTokenOption[] = [];
 
@@ -4728,13 +4727,11 @@ function NexusOneInner({
     tokens: SwapTokenOption[],
     fallbackAmount?: string
   ) =>
-    tokens
-      .flatMap((token) =>
-        token.isUnified
-          ? allocateUnifiedExactInToken(token, fallbackAmount)
-          : [token]
-      )
-      .filter(hasMinimumSourceUsdBalance);
+    tokens.flatMap((token) =>
+      token.isUnified
+        ? allocateUnifiedExactInToken(token, fallbackAmount)
+        : [token]
+    );
 
   const hasPositiveDecimalInput = (value: unknown) =>
     Boolean(parseFiatNumber(value)?.gt(0));
