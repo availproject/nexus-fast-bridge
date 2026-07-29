@@ -26,6 +26,7 @@ flowchart LR
 - `packages/fast-bridge-app/src/config/rpcs.json`: RPC configuration when a registry entry consumes it.
 - `packages/fast-bridge-app/src/types/runtime.ts`: `AppConfig`, `ChainFeatures`, and their defaults.
 - `packages/fast-bridge-app/src/providers/runtime-context.tsx`: route-to-runtime resolution.
+- `packages/fast-bridge-app/src/lib/signoz.ts`: shared browser, UI, network, error, and Nexus event telemetry sent through Avail's OTLP collector.
 - `vite.config.ts`: the single root build, with `@` aliased to the shared source directory.
 - `apps/root/dist`: generated production output; it is not a separate application source tree.
 
@@ -50,4 +51,5 @@ When a new behavior difference is required, extend `ChainFeatures`, add a safe f
 - Shared components must use `useRuntime()` instead of static runtime imports.
 - Route, token, amount, recipient, or chain changes must invalidate stale intents before requesting a new quote.
 - Runtime image paths must remain valid from the root-hosted SPA.
+- SigNoz resource, logger, client ID, collector URL, and collector header identifiers must stay aligned with the Nexus SDK implementation.
 - A production change must pass `pnpm check` and `pnpm build`.

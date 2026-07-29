@@ -32,6 +32,11 @@ import {
   useWalletClient,
 } from "wagmi";
 import { reportConnectWalletConversion } from "@/lib/google-tag";
+import {
+  trackNexusSdkEvent,
+  trackSignozError,
+  trackSignozEvent,
+} from "@/lib/signoz";
 import { readSwapParam, writeSwapParam } from "@/lib/url-params";
 import { useRuntime } from "@/providers/runtime-context";
 import { ErrorBoundary } from "../common/components/error-boundary";
@@ -7822,6 +7827,25 @@ function NexusOneInner({
 
     swapRunIdRef.current += 1;
     const runId = swapRunIdRef.current;
+    const nexusOperationAttributes = {
+      "fastbridge.amount": amount,
+      "fastbridge.background": background,
+      "fastbridge.destination.chain_id": toToken.chainId,
+      "fastbridge.destination.token": toToken.symbol,
+      "fastbridge.mode": activeMode,
+      "fastbridge.run.id": runId,
+      "fastbridge.source.count": fromTokens.length,
+      "fastbridge.sources": fromTokens.map((token) => ({
+        amount: token.userAmount,
+        chainId: token.chainId,
+        symbol: token.symbol,
+      })),
+      "fastbridge.swap_type": swapType,
+    };
+    trackSignozEvent(
+      "fastbridge.nexus.operation.started",
+      nexusOperationAttributes
+    );
 
     const isActionPlanStep = (step: SwapStepType | BridgeStepType) => {
       const type = getProgressStepType(step);
@@ -7984,6 +8008,15 @@ function NexusOneInner({
     const onEvent = (event: any) => {
       const isCurrentRun = swapRunIdRef.current === runId;
       const isCurrentQuote = isCurrentQuoteInput();
+      trackNexusSdkEvent(event, {
+        "fastbridge.destination.chain_id": toToken.chainId,
+        "fastbridge.destination.token": toToken.symbol,
+        "fastbridge.mode": activeMode,
+        "fastbridge.run.current": isCurrentRun,
+        "fastbridge.run.id": runId,
+        "fastbridge.run.quote_current": isCurrentQuote,
+        "fastbridge.swap_type": swapType,
+      });
       logSdkSwapEvent("onEvent", event, {
         currentRunId: swapRunIdRef.current,
         isCurrentQuote,
@@ -8256,6 +8289,10 @@ function NexusOneInner({
           });
           resetInputsAfterSuccessfulExecution();
           onComplete?.();
+          trackSignozEvent("fastbridge.nexus.operation.succeeded", {
+            ...nexusOperationAttributes,
+            "fastbridge.intent.id": intentId,
+          });
           setSwapStep("success");
         }
       } else {
@@ -8464,10 +8501,15 @@ function NexusOneInner({
               amountUsd: Number(depositUsdDisplay) || 0,
             });
           }
+          trackSignozEvent(
+            "fastbridge.nexus.operation.succeeded",
+            nexusOperationAttributes
+          );
           setSwapStep("success");
         }
       }
     } catch (err: any) {
+      trackSignozError("nexus.execute_swap", err, nexusOperationAttributes);
       const caughtTimeout = isTimeoutLikeError(err);
       if (caughtTimeout) {
         console.warn("Timeout in handleEnterPreview:", err);
