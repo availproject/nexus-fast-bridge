@@ -1,0 +1,51 @@
+# FastBridge by Avail
+
+> FastBridge is a unified cross-chain bridge that lets you move and swap tokens from multiple source chains to any supported destination chain in a single transaction. You can bridge several different assets at once and receive the token you want, on the chain you want. Unlike traditional bridges, you do not need to manage gas on each chain or bridge one chain at a time. FastBridge aggregates your balances so you arrive ready to trade.
+
+Key things to know:
+
+- Purpose: bridge and swap tokens across major chains in one transaction, with a focus on speed, ease, and security.
+
+- Supported assets include native tokens such as ETH, stablecoins like USDC and USDT, and many other tokens across major networks.
+
+- It is built on Avail Nexus, Avail's cross-chain coordination layer that enables unified cross-chain execution, routing, and settlement to simplify asset movement across chains.
+
+- The app is a client-rendered web app. Developer integration details live in the Avail Nexus documentation.
+
+- Supported destination chains include Ethereum, Arbitrum, Optimism, Avalanche, Polygon, HyperEVM, Base, Scroll, MegaETH, Monad, BNB Smart Chain, and Citrea, with more chains added frequently.
+
+- Transactions settle in approximately 10 to 20 seconds. Gas fees can be paid in stablecoins, so users do not need to hold native gas tokens on source chains.
+
+- FastBridge is non-custodial. Funds are never held by a centralized party, and failed transactions simply revert with assets remaining in the user's wallet.
+
+## App
+
+- [FastBridge App](https://fastbridge.availproject.org/): Bridge and swap USDC, USDT, ETH, and other tokens across all major chains in one transaction, powered by Avail Nexus.
+
+## Documentation
+
+- [Avail Nexus](https://availproject.org/nexus): The cross-chain coordination layer that powers FastBridge.
+
+- [Avail Docs](https://docs.availproject.org/): Developer documentation for Avail Nexus and Avail DA.
+
+- [Nexus Quickstart](https://docs.availproject.org/nexus/nexus-quickstart): Guide for building cross-chain apps with the Avail Nexus SDK.
+
+## Guides
+
+- [FastBridge Guides](https://fastbridge.availproject.org/guides): Step-by-step guides for bridging, swapping, and integrating FastBridge.
+
+## Support
+
+- [FAQs](https://fastbridge.availproject.org/faqs): Answers to common questions about bridging, supported chains, fees, security, and integration.
+
+- [Contact](https://fastbridge.availproject.org/contact): Reach out for general inquiries, integration partnerships, technical support, or press and media.
+
+## Optional
+
+- [Avail Project](https://availproject.org/): The team and broader infrastructure behind FastBridge, including Avail Nexus, Avail DA, and the wider Avail product suite.
+
+- [Blog](https://blog.availproject.org/tag/fastbridge/): Product and ecosystem updates including cross-chain bridging guides, Nexus SDK tutorials, and chain launch announcements.
+
+- [GitHub](https://github.com/availproject): Open-source repositories.
+
+- [Discord](https://discord.com/invite/AvailProject): Community and support.
