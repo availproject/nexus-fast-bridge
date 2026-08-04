@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="360" viewBox="0 0 760 360" role="img" aria-labelledby="flowTitle flowDesc">
+  <title id="flowTitle">FastBridge Multi-Source Flow</title>
+  <desc id="flowDesc">Multiple source tokens converge through FastBridge into one destination in a single signature.</desc>
+  <rect width="760" height="360" rx="16" fill="#f5f5f4"/>
+  <text x="380" y="36" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="16" font-weight="500" fill="#161615">FastBridge Multi-Source Flow</text>
+
+  <g font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="13" font-weight="500" fill="#161615">
+    <rect x="36" y="78" width="108" height="36" rx="18" fill="#fffffe" stroke="#e8e8e7"/>
+    <circle cx="56" cy="96" r="10" fill="#26A17B"/>
+    <text x="74" y="100">USDT</text>
+
+    <rect x="36" y="128" width="108" height="36" rx="18" fill="#fffffe" stroke="#e8e8e7"/>
+    <circle cx="56" cy="146" r="10" fill="#2775CA"/>
+    <text x="74" y="150">USDC</text>
+
+    <rect x="36" y="178" width="108" height="36" rx="18" fill="#fffffe" stroke="#e8e8e7"/>
+    <circle cx="56" cy="196" r="10" fill="#1B8A5A"/>
+    <text x="74" y="200">USDM</text>
+
+    <rect x="36" y="228" width="108" height="36" rx="18" fill="#fffffe" stroke="#e8e8e7"/>
+    <circle cx="56" cy="246" r="10" fill="#FF0420"/>
+    <text x="74" y="250">USDC</text>
+  </g>
+
+  <g stroke="#0065ff" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M144 96 H190 C210 96 220 96 230 156 H290"/>
+    <path d="M144 146 H200 C216 146 222 146 230 156 H290"/>
+    <path d="M144 196 H200 C216 196 222 196 230 156 H290"/>
+    <path d="M144 246 H190 C210 246 220 246 230 156 H290"/>
+  </g>
+  <circle cx="290" cy="156" r="4" fill="#0065ff"/>
+
+  <line x1="290" y1="156" x2="318" y2="156" stroke="#0065ff" stroke-width="2"/>
+  <rect x="318" y="118" width="168" height="76" rx="14" fill="#fffffe" stroke="#e8e8e7"/>
+  <text x="402" y="150" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="18" font-weight="500" fill="#0065ff">FastBridge</text>
+  <text x="402" y="172" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="12" fill="#848483">Multi-source solver</text>
+
+  <line x1="486" y1="156" x2="560" y2="156" stroke="#0065ff" stroke-width="2"/>
+  <circle cx="560" cy="156" r="4" fill="#0065ff"/>
+  <rect x="568" y="118" width="156" height="76" rx="14" fill="#fffffe" stroke="#e8e8e7"/>
+  <text x="646" y="150" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="16" font-weight="500" fill="#161615">Destination</text>
+  <text x="646" y="172" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="12" fill="#848483">~10–20s · Native</text>
+
+  <text x="380" y="322" text-anchor="middle" font-family="Geist, Google Sans Flex, system-ui, sans-serif" font-size="12" fill="#848483">One Signature · Multiple Sources · One Destination</text>
+</svg>

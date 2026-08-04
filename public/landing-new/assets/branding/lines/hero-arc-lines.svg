@@ -1,0 +1,60 @@
+<svg width="1440" height="276" viewBox="0 0 1440 276" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1440" height="276" fill="#F5F5F5"/>
+<g id="Desktop &#194;&#183; Fastbridge Website">
+<rect width="1440" height="4536" transform="translate(0 -648.781)" fill="#FFFFFE"/>
+<g id="Section / Hero" clip-path="url(#clip0_235_14)">
+<rect width="1440" height="924" transform="translate(0 -648.781)" fill="#FFFFFE"/>
+<g id="Section / Body">
+<rect width="1440" height="924" transform="translate(0 -648.781)" fill="#FFFFFE"/>
+<g id="Group 1547770168" filter="url(#filter0_f_235_14)">
+<path id="Subtract (Stroke)" d="M1439.95 3.5H1439.45C799.34 3.5 301.502 114.162 0.0273056 274.559L0.261352 275.5" stroke="url(#paint0_linear_235_14)"/>
+<path id="Subtract (Stroke)_2" d="M0.261352 275.502L0.0273056 274.561M1438.95 57.502C800.497 57.5853 306.596 119.5 2.26927 274.502" stroke="url(#paint1_linear_235_14)"/>
+<path id="Subtract (Stroke)_3" d="M0.234055 275.504L0 274.754M1438.98 107.504C799.903 107.504 305.598 131 2.24205 274.708" stroke="url(#paint2_linear_235_14)"/>
+<path id="Subtract (Stroke)_4" d="M0.234055 275.506L0 275.079M1442 185.748C803.522 185.786 293.115 188 2.24205 275.052" stroke="url(#paint3_linear_235_14)"/>
+<path id="Subtract (Stroke)_5" d="M0.247699 275.506L0.013649 275.253M1441.99 222.506C803.52 222.528 293.123 223.836 2.25565 275.238" stroke="url(#paint4_linear_235_14)"/>
+<path id="Subtract (Stroke)_6" d="M0.234055 275.504L0 274.928M1438.98 146.504C799.903 146.504 305.098 158.403 2.24205 274.893" stroke="url(#paint5_linear_235_14)"/>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_f_235_14" x="-3.55209" y="0" width="1448.55" height="278.846" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="1.5" result="effect1_foregroundBlur_235_14"/>
+</filter>
+<linearGradient id="paint0_linear_235_14" x1="0.0273056" y1="139.5" x2="1439.95" y2="139.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<linearGradient id="paint1_linear_235_14" x1="0.0273056" y1="166.502" x2="1438.95" y2="166.502" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<linearGradient id="paint2_linear_235_14" x1="0" y1="191.504" x2="1438.98" y2="191.504" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<linearGradient id="paint3_linear_235_14" x1="0" y1="230.627" x2="1442" y2="230.627" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<linearGradient id="paint4_linear_235_14" x1="0.013649" y1="249.006" x2="1441.99" y2="249.006" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<linearGradient id="paint5_linear_235_14" x1="0" y1="211.004" x2="1438.98" y2="211.004" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E9E9E9"/>
+<stop offset="0.682692" stop-color="#F0F0F0"/>
+<stop offset="1" stop-color="#FBFBFB"/>
+</linearGradient>
+<clipPath id="clip0_235_14">
+<rect width="1440" height="924" fill="white" transform="translate(0 -648.781)"/>
+</clipPath>
+</defs>
+</svg>

@@ -589,7 +589,9 @@ export default function FAQPage() {
                 >
                   Docs
                 </a>
+                <Link to="/about">About</Link>
                 <Link to="/faqs">FAQs</Link>
+                <Link to="/guides">Guides</Link>
                 <a
                   href="https://discord.com/invite/AvailProject"
                   rel="noopener noreferrer"

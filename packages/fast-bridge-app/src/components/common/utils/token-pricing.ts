@@ -34,17 +34,17 @@ const DEFAULT_USD_PEGGED_TOKEN_SYMBOL_SET = new Set<string>(
   DEFAULT_USD_PEGGED_TOKEN_SYMBOLS
 );
 
-type CoinbaseSpotPriceResponse = {
+interface CoinbaseSpotPriceResponse {
   data?: {
     amount?: string | number;
   };
-};
+}
 
-type CoinbaseExchangeRatesResponse = {
+interface CoinbaseExchangeRatesResponse {
   data?: {
     rates?: Record<string, string | number>;
   };
-};
+}
 
 type CoinGeckoSimplePriceResponse = Record<
   string,
@@ -53,23 +53,23 @@ type CoinGeckoSimplePriceResponse = Record<
   }
 >;
 
-type CoinGeckoSearchResponse = {
+interface CoinGeckoSearchResponse {
   coins?: {
     id?: string;
     market_cap_rank?: number | null;
     name?: string;
     symbol?: string;
   }[];
-};
+}
 
-type SupportedTokenMetadata = {
-  symbol?: string;
+interface SupportedTokenMetadata {
   equivalentCurrency?: string;
-};
+  symbol?: string;
+}
 
-type SupportedChainMetadata = {
+interface SupportedChainMetadata {
   tokens?: SupportedTokenMetadata[];
-};
+}
 
 export function normalizeTokenSymbol(tokenSymbol: string): string {
   return tokenSymbol.trim().toUpperCase();
