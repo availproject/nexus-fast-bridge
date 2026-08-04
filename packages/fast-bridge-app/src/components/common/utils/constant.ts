@@ -207,11 +207,11 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   // [SUPPORTED_CHAINS.TRON_SHASTA]: "Tron Shasta",
 } as const;
 
-export type SdkChainWithSwapSupport = {
+export interface SdkChainWithSwapSupport {
   chain?: { id?: number | null } | null;
   id?: number | null;
   swapSupported?: boolean | null;
-};
+}
 
 export type SdkChainListWithSwapSupport =
   | readonly SdkChainWithSwapSupport[]

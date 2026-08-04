@@ -81,13 +81,13 @@ export const NexusContext = createContext<NexusContextType | undefined>(
   undefined
 );
 
-type NexusProviderProps = {
+interface NexusProviderProps {
   children: React.ReactNode;
   config?: {
     network?: NexusNetwork;
     debug?: boolean;
   };
-};
+}
 
 const defaultConfig: Required<NexusProviderProps["config"]> = {
   // this is place to switch between "canary" and "mainnet"
@@ -333,7 +333,7 @@ const NexusProvider = ({
     return () => {
       cancelled = true;
     };
-  }, [sdk, stableConfig.network]);
+  }, [sdk]);
 
   const normalizeUserAssetFiatValues = useCallback(
     (assets: TokenBalance[] | null): UserAsset[] | null => {
@@ -544,7 +544,7 @@ const NexusProvider = ({
       );
       setSwapBalance(normalizedSwapBalance);
     }
-  }, [config?.network, normalizeUserAssetFiatValues]);
+  }, [normalizeUserAssetFiatValues]);
 
   const initializeNexus = useCallback(
     async (provider: EthereumProvider) => {

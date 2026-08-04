@@ -2,9 +2,12 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./app";
+import AboutPage from "./components/about-page";
 import ContactPage from "./components/contact-page";
 import FAQPage from "./components/faq-page";
 import { GooglePageViewTracker } from "./components/google-page-view-tracker";
+import GuidesPage from "./components/guides-page";
+import TopCrossChainBridgesPage from "./components/guides-page/top-cross-chain-bridges";
 import LandingPage from "./components/landing-page";
 import { preloadReceiveTokens } from "./components/nexus-one/components/receive-asset-selector";
 import { initPostHog } from "./lib/posthog";
@@ -56,9 +59,29 @@ export function bootstrapApp() {
         <GooglePageViewTracker />
         <Routes>
           <Route element={<LandingPage />} path="/" />
+          <Route element={<AboutPage />} path="/about" />
+          <Route element={<AboutPage />} path="/about.html" />
           <Route element={<FAQPage />} path="/faqs" />
           <Route element={<FAQPage />} path="/faq" />
           <Route element={<ContactPage />} path="/contact" />
+          <Route element={<GuidesPage />} path="/guides" />
+          <Route element={<GuidesPage />} path="/guides.html" />
+          <Route
+            element={<TopCrossChainBridgesPage />}
+            path="/guides/top-cross-chain-bridges"
+          />
+          <Route
+            element={<TopCrossChainBridgesPage />}
+            path="/guides/top-cross-chain-bridges/"
+          />
+          <Route
+            element={<TopCrossChainBridgesPage />}
+            path="/best-cross-chain-bridge-2026.html"
+          />
+          <Route
+            element={<TopCrossChainBridgesPage />}
+            path="/guides/best-cross-chain-bridge-2026"
+          />
           <Route
             element={<Navigate replace to="/bnb-smart-chain" />}
             path="/bsc"

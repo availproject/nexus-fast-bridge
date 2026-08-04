@@ -49,12 +49,12 @@ export interface IntentHistoryItem {
   status: NexusIntentStatus;
 }
 
-type IntentHistoryClient = {
+interface IntentHistoryClient {
   listIntents?: (params?: {
     page?: number;
     status?: NexusIntentStatus;
   }) => Promise<NexusIntentListResult | null | undefined>;
-};
+}
 
 const normalizeIntentRecord = (
   intent: NexusIntentRecord

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loadLastChain } from "@/providers/runtime-context";
 
@@ -7,24 +7,13 @@ const STYLESHEETS = [
   "/landing-new/hero.css",
   "/landing-new/sections.css",
   "/landing-new/faq.css",
-  "/landing-new/contact.css",
+  "/landing-new/seo-page.css",
   "/landing-new/button-hovers.css",
 ];
 
-const GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwtdbHQH6JWv-Ne81Deh72VuKeDQOu9d8FQy48d0k6lDif0wCdHPw8dfE0Ad3dJxo_M/exec";
-
-interface ContactResponse {
-  error?: string;
-  success?: boolean;
-}
-
-export default function ContactPage() {
+export default function GuidesPage() {
   const navigate = useNavigate();
   const [cssLoaded, setCssLoaded] = useState(false);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   const handleBridgeClick = () => {
     const lastChain = loadLastChain();
@@ -66,73 +55,15 @@ export default function ContactPage() {
     };
   }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    setSubmitted(false);
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const honeypot = formData.get("website");
-
-    if (typeof honeypot === "string" && honeypot.trim()) {
-      setSubmitted(true);
-      form.reset();
-      return;
-    }
-
-    const name = String(formData.get("name") ?? "").trim();
-    const email = String(formData.get("email") ?? "").trim();
-    const topic = String(formData.get("topic") ?? "").trim();
-    const message = String(formData.get("message") ?? "").trim();
-
-    if (!(name && email && topic && message)) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          email,
-          message,
-          name,
-          subject: topic,
-          timestamp: new Date().toISOString(),
-          topic,
-        }),
-      });
-      const result = (await response.json()) as ContactResponse;
-
-      if (response.ok && result.success) {
-        setSubmitted(true);
-        form.reset();
-        return;
-      }
-
-      setError(result.error || "Form submission failed. Please try again.");
-    } catch {
-      setError(
-        "Something went wrong. Please try again or email us directly at support@availproject.org"
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <main
-      className="page contact-page"
+      className="page seo-page guides-page"
       style={{
         opacity: cssLoaded ? 1 : 0,
         transition: "opacity 0.2s ease-in-out",
       }}
     >
-      <section aria-labelledby="contact-page-title" className="page-hero">
+      <section aria-labelledby="guides-page-title" className="page-hero">
         <img
           alt=""
           aria-hidden="true"
@@ -163,113 +94,56 @@ export default function ContactPage() {
         </header>
 
         <div className="page-hero__content">
-          <h1 className="page-hero__title" id="contact-page-title">
-            Get in touch
+          <h1 className="page-hero__title" id="guides-page-title">
+            Guides
           </h1>
           <p className="page-hero__subtitle">
-            Have a question, partnership idea, or want to integrate FastBridge?
-            Send us a message.
+            Practical guides for bridging across chains, choosing the right
+            bridge, and getting the most out of FastBridge.
           </p>
         </div>
       </section>
 
-      <section aria-label="Contact form" className="contact">
-        <form className="contact-form" noValidate onSubmit={handleSubmit}>
-          <div
-            aria-hidden="true"
-            style={{ left: "-9999px", position: "absolute", top: "-9999px" }}
-          >
-            <label htmlFor="website">Website</label>
-            <input id="website" name="website" tabIndex={-1} type="text" />
-          </div>
-
-          <div className="contact-form__row">
-            <div className="contact-field">
-              <label className="contact-field__label" htmlFor="contact-name">
-                Full name
-              </label>
-              <input
-                autoComplete="name"
-                className="contact-field__input"
-                id="contact-name"
-                name="name"
-                placeholder="Your name"
-                required
-                type="text"
-              />
-            </div>
-            <div className="contact-field">
-              <label className="contact-field__label" htmlFor="contact-email">
-                Email
-              </label>
-              <input
-                autoComplete="email"
-                className="contact-field__input"
-                id="contact-email"
-                name="email"
-                placeholder="you@example.com"
-                required
-                type="email"
-              />
-            </div>
-          </div>
-
-          <div className="contact-field">
-            <label className="contact-field__label" htmlFor="contact-topic">
-              Topic
-            </label>
-            <select
-              className="contact-field__select"
-              defaultValue="general"
-              id="contact-topic"
-              name="topic"
-            >
-              <option value="general">General inquiry</option>
-              <option value="integration">Integration / partnership</option>
-              <option value="support">Technical support</option>
-              <option value="press">Press &amp; media</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div className="contact-field">
-            <label className="contact-field__label" htmlFor="contact-message">
-              Message
-            </label>
-            <textarea
-              className="contact-field__textarea"
-              id="contact-message"
-              name="message"
-              placeholder="How can we help?"
-              required
-            />
-          </div>
-
-          <div className="contact-form__actions">
-            <button
-              className="section-btn contact-form__submit"
-              disabled={isSubmitting}
-              type="submit"
-            >
-              {isSubmitting ? "Sending..." : "Send message"}
-            </button>
-          </div>
-
-          {error && (
-            <p className="contact-form__success" role="alert">
-              {error}
-            </p>
-          )}
-          {submitted && (
-            <output
-              className="contact-form__success"
-              style={{ display: "block" }}
-            >
-              Thanks - your message has been sent. We&apos;ll get back to you
-              soon.
-            </output>
-          )}
-        </form>
+      <section aria-label="FastBridge guides" className="guides-list">
+        <ul className="guides-list__grid">
+          <li>
+            <article className="guides-card">
+              <Link
+                aria-hidden="true"
+                className="guides-card__media"
+                tabIndex={-1}
+                to="/guides/top-cross-chain-bridges"
+              >
+                <img
+                  alt=""
+                  decoding="async"
+                  height="720"
+                  loading="lazy"
+                  sizes="(max-width: 640px) 100vw, 360px"
+                  src="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png"
+                  srcSet="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png 1280w, /landing-new/assets/branding/blog/top-cross-chain-bridges-2026@2x.png 2560w"
+                  width="1280"
+                />
+              </Link>
+              <div className="guides-card__body">
+                <h2 className="guides-card__title">
+                  <Link to="/guides/top-cross-chain-bridges">
+                    Top Cross-Chain Bridges In 2026
+                  </Link>
+                </h2>
+                <p className="guides-card__date">
+                  Published on <time dateTime="2026-04-24">24 April 2026</time>
+                </p>
+                <Link
+                  className="guides-card__link"
+                  to="/guides/top-cross-chain-bridges"
+                >
+                  Read more
+                </Link>
+              </div>
+            </article>
+          </li>
+        </ul>
       </section>
 
       <footer className="site-footer is-visible" id="footer">
@@ -307,12 +181,11 @@ export default function ContactPage() {
                   alt=""
                   className="site-footer__logo-icon"
                   height="40"
-                  src="/landing-new/assets/figma-hero/logo-icon-white.svg"
+                  src="/landing-new/assets/branding/logos/logo-icon-white.svg"
                   width="40"
                 />
                 <span className="site-footer__logo-text">fastbridge</span>
               </Link>
-
               <p className="site-footer__desc site-footer__desc--desktop">
                 Integrate FastBridge into your app with the Avail Nexus SDK and
                 get a configurable widget handling multi-chain asset routing,
@@ -323,7 +196,6 @@ export default function ContactPage() {
                 get a configurable widget handling multi-chain asset routing,
                 gas, and settlement.
               </p>
-
               <a
                 className="site-footer__cta"
                 href="https://docs.availproject.org/docs/nexus/get-started"
@@ -332,7 +204,6 @@ export default function ContactPage() {
               >
                 Integrate Now <strong aria-hidden="true">&rarr;</strong>
               </a>
-
               <p className="site-footer__legal site-footer__legal--desktop">
                 Copyright &copy; Avail Project. All rights reserved.
               </p>
@@ -340,7 +211,6 @@ export default function ContactPage() {
                 Copyright &copy; Avail Project. All rights reserved.
               </p>
             </div>
-
             <nav aria-label="Footer" className="site-footer__links">
               <div className="site-footer__col">
                 <span className="site-footer__col-title">Support</span>
@@ -369,7 +239,7 @@ export default function ContactPage() {
                   GitHub
                 </a>
                 <a
-                  href="https://avail-project.notion.site/Privacy-Policy-e5f47df2f3a64055a7966bbaabe9a2eb"
+                  href="https://www.availproject.org/privacy-policy"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
@@ -379,7 +249,6 @@ export default function ContactPage() {
                   Get in Touch
                 </Link>
               </div>
-
               <div className="site-footer__col site-footer__col--socials">
                 <span className="site-footer__col-title">Socials</span>
                 <a
@@ -390,7 +259,7 @@ export default function ContactPage() {
                   Avail Website
                 </a>
                 <a
-                  href="https://blog.availproject.org/tag/fastbridge/"
+                  href="https://blog.availproject.org/"
                   rel="noopener noreferrer"
                   target="_blank"
                 >

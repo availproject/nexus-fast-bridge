@@ -3,19 +3,19 @@ import type { Address } from "viem";
 
 export type TransactionFlowType = "bridge" | "transfer";
 
-export type BridgeStepType = {
+export interface BridgeStepType {
+  completed?: boolean;
   type: string;
   typeID: string;
-  completed?: boolean;
   [key: string]: unknown;
-};
+}
 
-export type SwapStepType = {
+export interface SwapStepType {
+  completed?: boolean;
   type: string;
   typeID: string;
-  completed?: boolean;
   [key: string]: unknown;
-};
+}
 
 export interface TransactionFlowInputs {
   amount?: string;
