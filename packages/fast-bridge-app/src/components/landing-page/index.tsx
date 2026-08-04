@@ -604,7 +604,7 @@ export default function LandingPage() {
               </button>
               <a
                 className="btn btn--primary"
-                href="https://elements.nexus.availproject.org/docs/components/swaps"
+                href="https://widgets.availproject.org/docs/components/swaps"
                 rel="noopener noreferrer"
                 target="_blank"
               >

@@ -95,7 +95,7 @@ function FastBridgeAppFooter() {
           </Link>
           <a
             className="fastbridge-footer-link"
-            href="https://elements.nexus.availproject.org/docs/components/fast-bridge"
+            href="https://widgets.availproject.org"
             rel="noopener noreferrer"
             target="_blank"
           >
