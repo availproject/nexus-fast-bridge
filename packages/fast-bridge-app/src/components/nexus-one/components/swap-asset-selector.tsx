@@ -1573,6 +1573,11 @@ export function SwapAssetSelector({
   };
 
   const handleMultiTokenToggle = (token: SwapTokenOption) => {
+    if (onToggle) {
+      onToggle(token);
+      return;
+    }
+
     if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
       onToggle?.(token);
       return;
@@ -1832,15 +1837,23 @@ export function SwapAssetSelector({
       group.tokens.length > 0 && selectedChildCount === group.tokens.length;
     const isPartiallySelected =
       selectedChildCount > 0 && selectedChildCount < group.tokens.length;
+    const isAnyIndividualSelectedInGroup = group.tokens.some((t) =>
+      activeSelectedTokens.some((st) => !st.isUnified && sameTokenOption(st, t))
+    );
+    const isUnifiedSelectedInGroup = activeSelectedTokens.some(
+      (st) => st.isUnified && st.unifiedSymbol === group.symbol
+    );
     const shouldHideUnifiedRow =
       !isMulti &&
-      (anyIndividualSelectedInOther ||
+      (isAnyIndividualSelectedInGroup ||
+        anyIndividualSelectedInOther ||
         anyIndividualSelectedInCurrent ||
         (!showBelowMinimumInline &&
           group.totalFiat < MIN_FIAT_THRESHOLD &&
           !isUnifiedSelectedForVisibility(group.symbol)));
     const shouldHideIndividualRows =
-      !isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent);
+      isUnifiedSelectedInGroup ||
+      (!isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent));
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
       balance: String(group.totalBalRaw),
@@ -1864,6 +1877,7 @@ export function SwapAssetSelector({
       individualTokens,
       isExpanded,
       isPartiallySelected,
+      isUnifiedSelectedInGroup,
       shouldHideIndividualRows,
       shouldHideUnifiedRow,
       unifiedSelectedInCurrent,

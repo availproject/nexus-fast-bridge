@@ -22,10 +22,12 @@ interface SwapIdleFormProps {
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
   isSourcePickerDisabled?: boolean;
+  missingUsd?: string;
   onAmountChange: (val: string, panel: "send" | "receive") => void;
   onOpenDestPicker: () => void;
   onOpenRecipientPicker?: () => void;
   onOpenSourcePicker: (index?: number) => void;
+  onSetPercent?: (pct: number) => void;
   onUpdateTokens?: (tokens: SwapTokenOption[]) => void;
   receiveQuoteAmount?: string;
   receiveQuoteUsd?: string;
@@ -635,7 +637,9 @@ export function SwapIdleForm({
   defaultRecipientAddress,
   swapType,
   onUpdateTokens,
+  missingUsd,
   isSourcePickerDisabled = false,
+  onSetPercent,
 }: SwapIdleFormProps) {
   const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
     null
@@ -842,15 +846,19 @@ export function SwapIdleForm({
 
     return undefined;
   };
-  const receiveInputValue = isExactIn ? (receiveQuoteAmount ?? "") : amount;
+  const hasReceiveValue = isExactIn
+    ? Boolean(receiveQuoteAmount && parseDecimal(receiveQuoteAmount).gt(0))
+    : Boolean(amount && parseDecimal(amount).gt(0));
+  const receiveInputValue = isExactIn
+    ? receiveQuoteAmount && parseDecimal(receiveQuoteAmount).gt(0)
+      ? receiveQuoteAmount
+      : ""
+    : amount;
   const receiveDisplayValue =
     focusedPanel === "receive"
       ? receiveInputValue
       : formatAmountInputDisplay(receiveInputValue);
-  const receiveAmountTextColor =
-    (!isExactIn && amount) || (isExactIn && receiveQuoteAmount)
-      ? "#161615"
-      : "#9E9E9C";
+  const receiveAmountTextColor = hasReceiveValue ? "#161615" : "#9E9E9C";
   const receiveUsdRate = getReceiveUsdRate();
   const receiveTokenAmount = parseDecimal(receiveInputValue);
   const receiveUsdAmount = receiveQuoteUsd
@@ -1629,21 +1637,87 @@ export function SwapIdleForm({
           </button>
         )}
 
-        {sourceRouteHelper && (
+        {/* Insufficient funds error in Exact Out mode */}
+        {swapType === "exactOut" && sourceRouteStatus === "insufficient" ? (
           <div
             style={{
+              alignItems: "center",
               alignSelf: "stretch",
-              color:
-                sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
-              fontWeight: 500,
-              lineHeight: "18px",
-              marginTop: "-6px",
+              backgroundColor: "#FFF5F5",
+              border: "1px solid #FFE0E0",
+              borderRadius: "12px",
+              boxSizing: "border-box",
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: "4px",
+              padding: "10px 14px",
+              width: "100%",
             }}
           >
-            {sourceRouteHelper}
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+            >
+              <span
+                style={{
+                  color: "#D32F2F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  lineHeight: "18px",
+                }}
+              >
+                Add more assets to continue
+              </span>
+              <span
+                style={{
+                  color: "#8E8E89",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "12px",
+                  lineHeight: "16px",
+                }}
+              >
+                {missingUsd
+                  ? `$${missingUsd} amount more required`
+                  : (sourceRouteMessage ?? "More funds required")}
+              </span>
+            </div>
+            <button
+              onClick={() => onOpenSourcePicker()}
+              style={{
+                backgroundColor: "#FFFFFF",
+                border: "1px solid #D32F2F",
+                borderRadius: "999px",
+                color: "#D32F2F",
+                cursor: "pointer",
+                flexShrink: 0,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontWeight: 500,
+                lineHeight: "16px",
+                padding: "6px 14px",
+              }}
+              type="button"
+            >
+              Add assets
+            </button>
           </div>
+        ) : (
+          sourceRouteHelper && (
+            <div
+              style={{
+                alignSelf: "stretch",
+                color:
+                  sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontWeight: 500,
+                lineHeight: "18px",
+                marginTop: "-6px",
+              }}
+            >
+              {sourceRouteHelper}
+            </div>
+          )
         )}
 
         {/* Total USD */}
@@ -1702,19 +1776,42 @@ export function SwapIdleForm({
       >
         <div
           style={{
+            alignItems: "center",
             alignSelf: "stretch",
             boxSizing: "border-box",
-            color: "#848483",
-            fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "12px",
-            fontWeight: 500,
-            letterSpacing: "0.08em",
-            lineHeight: "18px",
-            textTransform: "uppercase" as const,
+            display: "flex",
+            justifyContent: "space-between",
             width: "100%",
           }}
         >
-          Receive
+          <span
+            style={{
+              color: "#848483",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "12px",
+              fontWeight: 500,
+              letterSpacing: "0.08em",
+              lineHeight: "18px",
+              textTransform: "uppercase",
+            }}
+          >
+            Receive
+          </span>
+          {totalBalance && parseDecimal(totalBalance).gt(0) && (
+            <span
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "11px",
+                lineHeight: "16px",
+              }}
+            >
+              You can swap up to{" "}
+              <strong style={{ color: "#1F1F1F" }}>
+                ${parseDecimal(totalBalance).toDecimalPlaces(2).toFixed()}
+              </strong>
+            </span>
+          )}
         </div>
 
         <div
@@ -1753,8 +1850,11 @@ export function SwapIdleForm({
               </div>
             ) : (
               <input
-                aria-disabled="true"
-                disabled
+                onBlur={() => setFocusedPanel(null)}
+                onChange={(e) => {
+                  onAmountChange(e.target.value, "receive");
+                }}
+                onFocus={() => setFocusedPanel("receive")}
                 placeholder="0"
                 style={{
                   boxSizing: "border-box",
@@ -1766,11 +1866,9 @@ export function SwapIdleForm({
                   lineHeight: "34px",
                   background: "transparent",
                   border: "none",
-                  cursor: "default",
+                  cursor: "text",
                   outline: "none",
-                  opacity: 1,
                   padding: 0,
-                  WebkitTextFillColor: receiveAmountTextColor,
                   width: "100%",
                   minWidth: 0,
                 }}
@@ -1894,89 +1992,103 @@ export function SwapIdleForm({
             )}
             {toToken && focusedPanel === "receive" && (
               <div
-                onMouseEnter={() => setTooltip("asset-receive")}
-                onMouseLeave={() => setTooltip(null)}
                 style={{
                   alignItems: "center",
                   boxSizing: "border-box",
                   display: "flex",
                   gap: "5px",
-                  position: "relative",
-                  cursor: "default",
                 }}
               >
+                {onSetPercent && (
+                  <PercentButtons
+                    disabled={!toToken}
+                    onSelect={(pct) => onSetPercent(pct)}
+                    visible={Boolean(toToken) && focusedPanel === "receive"}
+                  />
+                )}
                 <div
+                  onMouseEnter={() => setTooltip("asset-receive")}
+                  onMouseLeave={() => setTooltip(null)}
                   style={{
+                    alignItems: "center",
                     boxSizing: "border-box",
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "11px",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: "16px",
-                    whiteSpace: "nowrap",
+                    display: "flex",
+                    gap: "5px",
+                    position: "relative",
+                    cursor: "default",
                   }}
                 >
-                  Asset Balance ·
-                </div>
-                <div
-                  style={{
-                    boxSizing: "border-box",
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "11px",
-                    fontVariantNumeric: "tabular-nums",
-                    lineHeight: "16px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {receiveBalanceLabel}
-                </div>
-
-                {/* Tooltip */}
-                {tooltip === "asset-receive" && (
                   <div
                     style={{
-                      position: "absolute",
-                      right: 0,
-                      bottom: "calc(100% + 8px)",
-                      width: "198px",
-                      backgroundColor: "#fff",
-                      border: "1px solid #E8E8E7",
-                      borderRadius: "12px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                      padding: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      zIndex: 10000,
-                      pointerEvents: "none",
-                      textAlign: "left",
+                      boxSizing: "border-box",
+                      color: "#848483",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "11px",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: "16px",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "#848483",
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                        marginBottom: "4px",
-                        fontFamily: '"Geist", system-ui, sans-serif',
-                      }}
-                    >
-                      Asset Balance
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        color: "#161615",
-                        lineHeight: "18px",
-                        fontFamily: '"Geist", system-ui, sans-serif',
-                      }}
-                    >
-                      This is your current asset balance on this chain.
-                    </div>
+                    Asset Balance ·
                   </div>
-                )}
+                  <div
+                    style={{
+                      boxSizing: "border-box",
+                      color: "#848483",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "11px",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: "16px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {receiveBalanceLabel}
+                  </div>
+
+                  {/* Tooltip */}
+                  {tooltip === "asset-receive" && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        bottom: "calc(100% + 8px)",
+                        width: "198px",
+                        backgroundColor: "#fff",
+                        border: "1px solid #E8E8E7",
+                        borderRadius: "12px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        zIndex: 10000,
+                        pointerEvents: "none",
+                        textAlign: "left",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          color: "#848483",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          marginBottom: "4px",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                        }}
+                      >
+                        Asset Balance
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#161615",
+                          lineHeight: "18px",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                        }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
