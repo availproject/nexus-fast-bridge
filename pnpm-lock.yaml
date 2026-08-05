@@ -28,8 +28,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: 2.2.3
-        version: 2.2.3(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
+        specifier: 2.2.4
+        version: 2.2.4(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -180,8 +180,8 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/nexus-core@2.2.3':
-    resolution: {integrity: sha512-W0U+3xtK4xPl6weIoGBEh2WZ/nVk6IfCUd5nP+FN1QyC1ObeKaulCt3p07WIsfXTKxHbOoGROyIsuNR64Ig70A==}
+  '@avail-project/nexus-core@2.2.4':
+    resolution: {integrity: sha512-acD+gpk0XsZ+dMM+Zp6qcCCU6IsiTbld3LkHfdgonoKKv96R3nNP1VO7z8nFsHFv/H0+cR+l+JdpEB8f5coXMg==}
     engines: {node: '>=18.0.0'}
 
   '@avail-project/nexus-types@0.1.21':
@@ -4705,7 +4705,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/nexus-core@2.2.3(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
+  '@avail-project/nexus-core@2.2.4(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@avail-project/nexus-types': 0.1.21(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)(zod@4.4.3)
       '@opentelemetry/api-logs': 0.219.0
