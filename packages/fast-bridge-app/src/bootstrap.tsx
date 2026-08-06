@@ -62,7 +62,7 @@ export function bootstrapApp() {
           <Route element={<AboutPage />} path="/about" />
           <Route element={<AboutPage />} path="/about.html" />
           <Route element={<FAQPage />} path="/faqs" />
-          <Route element={<FAQPage />} path="/faq" />
+          <Route element={<Navigate replace to="/faqs" />} path="/faq" />
           <Route element={<ContactPage />} path="/contact" />
           <Route element={<GuidesPage />} path="/guides" />
           <Route element={<GuidesPage />} path="/guides.html" />
