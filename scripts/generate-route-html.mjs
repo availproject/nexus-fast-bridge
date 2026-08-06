@@ -40,9 +40,9 @@ const STATIC_PAGES = [
   },
   {
     slug: "about",
-    title: "About FastBridge – Fast, Low-Fee Multi-Chain Bridge | FastBridge",
+    title: "FastBridge: Unified Cross-Chain Bridge by Avail",
     description:
-      "Learn about FastBridge, powered by Avail Nexus. FastBridge simplifies Web3 transfers by aggregating balances across EVM chains for fast, single-tx bridging.",
+      "FastBridge is a non-custodial cross-chain bridge by Avail. Move & swap tokens across all major EVM chains in one transaction, no gas tokens needed.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/about",
     themeColor: "#19191A",
@@ -53,9 +53,9 @@ const STATIC_PAGES = [
   },
   {
     slug: "guides",
-    title: "Cross-Chain Crypto & Web3 Bridge Guides | FastBridge",
+    title: "Cross-Chain Bridges Guide: How to Bridge Crypto | FastBridge",
     description:
-      "Explore comprehensive Web3 bridging guides. Learn how to bridge tokens across Ethereum, Arbitrum, Base, MegaETH, and major EVM chains fast with low fees.",
+      "Explore practical cross-chain bridge guides, crypto tutorials, and bridge comparisons. Learn how to move stablecoins and tokens across Ethereum, Arbitrum, Base, and more.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/guides",
     themeColor: "#19191A",
