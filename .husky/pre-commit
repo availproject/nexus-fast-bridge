@@ -1,2 +1,7 @@
 #!/usr/bin/env sh
+
+# Ensure pnpm is accessible in non-interactive / GUI git environments
+export PATH="$PATH:$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/Library/pnpm:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:/opt/homebrew/bin"
+
 pnpm precommit:fix-staged
+

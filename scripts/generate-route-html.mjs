@@ -66,10 +66,9 @@ const STATIC_PAGES = [
   },
   {
     slug: "guides/top-cross-chain-bridges",
-    title:
-      "Top Cross-Chain Bridges in 2026: Complete Comparison & Guide | FastBridge",
+    title: "Best Cross-Chain Bridges in 2026 [Compared]",
     description:
-      "Compare the best cross-chain bridges in 2026 including FastBridge, Across, Stargate, and deBridge. Discover fees, speed, security, and multi-source bridging.",
+      "Compare the best cross-chain bridges in 2026: FastBridge, Across, Stargate and deBridge. Fees, settlement speed, chain coverage and multi-source support.",
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl:
       "https://fastbridge.availproject.org/guides/top-cross-chain-bridges",

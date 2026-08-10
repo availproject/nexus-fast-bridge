@@ -32,6 +32,7 @@ export default function TopCrossChainBridgesPage() {
   };
 
   useEffect(() => {
+    document.title = "Best Cross-Chain Bridges in 2026 [Compared]";
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);
