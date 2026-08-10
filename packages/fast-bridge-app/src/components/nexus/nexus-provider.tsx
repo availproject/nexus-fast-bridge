@@ -38,6 +38,7 @@ import {
   useState,
 } from "react";
 import { useAccountEffect } from "wagmi";
+import { trackSignozError, trackSignozEvent } from "@/lib/signoz";
 import {
   isSwapSupportedBySdkChainList,
   type SdkChainListWithSwapSupport,
@@ -202,6 +203,9 @@ const NexusProvider = ({
   useEffect(() => {
     let cancelled = false;
     console.log("NEXUS CONFIG", stableConfig);
+    trackSignozEvent("fastbridge.nexus.read_only_initialization.started", {
+      "nexus.network": stableConfig.network,
+    });
     const nextSdk = createNexusClient({
       network: stableConfig.network,
       debug: stableConfig.debug,
@@ -215,10 +219,20 @@ const NexusProvider = ({
         }
         sdkRef.current = nextSdk;
         setSdk(nextSdk);
+        trackSignozEvent(
+          "fastbridge.nexus.read_only_initialization.succeeded",
+          {
+            "nexus.chain_count": nextSdk.chainList.chains.length,
+            "nexus.network": stableConfig.network,
+          }
+        );
         console.log("ChainList", nextSdk.chainList.chains);
         console.log("SupportedChains", nextSdk.getSupportedChains());
       })
       .catch((err) => {
+        trackSignozError("nexus.read_only_initialize", err, {
+          "nexus.network": stableConfig.network,
+        });
         console.error(
           "Failed to initialize default read-only Nexus client:",
           err
@@ -510,6 +524,13 @@ const NexusProvider = ({
         activeSdk.getBalancesForSwap(),
         getCoinbaseRates(),
       ]);
+    trackSignozEvent("fastbridge.nexus.setup.completed", {
+      "nexus.balance.bridge_status": bridgeAbleBalanceResult.status,
+      "nexus.balance.swap_status": swapBalanceResult.status,
+      "nexus.network": config?.network ?? "mainnet",
+      "nexus.rates.status": rates.status,
+      "nexus.supported_chain_count": list?.length ?? 0,
+    });
 
     if (rates?.status === "fulfilled") {
       const usdPerUnit: Record<string, number> = {};
@@ -549,6 +570,9 @@ const NexusProvider = ({
   const initializeNexus = useCallback(
     async (provider: EthereumProvider) => {
       setLoading(true);
+      trackSignozEvent("fastbridge.wallet.connection.started", {
+        "nexus.network": stableConfig.network,
+      });
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
         const nextSdk = createNexusClient({
@@ -563,7 +587,13 @@ const NexusProvider = ({
         setSdk(nextSdk);
         initializedRef.current = true;
         setNexusSDK(nextSdk);
+        trackSignozEvent("fastbridge.wallet.connection.succeeded", {
+          "nexus.network": stableConfig.network,
+        });
       } catch (error) {
+        trackSignozError("nexus.wallet_connect", error, {
+          "nexus.network": stableConfig.network,
+        });
         console.error("Error initializing Nexus:", error);
         throw error;
       } finally {
@@ -580,6 +610,9 @@ const NexusProvider = ({
         return Promise.resolve();
       }
       activeSdk.destroy();
+      trackSignozEvent("fastbridge.wallet.disconnected", {
+        "nexus.network": config?.network ?? "mainnet",
+      });
       initializedRef.current = false;
       setNexusSDK(null);
       setBridgableBalance(null);
@@ -592,7 +625,7 @@ const NexusProvider = ({
       console.error("Error deinitializing Nexus:", error);
     }
     return Promise.resolve();
-  }, [nexusSDK]);
+  }, [config?.network, nexusSDK]);
 
   const attachEventHooks = useCallback(() => {
     // Dummy signature for backward compatibility, hooks are now per-call
@@ -619,6 +652,7 @@ const NexusProvider = ({
   );
 
   const fetchBridgableBalance = useCallback(async () => {
+    trackSignozEvent("fastbridge.nexus.bridge_balances.started");
     try {
       const activeSdk = sdkRef.current;
       if (!activeSdk) {
@@ -626,12 +660,17 @@ const NexusProvider = ({
       }
       const updatedBalance = await activeSdk.getBalancesForBridge();
       setBridgableBalance(normalizeUserAssetFiatValues(updatedBalance));
+      trackSignozEvent("fastbridge.nexus.bridge_balances.succeeded", {
+        "nexus.asset_count": updatedBalance.length,
+      });
     } catch (error) {
+      trackSignozError("nexus.fetch_bridge_balances", error);
       console.error("Error fetching bridgable balance:", error);
     }
   }, [normalizeUserAssetFiatValues]);
 
   const fetchSwapBalance = useCallback(async () => {
+    trackSignozEvent("fastbridge.nexus.swap_balances.started");
     try {
       const activeSdk = sdkRef.current;
       if (!activeSdk) {
@@ -649,8 +688,12 @@ const NexusProvider = ({
         updatedBalance
       );
       setSwapBalance(normalizedSwapBalance);
+      trackSignozEvent("fastbridge.nexus.swap_balances.succeeded", {
+        "nexus.asset_count": normalizedSwapBalance?.length ?? 0,
+      });
       return normalizedSwapBalance;
     } catch (error) {
+      trackSignozError("nexus.fetch_swap_balances", error);
       console.error("Error fetching swap balance:", error);
       return null;
     }

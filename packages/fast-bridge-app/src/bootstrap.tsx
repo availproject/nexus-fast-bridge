@@ -11,6 +11,7 @@ import TopCrossChainBridgesPage from "./components/guides-page/top-cross-chain-b
 import LandingPage from "./components/landing-page";
 import { preloadReceiveTokens } from "./components/nexus-one/components/receive-asset-selector";
 import { initPostHog } from "./lib/posthog";
+import { initializeSignoz } from "./lib/signoz";
 import { loadLastChain, RuntimeProvider } from "./providers/runtime-context";
 import { initGlobalAppKit } from "./providers/web3-provider";
 import "./index.css";
@@ -41,6 +42,10 @@ const cleanupWalletConnectSubscription = () => {
 };
 
 export function bootstrapApp() {
+  // Install Avail's shared SigNoz/OTLP logger before starting services so
+  // initialization, browser, network, UI, and SDK activity are all observed.
+  initializeSignoz({ network: "mainnet" }).catch(() => undefined);
+
   // Warm the shared Li.quest token cache before wallet and analytics startup.
   // Later callers reuse the same in-memory data or in-flight request.
   preloadReceiveTokens();
