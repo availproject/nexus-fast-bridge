@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { type CMSBlogPost, fetchBlogPosts } from "@/lib/cms";
 import { loadLastChain } from "@/providers/runtime-context";
 
 const STYLESHEETS = [
@@ -14,11 +15,25 @@ const STYLESHEETS = [
 export default function GuidesPage() {
   const navigate = useNavigate();
   const [cssLoaded, setCssLoaded] = useState(false);
+  const [posts, setPosts] = useState<CMSBlogPost[]>([]);
 
   const handleBridgeClick = () => {
     const lastChain = loadLastChain();
     navigate(`/${lastChain}`);
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchBlogPosts().then((fetched) => {
+      if (isMounted) {
+        setPosts(fetched);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -106,43 +121,43 @@ export default function GuidesPage() {
 
       <section aria-label="FastBridge guides" className="guides-list">
         <ul className="guides-list__grid">
-          <li>
-            <article className="guides-card">
-              <Link
-                aria-hidden="true"
-                className="guides-card__media"
-                tabIndex={-1}
-                to="/guides/top-cross-chain-bridges"
-              >
-                <img
-                  alt=""
-                  decoding="async"
-                  height="720"
-                  loading="lazy"
-                  sizes="(max-width: 640px) 100vw, 360px"
-                  src="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png"
-                  srcSet="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png 1280w, /landing-new/assets/branding/blog/top-cross-chain-bridges-2026@2x.png 2560w"
-                  width="1280"
-                />
-              </Link>
-              <div className="guides-card__body">
-                <h2 className="guides-card__title">
-                  <Link to="/guides/top-cross-chain-bridges">
-                    Top Cross-Chain Bridges In 2026
-                  </Link>
-                </h2>
-                <p className="guides-card__date">
-                  Published on <time dateTime="2026-04-24">24 April 2026</time>
-                </p>
+          {posts.map((post) => (
+            <li key={post.slug}>
+              <article className="guides-card">
                 <Link
-                  className="guides-card__link"
-                  to="/guides/top-cross-chain-bridges"
+                  aria-hidden="true"
+                  className="guides-card__media"
+                  tabIndex={-1}
+                  to={`/guides/${post.slug}`}
                 >
-                  Read more
+                  <img
+                    alt={post.title}
+                    decoding="async"
+                    height="720"
+                    loading="lazy"
+                    sizes="(max-width: 640px) 100vw, 360px"
+                    src={post.coverImage}
+                    width="1280"
+                  />
                 </Link>
-              </div>
-            </article>
-          </li>
+                <div className="guides-card__body">
+                  <h2 className="guides-card__title">
+                    <Link to={`/guides/${post.slug}`}>{post.title}</Link>
+                  </h2>
+                  <p className="guides-card__date">
+                    Published on{" "}
+                    <time dateTime={post.publishedAt}>{post.publishedAt}</time>
+                  </p>
+                  <Link
+                    className="guides-card__link"
+                    to={`/guides/${post.slug}`}
+                  >
+                    Read more
+                  </Link>
+                </div>
+              </article>
+            </li>
+          ))}
         </ul>
       </section>
 

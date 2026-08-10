@@ -324,6 +324,153 @@ function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
   return html;
 }
 
+async function loadCmsPosts(viteServer) {
+  try {
+    const cmsMod = await viteServer.ssrLoadModule(
+      "./packages/fast-bridge-app/src/lib/cms.ts"
+    );
+    const cmsPosts = await cmsMod.fetchBlogPosts();
+    const existingSlugs = new Set(STATIC_PAGES.map((p) => p.slug));
+
+    for (const post of cmsPosts) {
+      const fullSlug = `guides/${post.slug}`;
+      if (!existingSlugs.has(fullSlug)) {
+        STATIC_PAGES.push({
+          slug: fullSlug,
+          title: post.seoTitle || post.title,
+          description: post.seoDescription,
+          imageUrl: post.coverImage || LANDING_META_IMAGE_URL,
+          canonicalUrl: `https://fastbridge.availproject.org/${fullSlug}`,
+          themeColor: "#19191A",
+          componentPath:
+            "./packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
+          srcFile:
+            "packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
+          priority: "0.8",
+        });
+        existingSlugs.add(fullSlug);
+      }
+    }
+  } catch (cmsErr) {
+    console.warn(
+      "⚠️ Could not load CMS posts for static generation:",
+      cmsErr.message
+    );
+  }
+}
+
+async function renderPageSsr(viteServer, page) {
+  try {
+    const mod = await viteServer.ssrLoadModule(page.componentPath);
+    const Component = mod.default;
+    const routeLocation = page.slug ? `/${page.slug}` : "/";
+    const renderedHtml = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(
+        MemoryRouter,
+        { initialEntries: [routeLocation] },
+        React.createElement(Component)
+      )
+    );
+    console.log(
+      `✨  Pre-rendered SSR content for /${page.slug} (${renderedHtml.length} bytes)`
+    );
+    return renderedHtml;
+  } catch (err) {
+    console.warn(
+      `⚠️  Failed to pre-render SSR content for /${page.slug}:`,
+      err.message
+    );
+    return "";
+  }
+}
+
+function writePageHtmlFiles(page, baseHtml, renderedHtml) {
+  let generated = 0;
+  const routeSlugs = [page.slug, ...(page.aliases ?? [])];
+  const pageHtml = injectMetaAndContent(baseHtml, page, renderedHtml);
+
+  for (const slug of routeSlugs) {
+    if (slug === "") {
+      fs.writeFileSync(indexPath, pageHtml, "utf-8");
+      generated++;
+      console.log(
+        "✅  Updated dist/index.html with pre-rendered metadata & content"
+      );
+    } else {
+      const outDir = path.join(distDir, slug);
+      fs.mkdirSync(outDir, { recursive: true });
+      const outFile = path.join(outDir, "index.html");
+      fs.writeFileSync(outFile, pageHtml, "utf-8");
+      generated++;
+      console.log(`✅  Generated ${slug}/index.html`);
+    }
+  }
+  return generated;
+}
+
+async function processStaticPages(viteServer, baseHtml, sitemapEntries) {
+  let generated = 0;
+  for (const page of STATIC_PAGES) {
+    const renderedHtml = await renderPageSsr(viteServer, page);
+    generated += writePageHtmlFiles(page, baseHtml, renderedHtml);
+
+    const lastmod = getLastModDate(page.srcFile);
+    sitemapEntries.push({
+      loc: page.canonicalUrl,
+      priority: page.priority,
+      lastmod,
+    });
+  }
+  return generated;
+}
+
+function processChainPages(baseHtml, sitemapEntries) {
+  let generated = 0;
+  for (const chain of CHAIN_META) {
+    const routeSlugs = [chain.slug, ...(chain.aliases ?? [])];
+    const chainHtml = injectMetaAndContent(baseHtml, chain);
+
+    for (const routeSlug of routeSlugs) {
+      const outDir = path.join(distDir, routeSlug);
+      fs.mkdirSync(outDir, { recursive: true });
+      const outFile = path.join(outDir, "index.html");
+      fs.writeFileSync(outFile, chainHtml, "utf-8");
+      generated++;
+      console.log(`✅  Generated ${routeSlug}/index.html`);
+    }
+
+    const lastmod = getLastModDate(
+      "packages/fast-bridge-app/src/config/chain-settings.ts"
+    );
+    sitemapEntries.push({
+      loc: chain.canonicalUrl,
+      priority: "0.9",
+      lastmod,
+    });
+  }
+  return generated;
+}
+
+function generateSitemap(sitemapEntries) {
+  const sitemapPath = path.join(distDir, "sitemap.xml");
+  const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries
+  .map(
+    (entry) => `  <url>
+    <loc>${entry.loc}</loc>
+    <lastmod>${entry.lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${entry.priority}</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
+
+  fs.writeFileSync(sitemapPath, sitemapContent, "utf-8");
+  console.log("✅  Generated sitemap.xml with lastmod dates");
+}
+
 async function main() {
   if (!fs.existsSync(indexPath)) {
     console.error(
@@ -344,82 +491,9 @@ async function main() {
   const sitemapEntries = [];
 
   try {
-    // 1. Process Static Pages with pre-rendered HTML
-    for (const page of STATIC_PAGES) {
-      let renderedHtml = "";
-      try {
-        const mod = await viteServer.ssrLoadModule(page.componentPath);
-        const Component = mod.default;
-        const routeLocation = page.slug ? `/${page.slug}` : "/";
-        renderedHtml = ReactDOMServer.renderToStaticMarkup(
-          React.createElement(
-            MemoryRouter,
-            { initialEntries: [routeLocation] },
-            React.createElement(Component)
-          )
-        );
-        console.log(
-          `✨  Pre-rendered SSR content for /${page.slug} (${renderedHtml.length} bytes)`
-        );
-      } catch (err) {
-        console.warn(
-          `⚠️  Failed to pre-render SSR content for /${page.slug}:`,
-          err.message
-        );
-      }
-
-      const routeSlugs = [page.slug, ...(page.aliases ?? [])];
-      const pageHtml = injectMetaAndContent(baseHtml, page, renderedHtml);
-
-      for (const slug of routeSlugs) {
-        if (slug === "") {
-          // Write directly to dist/index.html
-          fs.writeFileSync(indexPath, pageHtml, "utf-8");
-          generated++;
-          console.log(
-            "✅  Updated dist/index.html with pre-rendered metadata & content"
-          );
-        } else {
-          const outDir = path.join(distDir, slug);
-          fs.mkdirSync(outDir, { recursive: true });
-          const outFile = path.join(outDir, "index.html");
-          fs.writeFileSync(outFile, pageHtml, "utf-8");
-          generated++;
-          console.log(`✅  Generated ${slug}/index.html`);
-        }
-      }
-
-      const lastmod = getLastModDate(page.srcFile);
-      sitemapEntries.push({
-        loc: page.canonicalUrl,
-        priority: page.priority,
-        lastmod,
-      });
-    }
-
-    // 2. Process Chain Pages
-    for (const chain of CHAIN_META) {
-      const routeSlugs = [chain.slug, ...(chain.aliases ?? [])];
-      const chainHtml = injectMetaAndContent(baseHtml, chain);
-
-      for (const routeSlug of routeSlugs) {
-        const outDir = path.join(distDir, routeSlug);
-        fs.mkdirSync(outDir, { recursive: true });
-        const outFile = path.join(outDir, "index.html");
-        fs.writeFileSync(outFile, chainHtml, "utf-8");
-        generated++;
-        console.log(`✅  Generated ${routeSlug}/index.html`);
-      }
-
-      const lastmod = getLastModDate(
-        "packages/fast-bridge-app/src/config/chain-settings.ts"
-      );
-      sitemapEntries.push({
-        loc: chain.canonicalUrl,
-        priority: "0.9",
-        lastmod,
-      });
-    }
+    await loadCmsPosts(viteServer);
+    generated += await processStaticPages(viteServer, baseHtml, sitemapEntries);
+    generated += processChainPages(baseHtml, sitemapEntries);
   } finally {
     // Delay closing vite server slightly to avoid uncaught background scan errors
     setTimeout(() => {
@@ -433,24 +507,7 @@ async function main() {
     `\n🎉  Done — generated ${generated} route-specific HTML files.\n`
   );
 
-  // 3. Generate sitemap.xml
-  const sitemapPath = path.join(distDir, "sitemap.xml");
-  const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapEntries
-  .map(
-    (entry) => `  <url>
-    <loc>${entry.loc}</loc>
-    <lastmod>${entry.lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>${entry.priority}</priority>
-  </url>`
-  )
-  .join("\n")}
-</urlset>`;
-
-  fs.writeFileSync(sitemapPath, sitemapContent, "utf-8");
-  console.log("✅  Generated sitemap.xml with lastmod dates");
+  generateSitemap(sitemapEntries);
 }
 
 main().catch((err) => {
