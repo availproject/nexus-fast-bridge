@@ -4541,6 +4541,7 @@ function NexusOneInner({
     destinationToken = toToken,
     inputAmount = amount,
     mode = activeMode,
+    receiveQuoteAmount = idleReceiveQuoteAmount,
     sourceTokens = fromTokens,
     type = swapType,
   }: {
@@ -4548,6 +4549,7 @@ function NexusOneInner({
     destinationToken?: SwapTokenOption;
     inputAmount?: string;
     mode?: NexusOneMode;
+    receiveQuoteAmount?: string;
     sourceTokens?: SwapTokenOption[];
     type?: SwapType;
   } = {}): ReceiveAmountIssue | null => {
