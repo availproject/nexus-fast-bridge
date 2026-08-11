@@ -208,7 +208,7 @@ type PredictiveQuoteBaseline = {
 };
 
 const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
-  [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+  [SUPPORTED_CHAINS.MEGAETH]: 5000,
   [SUPPORTED_CHAINS.CITREA]: 2000,
   [SUPPORTED_CHAINS.SCROLL]: 500,
 };
@@ -3118,7 +3118,7 @@ function NexusOneInner({
   onClose,
   onConnectWallet,
 }: NexusOneProps) {
-  const { appConfig } = useRuntime();
+  const { appConfig, chainFeatures } = useRuntime();
   const {
     nexusSDK,
     bridgableBalance,
@@ -4493,7 +4493,11 @@ function NexusOneInner({
 
   const getDestinationReceiveLimitUsd = (token?: SwapTokenOption) => {
     if (!token?.chainId) return undefined;
-    const limit = DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID[token.chainId];
+    const featureLimit =
+      chainFeatures.maxBridgeAmountByDestinationChainId?.[token.chainId];
+    const defaultLimit =
+      DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID[token.chainId];
+    const limit = featureLimit ?? defaultLimit;
     return limit ? new Decimal(limit) : undefined;
   };
 
@@ -4574,17 +4578,26 @@ function NexusOneInner({
 
     let receiveUsd: Decimal | undefined;
     if (mode === "swap" && type === "exactIn") {
-      receiveUsd = getExactInSourceUsdForReceiveLimit(
+      const sourceUsd = getExactInSourceUsdForReceiveLimit(
         sourceTokens,
         inputAmount
       );
-      if (!receiveUsd || receiveUsd.lte(0)) {
+      if (!sourceUsd || sourceUsd.lte(0)) {
         return {
           ctaLabel: "Price unavailable",
           message: `Unable to price selected assets for ${chainName}'s receive limit.`,
           type: "unpricedReceiveToken",
         };
       }
+      let calculatedReceiveUsd = sourceUsd;
+      const parsedReceiveQuote = parseFiatNumber(receiveQuoteAmount);
+      if (parsedReceiveQuote && parsedReceiveQuote.gt(0)) {
+        const quoteReceiveUsd = parsedReceiveQuote.mul(resolvedDestinationRate);
+        if (quoteReceiveUsd.gt(calculatedReceiveUsd)) {
+          calculatedReceiveUsd = quoteReceiveUsd;
+        }
+      }
+      receiveUsd = calculatedReceiveUsd;
     } else if (mode === "deposit" && depositAmountMode === "usd") {
       receiveUsd = parsedAmount;
     } else {
