@@ -1,2 +1,4 @@
 #!/usr/bin/env sh
+export PATH="$HOME/.nvm/versions/node/v26.2.0/bin:$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/Library/pnpm:$HOME/.local/share/pnpm:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 pnpm precommit:fix-staged
