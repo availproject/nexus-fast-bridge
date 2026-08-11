@@ -4566,47 +4566,7 @@ function NexusOneInner({
       destinationToken.chainId,
       destinationToken.chainName
     );
-    const resolvedDestinationRate =
-      destinationRate ??
-      getImmediateDestinationReceiveUsdRate(destinationToken);
-
-    if (!resolvedDestinationRate || resolvedDestinationRate.lte(0)) {
-      return {
-        ctaLabel: "Price unavailable",
-        message: `Unable to price ${destinationToken.symbol} on ${chainName}. Select another receive token.`,
-        type: "unpricedReceiveToken",
-      };
-    }
-
-    let receiveUsd: Decimal | undefined;
-    if (mode === "swap" && type === "exactIn") {
-      const sourceUsd = getExactInSourceUsdForReceiveLimit(
-        sourceTokens,
-        inputAmount
-      );
-      if (!sourceUsd || sourceUsd.lte(0)) {
-        return {
-          ctaLabel: "Price unavailable",
-          message: `Unable to price selected assets for ${chainName}'s receive limit.`,
-          type: "unpricedReceiveToken",
-        };
-      }
-      let calculatedReceiveUsd = sourceUsd;
-      const parsedReceiveQuote = parseFiatNumber(receiveQuoteAmount);
-      if (parsedReceiveQuote && parsedReceiveQuote.gt(0)) {
-        const quoteReceiveUsd = parsedReceiveQuote.mul(resolvedDestinationRate);
-        if (quoteReceiveUsd.gt(calculatedReceiveUsd)) {
-          calculatedReceiveUsd = quoteReceiveUsd;
-        }
-      }
-      receiveUsd = calculatedReceiveUsd;
-    } else if (mode === "deposit" && depositAmountMode === "usd") {
-      receiveUsd = parsedAmount;
-    } else {
-      receiveUsd = parsedAmount.mul(resolvedDestinationRate);
-    }
-
-    if (receiveUsd.gt(limit)) {
+    if (parsedAmount.gt(limit)) {
       return {
         ctaLabel: "Receive limit exceeded",
         message: `Maximum receive amount on ${chainName} is ${formatUsdDisplay(limit)}.`,
