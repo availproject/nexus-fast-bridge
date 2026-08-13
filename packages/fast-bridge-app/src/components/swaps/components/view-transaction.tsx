@@ -1,4 +1,3 @@
-import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { ChevronDown, ChevronUp, Info, MoveDown, XIcon } from "lucide-react";
 import { type FC, type RefObject, useMemo, useState } from "react";
@@ -9,6 +8,7 @@ import {
   type SwapStepType,
   usdFormatter,
 } from "../../common";
+import type { LegacyIntentHookData } from "../../nexus/better-intent-compat";
 import {
   Accordion,
   AccordionContent,
@@ -87,7 +87,7 @@ interface ViewTransactionProps {
   reset: () => void;
   status: TransactionStatus;
   steps: GenericStep<SwapStepType>[];
-  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  swapIntent: RefObject<LegacyIntentHookData | null>;
   swapMode: SwapMode;
   toggleExactOutSource: (key: string) => void;
   txError: string | null;
@@ -152,7 +152,7 @@ const TokenBreakdown = ({
 
 interface MultiSourceBreakdownProps {
   getFiatValue: (amount: number, token: string) => number;
-  sources: NonNullable<OnSwapIntentHookData["intent"]>["sources"];
+  sources: LegacyIntentHookData["intent"]["sources"];
 }
 
 const MultiSourceBreakdown = ({
