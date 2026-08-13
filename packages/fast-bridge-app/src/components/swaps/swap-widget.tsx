@@ -23,8 +23,14 @@ function SwapWidget({
 }>) {
   const sourceContainer = useRef<HTMLDivElement | null>(null);
   const destinationContainer = useRef<HTMLDivElement | null>(null);
-  const { nexusSDK, swapIntent, swapBalance, fetchSwapBalance, getFiatValue } =
-    useNexus();
+  const {
+    nexusSDK,
+    swapIntent,
+    swapBalance,
+    fetchSwapBalance,
+    getFiatValue,
+    swapSupportedChainsAndTokens,
+  } = useNexus();
   const {
     status,
     inputs,
@@ -50,6 +56,7 @@ function SwapWidget({
     nexusSDK,
     swapIntent,
     swapBalance,
+    supportedChainsAndTokens: swapSupportedChainsAndTokens,
     fetchBalance: fetchSwapBalance,
     onComplete,
     onStart,

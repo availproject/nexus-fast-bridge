@@ -1,10 +1,8 @@
 import type {
   NexusClient,
-  OnSwapIntentHookData,
   SwapExactInParams,
   SwapExactOutParams,
   Source as SwapSource,
-  TokenBalance,
 } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import {
@@ -55,6 +53,13 @@ function toComparableSdkAddress(address: string): string {
   }
 }
 
+import {
+  adaptIntentEvent,
+  adaptIntentHook,
+  type LegacyIntentHookData,
+  type SupportedChainsAndTokensResult,
+  type TokenBalance,
+} from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 function sortSourcesByPriority(
@@ -208,14 +213,16 @@ interface UseSwapsProps {
   onComplete?: (amount?: string) => void;
   onError?: (message: string) => void;
   onStart?: () => void;
+  supportedChainsAndTokens: SupportedChainsAndTokensResult | null;
   swapBalance: TokenBalance[] | null;
-  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  swapIntent: RefObject<LegacyIntentHookData | null>;
 }
 
 const useSwaps = ({
   nexusSDK,
   swapIntent,
   swapBalance: rawSwapBalance,
+  supportedChainsAndTokens,
   fetchBalance,
   onComplete,
   onStart,
@@ -498,7 +505,7 @@ const useSwaps = ({
 
   const syncExactOutSelectionFromIntent = useCallback(
     (
-      intentSources: NonNullable<OnSwapIntentHookData["intent"]>["sources"],
+      intentSources: LegacyIntentHookData["intent"]["sources"],
       force = false
     ) => {
       if (intentSources.length === 0 || exactOutSourceOptions.length === 0) {
@@ -650,10 +657,8 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactIn(swapInput, {
-      onEvent: (event) => {
-        if ("state" in event && event.state === "wallet_prompted") {
-          console.log("[NEXUS WALLET PROMPTED]", event);
-        }
+      onEvent: (rawEvent) => {
+        const event = adaptIntentEvent(rawEvent);
         if (swapRunIdRef.current !== runId) {
           return;
         }
@@ -703,7 +708,10 @@ const useSwaps = ({
       },
       hooks: {
         onIntent: (data) => {
-          swapIntent.current = data;
+          swapIntent.current = adaptIntentHook(
+            data,
+            supportedChainsAndTokens ?? []
+          );
         },
       },
     });
@@ -737,10 +745,8 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactOut(swapInput, {
-      onEvent: (event) => {
-        if ("state" in event && event.state === "wallet_prompted") {
-          console.log("[NEXUS WALLET PROMPTED]", event);
-        }
+      onEvent: (rawEvent) => {
+        const event = adaptIntentEvent(rawEvent);
         if (swapRunIdRef.current !== runId) {
           return;
         }
@@ -790,7 +796,10 @@ const useSwaps = ({
       },
       hooks: {
         onIntent: (data) => {
-          swapIntent.current = data;
+          swapIntent.current = adaptIntentHook(
+            data,
+            supportedChainsAndTokens ?? []
+          );
         },
       },
     });
