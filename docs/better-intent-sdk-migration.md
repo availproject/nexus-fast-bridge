@@ -63,12 +63,24 @@ and Better Intent backend.
 - Sponsored gas is out of scope. ERC-20 approvals require the native gas token on the source chain.
 - Diagnostic SDK events and detailed middleware/RPC errors are intentionally retained during the
   regression pass.
+- FastBridge displays middleware error codes, subcodes, error IDs, and structured details when the
+  SDK exposes them.
 
 ## Current validation status
 
 - Catalogs, balances, quotes, history, USD receive display, and progress-event mapping are wired.
 - Earlier quote and execution checks accidentally used the SDK's mainnet-named deployment. They are
   useful implementation observations but do not count as canary validation.
+- Canary quote testing currently exposes two distinct failures:
+  - `INSUFFICIENT_APPROVAL_GAS` means an ERC-20 source cannot afford its approval using native gas
+    or the supported USDC gas mechanism. This is expected while sponsored gas is out of scope.
+  - A multi-source exact-input request can fail because Nexus reports an input below its source
+    deposit fee while Mayan reports that at least one input is outside its catalog. This is not yet
+    classified as a Mayan defect; the FastBridge source payload and backend allocation both need to
+    be inspected for the failing route.
+- The backend currently flattens aggregated provider failures into one message. It does not retain
+  the Nexus/Mayan structured details, so the SDK and FastBridge can only display the top-level
+  `QUOTE_UNAVAILABLE` code and error ID for that case.
 - All read and live execution paths below must be rerun after the switch to canary.
 
 ## Still to test
