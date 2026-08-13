@@ -110,6 +110,10 @@ migration relies on the SDK's auto-allow fallback.
 - ERC-20 approvals require source-chain native gas. Since sponsored gas is out of scope, zero-gas
   wallets can quote and sign but cannot submit the approval transaction. FastBridge converts that
   RPC failure into an actionable native-gas message rather than presenting a generic swap failure.
+  A live Base USDC to Optimism ETH test confirmed this behavior: the quote correctly produced an
+  approval for Base USDC on chain 8453, but the connected wallet held Base USDC and no Base ETH, so
+  MetaMask rejected the approval with `gas required exceeds allowance (0)`. Funding Base ETH is the
+  required next step for that route.
 
 ## Validation requirements
 
