@@ -5887,6 +5887,44 @@ function NexusOneInner({
     return parts.filter(Boolean).join(" ");
   };
 
+  const getMiddlewareErrorDiagnostic = (error: unknown) => {
+    const details = (error as any)?.details;
+    if (!details || typeof details !== "object") return "";
+
+    const labels = [
+      details.middlewareCode
+        ? `code: ${String(details.middlewareCode)}`
+        : undefined,
+      details.middlewareSubcode
+        ? `subcode: ${String(details.middlewareSubcode)}`
+        : undefined,
+      details.errorId ? `error ID: ${String(details.errorId)}` : undefined,
+    ].filter(Boolean);
+
+    let structuredDetails = "";
+    if (details.middlewareDetails !== undefined) {
+      try {
+        structuredDetails = JSON.stringify(
+          details.middlewareDetails,
+          (_key, value) =>
+            typeof value === "bigint" ? value.toString() : value,
+          2
+        );
+      } catch {
+        structuredDetails = String(details.middlewareDetails);
+      }
+    }
+
+    if (labels.length === 0 && !structuredDetails) return "";
+
+    return [
+      labels.length > 0 ? `Middleware ${labels.join(" · ")}` : undefined,
+      structuredDetails ? `Details:\n${structuredDetails}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
+
   const isInsufficientSourcesError = (error: unknown) => {
     const err = error as any;
     const message = getErrorText(error).toLowerCase();
@@ -9831,12 +9869,16 @@ function NexusOneInner({
         (typeof err === "string"
           ? err
           : "Transaction failed. Please try again or check console.");
-      const errorMessage =
+      const friendlyErrorMessage =
         /gas required exceeds allowance|insufficient funds for gas/i.test(
           rawErrorMessage
         )
           ? "This Better Intent transaction requires native gas on the source chain for token approval. Sponsored gas is not supported in this POC, so fund the source wallet with the chain's native token and try again."
           : rawErrorMessage;
+      const middlewareDiagnostic = getMiddlewareErrorDiagnostic(err);
+      const errorMessage = middlewareDiagnostic
+        ? `${friendlyErrorMessage}\n\n${middlewareDiagnostic}`
+        : friendlyErrorMessage;
       if (isTimeout && hasActiveExecution) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);
