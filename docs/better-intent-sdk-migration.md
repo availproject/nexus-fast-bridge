@@ -63,6 +63,9 @@ and Better Intent backend.
 - Sponsored gas is out of scope. ERC-20 approvals require the native gas token on the source chain.
 - Diagnostic SDK events and detailed middleware/RPC errors are intentionally retained during the
   regression pass.
+- The canary Nexus Explorer does not currently index Better Intent Mayan records. For fulfilled
+  Mayan intents, FastBridge resolves the source transaction from the Better Intent detail endpoint
+  and links to the chain explorer instead of showing the broken Nexus Explorer URL.
 
 ## Current validation status
 

@@ -991,6 +991,51 @@ const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
     ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
     : null;
 
+const getBetterIntentMiddlewareBaseUrl = (network: unknown) =>
+  `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/middleware`;
+
+const resolveBetterIntentTransactionExplorerUrl = async (
+  network: unknown,
+  intentId?: string | null
+) => {
+  if (!intentId) return null;
+
+  try {
+    const response = await fetch(
+      `${getBetterIntentMiddlewareBaseUrl(network)}/api/v1/better-intent/rff/${intentId}`
+    );
+    if (!response.ok) return null;
+
+    const detail = await response.json();
+    const legs = Array.isArray(detail?.legs) ? detail.legs : [];
+    const transactionLeg = legs.find((leg: any) =>
+      getTransactionHash(leg?.txHash, leg?.transactionHash)
+    );
+    const txHash = getTransactionHash(
+      transactionLeg?.txHash,
+      transactionLeg?.transactionHash
+    );
+    const source = Array.isArray(detail?.request?.sources)
+      ? detail.request.sources[transactionLeg?.sourceIndex ?? 0]
+      : undefined;
+    const rawChainId = source?.chain_id ?? source?.chainId;
+    const chainId =
+      typeof rawChainId === "string" && rawChainId.startsWith("0x")
+        ? Number(BigInt(rawChainId))
+        : Number(rawChainId);
+
+    return Number.isSafeInteger(chainId) && txHash
+      ? getExplorerTxUrl(chainId, txHash)
+      : null;
+  } catch (error) {
+    console.warn("Could not resolve Better Intent transaction explorer URL", {
+      error,
+      intentId,
+    });
+    return null;
+  }
+};
+
 const getObjectTransactionHash = (value: any) =>
   getTransactionHash(
     value?.txHash,
@@ -1028,6 +1073,18 @@ const getSdkSwapResult = (result: any) => {
   const candidate = result?.swapResult ?? result?.result;
   return candidate && typeof candidate === "object" ? candidate : null;
 };
+
+const getSdkIntentProvider = (result: any, swapResult?: any) =>
+  getNonEmptyString(
+    swapResult?.quote?.provider,
+    swapResult?.provider,
+    result?.quote?.provider,
+    result?.provider,
+    result?.swapResult?.quote?.provider,
+    result?.swapResult?.provider,
+    result?.result?.quote?.provider,
+    result?.result?.provider
+  )?.toLowerCase();
 
 const getSdkTransactionHash = (result: any) =>
   getObjectTransactionHash(result) ||
@@ -9456,14 +9513,26 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
+          const isMayanIntent =
+            getSdkIntentProvider(result, swapResult) === "mayan";
+          const providerTransactionExplorerUrl = isMayanIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           const resultFinalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
-            );
+            ) ||
+            (isMayanIntent ? null : getSdkExplorerUrl(result));
+          if (isMayanIntent) {
+            intentExplorerUrl = null;
+          }
           finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
           if (resultFinalExplorerUrl) {
             setTransferExplorerUrl(resultFinalExplorerUrl);
@@ -9678,14 +9747,23 @@ function NexusOneInner({
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
+          const isMayanIntent =
+            getSdkIntentProvider(result, swapResult) === "mayan";
+          const providerTransactionExplorerUrl = isMayanIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           finalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               executeTxHash,
               result,
               swapResult
-            );
+            ) ||
+            (isMayanIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             if (activeMode === "send" || hasCustomSwapRecipient) {
               setTransferExplorerUrl(finalExplorerUrl);
@@ -9694,7 +9772,9 @@ function NexusOneInner({
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(!isMayanIntent && intentExplorerUrl
+              ? { intentExplorerUrl }
+              : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
           });
         } else {
@@ -9848,20 +9928,31 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
+          const isMayanIntent =
+            getSdkIntentProvider(result, swapResult) === "mayan";
+          const providerTransactionExplorerUrl = isMayanIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           finalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
-            );
+            ) ||
+            (isMayanIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(!isMayanIntent && intentExplorerUrl
+              ? { intentExplorerUrl }
+              : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
           });
         }
