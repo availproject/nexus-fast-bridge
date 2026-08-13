@@ -240,10 +240,11 @@ export default function GuideDetailPage() {
         {post.toc.length > 0 && (
           <aside className="seo-sidebar">
             <nav aria-label="On this page" className="seo-toc">
-              <p className="seo-toc__label">On this page</p>
+              <p className="seo-toc__label">ON THIS PAGE</p>
               <ol>
-                {post.toc.map((item) => {
+                {post.toc.map((item, index) => {
                   const isActive = activeId === item.id;
+                  const num = (index + 1).toString().padStart(2, "0");
                   return (
                     <li
                       className={isActive ? "is-active" : undefined}
@@ -253,6 +254,16 @@ export default function GuideDetailPage() {
                         aria-current={isActive ? "location" : undefined}
                         href={`#${item.id}`}
                       >
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            opacity: 0.6,
+                            marginRight: "8px",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {num}
+                        </span>
                         {item.label}
                       </a>
                     </li>
@@ -270,29 +281,46 @@ export default function GuideDetailPage() {
                 Authored by <strong>{post.author}</strong>
               </span>
             )}
-            {post.reviewer && (
+            {(post.reviewedBy || post.reviewer) && (
               <>
                 <span aria-hidden="true" className="seo-authorship__sep">
                   &middot;
                 </span>
                 <span>
-                  Reviewed by <strong>{post.reviewer}</strong>
+                  Reviewed by{" "}
+                  <strong>{post.reviewedBy || post.reviewer}</strong>
                 </span>
               </>
             )}
-            {post.publishedAt && (
+            {(post.lastUpdated || post.publishedAt) && (
               <>
                 <span aria-hidden="true" className="seo-authorship__sep">
                   &middot;
                 </span>
-                <span>Last updated {post.publishedAt}</span>
+                <span>Last updated {post.lastUpdated || post.publishedAt}</span>
               </>
             )}
           </p>
 
+          {post.tldr && post.tldr.length > 0 && (
+            <div className="seo-tldr">
+              <div className="seo-tldr__label">TL;DR</div>
+              <ol className="seo-tldr-list">
+                {post.tldr.map((item, idx) => (
+                  <li key={`${idx}-${item.slice(0, 10)}`}>
+                    <span className="seo-tldr-list__rank">
+                      {(idx + 1).toString().padStart(2, "0")}
+                    </span>
+                    <div>{item}</div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           <div
             className="cms-article-body"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: Sanitized html/markdown body content from Strapi CMS
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: Sanitized html/markdown body content from Sanity CMS
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
@@ -301,12 +329,16 @@ export default function GuideDetailPage() {
             style={{ marginTop: "3rem" }}
           >
             <div className="seo-banner__copy">
-              <p className="seo-banner__eyebrow">Try FastBridge</p>
-              <p className="seo-banner__title">
-                Skip the multi-step bridging workflow.
-              </p>
+              <p className="seo-banner__eyebrow">TRY FASTBRIDGE</p>
+              <h2
+                className="seo-banner__title"
+                style={{ fontSize: "28px", margin: "4px 0 12px" }}
+              >
+                Move your crypto across chains in one transaction.
+              </h2>
               <p className="seo-banner__body">
-                Consolidate assets from any chain in one transaction.
+                Bridge and swap tokens from multiple chains to any destination
+                in seconds.
               </p>
             </div>
             <button
@@ -314,9 +346,14 @@ export default function GuideDetailPage() {
               onClick={handleBridgeClick}
               type="button"
             >
-              Bridge Now
+              Launch FastBridge
             </button>
           </div>
+
+          <p className="seo-meta" style={{ marginTop: "2rem" }}>
+            Last updated: {post.lastUpdated || post.publishedAt} &middot;
+            Maintained by Avail
+          </p>
         </article>
       </div>
     </main>

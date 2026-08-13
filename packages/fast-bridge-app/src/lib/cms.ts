@@ -3,31 +3,43 @@ export interface CMSBlogPost {
   content: string;
   coverImage: string;
   excerpt: string;
+  featuredImage?: string;
+  lastUpdated?: string;
   publishedAt: string;
-  reviewer: string;
+  reviewedBy?: string;
+  reviewer?: string;
   seoDescription: string;
   seoTitle: string;
   slug: string;
+  summary?: string;
   title: string;
+  tldr?: string[];
   toc: Array<{ id: string; label: string }>;
   updatedAt?: string;
 }
 
 export interface SanityPostDocument {
+  _createdAt?: string;
   _id?: string;
   _updatedAt?: string;
   author?: string;
   body?: string;
   content?: string;
   coverImage?: string;
+  description?: string;
   excerpt?: string;
+  featuredImage?: string;
+  lastUpdated?: string;
   mainImageUrl?: string;
   publishedAt?: string;
+  reviewedBy?: string;
   reviewer?: string;
   seoDescription?: string;
   seoTitle?: string;
   slug?: string | { current?: string };
+  summary?: string;
   title?: string;
+  tldr?: string[];
 }
 
 export interface SanityQueryResponse {
@@ -50,8 +62,15 @@ const FALLBACK_POSTS: CMSBlogPost[] = [
       <p>Most active DeFi users don't hold capital on one chain. FastBridge enables pulling from all selected source chains in one signed transaction with gas abstraction.</p>
     `,
     publishedAt: "2026-04-24",
+    lastUpdated: "2026-04-24",
     author: "Andria Efstathiou",
+    reviewedBy: "Scott Milat",
     reviewer: "Scott Milat",
+    tldr: [
+      "FastBridge by Avail, best for consolidating assets from multiple chains in one transaction.",
+      "Across, best for fast single-asset transfers with deep liquidity on major EVM routes.",
+      "Stargate, best for the widest chain coverage including non-EVM networks.",
+    ],
     coverImage:
       "/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png",
     toc: [
@@ -109,25 +128,41 @@ function normalizeSanityDoc(doc: SanityPostDocument): CMSBlogPost {
   const title = doc.title ?? "Untitled Guide";
   const rawContent = doc.content ?? doc.body ?? "";
   const imageUrl =
+    doc.featuredImage ??
     doc.coverImage ??
     doc.mainImageUrl ??
     "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
+
+  const description =
+    doc.description || doc.summary || doc.excerpt || doc.seoDescription || "";
+
+  const rawDate =
+    doc.lastUpdated ||
+    doc.publishedAt ||
+    doc._updatedAt ||
+    doc._createdAt ||
+    new Date().toISOString().split("T")[0];
+
+  const formattedDate = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
 
   return {
     slug: rawSlug,
     title,
     seoTitle: doc.seoTitle || title,
     seoDescription:
-      doc.seoDescription || doc.excerpt || `Read ${title} on FastBridge.`,
+      doc.seoDescription || description || `Read ${title} on FastBridge.`,
     content: rawContent,
-    excerpt: doc.excerpt || doc.seoDescription || "",
-    publishedAt: doc.publishedAt
-      ? doc.publishedAt.split("T")[0]
-      : new Date().toISOString().split("T")[0],
+    excerpt: description,
+    summary: description,
+    publishedAt: formattedDate,
+    lastUpdated: formattedDate,
     updatedAt: doc._updatedAt ? doc._updatedAt.split("T")[0] : undefined,
     author: doc.author || "FastBridge Team",
-    reviewer: doc.reviewer || "Avail Research",
+    reviewedBy: doc.reviewedBy || doc.reviewer || "",
+    reviewer: doc.reviewer || doc.reviewedBy || "",
+    tldr: Array.isArray(doc.tldr) ? doc.tldr : undefined,
     coverImage: imageUrl,
+    featuredImage: imageUrl,
     toc: extractTocFromContent(rawContent),
   };
 }
@@ -174,13 +209,18 @@ export async function fetchBlogPosts(): Promise<CMSBlogPost[]> {
       seoDescription,
       excerpt,
       summary,
+      description,
       publishedAt,
+      lastUpdated,
       _createdAt,
       _updatedAt,
       "author": coalesce(author->name, author, "FastBridge Team"),
-      reviewer,
-      "content": coalesce(pt::text(content), pt::text(body), content, body, summary, excerpt, ""),
-      "coverImage": coalesce(coverImage.asset->url, mainImage.asset->url, coverImage, mainImageUrl)
+      "reviewedBy": coalesce(reviewedBy->name, reviewer->name, reviewedBy, reviewer, ""),
+      "reviewer": coalesce(reviewer->name, reviewedBy->name, reviewer, reviewedBy, ""),
+      "tldr": tldr[],
+      "content": coalesce(pt::text(content), pt::text(body), content, body, summary, excerpt, description, ""),
+      "coverImage": coalesce(featuredImage.asset->url, coverImage.asset->url, mainImage.asset->url, featuredImage, coverImage, mainImageUrl),
+      "featuredImage": coalesce(featuredImage.asset->url, coverImage.asset->url, mainImage.asset->url, featuredImage, coverImage, mainImageUrl)
     }`;
 
     const encodedQuery = encodeURIComponent(groqQuery);

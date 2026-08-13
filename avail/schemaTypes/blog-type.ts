@@ -22,15 +22,10 @@ export const blogType = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "excerpt",
-      title: "Excerpt",
+      name: "description",
+      title: "Description / Summary",
       type: "text",
       rows: 3,
-    }),
-    defineField({
-      name: "publishedAt",
-      title: "Published at",
-      type: "datetime",
     }),
     defineField({
       name: "author",
@@ -39,22 +34,45 @@ export const blogType = defineType({
       to: [{ type: "author" }],
     }),
     defineField({
-      name: "categories",
-      title: "Categories",
-      type: "array",
-      of: [{ type: "reference", to: [{ type: "category" }] }],
+      name: "reviewedBy",
+      title: "Reviewed By",
+      type: "reference",
+      to: [{ type: "author" }],
     }),
     defineField({
-      name: "mainImage",
-      title: "Main Image",
+      name: "tldr",
+      title: "TL;DR (Bulleted Highlights)",
+      type: "array",
+      of: [{ type: "string" }],
+      description: "Bulleted list of key takeaways shown in the TL;DR section.",
+    }),
+    defineField({
+      name: "lastUpdated",
+      title: "Last Updated Date",
+      type: "datetime",
+    }),
+    defineField({
+      name: "publishedAt",
+      title: "Published At",
+      type: "datetime",
+    }),
+    defineField({
+      name: "featuredImage",
+      title: "Featured / Cover Image",
       type: "image",
       options: {
         hotspot: true,
       },
     }),
     defineField({
+      name: "categories",
+      title: "Categories",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "category" }] }],
+    }),
+    defineField({
       name: "body",
-      title: "Body",
+      title: "Body / Content",
       type: "array",
       of: [{ type: "block" }, { type: "image" }],
     }),
@@ -63,7 +81,7 @@ export const blogType = defineType({
     select: {
       title: "title",
       author: "author.name",
-      media: "mainImage",
+      media: "featuredImage",
     },
     prepare(selection) {
       const { author } = selection;
