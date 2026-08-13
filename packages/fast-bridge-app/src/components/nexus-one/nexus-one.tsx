@@ -51,6 +51,7 @@ import {
 import {
   adaptIntentEvent,
   adaptIntentHook,
+  addIntentUsdValues,
 } from "../nexus/better-intent-compat";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
@@ -6714,10 +6715,22 @@ function NexusOneInner({
   const handleSwapIntentCallback = useCallback(
     (data: any, runId: number, quoteInputKey: string) => {
       const compatibleData = data?.quote
-        ? adaptIntentHook(
-            data,
-            swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? []
-          )
+        ? (() => {
+            const adapted = adaptIntentHook(
+              data,
+              swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? []
+            );
+            return {
+              ...adapted,
+              intent: addIntentUsdValues(adapted.intent, (symbol) =>
+                getUsdRateForSymbol(symbol).toNumber()
+              ),
+              refresh: async (...args: Parameters<typeof adapted.refresh>) =>
+                addIntentUsdValues(await adapted.refresh(...args), (symbol) =>
+                  getUsdRateForSymbol(symbol).toNumber()
+                ),
+            };
+          })()
         : data;
       const { intent, allow, deny, refresh } = compatibleData;
       const bridgeProvider = normalizeBridgeProvider(
@@ -9801,11 +9814,29 @@ function NexusOneInner({
         onError?.(issue.message);
         return;
       }
-      const errorMessage =
+      const middlewareDetails = err?.details?.middlewareDetails;
+      const middlewareMessage =
+        (typeof middlewareDetails?.message === "string"
+          ? middlewareDetails.message
+          : undefined) ??
+        (typeof middlewareDetails?.error === "string"
+          ? middlewareDetails.error
+          : undefined) ??
+        (typeof err?.details?.error === "string"
+          ? err.details.error
+          : undefined);
+      const rawErrorMessage =
+        middlewareMessage ||
         err?.message ||
         (typeof err === "string"
           ? err
           : "Transaction failed. Please try again or check console.");
+      const errorMessage =
+        /gas required exceeds allowance|insufficient funds for gas/i.test(
+          rawErrorMessage
+        )
+          ? "This Better Intent transaction requires native gas on the source chain for token approval. Sponsored gas is not supported in this POC, so fund the source wallet with the chain's native token and try again."
+          : rawErrorMessage;
       if (isTimeout && hasActiveExecution) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);

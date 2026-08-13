@@ -81,9 +81,39 @@ export interface LegacyIntent {
       logo?: string;
       symbol: string;
     };
+    value?: string;
   }>;
   sourcesTotal: string;
 }
+
+export const addIntentUsdValues = (
+  intent: LegacyIntent,
+  getUsdRate: (symbol: string) => number
+): LegacyIntent => {
+  const destinationRate = getUsdRate(intent.destination.token.symbol);
+  const destinationAmount = Number(intent.destination.amount);
+  return {
+    ...intent,
+    destination: {
+      ...intent.destination,
+      value:
+        destinationRate > 0 && Number.isFinite(destinationAmount)
+          ? String(destinationAmount * destinationRate)
+          : intent.destination.value,
+    },
+    sources: intent.sources.map((source) => {
+      const rate = getUsdRate(source.token.symbol);
+      const amount = Number(source.amount);
+      return {
+        ...source,
+        value:
+          rate > 0 && Number.isFinite(amount)
+            ? String(amount * rate)
+            : source.value,
+      };
+    }),
+  };
+};
 
 export interface LegacyIntentHookData {
   allow: () => void;
