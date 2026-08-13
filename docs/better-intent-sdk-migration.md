@@ -14,6 +14,10 @@ FastBridge configures the SDK with `network: "canary"`. The Better Intent rollou
 mainnet deployment; canary still operates against mainnet chains and therefore requires real assets
 and native gas for live execution tests.
 
+FastBridge also sets `forceMayan: true`. The SDK requests Mayan-filtered chains and balances,
+derives cross-chain fungibility from the chains response using `coingeckoId`, and prefers Mayan for
+quotes. This prevents selectors from advertising assets that Mayan cannot quote.
+
 ## Endpoint wiring
 
 FastBridge calls these through the SDK, not with application-level HTTP requests.
@@ -24,7 +28,7 @@ The SDK resolves the canary configuration to
 | FastBridge use | SDK method | Better Intent endpoint | Expected result |
 | --- | --- | --- | --- |
 | Initialize chains | `initialize`, `getSupportedChains` | `/api/v1/better-intent/chains` | Intent-capable chains and their tokens |
-| Token catalog | SDK initialization | `/api/v1/better-intent/tokens` | Supported assets across chains |
+| Token catalog | SDK initialization | Derived from `/api/v1/better-intent/chains?provider=mayan` | Mayan-supported assets grouped across chains |
 | Wallet balances | `getBalancesForBridge`, `getBalancesForSwap` | `/api/v1/better-intent/balances/:address` | Flat, usable wallet balances with token and chain identity |
 | Quote | `swapWithExactIn`, `swapWithExactOut`, bridge methods | `/api/v1/better-intent/quote` | Quote, fees, allowances, execution plan, and expiry |
 | Submit | SDK execution after approval and signature | `/api/v1/better-intent/submit` | Accepted intent ID and initial status |
