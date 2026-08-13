@@ -137,17 +137,23 @@ function normalizeSanityDoc(doc: SanityPostDocument): CMSBlogPost {
  * Falls back safely to FALLBACK_POSTS if Sanity project ID is not configured or API fails.
  */
 export async function fetchBlogPosts(): Promise<CMSBlogPost[]> {
-  const projectId =
-    typeof process !== "undefined"
+  const rawProjectId =
+    (typeof process !== "undefined"
       ? process.env?.VITE_SANITY_PROJECT_ID
-      : (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_SANITY_PROJECT_ID || "84yp3g05";
+      : undefined) ||
+    (import.meta as unknown as { env: Record<string, string> }).env
+      ?.VITE_SANITY_PROJECT_ID;
 
-  const dataset =
+  const projectId = rawProjectId?.trim() ? rawProjectId.trim() : "84yp3g05";
+
+  const rawDataset =
     (typeof process !== "undefined"
       ? process.env?.VITE_SANITY_DATASET
-      : (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_SANITY_DATASET) || "guides";
+      : undefined) ||
+    (import.meta as unknown as { env: Record<string, string> }).env
+      ?.VITE_SANITY_DATASET;
+
+  const dataset = rawDataset?.trim() ? rawDataset.trim() : "guides";
 
   const sanityToken =
     typeof process !== "undefined"
@@ -160,20 +166,21 @@ export async function fetchBlogPosts(): Promise<CMSBlogPost[]> {
   }
 
   try {
-    const groqQuery = `*[_type in ["post", "article"]] | order(publishedAt desc) {
+    const groqQuery = `*[_type in ["guide", "blog", "post", "article"]] | order(_createdAt desc) {
       _id,
       title,
       "slug": slug.current,
       seoTitle,
       seoDescription,
       excerpt,
+      summary,
       publishedAt,
+      _createdAt,
       _updatedAt,
-      author,
+      "author": coalesce(author->name, author, "FastBridge Team"),
       reviewer,
-      content,
-      body,
-      "coverImage": mainImage.asset->url
+      "content": coalesce(pt::text(content), pt::text(body), content, body, summary, excerpt, ""),
+      "coverImage": coalesce(coverImage.asset->url, mainImage.asset->url, coverImage, mainImageUrl)
     }`;
 
     const encodedQuery = encodeURIComponent(groqQuery);
