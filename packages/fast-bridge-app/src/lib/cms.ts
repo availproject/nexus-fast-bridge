@@ -217,10 +217,13 @@ function processSingleBlock(
     let listOpenHtml = "";
     if (currentListType !== listItem) {
       closeListIfNeeded(undefined);
-      listOpenHtml = listItem === "bullet" ? "<ul>\n" : "<ol>\n";
+      listOpenHtml =
+        listItem === "bullet"
+          ? '<ul style="list-style-type: disc; padding-left: 1.5rem; margin: 0 0 1.25rem 0;">\n'
+          : '<ol style="list-style-type: decimal; padding-left: 1.5rem; margin: 0 0 1.25rem 0;">\n';
     }
     return {
-      html: `${listOpenHtml}<li>${blockText}</li>`,
+      html: `${listOpenHtml}<li style="margin-bottom: 0.35rem;">${blockText}</li>`,
       newListType: listItem,
     };
   }

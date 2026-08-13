@@ -188,6 +188,30 @@
   font-weight: 500;
 }
 
+/* Article Lists */
+.seo-content ul:not(.seo-tldr-list):not(.seo-toc),
+.cms-article-body ul:not(.seo-tldr-list) {
+  padding-left: 1.5rem !important;
+  margin: 0 0 1.25em 0 !important;
+  list-style-type: disc !important;
+}
+
+.seo-content ol:not(.seo-tldr-list):not(.seo-toc),
+.cms-article-body ol:not(.seo-tldr-list) {
+  padding-left: 1.5rem !important;
+  margin: 0 0 1.25em 0 !important;
+  list-style-type: decimal !important;
+}
+
+.seo-content ul:not(.seo-tldr-list):not(.seo-toc) li,
+.seo-content ol:not(.seo-tldr-list):not(.seo-toc) li,
+.cms-article-body ul:not(.seo-tldr-list) li,
+.cms-article-body ol:not(.seo-tldr-list) li {
+  margin-bottom: 0.35em;
+  line-height: 1.6;
+  color: var(--fg-primary, #161615);
+}
+
 /* —— Callout (blue accent bar) —— */
 .seo-callout {
   padding: 20px 22px 20px 24px;
