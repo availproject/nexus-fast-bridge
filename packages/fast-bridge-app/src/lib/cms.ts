@@ -23,8 +23,8 @@ export interface SanityPostDocument {
   _id?: string;
   _updatedAt?: string;
   author?: string;
-  body?: string;
-  content?: string;
+  body?: string | unknown[];
+  content?: string | unknown[];
   coverImage?: string;
   description?: string;
   excerpt?: string;
@@ -44,6 +44,226 @@ export interface SanityPostDocument {
 
 export interface SanityQueryResponse {
   result?: SanityPostDocument[];
+}
+
+interface PortableTextSpan {
+  _type?: string;
+  marks?: string[];
+  text?: string;
+}
+
+interface PortableTextMarkDef {
+  _key: string;
+  _type: string;
+  href?: string;
+}
+
+interface PortableTextBlock {
+  _type?: string;
+  alt?: string;
+  asset?: { _ref?: string; _id?: string; url?: string };
+  children?: PortableTextSpan[];
+  listItem?: string;
+  markDefs?: PortableTextMarkDef[];
+  style?: string;
+}
+
+export function parseSanityImageRef(
+  ref: string | undefined,
+  projectId = "84yp3g05",
+  dataset = "guides"
+): string | null {
+  if (!ref || typeof ref !== "string" || !ref.startsWith("image-")) {
+    return null;
+  }
+  const parts = ref.split("-");
+  if (parts.length < 4) {
+    return null;
+  }
+  const hash = parts[1];
+  const dim = parts[2];
+  const ext = parts[3];
+  return `https://cdn.sanity.io/images/${projectId}/${dataset}/${hash}-${dim}.${ext}`;
+}
+
+export function renderSpanText(
+  child: PortableTextSpan,
+  markDefsMap: Map<string, PortableTextMarkDef>
+): string {
+  if (!child || typeof child.text !== "string") {
+    return "";
+  }
+
+  let text = child.text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  if (!Array.isArray(child.marks)) {
+    return text;
+  }
+
+  for (const mark of child.marks) {
+    if (mark === "strong") {
+      text = `<strong>${text}</strong>`;
+    } else if (mark === "em") {
+      text = `<em>${text}</em>`;
+    } else if (mark === "underline") {
+      text = `<u style="text-decoration: underline;">${text}</u>`;
+    } else if (
+      mark === "strike-through" ||
+      mark === "strikethrough" ||
+      mark === "line-through"
+    ) {
+      text = `<s style="text-decoration: line-through;">${text}</s>`;
+    } else if (mark === "code") {
+      text = `<code style="font-family: monospace; background: rgba(0, 101, 255, 0.08); padding: 2px 6px; border-radius: 4px; color: #0065ff;">${text}</code>`;
+    } else {
+      const def = markDefsMap.get(mark);
+      if (def?.href) {
+        text = `<a href="${def.href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+      }
+    }
+  }
+
+  return text;
+}
+
+function renderBlockText(block: PortableTextBlock): string {
+  const markDefsMap = new Map<string, PortableTextMarkDef>();
+  if (Array.isArray(block.markDefs)) {
+    for (const def of block.markDefs) {
+      if (def._key) {
+        markDefsMap.set(def._key, def);
+      }
+    }
+  }
+
+  if (!Array.isArray(block.children)) {
+    return "";
+  }
+  let result = "";
+  for (const child of block.children) {
+    result += renderSpanText(child, markDefsMap);
+  }
+  return result;
+}
+
+function wrapStyleTag(style: string, blockText: string): string {
+  switch (style) {
+    case "h1":
+      return `<h1>${blockText}</h1>`;
+    case "h2":
+      return `<h2>${blockText}</h2>`;
+    case "h3":
+      return `<h3>${blockText}</h3>`;
+    case "h4":
+      return `<h4>${blockText}</h4>`;
+    case "h5":
+      return `<h5>${blockText}</h5>`;
+    case "h6":
+      return `<h6>${blockText}</h6>`;
+    case "blockquote":
+      return `<blockquote class="seo-callout"><p>${blockText}</p></blockquote>`;
+    default:
+      return `<p>${blockText}</p>`;
+  }
+}
+
+export function renderImageFigure(block: PortableTextBlock): string | null {
+  if (block._type === "image") {
+    const url =
+      block.asset?.url ||
+      parseSanityImageRef(block.asset?._ref || block.asset?._id);
+    if (url) {
+      const alt = block.alt || "";
+      return `<figure style="margin: 1.5rem 0;"><img src="${url}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 10px;" loading="lazy" /></figure>`;
+    }
+  }
+  if (block._type === "code") {
+    const codeText =
+      (block as unknown as { code?: string; text?: string }).code ||
+      (block as unknown as { code?: string; text?: string }).text ||
+      "";
+    return `<pre style="background: #111827; color: #f9fafb; padding: 1rem 1.25rem; border-radius: 10px; overflow-x: auto; font-family: monospace; font-size: 14px; margin: 1.5rem 0;"><code>${codeText}</code></pre>`;
+  }
+  return null;
+}
+
+function processSingleBlock(
+  block: unknown,
+  currentListType: "bullet" | "number" | null,
+  closeListIfNeeded: (nextType?: string) => void
+): { html: string | null; newListType: "bullet" | "number" | null } {
+  if (typeof block !== "object" || !block) {
+    return { html: null, newListType: currentListType };
+  }
+
+  const imgHtml = renderImageFigure(block as PortableTextBlock);
+  if (imgHtml) {
+    closeListIfNeeded(undefined);
+    return { html: imgHtml, newListType: null };
+  }
+
+  const pBlock = block as PortableTextBlock;
+  if (pBlock._type !== "block") {
+    return { html: null, newListType: currentListType };
+  }
+
+  const blockText = renderBlockText(pBlock);
+  const listItem = pBlock.listItem;
+
+  if (listItem === "bullet" || listItem === "number") {
+    let listOpenHtml = "";
+    if (currentListType !== listItem) {
+      closeListIfNeeded(undefined);
+      listOpenHtml = listItem === "bullet" ? "<ul>\n" : "<ol>\n";
+    }
+    return {
+      html: `${listOpenHtml}<li>${blockText}</li>`,
+      newListType: listItem,
+    };
+  }
+
+  closeListIfNeeded(undefined);
+  const style = pBlock.style || "normal";
+  if (!blockText.trim() && style === "normal") {
+    return { html: null, newListType: null };
+  }
+
+  return { html: wrapStyleTag(style, blockText), newListType: null };
+}
+
+export function portableTextToHtml(
+  content: string | PortableTextBlock[] | unknown
+): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
+
+  const htmlChunks: string[] = [];
+  let currentListType: "bullet" | "number" | null = null;
+
+  const closeListIfNeeded = (nextType?: string) => {
+    if (currentListType && currentListType !== nextType) {
+      htmlChunks.push(currentListType === "bullet" ? "</ul>" : "</ol>");
+      currentListType = null;
+    }
+  };
+
+  for (const block of content) {
+    const res = processSingleBlock(block, currentListType, closeListIfNeeded);
+    currentListType = res.newListType;
+    if (res.html) {
+      htmlChunks.push(res.html);
+    }
+  }
+
+  closeListIfNeeded(undefined);
+  return htmlChunks.join("\n");
 }
 
 const FALLBACK_POSTS: CMSBlogPost[] = [
@@ -126,7 +346,7 @@ function normalizeSanityDoc(doc: SanityPostDocument): CMSBlogPost {
   const rawSlug =
     typeof doc.slug === "string" ? doc.slug : (doc.slug?.current ?? "");
   const title = doc.title ?? "Untitled Guide";
-  const rawContent = doc.content ?? doc.body ?? "";
+  const rawContent = portableTextToHtml(doc.content ?? doc.body);
   const imageUrl =
     doc.featuredImage ??
     doc.coverImage ??
@@ -218,7 +438,8 @@ export async function fetchBlogPosts(): Promise<CMSBlogPost[]> {
       "reviewedBy": coalesce(reviewedBy->name, reviewer->name, reviewedBy, reviewer, ""),
       "reviewer": coalesce(reviewer->name, reviewedBy->name, reviewer, reviewedBy, ""),
       "tldr": tldr[],
-      "content": coalesce(pt::text(content), pt::text(body), content, body, summary, excerpt, description, ""),
+      "content": coalesce(content[]{..., asset->{url}}, body[]{..., asset->{url}}, content, body, summary, excerpt, description, ""),
+      "body": coalesce(body[]{..., asset->{url}}, content[]{..., asset->{url}}, body, content, ""),
       "coverImage": coalesce(featuredImage.asset->url, coverImage.asset->url, mainImage.asset->url, featuredImage, coverImage, mainImageUrl),
       "featuredImage": coalesce(featuredImage.asset->url, coverImage.asset->url, mainImage.asset->url, featuredImage, coverImage, mainImageUrl)
     }`;
