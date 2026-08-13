@@ -141,13 +141,13 @@ export async function fetchBlogPosts(): Promise<CMSBlogPost[]> {
     typeof process !== "undefined"
       ? process.env?.VITE_SANITY_PROJECT_ID
       : (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_SANITY_PROJECT_ID;
+          ?.VITE_SANITY_PROJECT_ID || "84yp3g05";
 
   const dataset =
     (typeof process !== "undefined"
       ? process.env?.VITE_SANITY_DATASET
       : (import.meta as unknown as { env: Record<string, string> }).env
-          ?.VITE_SANITY_DATASET) || "production";
+          ?.VITE_SANITY_DATASET) || "guides";
 
   const sanityToken =
     typeof process !== "undefined"
