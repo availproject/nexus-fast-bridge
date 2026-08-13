@@ -67,6 +67,11 @@ observed Better Intent responses define CA gas as an aggregate that can overlap 
 fulfillment components. `depositRaw` remains visible through Better Intent's normalized quote but
 has no faithful slot in the legacy FastBridge fee object.
 
+Better Intent quotes currently expose token amounts but not USD quote values. FastBridge enriches
+the display model with locally cached per-symbol USD rates so the confirmation screen can render
+the receive value and estimate price impact. These values are presentation estimates only and are
+never sent back to the SDK or middleware.
+
 ### Do not recreate SDK routing or max-quote logic
 
 `calculateMaxForSwap` was intentionally removed from the Better Intent SDK. FastBridge may derive a
@@ -98,6 +103,13 @@ migration relies on the SDK's auto-allow fallback.
   response shapes are the final application-facing contract.
 - Live wallet regression is still required for exact-input, exact-output, bridge/transfer, and
   swap-and-execute paths. Static validation cannot approve or sign these transactions.
+- A `422` is not assumed to be a global minimum amount. The same mainnet endpoint successfully
+  quotes 0.1 USDC for an OP-to-Base source-restricted request. FastBridge now prefers the
+  middleware's detailed validation message when the SDK exposes it; amount-dependent failures must
+  be diagnosed using the rejected route and source set.
+- ERC-20 approvals require source-chain native gas. Since sponsored gas is out of scope, zero-gas
+  wallets can quote and sign but cannot submit the approval transaction. FastBridge converts that
+  RPC failure into an actionable native-gas message rather than presenting a generic swap failure.
 
 ## Validation requirements
 
