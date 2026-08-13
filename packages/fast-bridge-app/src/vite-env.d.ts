@@ -26,7 +26,11 @@ export interface AppEnv {
   readonly VITE_CONFIG_CHAIN_RPC_URL: string;
   readonly VITE_CONFIG_CHAIN_TESTNET: boolean;
   readonly VITE_CONFIG_CHAIN_USE_CHAIN_LOGO: boolean;
-  readonly VITE_CONFIG_NEXUS_NETWORK: "mainnet" | "testnet" | "devnet";
+  readonly VITE_CONFIG_NEXUS_NETWORK:
+    | "canary"
+    | "mainnet"
+    | "testnet"
+    | "devnet";
   readonly VITE_CONFIG_NEXUS_PRIMARY_TOKEN: string;
   readonly VITE_CONFIG_NEXUS_SUPPORTED_CHAIN: number;
   readonly VITE_CONFIG_PRIMARY_COLOR: string;
