@@ -184,6 +184,7 @@ const NexusProvider = ({
     const nextSdk = createNexusClient({
       network: stableConfig.network,
       debug: stableConfig.debug,
+      forceMayan: true,
     });
 
     withTimeout(nextSdk.initialize(), 15_000)
@@ -519,6 +520,7 @@ const NexusProvider = ({
         const nextSdk = createNexusClient({
           network: stableConfig.network,
           debug: stableConfig.debug,
+          forceMayan: true,
         });
 
         await withTimeout(nextSdk.initialize(), 15_000);
