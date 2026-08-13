@@ -1,4 +1,3 @@
-import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
 import { ChevronDown } from "lucide-react";
 import type React from "react";
 import type { RefObject } from "react";
@@ -8,6 +7,7 @@ import {
   computeAmountFromFraction,
   usdFormatter,
 } from "../../common";
+import type { LegacyIntentHookData } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
@@ -63,7 +63,7 @@ interface SourceContainerProps {
   sourceHovered: boolean;
   status: TransactionStatus;
   swapBalance: UserAsset[] | null;
-  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  swapIntent: RefObject<LegacyIntentHookData | null>;
   swapMode: SwapMode;
 }
 

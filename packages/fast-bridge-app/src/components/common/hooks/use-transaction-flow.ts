@@ -1,10 +1,4 @@
-import type {
-  NexusClient,
-  NexusNetwork,
-  OnAllowanceHookData,
-  OnIntentHookData,
-  TokenBalance,
-} from "@avail-project/nexus-core";
+import type { NexusClient, NexusNetwork } from "@avail-project/nexus-core";
 import {
   type RefObject,
   useCallback,
@@ -15,6 +9,11 @@ import {
   useState,
 } from "react";
 import { type Address, isAddress, parseUnits } from "viem";
+import type {
+  LegacyAllowanceHookData,
+  LegacyIntentHookData,
+  TokenBalance,
+} from "../../nexus/better-intent-compat";
 import type { TransactionStatus } from "../tx/types";
 import { useTransactionSteps } from "../tx/use-transaction-steps";
 import type {
@@ -41,11 +40,11 @@ import { useStopwatch } from "./use-stopwatch";
 import { useTransactionExecution } from "./use-transaction-execution";
 
 interface BaseTransactionFlowProps {
-  allowance: RefObject<OnAllowanceHookData | null>;
+  allowance: RefObject<LegacyAllowanceHookData | null>;
   bridgableBalance: TokenBalance[] | null;
   executeTransaction: TransactionFlowExecutor;
   fetchBalance: () => Promise<void>;
-  intent: RefObject<OnIntentHookData | null>;
+  intent: RefObject<LegacyIntentHookData | null>;
   isSourceMenuOpen?: boolean;
   maxAmount?: string | number;
   network: NexusNetwork;

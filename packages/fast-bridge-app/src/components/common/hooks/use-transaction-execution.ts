@@ -1,8 +1,4 @@
-import type {
-  NexusClient,
-  OnAllowanceHookData,
-  OnIntentHookData,
-} from "@avail-project/nexus-core";
+import type { NexusClient } from "@avail-project/nexus-core";
 import {
   type Dispatch,
   type RefObject,
@@ -10,6 +6,10 @@ import {
   useCallback,
   useRef,
 } from "react";
+import type {
+  LegacyAllowanceHookData,
+  LegacyIntentHookData,
+} from "../../nexus/better-intent-compat";
 import type { TransactionStatus } from "../tx/types";
 import type {
   BridgeStepType,
@@ -30,7 +30,7 @@ type NexusErrorHandler = (error: unknown) => NexusErrorInfo;
 
 interface UseTransactionExecutionProps {
   allAvailableSourceChainIds: number[];
-  allowance: RefObject<OnAllowanceHookData | null>;
+  allowance: RefObject<LegacyAllowanceHookData | null>;
   areInputsValid: boolean;
   configuredMaxAmount?: string;
   executeTransaction: TransactionFlowExecutor;
@@ -38,7 +38,7 @@ interface UseTransactionExecutionProps {
   getMaxForCurrentSelection: () => Promise<string | undefined>;
   handleNexusError: NexusErrorHandler;
   inputs: TransactionFlowInputs;
-  intent: RefObject<OnIntentHookData | null>;
+  intent: RefObject<LegacyIntentHookData | null>;
   loading: boolean;
   nexusSDK: NexusClient | null;
   notifyHistoryRefresh?: () => void;

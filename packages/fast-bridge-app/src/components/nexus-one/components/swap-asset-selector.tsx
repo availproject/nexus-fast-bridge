@@ -1,7 +1,6 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
-import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
 import {
@@ -29,6 +28,7 @@ import {
   getShortChainName,
   isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
+import type { SupportedChainsAndTokensResult } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 export const formatMiddleTruncatedAddress = (address?: string) => {

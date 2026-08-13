@@ -48,6 +48,10 @@ import {
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
+import {
+  adaptIntentEvent,
+  adaptIntentHook,
+} from "../nexus/better-intent-compat";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
@@ -4489,59 +4493,21 @@ function NexusOneInner({
     const cached = maxSwapQuoteCacheRef.current[key];
     if (cached) return cached;
 
-    const calculateMaxForSwap = nexusSDK?.calculateMaxForSwap;
-    if (typeof calculateMaxForSwap !== "function" || !token.chainId) {
-      return undefined;
-    }
+    const destinationRate = await resolveUsdRateForSymbol(token.symbol);
+    const walletUsd = getActiveTotalBalanceUsd();
+    if (destinationRate.lte(0) || walletUsd.lte(0)) return undefined;
 
-    const max = await calculateMaxForSwap({
-      toChainId: token.chainId,
-      toTokenAddress: (token.contractAddress || zeroAddress) as `0x${string}`,
-    });
-    const decimals = Number.isFinite(Number(max.decimals))
-      ? Number(max.decimals)
-      : token.decimals || 18;
-    const maxAmount =
-      parseFiatNumber(max.maxAmount) ??
-      (max.maxAmountRaw !== undefined
-        ? new Decimal(max.maxAmountRaw.toString()).div(
-            new Decimal(10).pow(decimals)
-          )
-        : undefined);
-
-    if (!maxAmount || maxAmount.lte(0)) return undefined;
-
-    const safeMaxAmount = maxAmount.mul(receiveMaxSafetyMultiplier);
-    const destinationRate = await resolveUsdRateForSymbol(
-      max.symbol || token.symbol
-    );
-    let maxUsdAmount = destinationRate.gt(0)
-      ? safeMaxAmount.mul(destinationRate)
-      : undefined;
-
-    if (!maxUsdAmount || maxUsdAmount.lte(0)) {
-      const sourcesUsd = await (max.sources ?? []).reduce(
-        async (sumPromise, source) => {
-          const sum = await sumPromise;
-          const amount = parseFiatNumber(source.amount) ?? new Decimal(0);
-          if (amount.lte(0)) return sum;
-
-          const sourceRate = await resolveUsdRateForSymbol(source.symbol);
-          return sourceRate.gt(0) ? sum.plus(amount.mul(sourceRate)) : sum;
-        },
-        Promise.resolve(new Decimal(0))
-      );
-
-      if (sourcesUsd.gt(0)) {
-        maxUsdAmount = sourcesUsd.mul(receiveMaxSafetyMultiplier);
-      }
-    }
+    // Better Intent deliberately does not expose the old routing-based max API.
+    // This is a conservative display estimate; the quote remains authoritative.
+    const maxUsdAmount = walletUsd.mul(receiveMaxSafetyMultiplier);
+    const safeMaxAmount = maxUsdAmount.div(destinationRate);
+    const decimals = token.decimals || 18;
 
     const quote: CachedMaxSwapQuote = {
       decimals,
       maxTokenAmount: safeMaxAmount,
       maxUsdAmount,
-      symbol: max.symbol || token.symbol,
+      symbol: token.symbol,
     };
     maxSwapQuoteCacheRef.current[key] = quote;
     return quote;
@@ -6747,7 +6713,13 @@ function NexusOneInner({
 
   const handleSwapIntentCallback = useCallback(
     (data: any, runId: number, quoteInputKey: string) => {
-      const { intent, allow, deny, refresh } = data;
+      const compatibleData = data?.quote
+        ? adaptIntentHook(
+            data,
+            swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? []
+          )
+        : data;
+      const { intent, allow, deny, refresh } = compatibleData;
       const bridgeProvider = normalizeBridgeProvider(
         data?.bridgeProvider ??
           intent?.bridgeProvider ??
@@ -9061,7 +9033,13 @@ function NexusOneInner({
       logSdkSwapEvent("ignored event without string type", event);
     };
 
-    const onEvent = (event: any) => {
+    const onEvent = (rawEvent: any) => {
+      const event =
+        rawEvent?.type === "quote" ||
+        rawEvent?.type === "step" ||
+        rawEvent?.type === "status"
+          ? adaptIntentEvent(rawEvent)
+          : rawEvent;
       const isCurrentRun = swapRunIdRef.current === runId;
       const isCurrentQuote = isCurrentQuoteInput();
       logSdkSwapEvent("onEvent", event, {
@@ -9441,8 +9419,10 @@ function NexusOneInner({
                   },
                   {
                     onEvent,
-                    onIntent: (data) =>
-                      handleSwapIntentCallback(data, runId, quoteInputKey),
+                    hooks: {
+                      onIntent: (data) =>
+                        handleSwapIntentCallback(data, runId, quoteInputKey),
+                    },
                   }
                 );
 
