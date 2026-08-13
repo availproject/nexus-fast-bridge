@@ -10,9 +10,16 @@ The SDK branch already contains the Better Intent backend client and execution o
 FastBridge change wires the application to the SDK's new public response and event models while
 preserving the current confirmation and progress UI.
 
+FastBridge configures the SDK with `network: "canary"`. The Better Intent rollout has no supported
+mainnet deployment; canary still operates against mainnet chains and therefore requires real assets
+and native gas for live execution tests.
+
 ## Endpoint wiring
 
 FastBridge calls these through the SDK, not with application-level HTTP requests.
+
+The SDK resolves the canary configuration to
+`https://nexus-v2.canary.avail.so/middleware`.
 
 | FastBridge use | SDK method | Better Intent endpoint | Expected result |
 | --- | --- | --- | --- |
@@ -57,18 +64,18 @@ and Better Intent backend.
 - Diagnostic SDK events and detailed middleware/RPC errors are intentionally retained during the
   regression pass.
 
-## Confirmed behavior
+## Current validation status
 
 - Catalogs, balances, quotes, history, USD receive display, and progress-event mapping are wired.
-- Small quotes are provider-dependent. For one 0.1 USDC route, Mayan reported an approximately
-  1 USDC minimum and Nexus v2 rejected its route under the 90% fair-value floor.
-- A Base USDC to Optimism ETH test correctly requested Base USDC approval. It failed because the
-  wallet had no Base ETH for approval gas, which is expected while sponsorship is out of scope.
+- Earlier quote and execution checks accidentally used the SDK's mainnet-named deployment. They are
+  useful implementation observations but do not count as canary validation.
+- All read and live execution paths below must be rerun after the switch to canary.
 
 ## Still to test
 
-Run with a funded wallet, including native gas on every ERC-20 source chain:
+Run on canary with a funded wallet, including native gas on every ERC-20 source chain:
 
+- Initialization, catalogs, balances, quotes, and history
 - Exact-input and exact-output swaps
 - Bridge/transfer flows
 - `swapAndExecute`
