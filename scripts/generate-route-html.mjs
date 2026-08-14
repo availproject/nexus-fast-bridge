@@ -24,6 +24,42 @@ const indexPath = path.join(distDir, "index.html");
 const LANDING_META_IMAGE_URL =
   "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
 
+const LANDING_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/hiw.css",
+  "/landing-new/blog.css",
+  "/landing-new/animations.css",
+  "/landing-new/button-hovers.css",
+];
+
+const SEO_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/seo-page.css",
+  "/landing-new/button-hovers.css",
+];
+
+const FAQ_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/button-hovers.css",
+];
+
+const CONTACT_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/contact.css",
+  "/landing-new/button-hovers.css",
+];
+
 const STATIC_PAGES = [
   {
     slug: "",
@@ -33,6 +69,7 @@ const STATIC_PAGES = [
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/",
     themeColor: "#19191A",
+    stylesheets: LANDING_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/landing-page/index.tsx",
     srcFile: "packages/fast-bridge-app/src/components/landing-page/index.tsx",
@@ -46,6 +83,7 @@ const STATIC_PAGES = [
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/about",
     themeColor: "#19191A",
+    stylesheets: SEO_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/about-page/index.tsx",
     srcFile: "packages/fast-bridge-app/src/components/about-page/index.tsx",
@@ -59,6 +97,7 @@ const STATIC_PAGES = [
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/guides",
     themeColor: "#19191A",
+    stylesheets: SEO_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/guides-page/index.tsx",
     srcFile: "packages/fast-bridge-app/src/components/guides-page/index.tsx",
@@ -73,6 +112,7 @@ const STATIC_PAGES = [
     canonicalUrl:
       "https://fastbridge.availproject.org/guides/top-cross-chain-bridges",
     themeColor: "#19191A",
+    stylesheets: SEO_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/guides-page/top-cross-chain-bridges.tsx",
     srcFile:
@@ -88,6 +128,7 @@ const STATIC_PAGES = [
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/faqs",
     themeColor: "#19191A",
+    stylesheets: FAQ_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/faq-page/index.tsx",
     srcFile: "packages/fast-bridge-app/src/components/faq-page/index.tsx",
@@ -101,6 +142,7 @@ const STATIC_PAGES = [
     imageUrl: LANDING_META_IMAGE_URL,
     canonicalUrl: "https://fastbridge.availproject.org/contact",
     themeColor: "#19191A",
+    stylesheets: CONTACT_PAGE_STYLESHEETS,
     componentPath:
       "./packages/fast-bridge-app/src/components/contact-page/index.tsx",
     srcFile: "packages/fast-bridge-app/src/components/contact-page/index.tsx",
@@ -318,6 +360,13 @@ function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
       `<meta name="twitter:site" content="${canonicalUrl}">`
     );
 
+  if (Array.isArray(pageMeta.stylesheets) && pageMeta.stylesheets.length > 0) {
+    const linkTags = pageMeta.stylesheets
+      .map((href) => `    <link rel="stylesheet" href="${href}">`)
+      .join("\n");
+    html = html.replace("</head>", `${linkTags}\n  </head>`);
+  }
+
   if (renderedHtml) {
     html = html.replace(RE_ROOT_DIV, `<div id="root">${renderedHtml}</div>`);
   }
@@ -355,6 +404,7 @@ async function loadCmsPosts(viteServer) {
           imageUrl: post.coverImage || LANDING_META_IMAGE_URL,
           canonicalUrl: `https://fastbridge.availproject.org/${fullSlug}`,
           themeColor: "#19191A",
+          stylesheets: SEO_PAGE_STYLESHEETS,
           componentPath:
             "./packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
           srcFile:

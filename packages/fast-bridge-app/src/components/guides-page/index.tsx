@@ -38,9 +38,6 @@ function getInitialPostsFromDom(): CMSBlogPost[] | null {
 
 export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(
-    () => typeof window === "undefined"
-  );
   const [posts, setPosts] = useState<CMSBlogPost[]>(() => {
     if (initialPosts && initialPosts.length > 0) {
       return initialPosts;
@@ -75,29 +72,20 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);
 
-    let loadedCount = 0;
-    const links = STYLESHEETS.map((href) => {
-      const link = document.createElement("link");
-      link.href = href;
-      link.rel = "stylesheet";
-      link.onload = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      link.onerror = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      document.head.appendChild(link);
-      return link;
-    });
+    const addedLinks: HTMLLinkElement[] = [];
+    for (const href of STYLESHEETS) {
+      const existing = document.querySelector(`link[href="${href}"]`);
+      if (!existing) {
+        const link = document.createElement("link");
+        link.href = href;
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+        addedLinks.push(link);
+      }
+    }
 
     return () => {
-      for (const link of links) {
+      for (const link of addedLinks) {
         if (document.head.contains(link)) {
           document.head.removeChild(link);
         }
@@ -106,13 +94,7 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
   }, []);
 
   return (
-    <main
-      className="page seo-page guides-page"
-      style={{
-        opacity: cssLoaded ? 1 : 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-    >
+    <main className="page seo-page guides-page">
       <section aria-labelledby="guides-page-title" className="page-hero">
         <img
           alt=""
