@@ -36,3 +36,6 @@ apps/root/public/*/
 coverage
 *.log
 dist
+
+avail/.sanity
+avail/.vercel
