@@ -12,13 +12,55 @@ const STYLESHEETS = [
   "/landing-new/button-hovers.css",
 ];
 
-export default function GuideDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+interface GuideDetailPageProps {
+  initialPost?: CMSBlogPost | null;
+}
+
+function getInitialPostFromDom(slug?: string): CMSBlogPost | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const el = document.getElementById("__FASTBRIDGE_DATA__");
+    if (el?.textContent) {
+      const data = JSON.parse(el.textContent) as {
+        initialPost?: CMSBlogPost;
+      };
+      if (data?.initialPost && (!slug || data.initialPost.slug === slug)) {
+        return data.initialPost;
+      }
+    }
+  } catch {
+    // Ignore DOM parse errors
+  }
+  return null;
+}
+
+export default function GuideDetailPage({
+  initialPost,
+}: GuideDetailPageProps = {}) {
+  const params = useParams<{ slug?: string }>();
+  const slug = params.slug ?? initialPost?.slug;
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(false);
-  const [activeId, setActiveId] = useState<string>("");
-  const [post, setPost] = useState<CMSBlogPost | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [cssLoaded, setCssLoaded] = useState(
+    () => typeof window === "undefined"
+  );
+  const [post, setPost] = useState<CMSBlogPost | null>(() => {
+    if (initialPost) {
+      return initialPost;
+    }
+    return getInitialPostFromDom(slug);
+  });
+  const [loading, setLoading] = useState(() => {
+    if (initialPost || getInitialPostFromDom(slug)) {
+      return false;
+    }
+    return Boolean(slug);
+  });
+  const [activeId, setActiveId] = useState<string>(() => {
+    const currentPost = initialPost ?? getInitialPostFromDom(slug);
+    return currentPost?.toc?.[0]?.id ?? "";
+  });
 
   const handleBridgeClick = () => {
     const lastChain = loadLastChain();
@@ -66,17 +108,16 @@ export default function GuideDetailPage() {
       return;
     }
 
+    if (post?.slug === slug) {
+      return;
+    }
+
+    setLoading(true);
     let isMounted = true;
     fetchBlogPostBySlug(slug)
       .then((data) => {
         if (isMounted) {
           setPost(data);
-          if (data) {
-            document.title = data.seoTitle || data.title;
-            if (data.toc.length > 0) {
-              setActiveId(data.toc[0].id);
-            }
-          }
           setLoading(false);
         }
       })
@@ -89,7 +130,17 @@ export default function GuideDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [slug]);
+  }, [slug, post?.slug]);
+
+  useEffect(() => {
+    if (!post) {
+      return;
+    }
+    document.title = post.seoTitle || post.title;
+    if (post.toc.length > 0) {
+      setActiveId(post.toc[0].id);
+    }
+  }, [post]);
 
   useEffect(() => {
     if (!post || post.toc.length === 0) {

@@ -281,7 +281,8 @@ function getLastModDate(relativeFilePath) {
 }
 
 function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
-  const { title, description, imageUrl, canonicalUrl, themeColor } = pageMeta;
+  const { title, description, imageUrl, canonicalUrl, themeColor, props } =
+    pageMeta;
 
   let html = baseHtml
     .replace(RE_TITLE, `<title>${title}</title>`)
@@ -321,6 +322,12 @@ function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
     html = html.replace(RE_ROOT_DIV, `<div id="root">${renderedHtml}</div>`);
   }
 
+  if (props) {
+    const safeDataJson = JSON.stringify(props).replace(/</g, "\\u003c");
+    const scriptTag = `<script id="__FASTBRIDGE_DATA__" type="application/json">${safeDataJson}</script>`;
+    html = html.replace("</body>", `${scriptTag}\n  </body>`);
+  }
+
   return html;
 }
 
@@ -330,6 +337,12 @@ async function loadCmsPosts(viteServer) {
       "./packages/fast-bridge-app/src/lib/cms.ts"
     );
     const cmsPosts = await cmsMod.fetchBlogPosts();
+
+    const guidesListingPage = STATIC_PAGES.find((p) => p.slug === "guides");
+    if (guidesListingPage) {
+      guidesListingPage.props = { initialPosts: cmsPosts };
+    }
+
     const existingSlugs = new Set(STATIC_PAGES.map((p) => p.slug));
 
     for (const post of cmsPosts) {
@@ -347,6 +360,7 @@ async function loadCmsPosts(viteServer) {
           srcFile:
             "packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
           priority: "0.8",
+          props: { initialPost: post },
         });
         existingSlugs.add(fullSlug);
       }
@@ -368,7 +382,7 @@ async function renderPageSsr(viteServer, page) {
       React.createElement(
         MemoryRouter,
         { initialEntries: [routeLocation] },
-        React.createElement(Component)
+        React.createElement(Component, page.props ?? {})
       )
     );
     console.log(

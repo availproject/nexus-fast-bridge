@@ -12,10 +12,41 @@ const STYLESHEETS = [
   "/landing-new/button-hovers.css",
 ];
 
-export default function GuidesPage() {
+interface GuidesPageProps {
+  initialPosts?: CMSBlogPost[];
+}
+
+function getInitialPostsFromDom(): CMSBlogPost[] | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const el = document.getElementById("__FASTBRIDGE_DATA__");
+    if (el?.textContent) {
+      const data = JSON.parse(el.textContent) as {
+        initialPosts?: CMSBlogPost[];
+      };
+      if (Array.isArray(data?.initialPosts) && data.initialPosts.length > 0) {
+        return data.initialPosts;
+      }
+    }
+  } catch {
+    // Ignore DOM parse errors
+  }
+  return null;
+}
+
+export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(false);
-  const [posts, setPosts] = useState<CMSBlogPost[]>([]);
+  const [cssLoaded, setCssLoaded] = useState(
+    () => typeof window === "undefined"
+  );
+  const [posts, setPosts] = useState<CMSBlogPost[]>(() => {
+    if (initialPosts && initialPosts.length > 0) {
+      return initialPosts;
+    }
+    return getInitialPostsFromDom() ?? [];
+  });
 
   const handleBridgeClick = () => {
     const lastChain = loadLastChain();
@@ -23,6 +54,10 @@ export default function GuidesPage() {
   };
 
   useEffect(() => {
+    if (posts.length > 0) {
+      return;
+    }
+
     let isMounted = true;
     fetchBlogPosts().then((fetched) => {
       if (isMounted) {
@@ -33,7 +68,7 @@ export default function GuidesPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [posts.length]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
