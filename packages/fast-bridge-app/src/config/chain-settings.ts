@@ -124,9 +124,12 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.MEGAETH]: 5000,
+      },
       maxBridgeAmountByTokenAndChain: {
         USDM: {
-          [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+          [SUPPORTED_CHAINS.MEGAETH]: 5000,
         },
       },
       walletInitDelayMs: 500,
@@ -294,6 +297,9 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "black",
       analyticsFastBridgeKey: "citrea",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.CITREA]: 2000,
+      },
       maxBridgeAmountByTokenAndChain: {
         USDC: { [SUPPORTED_CHAINS.CITREA]: 2000 },
         USDT: { [SUPPORTED_CHAINS.CITREA]: 2000 },
@@ -659,6 +665,9 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "black",
       analyticsFastBridgeKey: "scroll",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.SCROLL]: 500,
+      },
       mapUsdmToUsdcBalance: true,
       denyIntentOnReset: true,
       tokenDenyListByChainId: {},
