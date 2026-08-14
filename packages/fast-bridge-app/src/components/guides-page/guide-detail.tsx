@@ -293,9 +293,8 @@ export default function GuideDetailPage({
             <nav aria-label="On this page" className="seo-toc">
               <p className="seo-toc__label">ON THIS PAGE</p>
               <ol>
-                {post.toc.map((item, index) => {
+                {post.toc.map((item) => {
                   const isActive = activeId === item.id;
-                  const num = (index + 1).toString().padStart(2, "0");
                   return (
                     <li
                       className={isActive ? "is-active" : undefined}
@@ -305,16 +304,6 @@ export default function GuideDetailPage({
                         aria-current={isActive ? "location" : undefined}
                         href={`#${item.id}`}
                       >
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            opacity: 0.6,
-                            marginRight: "8px",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {num}
-                        </span>
                         {item.label}
                       </a>
                     </li>
