@@ -7,6 +7,7 @@ import ContactPage from "./components/contact-page";
 import FAQPage from "./components/faq-page";
 import { GooglePageViewTracker } from "./components/google-page-view-tracker";
 import GuidesPage from "./components/guides-page";
+import GuideDetailPage from "./components/guides-page/guide-detail";
 import TopCrossChainBridgesPage from "./components/guides-page/top-cross-chain-bridges";
 import LandingPage from "./components/landing-page";
 import { preloadReceiveTokens } from "./components/nexus-one/components/receive-asset-selector";
@@ -82,6 +83,7 @@ export function bootstrapApp() {
             element={<TopCrossChainBridgesPage />}
             path="/guides/best-cross-chain-bridge-2026"
           />
+          <Route element={<GuideDetailPage />} path="/guides/:slug" />
           <Route
             element={<Navigate replace to="/bnb-smart-chain" />}
             path="/bsc"

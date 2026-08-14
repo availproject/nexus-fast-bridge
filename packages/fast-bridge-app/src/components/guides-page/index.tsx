@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { type CMSBlogPost, fetchBlogPosts } from "@/lib/cms";
 import { loadLastChain } from "@/providers/runtime-context";
 
 const STYLESHEETS = [
@@ -11,9 +12,38 @@ const STYLESHEETS = [
   "/landing-new/button-hovers.css",
 ];
 
-export default function GuidesPage() {
+interface GuidesPageProps {
+  initialPosts?: CMSBlogPost[];
+}
+
+function getInitialPostsFromDom(): CMSBlogPost[] | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const el = document.getElementById("__FASTBRIDGE_DATA__");
+    if (el?.textContent) {
+      const data = JSON.parse(el.textContent) as {
+        initialPosts?: CMSBlogPost[];
+      };
+      if (Array.isArray(data?.initialPosts) && data.initialPosts.length > 0) {
+        return data.initialPosts;
+      }
+    }
+  } catch {
+    // Ignore DOM parse errors
+  }
+  return null;
+}
+
+export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(false);
+  const [posts, setPosts] = useState<CMSBlogPost[]>(() => {
+    if (initialPosts && initialPosts.length > 0) {
+      return initialPosts;
+    }
+    return getInitialPostsFromDom() ?? [];
+  });
 
   const handleBridgeClick = () => {
     const lastChain = loadLastChain();
@@ -21,33 +51,41 @@ export default function GuidesPage() {
   };
 
   useEffect(() => {
+    if (posts.length > 0) {
+      return;
+    }
+
+    let isMounted = true;
+    fetchBlogPosts().then((fetched) => {
+      if (isMounted) {
+        setPosts(fetched);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [posts.length]);
+
+  useEffect(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);
 
-    let loadedCount = 0;
-    const links = STYLESHEETS.map((href) => {
-      const link = document.createElement("link");
-      link.href = href;
-      link.rel = "stylesheet";
-      link.onload = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      link.onerror = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      document.head.appendChild(link);
-      return link;
-    });
+    const addedLinks: HTMLLinkElement[] = [];
+    for (const href of STYLESHEETS) {
+      const existing = document.querySelector(`link[href="${href}"]`);
+      if (!existing) {
+        const link = document.createElement("link");
+        link.href = href;
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+        addedLinks.push(link);
+      }
+    }
 
     return () => {
-      for (const link of links) {
+      for (const link of addedLinks) {
         if (document.head.contains(link)) {
           document.head.removeChild(link);
         }
@@ -56,13 +94,7 @@ export default function GuidesPage() {
   }, []);
 
   return (
-    <main
-      className="page seo-page guides-page"
-      style={{
-        opacity: cssLoaded ? 1 : 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-    >
+    <main className="page seo-page guides-page">
       <section aria-labelledby="guides-page-title" className="page-hero">
         <img
           alt=""
@@ -106,43 +138,43 @@ export default function GuidesPage() {
 
       <section aria-label="FastBridge guides" className="guides-list">
         <ul className="guides-list__grid">
-          <li>
-            <article className="guides-card">
-              <Link
-                aria-hidden="true"
-                className="guides-card__media"
-                tabIndex={-1}
-                to="/guides/top-cross-chain-bridges"
-              >
-                <img
-                  alt=""
-                  decoding="async"
-                  height="720"
-                  loading="lazy"
-                  sizes="(max-width: 640px) 100vw, 360px"
-                  src="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png"
-                  srcSet="/landing-new/assets/branding/blog/top-cross-chain-bridges-2026.png 1280w, /landing-new/assets/branding/blog/top-cross-chain-bridges-2026@2x.png 2560w"
-                  width="1280"
-                />
-              </Link>
-              <div className="guides-card__body">
-                <h2 className="guides-card__title">
-                  <Link to="/guides/top-cross-chain-bridges">
-                    Top Cross-Chain Bridges In 2026
-                  </Link>
-                </h2>
-                <p className="guides-card__date">
-                  Published on <time dateTime="2026-04-24">24 April 2026</time>
-                </p>
+          {posts.map((post) => (
+            <li key={post.slug}>
+              <article className="guides-card">
                 <Link
-                  className="guides-card__link"
-                  to="/guides/top-cross-chain-bridges"
+                  aria-hidden="true"
+                  className="guides-card__media"
+                  tabIndex={-1}
+                  to={`/guides/${post.slug}`}
                 >
-                  Read more
+                  <img
+                    alt={post.title}
+                    decoding="async"
+                    height="720"
+                    loading="lazy"
+                    sizes="(max-width: 640px) 100vw, 360px"
+                    src={post.coverImage}
+                    width="1280"
+                  />
                 </Link>
-              </div>
-            </article>
-          </li>
+                <div className="guides-card__body">
+                  <h2 className="guides-card__title">
+                    <Link to={`/guides/${post.slug}`}>{post.title}</Link>
+                  </h2>
+                  <p className="guides-card__date">
+                    Published on{" "}
+                    <time dateTime={post.publishedAt}>{post.publishedAt}</time>
+                  </p>
+                  <Link
+                    className="guides-card__link"
+                    to={`/guides/${post.slug}`}
+                  >
+                    Read more
+                  </Link>
+                </div>
+              </article>
+            </li>
+          ))}
         </ul>
       </section>
 

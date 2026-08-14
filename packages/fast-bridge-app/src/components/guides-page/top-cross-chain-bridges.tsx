@@ -23,7 +23,6 @@ const TOC_ITEMS = [
 
 export default function TopCrossChainBridgesPage() {
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(false);
   const [activeId, setActiveId] = useState<string>("tldr");
 
   const handleBridgeClick = () => {
@@ -31,35 +30,57 @@ export default function TopCrossChainBridgesPage() {
     navigate(`/${lastChain}`);
   };
 
+  const handleTocClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    id: string
+  ) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.pushState(null, "", `#${id}`);
+      setActiveId(id);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) {
+      return;
+    }
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) {
+      return;
+    }
+    const target = document.getElementById(targetId);
+    if (target) {
+      const timer = setTimeout(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveId(targetId);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   useEffect(() => {
     document.title = "Best Cross-Chain Bridges in 2026 [Compared]";
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);
 
-    let loadedCount = 0;
-    const links = STYLESHEETS.map((href) => {
-      const link = document.createElement("link");
-      link.href = href;
-      link.rel = "stylesheet";
-      link.onload = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      link.onerror = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      document.head.appendChild(link);
-      return link;
-    });
+    const addedLinks: HTMLLinkElement[] = [];
+    for (const href of STYLESHEETS) {
+      const existing = document.querySelector(`link[href="${href}"]`);
+      if (!existing) {
+        const link = document.createElement("link");
+        link.href = href;
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+        addedLinks.push(link);
+      }
+    }
 
     return () => {
-      for (const link of links) {
+      for (const link of addedLinks) {
         if (document.head.contains(link)) {
           document.head.removeChild(link);
         }
@@ -106,13 +127,7 @@ export default function TopCrossChainBridgesPage() {
   }, []);
 
   return (
-    <main
-      className="page seo-page"
-      style={{
-        opacity: cssLoaded ? 1 : 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-    >
+    <main className="page seo-page">
       <section aria-labelledby="seo-page-title" className="page-hero">
         <img
           alt=""
@@ -168,6 +183,7 @@ export default function TopCrossChainBridgesPage() {
                     <a
                       aria-current={isActive ? "location" : undefined}
                       href={`#${item.id}`}
+                      onClick={(e) => handleTocClick(e, item.id)}
                     >
                       {item.label}
                     </a>
