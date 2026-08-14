@@ -84,13 +84,15 @@ const FastBridgeShowcase = () => {
   const [receiveAssetOverride, setReceiveAssetOverride] =
     useState<ReceiveAsset | null>(null);
 
+  const isAppRoute = chainSlug === "app";
+
   const receiveAssetOverrideKey = useMemo(
     () => getReceiveAssetKey(receiveAssetOverride),
     [receiveAssetOverride]
   );
 
   const receiveDestination = useMemo(() => {
-    if (receiveAssetOverrideKey) {
+    if (isAppRoute || receiveAssetOverrideKey) {
       return undefined;
     }
 
@@ -103,26 +105,29 @@ const FastBridgeShowcase = () => {
     appConfig.chainId,
     appConfig.nexusPrimaryToken,
     chainSlug,
+    isAppRoute,
     receiveAssetOverrideKey,
   ]);
 
   const nexusConfig = useMemo<NexusOneConfig>(() => {
     const prefill: NexusOneConfig["prefill"] = {};
-    if (receiveDestination) {
-      prefill.destination = receiveDestination;
-    }
-    if (params.amount) {
-      prefill.amount = params.amount;
-    }
-    if (params.recipient) {
-      prefill.recipient = params.recipient;
+    if (!isAppRoute) {
+      if (receiveDestination) {
+        prefill.destination = receiveDestination;
+      }
+      if (params.amount) {
+        prefill.amount = params.amount;
+      }
+      if (params.recipient) {
+        prefill.recipient = params.recipient;
+      }
     }
 
     return {
       mode: "swap",
       prefill,
     };
-  }, [params.amount, params.recipient, receiveDestination]);
+  }, [isAppRoute, params.amount, params.recipient, receiveDestination]);
 
   const handleReceiveAssetChange = useCallback(
     (asset: ReceiveAsset) => {
@@ -131,14 +136,16 @@ const FastBridgeShowcase = () => {
           ? current
           : asset
       );
-      const slug =
-        (asset.chainId ? getChainSlugById(asset.chainId) : undefined) ??
-        getChainSlugByName(asset.chainName);
-      if (slug && slug !== chainSlug) {
-        setChain(slug);
+      if (!isAppRoute) {
+        const slug =
+          (asset.chainId ? getChainSlugById(asset.chainId) : undefined) ??
+          getChainSlugByName(asset.chainName);
+        if (slug && slug !== chainSlug) {
+          setChain(slug);
+        }
       }
     },
-    [chainSlug, setChain]
+    [chainSlug, isAppRoute, setChain]
   );
 
   return (

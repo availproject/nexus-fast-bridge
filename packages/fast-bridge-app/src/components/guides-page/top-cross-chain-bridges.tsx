@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loadLastChain } from "@/providers/runtime-context";
+
+// import { loadLastChain } from "@/providers/runtime-context";
 
 const STYLESHEETS = [
   "/landing-new/base.css",
@@ -26,8 +27,9 @@ export default function TopCrossChainBridgesPage() {
   const [activeId, setActiveId] = useState<string>("tldr");
 
   const handleBridgeClick = () => {
-    const lastChain = loadLastChain();
-    navigate(`/${lastChain}`);
+    // const lastChain = loadLastChain();
+    // navigate(`/${lastChain}`);
+    navigate("/app");
   };
 
   const handleTocClick = (

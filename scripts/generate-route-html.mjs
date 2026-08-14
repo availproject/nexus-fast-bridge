@@ -152,6 +152,15 @@ const STATIC_PAGES = [
 
 const CHAIN_META = [
   {
+    slug: "app",
+    title: "FastBridge – Universal Cross-Chain Crypto Bridge",
+    description:
+      "Bridge tokens across major EVM chains in one seamless transaction with zero slippage and gas abstraction.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/app",
+    themeColor: "#0065FF",
+  },
+  {
     slug: "megaeth",
     title: "Bridge to MegaETH – Instant Cross-Chain Transfers | FastBridge",
     description:
