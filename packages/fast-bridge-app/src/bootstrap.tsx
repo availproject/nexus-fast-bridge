@@ -85,6 +85,22 @@ export function bootstrapApp() {
           />
           <Route element={<GuideDetailPage />} path="/guides/:slug" />
           <Route
+            element={
+              <RuntimeProvider>
+                <App />
+              </RuntimeProvider>
+            }
+            path="/app"
+          />
+          <Route
+            element={
+              <RuntimeProvider>
+                <App />
+              </RuntimeProvider>
+            }
+            path="/app.html"
+          />
+          <Route
             element={<Navigate replace to="/bnb-smart-chain" />}
             path="/bsc"
           />

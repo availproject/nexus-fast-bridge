@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loadLastChain } from "@/providers/runtime-context";
+
+// import { loadLastChain } from "@/providers/runtime-context";
 
 const WEBKIT_REGEX = /AppleWebKit/;
 const CHROME_REGEX = /Chrome|Chromium|Android|Edg|OPR|SamsungBrowser/;
@@ -76,8 +77,9 @@ export default function LandingPage() {
   const isVideoPlaybackFailedRef = useRef(false);
 
   const handleBridgeClick = () => {
-    const lastChain = loadLastChain();
-    navigate(`/${lastChain}`);
+    // const lastChain = loadLastChain();
+    // navigate(`/${lastChain}`);
+    navigate("/app");
   };
 
   const isWebKit = () => {

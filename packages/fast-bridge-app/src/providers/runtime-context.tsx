@@ -109,6 +109,14 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
 
   // Resolve the active slug, with redirect for invalid/missing routes
   const resolvedSlug = useMemo(() => {
+    if (
+      chain === "app" ||
+      (typeof window !== "undefined" &&
+        (window.location.pathname === "/app" ||
+          window.location.pathname === "/app.html"))
+    ) {
+      return "app";
+    }
     if (chain && isValidChainSlug(chain)) {
       return chain;
     }
@@ -123,9 +131,9 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
     }
   }, [resolvedSlug, navigate]);
 
-  // Persist valid chain to localStorage
+  // Persist valid chain to localStorage (excluding pseudo-chain "app")
   useEffect(() => {
-    if (resolvedSlug) {
+    if (resolvedSlug && resolvedSlug !== "app") {
       persistChain(resolvedSlug);
     }
   }, [resolvedSlug]);
