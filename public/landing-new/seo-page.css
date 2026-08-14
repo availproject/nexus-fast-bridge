@@ -141,6 +141,26 @@
   text-underline-offset: 2px;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+.seo-content h1,
+.seo-content h2,
+.seo-content h3,
+.seo-content h4,
+.seo-content h5,
+.seo-content h6,
+.seo-content section[id],
+.cms-article-body h1,
+.cms-article-body h2,
+.cms-article-body h3,
+.cms-article-body h4,
+.cms-article-body h5,
+.cms-article-body h6 {
+  scroll-margin-top: 100px;
+}
+
 .seo-content h2 {
   margin: 0 0 0.7em;
   font-size: clamp(28px, 3.4vw, 36px);

@@ -149,20 +149,64 @@ function renderBlockText(block: PortableTextBlock): string {
   return result;
 }
 
+const RE_HEADING = /<h[23][^>]*>(.*?)<\/h[23]>|^(#{2,3})\s+(.*$)/gim;
+const RE_TAGS = /<[^>]*>/g;
+const RE_SLUG_NON_ALPHANUM = /[^a-z0-9]+/g;
+const RE_SLUG_TRIM_HYPHENS = /(^-|-$)/g;
+const RE_HTML_HEADINGS = /<(h[1-6])([^>]*)>(.*?)<\/\1>/gi;
+const RE_HAS_ID = /id\s*=/i;
+
+export function slugifyHeading(text: string): string {
+  if (!text) {
+    return "";
+  }
+  const cleanLabel = text.replace(RE_TAGS, "").trim();
+  return cleanLabel
+    .toLowerCase()
+    .replace(RE_SLUG_NON_ALPHANUM, "-")
+    .replace(RE_SLUG_TRIM_HYPHENS, "");
+}
+
+export function ensureHeadingIds(html: string): string {
+  if (!html) {
+    return "";
+  }
+  return html.replace(RE_HTML_HEADINGS, (match, tag, attrs, content) => {
+    if (RE_HAS_ID.test(attrs)) {
+      return match;
+    }
+    const id = slugifyHeading(content);
+    return id ? `<${tag}${attrs} id="${id}">${content}</${tag}>` : match;
+  });
+}
+
 function wrapStyleTag(style: string, blockText: string): string {
+  const headingId = slugifyHeading(blockText);
   switch (style) {
     case "h1":
-      return `<h1>${blockText}</h1>`;
+      return headingId
+        ? `<h1 id="${headingId}">${blockText}</h1>`
+        : `<h1>${blockText}</h1>`;
     case "h2":
-      return `<h2>${blockText}</h2>`;
+      return headingId
+        ? `<h2 id="${headingId}">${blockText}</h2>`
+        : `<h2>${blockText}</h2>`;
     case "h3":
-      return `<h3>${blockText}</h3>`;
+      return headingId
+        ? `<h3 id="${headingId}">${blockText}</h3>`
+        : `<h3>${blockText}</h3>`;
     case "h4":
-      return `<h4>${blockText}</h4>`;
+      return headingId
+        ? `<h4 id="${headingId}">${blockText}</h4>`
+        : `<h4>${blockText}</h4>`;
     case "h5":
-      return `<h5>${blockText}</h5>`;
+      return headingId
+        ? `<h5 id="${headingId}">${blockText}</h5>`
+        : `<h5>${blockText}</h5>`;
     case "h6":
-      return `<h6>${blockText}</h6>`;
+      return headingId
+        ? `<h6 id="${headingId}">${blockText}</h6>`
+        : `<h6>${blockText}</h6>`;
     case "blockquote":
       return `<blockquote class="seo-callout"><p>${blockText}</p></blockquote>`;
     default:
@@ -303,11 +347,6 @@ const FALLBACK_POSTS: CMSBlogPost[] = [
   },
 ];
 
-const RE_HEADING = /<h[23][^>]*>(.*?)<\/h[23]>|^(#{2,3})\s+(.*$)/gim;
-const RE_TAGS = /<[^>]*>/g;
-const RE_SLUG_NON_ALPHANUM = /[^a-z0-9]+/g;
-const RE_SLUG_TRIM_HYPHENS = /(^-|-$)/g;
-
 /**
  * Extracts h2/h3 headings from raw content for the Table of Contents sidebar.
  */
@@ -326,12 +365,8 @@ export function extractTocFromContent(
     const labelRaw = match[1] || match[3] || "";
     const cleanLabel = labelRaw.replace(RE_TAGS, "").trim();
     if (cleanLabel) {
-      const id = cleanLabel
-        .toLowerCase()
-        .replace(RE_SLUG_NON_ALPHANUM, "-")
-        .replace(RE_SLUG_TRIM_HYPHENS, "");
-
-      if (!headings.some((h) => h.id === id)) {
+      const id = slugifyHeading(cleanLabel);
+      if (id && !headings.some((h) => h.id === id)) {
         headings.push({ id, label: cleanLabel });
       }
     }
@@ -349,7 +384,9 @@ function normalizeSanityDoc(doc: SanityPostDocument): CMSBlogPost {
   const rawSlug =
     typeof doc.slug === "string" ? doc.slug : (doc.slug?.current ?? "");
   const title = doc.title ?? "Untitled Guide";
-  const rawContent = portableTextToHtml(doc.content ?? doc.body);
+  const rawContent = ensureHeadingIds(
+    portableTextToHtml(doc.content ?? doc.body)
+  );
   const imageUrl =
     doc.featuredImage ??
     doc.coverImage ??

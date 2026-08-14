@@ -30,6 +30,37 @@ export default function TopCrossChainBridgesPage() {
     navigate(`/${lastChain}`);
   };
 
+  const handleTocClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    id: string
+  ) => {
+    e.preventDefault();
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.pushState(null, "", `#${id}`);
+      setActiveId(id);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) {
+      return;
+    }
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) {
+      return;
+    }
+    const target = document.getElementById(targetId);
+    if (target) {
+      const timer = setTimeout(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        setActiveId(targetId);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   useEffect(() => {
     document.title = "Best Cross-Chain Bridges in 2026 [Compared]";
     window.scrollTo(0, 0);
@@ -152,6 +183,7 @@ export default function TopCrossChainBridgesPage() {
                     <a
                       aria-current={isActive ? "location" : undefined}
                       href={`#${item.id}`}
+                      onClick={(e) => handleTocClick(e, item.id)}
                     >
                       {item.label}
                     </a>
