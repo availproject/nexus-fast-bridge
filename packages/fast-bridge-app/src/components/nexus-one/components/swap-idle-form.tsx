@@ -982,8 +982,10 @@ export function SwapIdleForm({
           fontVariantNumeric: "tabular-nums",
           gap: "6px",
           justifyContent: "center",
+          minHeight: "106px",
           paddingBlock: "9px",
           paddingInline: "9px",
+          transition: "min-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           width: "100%",
         }}
       >
@@ -1013,7 +1015,10 @@ export function SwapIdleForm({
             Send
           </div>
           <button
-            disabled={fromTokens.length === 0 || isSourcePickerDisabled}
+            disabled={
+              isSourcePickerDisabled ||
+              (fromTokens.length === 0 && swapType !== "exactOut")
+            }
             onClick={() => onOpenSourcePicker()}
             style={{
               alignItems: "center",
@@ -1024,11 +1029,13 @@ export function SwapIdleForm({
               gap: "4px",
               padding: "2px 0",
               color:
-                fromTokens.length > 0 && !isSourcePickerDisabled
+                !isSourcePickerDisabled &&
+                (fromTokens.length > 0 || swapType === "exactOut")
                   ? "#006BF4"
                   : "#A8A8A6",
               cursor:
-                fromTokens.length > 0 && !isSourcePickerDisabled
+                !isSourcePickerDisabled &&
+                (fromTokens.length > 0 || swapType === "exactOut")
                   ? "pointer"
                   : "not-allowed",
               fontFamily: '"Geist", system-ui, sans-serif',
@@ -1036,7 +1043,10 @@ export function SwapIdleForm({
               fontWeight: 500,
               lineHeight: "18px",
               opacity:
-                fromTokens.length > 0 && !isSourcePickerDisabled ? 1 : 0.75,
+                !isSourcePickerDisabled &&
+                (fromTokens.length > 0 || swapType === "exactOut")
+                  ? 1
+                  : 0.75,
             }}
             type="button"
           >
@@ -1064,13 +1074,14 @@ export function SwapIdleForm({
             display: "flex",
             flexDirection: "column",
             gap: "9px",
+            minHeight: "58px",
             maxHeight: hasSourceOverflow ? "178px" : undefined,
             overflowX: hasSourceOverflow ? "hidden" : undefined,
             overflowY: hasSourceOverflow ? "auto" : undefined,
             paddingRight: hasSourceOverflow ? "4px" : undefined,
             overscrollBehavior: hasSourceOverflow ? "contain" : undefined,
             transition:
-              "max-height 0.28s ease, padding-right 0.2s ease, opacity 0.2s ease",
+              "min-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-right 0.2s ease, opacity 0.2s ease",
             width: "100%",
           }}
         >
@@ -1078,6 +1089,7 @@ export function SwapIdleForm({
             const showTooltipBelow = position === 0;
             return (
               <div
+                className="animate-in fade-in duration-200"
                 key={
                   token
                     ? `${token.contractAddress}-${token.chainId}-${index}`
