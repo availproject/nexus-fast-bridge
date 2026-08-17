@@ -22,25 +22,31 @@ export function RecipientInput({
 }: RecipientInputProps) {
   return (
     <div
-      className="flex items-center w-full px-4 overflow-hidden outline-none transition-all placeholder:text-[var(--foreground-muted, #848483)] text-[var(--foreground-primary, #161615)]"
+      className="flex items-center w-full overflow-hidden outline-none transition-all placeholder:text-[var(--foreground-muted, #848483)] text-[var(--foreground-primary, #161615)]"
       style={{
+        alignItems: "center",
         background: "#FFFFFE",
-        height: "38px",
-        borderRadius: "7px",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: hasError ? "#E35454" : "#006BF4",
-        gap: "8px",
-        paddingTop: "8px",
-        paddingBottom: "8px",
+        border: hasError ? "1px solid #E35454" : "1px solid #E8E8E7",
+        borderRadius: "12px",
+        boxShadow: "0 1px 4px 0 rgba(85, 85, 85, 0.05)",
+        boxSizing: "border-box",
+        color: "#161615",
+        display: "flex",
+        fontFamily: '"Geist", system-ui, sans-serif',
+        fontSize: "16px",
+        fontStyle: "normal",
+        fontWeight: 400,
+        gap: "10px",
+        height: "56px",
+        lineHeight: "18px",
+        padding: "18px 20px 20px 20px",
       }}
     >
       {label && (
         <div
           className="shrink-0 font-geist select-none flex items-center"
           style={{
-            color:
-              "var(--foreground-primary, var(--foreground-primary, #161615))",
+            color: "#8E8E89",
             fontSize: "14px",
             fontWeight: 400,
             lineHeight: "17px",
@@ -66,10 +72,10 @@ export function RecipientInput({
         style={{
           color: "#161615",
           caretColor: "#006BF4",
-          fontSize: "14px",
-          fontWeight: 500,
+          fontSize: "16px",
+          fontWeight: 400,
           WebkitTextFillColor: "#161615",
-          lineHeight: "17px",
+          lineHeight: "18px",
         }}
         value={value}
       />

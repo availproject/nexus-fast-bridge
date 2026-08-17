@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AddressIdenticon } from "./address-identicon";
 import {
   formatSelectedTokenBalanceLabel,
+  formatTokenAmountDisplay,
   formatUsdBalanceLabel,
   type SwapTokenOption,
 } from "./swap-asset-selector";
@@ -15,36 +16,48 @@ const tabularNums: React.CSSProperties = {
   fontVariantNumeric: "tabular-nums",
 };
 
+const ASSET_DROPDOWN_SHADOW =
+  "0 0 12px 0 rgba(61, 123, 255, 0.15), 0 2px 6px 0 rgba(60, 40, 100, 0.06), 0 1px 2px 0 rgba(60, 40, 100, 0.08), 0 1px 0 0 rgba(255, 255, 255, 0.90) inset";
+
 interface SwapIdleFormProps {
   amount: string;
   defaultRecipientAddress?: string;
+  destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
+  intentData?: any;
+  isExpanded?: boolean;
+  isMultiAssetMode?: boolean;
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
   isSourcePickerDisabled?: boolean;
   missingUsd?: string;
+  needsWalletConnection?: boolean;
   onAmountChange: (val: string, panel: "send" | "receive") => void;
   onOpenDestPicker: () => void;
   onOpenRecipientPicker?: () => void;
   onOpenSourcePicker: (index?: number) => void;
+  onRestoreAuto?: () => void;
   onSetPercent?: (pct: number) => void;
+  onToggleExpand?: () => void;
   onUpdateTokens?: (tokens: SwapTokenOption[]) => void;
   receiveQuoteAmount?: string;
   receiveQuoteUsd?: string;
   recipientAddress?: string;
+  showRestoreAuto?: boolean;
   sourceRouteMessage?: string;
   sourceRouteStatus?: "loading" | "insufficient";
   swapType: "exactIn" | "exactOut";
   toToken?: SwapTokenOption;
   totalBalance: string;
+  totalFeeUsd?: string;
   usdValue: string;
 }
 
 /** Chevron down icon used in asset selector pills */
-const ChevronDownIcon = () => (
+const ChevronDownIcon = ({ color = "#3D7BFF" }: { color?: string }) => (
   <svg
     height="10"
-    style={{ width: "13.2px", height: "13.2px", flexShrink: 0 }}
+    style={{ width: "12px", height: "12px", flexShrink: 0 }}
     viewBox="0 0 10 10"
     width="10"
     xmlns="http://www.w3.org/2000/svg"
@@ -52,10 +65,10 @@ const ChevronDownIcon = () => (
     <path
       d="M2 3.5L5 6.5L8 3.5"
       fill="none"
-      stroke="#848483"
+      stroke={color}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth="1.3"
+      strokeWidth="1.5"
     />
   </svg>
 );
@@ -82,12 +95,12 @@ const ArrowUpDownIcon = () => (
 /** Reusable percentage quick-select buttons row with transition wrapper */
 export function PercentButtons({
   disabled = false,
-  visible,
+  visible = true,
   onSelect,
   maxLabel = "Max",
 }: {
   disabled?: boolean;
-  visible: boolean;
+  visible?: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
 }) {
@@ -98,18 +111,19 @@ export function PercentButtons({
       style={{
         alignItems: "center",
         backgroundColor: "#F0F3F9",
-        borderRadius: "6.6px",
-        boxShadow: "#2A388B0F 0px 1px 2px inset",
+        borderRadius: "8px",
+        boxShadow: "0 1px 2px 0 rgba(42, 56, 139, 0.06) inset",
         boxSizing: "border-box",
         display: "flex",
         flexShrink: 0,
-        gap: "2.2px",
-        padding: "2.2px",
+        gap: "2px",
+        padding: "2px",
         opacity: visible ? 1 : 0,
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.18s ease-out, visibility 0.18s ease-out",
-        width: "106.7px",
+        width: "121px",
+        height: "26px",
       }}
     >
       {[20, 50, 100].map((pct) => {
@@ -133,21 +147,23 @@ export function PercentButtons({
             style={{
               alignItems: "center",
               backgroundColor: isHovered ? "#FFFFFF" : "transparent",
-              borderRadius: "4.4px",
-              boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
+              borderRadius: "6px",
+              boxShadow: isHovered
+                ? "0 1px 2px rgba(42, 56, 139, 0.08)"
+                : "none",
               boxSizing: "border-box",
-              color: isHovered ? "#1F1F1F" : "#8E8E89",
+              color: "#1F1F1F",
               cursor: disabled ? "default" : "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "11px",
               fontWeight: 500,
-              height: "20px",
+              height: "22px",
               justifyContent: "center",
               flex: "1 1 0%",
               minWidth: 0,
               opacity: disabled ? 0.55 : 1,
-              paddingInline: "3.3px",
+              padding: "0",
               border: "none",
               transition: "all 0.15s ease-out",
             }}
@@ -640,11 +656,25 @@ export function SwapIdleForm({
   missingUsd,
   isSourcePickerDisabled = false,
   onSetPercent,
+  destinationGasFeeUsd,
+  intentData,
+  totalFeeUsd,
+  isMultiAssetMode = false,
+  isExpanded = false,
+  onToggleExpand,
+  onRestoreAuto,
+  showRestoreAuto = false,
+  needsWalletConnection = false,
 }: SwapIdleFormProps) {
   const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
     null
   );
+  const [hoveredPanel, setHoveredPanel] = useState<"send" | "receive" | null>(
+    null
+  );
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  const [extraSlots, setExtraSlots] = useState(0);
+  const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
     null
@@ -653,6 +683,10 @@ export function SwapIdleForm({
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const previousSourceCountRef = useRef(fromTokens.length);
+
+  useEffect(() => {
+    setExtraSlots(0);
+  }, [isMultiAssetMode]);
 
   useEffect(() => {
     const previousSourceCount = previousSourceCountRef.current;
@@ -690,9 +724,10 @@ export function SwapIdleForm({
   }, [fromTokens.length]);
 
   const sanitizeInput = (raw: string, maxDecimals = 18): string => {
+    if (!raw) return "";
     let next = raw.replaceAll(/[^0-9.]/g, "");
     const parts = next.split(".");
-    if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
+    if (parts.length > 2) next = `${parts[0]}.${parts.slice(1).join("")}`;
     const [integerPart, decimalPart] = next.split(".");
     if (decimalPart !== undefined) {
       next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
@@ -702,9 +737,14 @@ export function SwapIdleForm({
     if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
       next = next.replace(/^0+/, "");
       if (next === "") next = "0";
-      if (next.startsWith(".")) next = "0" + next;
+      if (next.startsWith(".")) next = `0${next}`;
     }
     return next;
+  };
+
+  const handleReceiveInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = sanitizeInput(e.target.value, toToken?.decimals ?? 18);
+    onAmountChange(sanitized, "receive");
   };
 
   const handleBlurAmount = (index: number) => {
@@ -734,7 +774,7 @@ export function SwapIdleForm({
     const token = fromTokens[index];
     if (!token) return;
 
-    let sanitized = sanitizeInput(
+    const sanitized = sanitizeInput(
       val,
       token.userAmountMode === "usd"
         ? MAX_AMOUNT_DISPLAY_DECIMALS
@@ -821,10 +861,70 @@ export function SwapIdleForm({
     token: SwapTokenOption | null;
     index: number;
     position: number;
-  }> =
-    fromTokens.length > 0
-      ? fromTokens.map((token, index) => ({ token, index, position: index }))
-      : [{ token: null, index: 0, position: 0 }];
+  }> = React.useMemo(() => {
+    if (!isMultiAssetMode) {
+      return fromTokens.length > 0
+        ? [{ token: fromTokens[0], index: 0, position: 0 }]
+        : [{ token: null, index: 0, position: 0 }];
+    }
+    const count = Math.max(2, fromTokens.length + extraSlots);
+    const rows: Array<{
+      token: SwapTokenOption | null;
+      index: number;
+      position: number;
+    }> = [];
+    for (let i = 0; i < count; i++) {
+      rows.push({
+        token: fromTokens[i] || null,
+        index: i,
+        position: i,
+      });
+    }
+    return rows;
+  }, [isMultiAssetMode, fromTokens, extraSlots]);
+
+  const totalAssetCount = isMultiAssetMode
+    ? Math.max(
+        fromTokens.length,
+        sourceRowsToRender.filter((r) => r.token !== null).length ||
+          sourceRowsToRender.length
+      )
+    : fromTokens.length;
+
+  const handleAddAsset = () => {
+    setExtraSlots((prev) => prev + 1);
+  };
+
+  const handleClearAll = () => {
+    if (onUpdateTokens) {
+      onUpdateTokens([]);
+    }
+    onAmountChange("", "send");
+    setExtraSlots(0);
+  };
+
+  const handleRemoveRow = (index: number) => {
+    if (!isMultiAssetMode) {
+      if (onUpdateTokens) {
+        onUpdateTokens([]);
+      }
+      onAmountChange("", "send");
+      return;
+    }
+
+    if (fromTokens[index]) {
+      const next = [...fromTokens];
+      next.splice(index, 1);
+      if (onUpdateTokens) {
+        onUpdateTokens(next);
+      }
+      const total = getTokenAmountTotal(next);
+      onAmountChange(total > 0 ? String(total) : "", "send");
+    }
+    if (extraSlots > 0) {
+      setExtraSlots((prev) => Math.max(0, prev - 1));
+    }
+  };
 
   const isExactIn = swapType === "exactIn";
   const showSourceRouteSkeleton = !isExactIn && sourceRouteStatus === "loading";
@@ -847,10 +947,10 @@ export function SwapIdleForm({
     return undefined;
   };
   const hasReceiveValue = isExactIn
-    ? Boolean(receiveQuoteAmount && parseDecimal(receiveQuoteAmount).gt(0))
-    : Boolean(amount && parseDecimal(amount).gt(0));
+    ? Boolean(receiveQuoteAmount && parseDecimal(receiveQuoteAmount)?.gt(0))
+    : Boolean(amount && parseDecimal(amount)?.gt(0));
   const receiveInputValue = isExactIn
-    ? receiveQuoteAmount && parseDecimal(receiveQuoteAmount).gt(0)
+    ? receiveQuoteAmount && parseDecimal(receiveQuoteAmount)?.gt(0)
       ? receiveQuoteAmount
       : ""
     : amount;
@@ -858,7 +958,6 @@ export function SwapIdleForm({
     focusedPanel === "receive"
       ? receiveInputValue
       : formatAmountInputDisplay(receiveInputValue);
-  const receiveAmountTextColor = hasReceiveValue ? "#161615" : "#9E9E9C";
   const receiveUsdRate = getReceiveUsdRate();
   const receiveTokenAmount = parseDecimal(receiveInputValue);
   const receiveUsdAmount = receiveQuoteUsd
@@ -866,18 +965,6 @@ export function SwapIdleForm({
     : receiveTokenAmount && receiveUsdRate
       ? receiveTokenAmount.mul(receiveUsdRate)
       : undefined;
-  const receiveAltValue = `≈ $${
-    receiveUsdAmount ? formatUsdValue(receiveUsdAmount) : "0.00"
-  }`;
-  const isDefaultRecipient = sameAddress(
-    recipientAddress,
-    defaultRecipientAddress
-  );
-  const recipientColor = recipientAddress
-    ? isDefaultRecipient
-      ? "#006BF4"
-      : "#B7791F"
-    : "#848483";
   const getTokenAmountTotal = (tokens: SwapTokenOption[]) =>
     tokens.reduce((sum, item) => sum + Number(item.userAmount || 0), 0);
 
@@ -934,19 +1021,533 @@ export function SwapIdleForm({
     onAmountChange(total > 0 ? String(total) : "", "send");
   };
 
-  const handleSendPercent = (pct: number) => {
-    if (!totalBalance) return;
-    const bal = parseFloat(totalBalance.replace(/[^0-9.]/g, ""));
-    if (isNaN(bal)) return;
-    const val = bal * (pct / 100);
-    // If there's only one token, or no tokens, update the main amount
-    if (fromTokens.length <= 1) {
-      if (fromTokens.length === 1 && onUpdateTokens) {
-        handleSendPercentForToken(0, pct, fromTokens[0]);
-        return;
-      }
-      onAmountChange(val.toFixed(6).replace(/\.?0+$/, ""), "send");
+  const feeAmountValue = React.useMemo(() => {
+    if (totalFeeUsd && parseDecimal(totalFeeUsd)?.gt(0)) {
+      const dec = parseDecimal(totalFeeUsd);
+      return dec && dec.lt(0.01) ? "0" : (dec?.toFixed(2) ?? "0");
     }
+    const rawBridge = intentData?.feesAndBuffer?.bridge;
+    const bridgeTotal =
+      typeof rawBridge === "string"
+        ? parseDecimal(rawBridge)
+        : parseDecimal(rawBridge?.total);
+    if (bridgeTotal && bridgeTotal.gt(0)) {
+      return bridgeTotal.lt(0.01) ? "0" : bridgeTotal.toFixed(2);
+    }
+    return "0";
+  }, [intentData, totalFeeUsd]);
+
+  // Fees breakdown for fees tooltip
+  const feeBreakdown = React.useMemo(() => {
+    const rawBridge = intentData?.feesAndBuffer?.bridge;
+    const bridgeFeeData =
+      rawBridge && typeof rawBridge === "object" ? rawBridge : undefined;
+
+    const caGas = parseDecimal(bridgeFeeData?.caGas);
+    const collection = parseDecimal(bridgeFeeData?.collection);
+    const fulfilment = parseDecimal(bridgeFeeData?.fulfilment);
+    const destGasVal =
+      parseDecimal(intentData?.destination?.gas?.value) ??
+      parseDecimal(destinationGasFeeUsd);
+
+    const executionFee =
+      caGas ??
+      (collection !== undefined || fulfilment !== undefined
+        ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
+        : undefined) ??
+      destGasVal;
+
+    const solverFee = parseDecimal(bridgeFeeData?.solver);
+    const protocolFee = parseDecimal(bridgeFeeData?.protocol);
+
+    const formatFeeStr = (dec: Decimal | undefined) => {
+      if (!dec || dec.lte(0)) return "$0";
+      if (dec.lt(0.01)) return "<$0.01";
+      return `$${dec.toFixed(2)}`;
+    };
+
+    return {
+      hasProtocolFees: Boolean(protocolFee && protocolFee.gt(0)),
+      networkFees: formatFeeStr(executionFee),
+      protocolFees: formatFeeStr(protocolFee),
+      solverFees: formatFeeStr(solverFee),
+    };
+  }, [intentData, destinationGasFeeUsd]);
+
+  // Min received display for slippage tooltip
+  const minReceivedDisplay = React.useMemo(() => {
+    const intentMinAmount =
+      (intentData?.destination as any)?.minAmount ??
+      (intentData?.destination as any)?.minReceived ??
+      (intentData as any)?.minAmount ??
+      (intentData as any)?.minReceived;
+
+    const destSymbol = toToken?.symbol || intentData?.destination?.symbol || "";
+
+    if (intentMinAmount && parseDecimal(String(intentMinAmount))?.gt(0)) {
+      const formatted = formatTokenAmountDisplay(String(intentMinAmount));
+      return `${formatted} ${destSymbol}`.trim();
+    }
+
+    const fallbackAmount =
+      intentData?.destination?.amount ??
+      receiveQuoteAmount ??
+      (swapType === "exactOut" ? amount : undefined);
+
+    if (fallbackAmount && parseDecimal(String(fallbackAmount))?.gt(0)) {
+      const formatted = formatTokenAmountDisplay(String(fallbackAmount));
+      return `${formatted} ${destSymbol}`.trim();
+    }
+
+    return destSymbol ? `0 ${destSymbol}` : "0";
+  }, [intentData, receiveQuoteAmount, swapType, amount, toToken]);
+
+  // Price impact display for slippage tooltip
+  const priceImpactDisplay = React.useMemo(() => {
+    const explicitImpactUsd = parseDecimal((intentData as any)?.priceImpactUsd);
+    if (explicitImpactUsd !== undefined) {
+      return `$ ${explicitImpactUsd.abs().toFixed(2)}`;
+    }
+
+    let sourceUsdTotal = new Decimal(0);
+    if (fromTokens.length > 0) {
+      for (const t of fromTokens) {
+        if (!t.userAmount) continue;
+        const amt = parseDecimal(t.userAmount);
+        if (!amt || amt.lte(0)) continue;
+        const rate =
+          t.balanceInFiat && t.balance
+            ? parseDecimal(t.balanceInFiat)?.div(parseDecimal(t.balance) || 1)
+            : undefined;
+        if (rate) {
+          sourceUsdTotal = sourceUsdTotal.plus(amt.mul(rate));
+        }
+      }
+    }
+    if (sourceUsdTotal.lte(0) && intentData?.sources) {
+      sourceUsdTotal = (intentData.sources as any[]).reduce(
+        (acc: Decimal, s: any) =>
+          acc.plus(parseDecimal(s.value) ?? new Decimal(0)),
+        new Decimal(0)
+      );
+    }
+
+    const destUsd =
+      receiveUsdAmount ??
+      (intentData?.destination?.value
+        ? parseDecimal(intentData.destination.value)
+        : undefined);
+
+    if (sourceUsdTotal.gt(0) && destUsd && destUsd.gt(0)) {
+      const rawFee =
+        parseDecimal(totalFeeUsd) ??
+        parseDecimal(intentData?.feesAndBuffer?.bridge?.total) ??
+        new Decimal(0);
+      const impact = Decimal.max(
+        sourceUsdTotal.minus(destUsd).minus(rawFee),
+        0
+      );
+      return `$ ${impact.toFixed(2)}`;
+    }
+
+    return "$ 0.00";
+  }, [intentData, fromTokens, receiveUsdAmount, totalFeeUsd]);
+
+  const hasSendToken = isMultiAssetMode
+    ? fromTokens.length > 0 &&
+      fromTokens.some((t) => Boolean(t && (t.symbol || t.contractAddress)))
+    : fromTokens.length > 0 &&
+      Boolean(fromTokens[0]?.symbol || fromTokens[0]?.contractAddress);
+  const hasReceiveToken = Boolean(toToken?.symbol || toToken?.contractAddress);
+  const hasSendAmount = isMultiAssetMode
+    ? fromTokens.length > 0 &&
+      fromTokens.some((t) =>
+        Boolean(
+          t &&
+            (t.symbol || t.contractAddress) &&
+            t?.userAmount &&
+            parseDecimal(t.userAmount)?.gt(0)
+        )
+      )
+    : Boolean(amount && parseDecimal(amount)?.gt(0));
+  const hasReceiveAmount = Boolean(
+    (swapType === "exactOut" && amount && parseDecimal(amount)?.gt(0)) ||
+      (receiveQuoteAmount && parseDecimal(receiveQuoteAmount)?.gt(0))
+  );
+  const isIntentActive =
+    (hasSendAmount && hasSendToken && hasReceiveToken) ||
+    (hasReceiveAmount && hasReceiveToken && hasSendToken && hasSendAmount);
+
+  const warningMessage = React.useMemo(() => {
+    if (missingUsd && parseDecimal(missingUsd)?.gt(0)) {
+      return `You're $${Number(missingUsd).toFixed(2)} short. Add more assets to swap`;
+    }
+    if (sourceRouteStatus === "insufficient" || sourceRouteMessage) {
+      return (
+        sourceRouteMessage || "Your balance is too low to complete this swap"
+      );
+    }
+    return null;
+  }, [missingUsd, sourceRouteStatus, sourceRouteMessage]);
+
+  const renderSourceRow = (
+    token: SwapTokenOption | null,
+    index: number,
+    inModal = false
+  ) => {
+    return (
+      <div
+        key={
+          token
+            ? `${token.contractAddress}-${token.chainId}-${index}${inModal ? "-modal" : ""}`
+            : `empty-slot-${index}${inModal ? "-modal" : ""}`
+        }
+        ref={(element) => {
+          if (!inModal) {
+            sourceRowRefs.current[index] = element;
+          }
+        }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          width: "100%",
+        }}
+      >
+        <div
+          style={{
+            alignItems: "flex-start",
+            alignSelf: "stretch",
+            boxSizing: "border-box",
+            display: "flex",
+            gap: "12px",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          {/* Left: Input & Dollar value */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minWidth: 0,
+              gap: "2px",
+            }}
+          >
+            <input
+              onBlur={() => {
+                if (token) handleBlurAmount(index);
+                setFocusedRow(null);
+                setFocusedPanel(null);
+              }}
+              onChange={(e) => {
+                if (token) {
+                  handleTokenAmountChange(index, e.target.value);
+                } else if (!isMultiAssetMode) {
+                  handleSendInput(e);
+                }
+              }}
+              onFocus={() => {
+                setFocusedRow(index);
+                setFocusedPanel("send");
+              }}
+              placeholder="0"
+              ref={(element) => {
+                if (!inModal) {
+                  sourceInputRefs.current[index] = element;
+                }
+              }}
+              style={{
+                boxSizing: "border-box",
+                color: "#1F1F1F",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "clamp(22px, 5.5vw, 28px)",
+                fontStyle: "normal",
+                fontWeight: 500,
+                lineHeight: "32px",
+                letterSpacing: "-0.28px",
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                padding: 0,
+                width: "100%",
+                minWidth: 0,
+              }}
+              type="text"
+              value={
+                token
+                  ? focusedRow === index
+                    ? token.userAmount || ""
+                    : formatAmountInputDisplay(token.userAmount || "")
+                  : !isMultiAssetMode && isExactIn
+                    ? focusedRow === index
+                      ? amount
+                      : formatAmountInputDisplay(amount)
+                    : ""
+              }
+            />
+            <div
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                lineHeight: "18px",
+              }}
+            >
+              ≈ $
+              {token?.userAmount
+                ? getSourceUsdValue(token)
+                  ? getSourceUsdValue(token).toFixed(2)
+                  : "0"
+                : isMultiAssetMode
+                  ? "0"
+                  : usdValue || "0"}
+            </div>
+          </div>
+
+          {/* Right: Select assets or Token Pill + Cross */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              flexShrink: 0,
+              paddingTop: "2px",
+            }}
+          >
+            {token ? (
+              <>
+                <button
+                  disabled={isSourcePickerDisabled}
+                  onClick={() => onOpenSourcePicker(index)}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "#FFF",
+                    border: "none",
+                    borderRadius: "999px",
+                    boxShadow: ASSET_DROPDOWN_SHADOW,
+                    boxSizing: "border-box",
+                    display: "flex",
+                    gap: "8px",
+                    padding: "8px",
+                    cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
+                    flexShrink: 0,
+                    opacity: isSourcePickerDisabled ? 0.72 : 1,
+                  }}
+                  type="button"
+                >
+                  <div
+                    style={{
+                      boxSizing: "border-box",
+                      flexShrink: 0,
+                      height: "26px",
+                      position: "relative",
+                      width: "26px",
+                    }}
+                  >
+                    <LogoCircle
+                      alt={token.symbol}
+                      fontSize={12}
+                      label={token.symbol}
+                      size={26}
+                      src={token.logo}
+                    />
+                    {token.chainLogo && (
+                      <LogoCircle
+                        alt={token.chainName}
+                        fontSize={6}
+                        label={token.chainName}
+                        outline="1.5px solid #FFFFFE"
+                        size={12}
+                        src={token.chainLogo}
+                        style={{
+                          bottom: -2,
+                          position: "absolute",
+                          right: -2,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      color: "#1F1F1F",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "15px",
+                      fontStyle: "normal",
+                      fontWeight: 500,
+                      lineHeight: "18px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {token.symbol}
+                  </span>
+                  <ChevronDownIcon color="#3D7BFF" />
+                </button>
+                <button
+                  aria-label="Clear asset"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveRow(index);
+                  }}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "#F0F0EF",
+                    border: "none",
+                    borderRadius: "999px",
+                    color: "#8E8E89",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexShrink: 0,
+                    height: "24px",
+                    justifyContent: "center",
+                    padding: 0,
+                    width: "24px",
+                  }}
+                  type="button"
+                >
+                  <svg
+                    fill="none"
+                    height="10"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    width="10"
+                  >
+                    <line x1="18" x2="6" y1="6" y2="18" />
+                    <line x1="6" x2="18" y1="6" y2="18" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  disabled={isSourcePickerDisabled}
+                  onClick={() => onOpenSourcePicker(index)}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "#FFF",
+                    border: "none",
+                    borderRadius: "999px",
+                    boxShadow: ASSET_DROPDOWN_SHADOW,
+                    boxSizing: "border-box",
+                    display: "flex",
+                    gap: "8px",
+                    padding: "8px",
+                    cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
+                    flexShrink: 0,
+                    opacity: isSourcePickerDisabled ? 0.72 : 1,
+                  }}
+                  type="button"
+                >
+                  <div
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "1.5px dashed #D9D9DE",
+                      borderRadius: "999px",
+                      boxSizing: "border-box",
+                      flexShrink: 0,
+                      height: "26px",
+                      width: "26px",
+                    }}
+                  />
+                  <span
+                    style={{
+                      color: "#1F1F1F",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "15px",
+                      fontStyle: "normal",
+                      fontWeight: 500,
+                      lineHeight: "18px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Select asset
+                  </span>
+                  <ChevronDownIcon color="#3D7BFF" />
+                </button>
+                {isMultiAssetMode && (
+                  <button
+                    aria-label="Clear asset row"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveRow(index);
+                    }}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor: "#F0F0EF",
+                      border: "none",
+                      borderRadius: "999px",
+                      color: "#8E8E89",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexShrink: 0,
+                      height: "24px",
+                      justifyContent: "center",
+                      padding: 0,
+                      width: "24px",
+                    }}
+                    type="button"
+                  >
+                    <svg
+                      fill="none"
+                      height="10"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      width="10"
+                    >
+                      <line x1="18" x2="6" y1="6" y2="18" />
+                      <line x1="6" x2="18" y1="6" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom row: Percent Buttons & Balance */}
+        {token && (
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: "8px",
+              justifyContent: "flex-end",
+              width: "100%",
+              flexWrap: "wrap",
+              marginTop: "4px",
+            }}
+          >
+            <PercentButtons
+              disabled={!token?.balance}
+              onSelect={(pct) => handleSendPercentForToken(index, pct, token)}
+              visible={true}
+            />
+            <div
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                lineHeight: "16px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Balance · {formatTokenBalanceLabel(token)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -954,42 +1555,61 @@ export function SwapIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "9px",
+        gap: "12px",
         width: "100%",
+        boxSizing: "border-box",
       }}
     >
       {(isReceiveAmountLoading || isReceiveUsdLoading || sourceRouteStatus) && (
         <style>
           {`@keyframes nexusSwapSkeletonShimmer {
-            0% { background-position: 100% 0; opacity: 0.72; }
+            0% { opacity: 0.55; }
             50% { opacity: 1; }
-            100% { background-position: -100% 0; opacity: 0.72; }
+            100% { opacity: 0.55; }
+          }
+          @keyframes nexusFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes nexusPopIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
           }`}
         </style>
       )}
-      {/* ─── SEND PANEL ─── */}
+
+      {/* ─── SEND CONTAINER ─── */}
       <div
-        className="nexus-focus-container"
+        onMouseEnter={() => setHoveredPanel("send")}
+        onMouseLeave={() =>
+          setHoveredPanel((prev) => (prev === "send" ? null : prev))
+        }
         style={{
-          alignItems: "center",
-          backgroundColor: "#FFFFFE",
-          border: "1px solid transparent",
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0 0 3px",
-          boxSizing: "border-box",
           display: "flex",
+          padding: "12px",
           flexDirection: "column",
-          fontVariantNumeric: "tabular-nums",
-          gap: "6px",
-          justifyContent: "center",
-          minHeight: "106px",
-          paddingBlock: "9px",
-          paddingInline: "9px",
-          transition: "min-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          alignItems: "stretch",
+          gap: "8px",
+          alignSelf: "stretch",
+          borderRadius: "24px 24px 12px 12px",
+          border:
+            focusedPanel === "send"
+              ? "1px solid #EAEAEA"
+              : hoveredPanel === "send"
+                ? "1px solid #F0F0F0"
+                : "1px solid #F5F5F5",
+          backgroundColor: focusedPanel === "send" ? "#F7F8FA" : "#FFF",
+          boxShadow:
+            focusedPanel !== "send" && hoveredPanel === "send"
+              ? ASSET_DROPDOWN_SHADOW
+              : "none",
+          boxSizing: "border-box",
           width: "100%",
+          transition:
+            "background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       >
-        {/* Header row: SEND + add asset */}
+        {/* Top row: SEND + Assets Count + Expand Icon */}
         <div
           style={{
             alignItems: "center",
@@ -1002,790 +1622,417 @@ export function SwapIdleForm({
         >
           <div
             style={{
-              boxSizing: "border-box",
-              color: "#848483",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
-              fontWeight: 500,
-              letterSpacing: "0.08em",
-              lineHeight: "18px",
-              textTransform: "uppercase" as const,
-            }}
-          >
-            Send
-          </div>
-          <button
-            disabled={
-              isSourcePickerDisabled ||
-              (fromTokens.length === 0 && swapType !== "exactOut")
-            }
-            onClick={() => onOpenSourcePicker()}
-            style={{
-              alignItems: "center",
-              background: "transparent",
-              border: "none",
-              borderRadius: "6px",
               display: "flex",
-              gap: "4px",
-              padding: "2px 0",
-              color:
-                !isSourcePickerDisabled &&
-                (fromTokens.length > 0 || swapType === "exactOut")
-                  ? "#006BF4"
-                  : "#A8A8A6",
-              cursor:
-                !isSourcePickerDisabled &&
-                (fromTokens.length > 0 || swapType === "exactOut")
-                  ? "pointer"
-                  : "not-allowed",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "12px",
-              fontWeight: 500,
-              lineHeight: "18px",
-              opacity:
-                !isSourcePickerDisabled &&
-                (fromTokens.length > 0 || swapType === "exactOut")
-                  ? 1
-                  : 0.75,
-            }}
-            type="button"
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                color: "currentColor",
-                fontSize: "14px",
-                lineHeight: "14px",
-              }}
-            >
-              +
-            </span>
-            Add more assets
-          </button>
-        </div>
-
-        {/* Render each selected source asset, or an empty one if none */}
-        <div
-          onScroll={updateSourceListScrollState}
-          ref={sourceListRef}
-          style={{
-            alignSelf: "stretch",
-            boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "column",
-            gap: "9px",
-            minHeight: "58px",
-            maxHeight: hasSourceOverflow ? "178px" : undefined,
-            overflowX: hasSourceOverflow ? "hidden" : undefined,
-            overflowY: hasSourceOverflow ? "auto" : undefined,
-            paddingRight: hasSourceOverflow ? "4px" : undefined,
-            overscrollBehavior: hasSourceOverflow ? "contain" : undefined,
-            transition:
-              "min-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding-right 0.2s ease, opacity 0.2s ease",
-            width: "100%",
-          }}
-        >
-          {sourceRowsToRender.map(({ token, index, position }) => {
-            const showTooltipBelow = position === 0;
-            return (
-              <div
-                className="animate-in fade-in duration-200"
-                key={
-                  token
-                    ? `${token.contractAddress}-${token.chainId}-${index}`
-                    : "empty"
-                }
-                ref={(element) => {
-                  sourceRowRefs.current[index] = element;
-                }}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "5px",
-                  opacity: 1,
-                  position: "relative",
-                  transform: "translateY(0)",
-                  transition: "opacity 0.18s ease, transform 0.18s ease",
-                  zIndex: tooltip === `asset-send-${index}` ? 1000 : 1,
-                }}
-              >
-                <div
-                  style={{
-                    alignItems: "center",
-                    alignSelf: "stretch",
-                    boxSizing: "border-box",
-                    display: "flex",
-                    gap: "7px",
-                    justifyContent: "space-between",
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      flex: 1,
-                      minWidth: 0,
-                    }}
-                  >
-                    {showSourceRouteSkeleton ? (
-                      <SkeletonBar height="24px" width="46%" />
-                    ) : (
-                      <>
-                        {token?.userAmountMode === "usd" && (
-                          <span
-                            style={{
-                              color: (
-                                token
-                                  ? Boolean(token.userAmount)
-                                  : Boolean(isExactIn && amount)
-                              )
-                                ? "#161615"
-                                : "#9E9E9C",
-                              fontFamily:
-                                '"Delight-Medium", "Delight", system-ui, sans-serif',
-                              fontSize: "29px",
-                              fontWeight: 500,
-                              lineHeight: "34px",
-                              marginRight: "4px",
-                            }}
-                          >
-                            $
-                          </span>
-                        )}
-                        <input
-                          onBlur={() => {
-                            if (token) handleBlurAmount(index);
-                            setFocusedRow(null);
-                          }}
-                          onChange={(e) => {
-                            if (token)
-                              handleTokenAmountChange(index, e.target.value);
-                            else handleSendInput(e);
-                          }}
-                          onFocus={() => setFocusedRow(index)}
-                          placeholder="0"
-                          ref={(element) => {
-                            sourceInputRefs.current[index] = element;
-                          }}
-                          style={{
-                            boxSizing: "border-box",
-                            color: (
-                              token
-                                ? Boolean(token.userAmount)
-                                : Boolean(isExactIn && amount)
-                            )
-                              ? "#161615"
-                              : "#9E9E9C",
-                            fontFamily:
-                              '"Delight-Medium", "Delight", system-ui, sans-serif',
-                            fontSize: "29px",
-                            fontWeight: 500,
-                            lineHeight: "34px",
-                            background: "transparent",
-                            border: "none",
-                            outline: "none",
-                            padding: 0,
-                            width: "100%",
-                            minWidth: 0,
-                          }}
-                          type="text"
-                          value={
-                            token
-                              ? focusedRow === index
-                                ? token.userAmount || ""
-                                : formatAmountInputDisplay(
-                                    token.userAmount || ""
-                                  )
-                              : isExactIn
-                                ? focusedRow === index
-                                  ? amount
-                                  : formatAmountInputDisplay(amount)
-                                : ""
-                          }
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Asset selector pill + cross button */}
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "7px",
-                      alignItems: "center",
-                    }}
-                  >
-                    {showSourceRouteSkeleton ? (
-                      <div
-                        style={{
-                          alignItems: "center",
-                          display: "flex",
-                          flexShrink: 0,
-                          height: "27.5px",
-                          width: "99px",
-                        }}
-                      >
-                        <SkeletonBar
-                          borderRadius="999px"
-                          height="25.3px"
-                          width="100%"
-                        />
-                      </div>
-                    ) : (
-                      <button
-                        disabled={isSourcePickerDisabled}
-                        onClick={() => onOpenSourcePicker(index)}
-                        style={{
-                          alignItems: "center",
-                          backgroundColor: "#FFFFFE",
-                          borderColor: token ? "#E8E8E7" : "#C8C8C7",
-                          borderRadius: "999px",
-                          borderStyle: token ? "solid" : "dashed",
-                          borderWidth: "1px",
-                          boxShadow: token ? "#1616150A 0px 1px 2px" : "none",
-                          boxSizing: "border-box",
-                          display: "flex",
-                          gap: "6.6px",
-                          paddingBottom: "3.3px",
-                          paddingLeft: token ? "3.3px" : "7.7px",
-                          paddingRight: "8.8px",
-                          paddingTop: "3.3px",
-                          cursor: isSourcePickerDisabled
-                            ? "not-allowed"
-                            : "pointer",
-                          flexShrink: 0,
-                          opacity: isSourcePickerDisabled ? 0.72 : 1,
-                        }}
-                      >
-                        {token ? (
-                          token.isUnified ? (
-                            <UnifiedTokenLogoBadge size={22} token={token} />
-                          ) : (
-                            <div
-                              style={{
-                                boxSizing: "border-box",
-                                flexShrink: 0,
-                                height: "22px",
-                                position: "relative" as const,
-                                width: "22px",
-                              }}
-                            >
-                              <LogoCircle
-                                alt={token.symbol}
-                                fontSize={11}
-                                label={token.symbol}
-                                size={22}
-                                src={token.logo}
-                              />
-                              {token.chainLogo && (
-                                <LogoCircle
-                                  alt={token.chainName}
-                                  fontSize={5.5}
-                                  label={token.chainName}
-                                  outline="1px solid #FFFFFE"
-                                  size={11}
-                                  src={token.chainLogo}
-                                  style={{
-                                    bottom: -2,
-                                    position: "absolute",
-                                    right: -2,
-                                  }}
-                                />
-                              )}
-                            </div>
-                          )
-                        ) : (
-                          <div
-                            style={{
-                              borderColor: "#C8C8C7",
-                              borderRadius: "999px",
-                              borderStyle: "dashed",
-                              borderWidth: "1.5px",
-                              boxSizing: "border-box",
-                              flexShrink: 0,
-                              height: "19.8px",
-                              width: "19.8px",
-                            }}
-                          />
-                        )}
-                        <div
-                          style={{
-                            boxSizing: "border-box",
-                            color: "#161615",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: token ? "13.2px" : "15.4px",
-                            fontWeight: 500,
-                            lineHeight: token ? "17.6px" : "22px",
-                          }}
-                        >
-                          {token ? token.symbol : "Assets"}
-                        </div>
-                        <ChevronDownIcon />
-                      </button>
-                    )}
-                    {token && fromTokens.length > 1 && (
-                      <button
-                        onClick={() => {
-                          if (!onUpdateTokens) return;
-                          const next = [...fromTokens];
-                          next.splice(index, 1);
-                          onUpdateTokens(next);
-                          const total = getTokenAmountTotal(next);
-                          onAmountChange(
-                            total > 0 ? String(total) : "",
-                            "send"
-                          );
-                        }}
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          borderRadius: "999px",
-                          backgroundColor: "#F0F0EF",
-                          border: "none",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <svg
-                          fill="none"
-                          height="10"
-                          stroke="#848483"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                          width="10"
-                        >
-                          <line x1="18" x2="6" y1="6" y2="18"></line>
-                          <line x1="6" x2="18" y1="6" y2="18"></line>
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* USD value + balance row */}
-                <div
-                  style={{
-                    alignItems: "center",
-                    alignSelf: "stretch",
-                    boxSizing: "border-box",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    minHeight: "24px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
-                    {showSourceRouteSkeleton ? (
-                      <SkeletonBar height="16px" width="84px" />
-                    ) : (
-                      (() => {
-                        if (!token)
-                          return (
-                            <div
-                              style={{
-                                boxSizing: "border-box",
-                                color: "#848483",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "11px",
-                                lineHeight: "16px",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              ≈ ${usdValue || "0.00"}
-                            </div>
-                          );
-                        const tokenBalance =
-                          Number(
-                            String(token.balance).replace(/[^0-9.]/g, "")
-                          ) || 0;
-                        const fiatBalance =
-                          Number(
-                            String(token.balanceInFiat).replace(/[^0-9.]/g, "")
-                          ) || 0;
-                        const price =
-                          tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-                        const isUsdMode = token.userAmountMode === "usd";
-                        const userAmtNum = Number(token.userAmount || 0);
-                        const quotedUsd = parseDecimal(token.userAmountUsd);
-                        const approxValue = isUsdMode
-                          ? price > 0
-                            ? (userAmtNum / price).toFixed(6)
-                            : "0.000000"
-                          : quotedUsd
-                            ? quotedUsd.toDecimalPlaces(2).toFixed()
-                            : (userAmtNum * price).toFixed(2);
-                        const approxPrefix = isUsdMode ? "≈" : "≈ $";
-                        const approxSuffix = isUsdMode
-                          ? ` ${token.symbol}`
-                          : "";
-
-                        return (
-                          <div
-                            onClick={() => handleToggleMode(index)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              cursor: price > 0 ? "pointer" : "default",
-                            }}
-                          >
-                            <div
-                              style={{
-                                boxSizing: "border-box",
-                                color: "#848483",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "11px",
-                                lineHeight: "16px",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {approxPrefix}
-                              {approxValue}
-                              {approxSuffix}
-                            </div>
-                            {price > 0 && <ArrowUpDownIcon />}
-                          </div>
-                        );
-                      })()
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      alignItems: "center",
-                      display: token && focusedRow === index ? "flex" : "none",
-                      justifyContent: "center",
-                      pointerEvents:
-                        token && focusedRow === index ? "auto" : "none",
-                    }}
-                  >
-                    {token && (
-                      <PercentButtons
-                        onSelect={(pct) =>
-                          token
-                            ? handleSendPercentForToken(index, pct, token)
-                            : handleSendPercent(pct)
-                        }
-                        visible={Boolean(token) && focusedRow === index}
-                      />
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
-                    {showSourceRouteSkeleton ? (
-                      <SkeletonBar height="16px" width="124px" />
-                    ) : token ? (
-                      <div
-                        onMouseEnter={(e) => {
-                          setTooltip(`asset-send-${index}`);
-                          setTooltipTriggerRect(
-                            e.currentTarget.getBoundingClientRect()
-                          );
-                        }}
-                        onMouseLeave={() => {
-                          setTooltip(null);
-                          setTooltipTriggerRect(null);
-                        }}
-                        style={{
-                          alignItems: "center",
-                          boxSizing: "border-box",
-                          display: "flex",
-                          gap: "4px",
-                          position: "relative",
-                          cursor: "default",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <div
-                          style={{
-                            boxSizing: "border-box",
-                            color: "#848483",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "11px",
-                            fontVariantNumeric: "tabular-nums",
-                            lineHeight: "16px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          Balance ·
-                        </div>
-                        <div
-                          style={{
-                            boxSizing: "border-box",
-                            color: "#848483",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "11px",
-                            fontVariantNumeric: "tabular-nums",
-                            lineHeight: "16px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {formatTokenBalanceLabel(token)}
-                        </div>
-
-                        {/* Tooltip */}
-                        {tooltip === `asset-send-${index}` &&
-                          tooltipTriggerRect &&
-                          createPortal(
-                            <div
-                              style={{
-                                position: "fixed",
-                                right:
-                                  window.innerWidth - tooltipTriggerRect.right,
-                                ...(showTooltipBelow
-                                  ? { top: tooltipTriggerRect.bottom + 8 }
-                                  : {
-                                      bottom:
-                                        window.innerHeight -
-                                        tooltipTriggerRect.top +
-                                        8,
-                                    }),
-                                width: "198px",
-                                backgroundColor: "#fff",
-                                border: "1px solid #E8E8E7",
-                                borderRadius: "12px",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                                padding: "12px",
-                                display: "flex",
-                                flexDirection: "column",
-                                zIndex: 2147483647,
-                                pointerEvents: "none",
-                                textAlign: "left",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  fontWeight: 600,
-                                  color: "#848483",
-                                  letterSpacing: "0.06em",
-                                  textTransform: "uppercase",
-                                  marginBottom: "4px",
-                                  fontFamily: '"Geist", system-ui, sans-serif',
-                                }}
-                              >
-                                Asset Balance
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "14px",
-                                  color: "#161615",
-                                  lineHeight: "18px",
-                                  fontFamily: '"Geist", system-ui, sans-serif',
-                                }}
-                              >
-                                This is your current asset balance on this
-                                chain.
-                              </div>
-                            </div>,
-                            document.body
-                          )}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* PercentButtons moved inline next to balance */}
-              </div>
-            );
-          })}
-        </div>
-
-        {hasSourceOverflow && (
-          <button
-            aria-label={
-              isSourceListAtBottom
-                ? "Scroll source assets to top"
-                : "Scroll source assets"
-            }
-            onClick={() => {
-              const element = sourceListRef.current;
-              if (!element) return;
-              element.scrollTo({
-                behavior: "smooth",
-                top: isSourceListAtBottom ? 0 : element.scrollTop + 80,
-              });
-            }}
-            style={{
               alignItems: "center",
-              alignSelf: "center",
-              background: "transparent",
-              border: "none",
-              color: "#686866",
-              cursor: "pointer",
-              display: "flex",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
-              fontWeight: 500,
-              gap: "4px",
-              lineHeight: "18px",
-              marginTop: "-2px",
-              padding: 0,
-            }}
-            type="button"
-          >
-            Scroll to view more assets
-            <span aria-hidden="true">{isSourceListAtBottom ? "↑" : "↓"}</span>
-          </button>
-        )}
-
-        {/* Insufficient funds error in Exact Out mode */}
-        {swapType === "exactOut" && sourceRouteStatus === "insufficient" ? (
-          <div
-            style={{
-              alignItems: "center",
-              alignSelf: "stretch",
-              backgroundColor: "#FFF5F5",
-              border: "1px solid #FFE0E0",
-              borderRadius: "12px",
-              boxSizing: "border-box",
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: "4px",
-              padding: "10px 14px",
-              width: "100%",
+              gap: "8px",
             }}
           >
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-            >
-              <span
-                style={{
-                  color: "#D32F2F",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  lineHeight: "18px",
-                }}
-              >
-                Add more assets to continue
-              </span>
-              <span
-                style={{
-                  color: "#8E8E89",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
-                  lineHeight: "16px",
-                }}
-              >
-                {missingUsd
-                  ? `$${missingUsd} amount more required`
-                  : (sourceRouteMessage ?? "More funds required")}
-              </span>
-            </div>
-            <button
-              onClick={() => onOpenSourcePicker()}
               style={{
-                backgroundColor: "#FFFFFF",
-                border: "1px solid #D32F2F",
-                borderRadius: "999px",
-                color: "#D32F2F",
-                cursor: "pointer",
-                flexShrink: 0,
+                color: "#8E8E89",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "13px",
+                fontSize: "12px",
+                fontStyle: "normal",
                 fontWeight: 500,
                 lineHeight: "16px",
-                padding: "6px 14px",
+                letterSpacing: "0.96px",
+                textTransform: "uppercase",
+              }}
+            >
+              Send
+            </div>
+            {isMultiAssetMode && totalAssetCount > 2 && (
+              <div
+                style={{
+                  display: "flex",
+                  padding: "4px 8px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "10px",
+                  borderRadius: "100px",
+                  background: "#EAF1FF",
+                  color: "#3D7BFF",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "10px",
+                  fontStyle: "normal",
+                  fontWeight: 600,
+                  lineHeight: "12px",
+                  letterSpacing: "0.6px",
+                  textTransform: "uppercase",
+                }}
+              >
+                {totalAssetCount} Assets
+              </div>
+            )}
+          </div>
+
+          {/* Expand icon on multi asset mode if more than 2 assets with smooth fade */}
+          {isMultiAssetMode && (
+            <button
+              aria-label="Expand assets"
+              onClick={() => setIsExpandModalOpen(true)}
+              style={{
+                width: "14px",
+                height: "14px",
+                flexShrink: 0,
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                cursor: totalAssetCount > 2 ? "pointer" : "default",
+                opacity: totalAssetCount > 2 ? 1 : 0,
+                pointerEvents: totalAssetCount > 2 ? "auto" : "none",
+                transition: "opacity 0.25s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
               type="button"
             >
-              Add assets
+              <svg
+                fill="none"
+                height="14"
+                stroke="#1F1F1F"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.4"
+                viewBox="0 0 14 14"
+                width="14"
+              >
+                <path d="M8.5 1.5H12.5V5.5M5.5 12.5H1.5V8.5M12.5 1.5L8.5 5.5M1.5 12.5L5.5 8.5" />
+              </svg>
             </button>
-          </div>
-        ) : (
-          sourceRouteHelper && (
-            <div
-              style={{
-                alignSelf: "stretch",
-                color:
-                  sourceRouteStatus === "insufficient" ? "#D32F2F" : "#006BF4",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "13px",
-                fontWeight: 500,
-                lineHeight: "18px",
-                marginTop: "-6px",
-              }}
-            >
-              {sourceRouteHelper}
-            </div>
-          )
-        )}
+          )}
+        </div>
 
-        {/* Total USD */}
-        {totalUsd > 0 && (
+        {/* Amount Rows or Shimmer Loading Skeleton */}
+        {showSourceRouteSkeleton ? (
           <div
             style={{
               display: "flex",
-              gap: "7px",
-              alignItems: "center",
-              paddingTop: "6px",
-              alignSelf: "flex-start",
-              justifyContent: "flex-start",
+              flexDirection: "column",
+              gap: "12px",
+              width: "100%",
             }}
           >
-            <span
+            {[0, 1].map((i) => (
+              <div
+                key={`skeleton-row-${i}`}
+                style={{
+                  alignItems: "center",
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.5s ease-in-out infinite",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  paddingTop: i > 0 ? "8px" : "0",
+                  borderTop: i > 0 ? "1px solid #F5F5F5" : "none",
+                  width: "100%",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#E5E5EB",
+                      borderRadius: "6px",
+                      height: "24px",
+                      width: "64px",
+                    }}
+                  />
+                  <div
+                    style={{
+                      backgroundColor: "#E5E5EB",
+                      borderRadius: "4px",
+                      height: "14px",
+                      width: "48px",
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    gap: "6px",
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#E5E5EB",
+                      borderRadius: "20px",
+                      height: "34px",
+                      width: "140px",
+                    }}
+                  />
+                  <div
+                    style={{
+                      backgroundColor: "#E5E5EB",
+                      borderRadius: "999px",
+                      height: "24px",
+                      width: "24px",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              maxHeight: isMultiAssetMode ? "310px" : undefined,
+              overflowY: isMultiAssetMode ? "auto" : "visible",
+              padding: isMultiAssetMode ? "8px 4px 8px 2px" : undefined,
+              width: "100%",
+            }}
+          >
+            {sourceRowsToRender.map(({ token, index }) =>
+              renderSourceRow(token, index, false)
+            )}
+          </div>
+        )}
+
+        {/* Warning Container */}
+        {warningMessage && (
+          <div
+            style={{
+              alignItems: "center",
+              background:
+                "linear-gradient(90deg, rgba(249, 115, 22, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%), #FFF",
+              borderRadius: "12px",
+              boxSizing: "border-box",
+              color: "#FF7B20",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "13px",
+              fontStyle: "normal",
+              fontWeight: 500,
+              gap: "8px",
+              lineHeight: "130%",
+              marginTop: "4px",
+              maxWidth: "100%",
+              padding: "8px",
+              width: "fit-content",
+            }}
+          >
+            <div
               style={{
-                fontSize: "15px",
-                fontWeight: 600,
-                color: "#161615",
-                fontFamily: '"Geist", system-ui, sans-serif',
+                alignItems: "center",
+                display: "flex",
+                flexShrink: 0,
+                height: "16px",
+                justifyContent: "center",
+                width: "16px",
               }}
             >
-              ≈ ${totalUsd.toFixed(2)}
-            </span>
-            <span
+              <svg
+                fill="none"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="7"
+                  stroke="#FF7B20"
+                  strokeWidth="1.3"
+                />
+                <line
+                  stroke="#FF7B20"
+                  strokeLinecap="round"
+                  strokeWidth="1.3"
+                  x1="8"
+                  x2="8"
+                  y1="5"
+                  y2="8.5"
+                />
+                <circle cx="8" cy="11.25" fill="#FF7B20" r="0.75" />
+              </svg>
+            </div>
+            <span>{warningMessage}</span>
+          </div>
+        )}
+
+        {/* Multi-asset bottom bar: Total and Clear All / Add Asset */}
+        {isMultiAssetMode && (
+          <div
+            style={{
+              alignItems: "center",
+              backgroundColor: "#FFFFFF",
+              borderBottomLeftRadius: "11px",
+              borderBottomRightRadius: "11px",
+              borderTop: "1px solid #F5F5F5",
+              boxSizing: "border-box",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+              justifyContent: "space-between",
+              margin: "4px -12px -12px -12px",
+              padding: "12px",
+              width: "calc(100% + 24px)",
+            }}
+          >
+            {/* Left: Total amount or skeleton placeholder */}
+            {showSourceRouteSkeleton ? (
+              <div
+                style={{
+                  alignItems: "center",
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.5s ease-in-out infinite",
+                  display: "flex",
+                  gap: "6px",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#E5E5EB",
+                    borderRadius: "4px",
+                    height: "16px",
+                    width: "64px",
+                  }}
+                />
+                <div
+                  style={{
+                    backgroundColor: "#E5E5EB",
+                    borderRadius: "4px",
+                    height: "16px",
+                    width: "40px",
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  gap: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "#1F1F1F",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "18px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "22px",
+                  }}
+                >
+                  ≈ ${totalUsd > 0 ? totalUsd.toFixed(2) : "0.00"}
+                </span>
+                <span
+                  style={{
+                    color: "#8E8E89",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "12px",
+                    fontStyle: "normal",
+                    fontWeight: 600,
+                    letterSpacing: "0.72px",
+                    lineHeight: "16px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  TOTAL
+                </span>
+              </div>
+            )}
+
+            {/* Right: Clear All & Add Asset buttons */}
+            <div
               style={{
-                fontSize: "12px",
-                color: "#848483",
-                fontWeight: 600,
-                fontFamily: '"Geist", system-ui, sans-serif',
-                letterSpacing: "0.05em",
+                alignItems: "center",
+                display: "flex",
+                gap: "4px",
               }}
             >
-              TOTAL
-            </span>
+              <button
+                onClick={handleClearAll}
+                style={{
+                  alignItems: "center",
+                  background: "transparent",
+                  border: "none",
+                  color: "#BFBFBF",
+                  cursor: "pointer",
+                  display: "flex",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  lineHeight: "18px",
+                  padding: "8px 10px",
+                }}
+                type="button"
+              >
+                Clear All
+              </button>
+              <button
+                onClick={handleAddAsset}
+                style={{
+                  alignItems: "center",
+                  background: "#EEF2FF",
+                  border: "none",
+                  borderRadius: "10px",
+                  color: "#3D7BFF",
+                  cursor: "pointer",
+                  display: "flex",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  gap: "4px",
+                  lineHeight: "18px",
+                  padding: "8px 10px",
+                }}
+                type="button"
+              >
+                <span style={{ fontSize: "16px", lineHeight: "16px" }}>+</span>
+                <span>Add Asset</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ─── RECEIVE PANEL ─── */}
+      {/* ─── RECEIVE CONTAINER ─── */}
       <div
+        onMouseEnter={() => setHoveredPanel("receive")}
+        onMouseLeave={() =>
+          setHoveredPanel((prev) => (prev === "receive" ? null : prev))
+        }
         style={{
-          backgroundColor: "#FFFFFE",
-          border: "1px solid transparent",
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0 0 3px",
-          boxSizing: "border-box",
           display: "flex",
+          padding: "12px",
           flexDirection: "column",
-          fontVariantNumeric: "tabular-nums",
-          gap: "6px",
-          paddingBlock: "9px",
-          paddingInline: "9px",
+          alignItems: "stretch",
+          gap: "16px",
+          alignSelf: "stretch",
+          borderRadius: "12px 12px 24px 24px",
+          border:
+            focusedPanel === "receive"
+              ? "1px solid #EAEAEA"
+              : hoveredPanel === "receive"
+                ? "1px solid #F0F0F0"
+                : "1px solid #F5F5F5",
+          backgroundColor: focusedPanel === "receive" ? "#F7F8FA" : "#FFF",
+          boxShadow:
+            focusedPanel !== "receive" && hoveredPanel === "receive"
+              ? ASSET_DROPDOWN_SHADOW
+              : "none",
+          boxSizing: "border-box",
           width: "100%",
+          transition:
+            "background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       >
+        {/* Top row: RECEIVE + Recipient Address */}
         <div
           style={{
             alignItems: "center",
@@ -1798,53 +2045,78 @@ export function SwapIdleForm({
         >
           <span
             style={{
-              color: "#848483",
+              color: "#8E8E89",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "12px",
+              fontStyle: "normal",
               fontWeight: 500,
-              letterSpacing: "0.08em",
-              lineHeight: "18px",
+              lineHeight: "16px",
+              letterSpacing: "0.96px",
               textTransform: "uppercase",
             }}
           >
             Receive
           </span>
-          {totalBalance && parseDecimal(totalBalance).gt(0) && (
-            <span
+          {Boolean(recipientAddress || defaultRecipientAddress) && (
+            <div
+              onClick={onOpenRecipientPicker}
               style={{
-                color: "#8E8E89",
+                alignItems: "center",
+                boxSizing: "border-box",
+                color: "#3D7BFF",
+                display: "inline-flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "11px",
+                fontSize: "12px",
+                fontStyle: "normal",
+                fontWeight: 500,
                 lineHeight: "16px",
+                textTransform: "capitalize",
+                gap: "4px",
+                cursor: onOpenRecipientPicker ? "pointer" : "default",
               }}
             >
-              You can swap up to{" "}
-              <strong style={{ color: "#1F1F1F" }}>
-                ${parseDecimal(totalBalance).toDecimalPlaces(2).toFixed()}
-              </strong>
-            </span>
+              <span>
+                {formatShortAddress(
+                  recipientAddress || defaultRecipientAddress
+                )}
+              </span>
+              {onOpenRecipientPicker && (
+                <svg
+                  fill="none"
+                  height="12"
+                  stroke="#3D7BFF"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  width="12"
+                >
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                </svg>
+              )}
+            </div>
           )}
         </div>
 
+        {/* Amount Row: Input / USD value on left, Select asset button on right */}
         <div
           style={{
+            alignItems: "flex-start",
             alignSelf: "stretch",
             boxSizing: "border-box",
             display: "flex",
-            flexDirection: "column",
-            gap: "4px",
+            gap: "12px",
+            justifyContent: "space-between",
             width: "100%",
           }}
         >
           <div
             style={{
-              alignItems: "center",
-              alignSelf: "stretch",
-              boxSizing: "border-box",
               display: "flex",
-              gap: "9px",
-              justifyContent: "space-between",
-              width: "100%",
+              flexDirection: "column",
+              flex: 1,
+              minWidth: 0,
+              gap: "2px",
             }}
           >
             {isReceiveAmountLoading ? (
@@ -1853,29 +2125,28 @@ export function SwapIdleForm({
                   alignItems: "center",
                   boxSizing: "border-box",
                   display: "flex",
-                  minHeight: "31px",
+                  minHeight: "32px",
                   minWidth: 0,
                   width: "100%",
                 }}
               >
-                <SkeletonBar height="27px" width="68%" />
+                <SkeletonBar height="28px" width="60%" />
               </div>
             ) : (
               <input
                 onBlur={() => setFocusedPanel(null)}
-                onChange={(e) => {
-                  onAmountChange(e.target.value, "receive");
-                }}
+                onChange={handleReceiveInput}
                 onFocus={() => setFocusedPanel("receive")}
                 placeholder="0"
                 style={{
                   boxSizing: "border-box",
-                  color: receiveAmountTextColor,
-                  fontFamily:
-                    '"Delight-Medium", "Delight", system-ui, sans-serif',
-                  fontSize: "29px",
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "clamp(22px, 5.5vw, 28px)",
+                  fontStyle: "normal",
                   fontWeight: 500,
-                  lineHeight: "34px",
+                  lineHeight: "32px",
+                  letterSpacing: "-0.28px",
                   background: "transparent",
                   border: "none",
                   cursor: "text",
@@ -1888,53 +2159,77 @@ export function SwapIdleForm({
                 value={receiveDisplayValue}
               />
             )}
-
-            {/* Destination asset pill */}
-            <button
-              onClick={onOpenDestPicker}
+            <div
               style={{
-                alignItems: "center",
-                backgroundColor: "#FFFFFE",
-                borderColor: toToken ? "#E8E8E7" : "#C8C8C7",
-                borderRadius: "999px",
-                borderStyle: toToken ? "solid" : "dashed",
-                borderWidth: "1px",
-                boxShadow: toToken ? "#1616150A 0px 1px 2px" : "none",
-                boxSizing: "border-box",
-                display: "flex",
-                gap: "5.5px",
-                paddingBottom: "3.3px",
-                paddingLeft: toToken ? "4.4px" : "7.7px",
-                paddingRight: "8.8px",
-                paddingTop: "3.3px",
-                cursor: "pointer",
-                flexShrink: 0,
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                lineHeight: "18px",
               }}
             >
-              {toToken ? (
+              ≈ $
+              {receiveUsdAmount
+                ? formatUsdValue(receiveUsdAmount)
+                : receiveDisplayValue && toToken?.priceUSD
+                  ? (
+                      Number(receiveDisplayValue) * Number(toToken.priceUSD)
+                    ).toFixed(2)
+                  : "0"}
+            </div>
+          </div>
+
+          {/* Right: Select asset / Token pill */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              height: "32px",
+            }}
+          >
+            {toToken ? (
+              <button
+                onClick={onOpenDestPicker}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#FFF",
+                  border: "none",
+                  borderRadius: "999px",
+                  boxShadow: ASSET_DROPDOWN_SHADOW,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  gap: "8px",
+                  padding: "8px",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+                type="button"
+              >
                 <div
                   style={{
                     boxSizing: "border-box",
                     flexShrink: 0,
-                    height: "22px",
-                    position: "relative" as const,
-                    width: "22px",
+                    height: "26px",
+                    position: "relative",
+                    width: "26px",
                   }}
                 >
                   <LogoCircle
                     alt={toToken.symbol}
-                    fontSize={11}
+                    fontSize={12}
                     label={toToken.symbol}
-                    size={22}
+                    size={26}
                     src={toToken.logo}
                   />
                   {toToken.chainLogo && (
                     <LogoCircle
                       alt={toToken.chainName}
-                      fontSize={5.5}
+                      fontSize={6}
                       label={toToken.chainName}
-                      outline="1px solid #FFFFFE"
-                      size={11}
+                      outline="1.5px solid #FFFFFE"
+                      size={12}
                       src={toToken.chainLogo}
                       style={{
                         bottom: -2,
@@ -1944,274 +2239,814 @@ export function SwapIdleForm({
                     />
                   )}
                 </div>
-              ) : (
-                <div
+                <span
                   style={{
-                    borderColor: "#C8C8C7",
-                    borderRadius: "999px",
-                    borderStyle: "dashed",
-                    borderWidth: "1.5px",
-                    boxSizing: "border-box",
-                    flexShrink: 0,
-                    height: "19.8px",
-                    width: "19.8px",
-                  }}
-                />
-              )}
-              <div
-                style={{
-                  boxSizing: "border-box",
-                  color: "#161615",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "15.4px",
-                  fontWeight: 500,
-                  lineHeight: "20.9px",
-                }}
-              >
-                {toToken ? toToken.symbol : "Assets"}
-              </div>
-              <ChevronDownIcon />
-            </button>
-          </div>
-
-          {/* USD value + balance row */}
-          <div
-            style={{
-              alignItems: "center",
-              alignSelf: "stretch",
-              boxSizing: "border-box",
-              display: "flex",
-              justifyContent: "space-between",
-              width: "100%",
-              minHeight: "22px",
-            }}
-          >
-            {isReceiveUsdLoading ? (
-              <SkeletonBar borderRadius="6px" height="16px" width="74px" />
-            ) : (
-              <div
-                style={{
-                  boxSizing: "border-box",
-                  color: "#848483",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "11px",
-                  lineHeight: "16px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {receiveAltValue}
-              </div>
-            )}
-            {toToken && focusedPanel === "receive" && (
-              <div
-                style={{
-                  alignItems: "center",
-                  boxSizing: "border-box",
-                  display: "flex",
-                  gap: "5px",
-                }}
-              >
-                {onSetPercent && (
-                  <PercentButtons
-                    disabled={!toToken}
-                    onSelect={(pct) => onSetPercent(pct)}
-                    visible={Boolean(toToken) && focusedPanel === "receive"}
-                  />
-                )}
-                <div
-                  onMouseEnter={() => setTooltip("asset-receive")}
-                  onMouseLeave={() => setTooltip(null)}
-                  style={{
-                    alignItems: "center",
-                    boxSizing: "border-box",
-                    display: "flex",
-                    gap: "5px",
-                    position: "relative",
-                    cursor: "default",
+                    color: "#1F1F1F",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "15px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "18px",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <div
-                    style={{
-                      boxSizing: "border-box",
-                      color: "#848483",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "11px",
-                      fontVariantNumeric: "tabular-nums",
-                      lineHeight: "16px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Asset Balance ·
-                  </div>
-                  <div
-                    style={{
-                      boxSizing: "border-box",
-                      color: "#848483",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "11px",
-                      fontVariantNumeric: "tabular-nums",
-                      lineHeight: "16px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {receiveBalanceLabel}
-                  </div>
-
-                  {/* Tooltip */}
-                  {tooltip === "asset-receive" && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        right: 0,
-                        bottom: "calc(100% + 8px)",
-                        width: "198px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #E8E8E7",
-                        borderRadius: "12px",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                        padding: "12px",
-                        display: "flex",
-                        flexDirection: "column",
-                        zIndex: 10000,
-                        pointerEvents: "none",
-                        textAlign: "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          color: "#848483",
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                          marginBottom: "4px",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                        }}
-                      >
-                        Asset Balance
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          color: "#161615",
-                          lineHeight: "18px",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                        }}
-                      ></div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  {toToken.symbol}
+                </span>
+                <ChevronDownIcon color="#3D7BFF" />
+              </button>
+            ) : (
+              <button
+                onClick={onOpenDestPicker}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#FFF",
+                  border: "none",
+                  borderRadius: "999px",
+                  boxShadow: ASSET_DROPDOWN_SHADOW,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  gap: "8px",
+                  padding: "8px",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+                type="button"
+              >
+                <div
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "1.5px dashed #D9D9DE",
+                    borderRadius: "999px",
+                    boxSizing: "border-box",
+                    flexShrink: 0,
+                    height: "26px",
+                    width: "26px",
+                  }}
+                />
+                <span
+                  style={{
+                    color: "#1F1F1F",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "15px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "18px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Select asset
+                </span>
+                <ChevronDownIcon color="#3D7BFF" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Recipient section — only shown when handler exists */}
-        {onOpenRecipientPicker && (
-          <>
+        {/* Auto-select banner in RECEIVE if on Exact Out user modified assets */}
+        {showRestoreAuto && onRestoreAuto && (
+          <div
+            style={{
+              alignItems: "center",
+              background: "#F0F3F9",
+              borderRadius: "12px",
+              boxSizing: "border-box",
+              color: "#7989AD",
+              display: "flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "13px",
+              fontStyle: "normal",
+              fontWeight: 500,
+              gap: "10px",
+              lineHeight: "130%",
+              marginTop: "4px",
+              padding: "8px",
+              width: "100%",
+            }}
+          >
             <div
               style={{
-                alignSelf: "stretch",
-                backgroundColor: "#E8E8E7",
-                boxSizing: "border-box",
-                flexShrink: 0,
-                height: "1px",
-                marginTop: "4px",
-                width: "100%",
-              }}
-            />
-            <div
-              style={{
-                alignSelf: "stretch",
-                boxSizing: "border-box",
+                alignItems: "center",
+                background: "#DFE6F5",
+                borderRadius: "8px",
+                color: "#7989AD",
                 display: "flex",
                 flexDirection: "column",
-                gap: "4px",
-                paddingTop: "2px",
-                width: "100%",
+                flexShrink: 0,
+                height: "28px",
+                justifyContent: "center",
+                width: "28px",
               }}
             >
-              <div
+              <svg
+                fill="none"
+                height="14"
+                stroke="#7989AD"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="14"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="16" y2="12" />
+                <line x1="12" x2="12.01" y2="8" />
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              Let us auto-select the assets for you from your wallet.{" "}
+              <button
+                onClick={onRestoreAuto}
                 style={{
-                  boxSizing: "border-box",
-                  color: "#7C7C7A",
+                  background: "transparent",
+                  border: "none",
+                  color: "#3D7BFF",
+                  cursor: "pointer",
+                  display: "inline",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  letterSpacing: "0.08em",
-                  lineHeight: "18px",
-                  textTransform: "uppercase" as const,
+                  fontSize: "13px",
+                  fontStyle: "normal",
+                  fontWeight: 700,
+                  lineHeight: "130%",
+                  padding: 0,
+                  textDecoration: "underline",
+                  textDecorationStyle: "solid",
+                  textTransform: "uppercase",
                 }}
+                type="button"
               >
-                Recipient
-              </div>
-              <div
-                style={{
-                  alignItems: "center",
-                  alignSelf: "stretch",
-                  boxSizing: "border-box",
-                  display: "flex",
-                  gap: "9px",
-                  justifyContent: "space-between",
-                  width: "100%",
-                }}
+                AUTO
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── FEES & SLIPPAGE ROW (shown when intent active and wallet connected) ─── */}
+      {isIntentActive && !needsWalletConnection && (
+        <div
+          style={{
+            alignItems: "center",
+            boxSizing: "border-box",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            justifyContent: "space-between",
+            marginTop: "2px",
+            padding: "0 6px",
+            width: "100%",
+          }}
+        >
+          {/* Left: Fees (Est) $0 (i) */}
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: "4px",
+              position: "relative",
+            }}
+          >
+            <span
+              style={{
+                color: "#6B7280",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 500,
+                lineHeight: "normal",
+              }}
+            >
+              Fees (Est)
+            </span>
+            <span
+              style={{
+                color: "#111827",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "15px",
+                fontStyle: "normal",
+                fontWeight: 500,
+                lineHeight: "normal",
+              }}
+            >
+              ${feeAmountValue}
+            </span>
+            <div
+              onMouseEnter={() => setTooltip("fees-info")}
+              onMouseLeave={() => setTooltip(null)}
+              style={{
+                alignItems: "center",
+                cursor: "pointer",
+                display: "flex",
+                position: "relative",
+              }}
+            >
+              <svg
+                fill="none"
+                height="14"
+                stroke="#8E8E89"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+                style={{ height: "14px", width: "14px" }}
+                viewBox="0 0 24 24"
+                width="14"
               >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="16" y2="12" />
+                <line x1="12" x2="12.01" y1="8" y2="8" />
+              </svg>
+              {tooltip === "fees-info" && (
                 <div
                   style={{
-                    alignItems: "center",
-                    boxSizing: "border-box",
-                    color: recipientColor,
-                    display: "inline-flex",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "14px",
-                    fontVariantNumeric: "tabular-nums",
-                    gap: "6px",
-                    fontWeight: 500,
-                    lineHeight: "16px",
-                  }}
-                >
-                  {recipientAddress && (
-                    <AddressIdenticon address={recipientAddress} size={16} />
-                  )}
-                  <span>
-                    {recipientAddress
-                      ? formatShortAddress(recipientAddress)
-                      : "Select recipient"}
-                  </span>
-                </div>
-                <button
-                  onClick={onOpenRecipientPicker}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#F4F6FF",
-                    borderRadius: "4px",
-                    boxSizing: "border-box",
-                    display: "flex",
-                    gap: "4px",
-                    paddingBlock: "6px",
-                    paddingInline: "9px",
-                    border: "none",
-                    cursor: "pointer",
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #F0F0EF",
+                    borderRadius: "12px",
+                    bottom: "calc(100% + 10px)",
+                    boxShadow:
+                      "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
+                    left: 0,
+                    padding: "10px 14px",
+                    pointerEvents: "none",
+                    position: "absolute",
+                    whiteSpace: "nowrap",
+                    zIndex: 1000,
                   }}
                 >
                   <div
                     style={{
-                      boxSizing: "border-box",
-                      color: "#006BF4",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      lineHeight: "13px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
                     }}
                   >
-                    Edit
+                    <div
+                      style={{
+                        alignItems: "center",
+                        display: "flex",
+                        gap: "12px",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#6B7280",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Network fees:
+                      </span>
+                      <span
+                        style={{
+                          color: "#1F1F1F",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {feeBreakdown.networkFees}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        alignItems: "center",
+                        display: "flex",
+                        gap: "12px",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#6B7280",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Solver fees:
+                      </span>
+                      <span
+                        style={{
+                          color: "#1F1F1F",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {feeBreakdown.solverFees}
+                      </span>
+                    </div>
+                    {feeBreakdown.hasProtocolFees && (
+                      <div
+                        style={{
+                          alignItems: "center",
+                          display: "flex",
+                          gap: "12px",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#6B7280",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "13px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          Protocol fees:
+                        </span>
+                        <span
+                          style={{
+                            color: "#1F1F1F",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "13px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {feeBreakdown.protocolFees}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </button>
-              </div>
+                </div>
+              )}
             </div>
-          </>
+          </div>
+
+          {/* Right: Max Slippage [Auto] 0.2% (i) */}
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: "6px",
+              position: "relative",
+            }}
+          >
+            <span
+              style={{
+                color: "#6B7280",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 500,
+                lineHeight: "normal",
+              }}
+            >
+              Max Slippage
+            </span>
+            <span
+              style={{
+                alignItems: "center",
+                background: "#EEF2FF",
+                borderRadius: "999px",
+                color: "#4F46E5",
+                display: "flex",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "12px",
+                fontStyle: "normal",
+                fontWeight: 600,
+                lineHeight: "normal",
+                padding: "3px 8px",
+              }}
+            >
+              Auto
+            </span>
+            <span
+              style={{
+                color: "#111827",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "15px",
+                fontStyle: "normal",
+                fontWeight: 500,
+                lineHeight: "normal",
+              }}
+            >
+              0.2%
+            </span>
+            <div
+              onMouseEnter={() => setTooltip("slippage-info")}
+              onMouseLeave={() => setTooltip(null)}
+              style={{
+                alignItems: "center",
+                cursor: "pointer",
+                display: "flex",
+                position: "relative",
+              }}
+            >
+              <svg
+                fill="none"
+                height="14"
+                stroke="#8E8E89"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+                style={{ height: "14px", width: "14px" }}
+                viewBox="0 0 24 24"
+                width="14"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="16" y2="12" />
+                <line x1="12" x2="12.01" y1="8" y2="8" />
+              </svg>
+              {tooltip === "slippage-info" && (
+                <div
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #F0F0EF",
+                    borderRadius: "12px",
+                    bottom: "calc(100% + 10px)",
+                    boxShadow:
+                      "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
+                    padding: "10px 14px",
+                    pointerEvents: "none",
+                    position: "absolute",
+                    right: 0,
+                    whiteSpace: "nowrap",
+                    zIndex: 1000,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        alignItems: "center",
+                        display: "flex",
+                        gap: "12px",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#6B7280",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Min. received:
+                      </span>
+                      <span
+                        style={{
+                          color: "#1F1F1F",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {minReceivedDisplay}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        alignItems: "center",
+                        display: "flex",
+                        gap: "12px",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#6B7280",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        Price Impact:
+                      </span>
+                      <span
+                        style={{
+                          color: "#1F1F1F",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "13px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {priceImpactDisplay}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EXPANDED FULL-SCREEN ASSETS MODAL ─── */}
+      {isExpandModalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsExpandModalOpen(false);
+              }
+            }}
+            style={{
+              alignItems: "center",
+              animation: "nexusFadeIn 0.2s ease-out",
+              backdropFilter: "blur(8px)",
+              background: "rgba(215, 218, 220, 0.50)",
+              bottom: 0,
+              boxSizing: "border-box",
+              display: "flex",
+              inset: 0,
+              justifyContent: "center",
+              padding: "16px",
+              position: "fixed",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 9999999,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                alignItems: "center",
+                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                background: "#FFF",
+                borderRadius: "38px",
+                boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
+                boxSizing: "border-box",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+                maxHeight: "90vh",
+                maxWidth: "512px",
+                minWidth: "280px",
+                padding: "12px",
+                width: "100%",
+              }}
+            >
+              {/* Inner Frame */}
+              <div
+                style={{
+                  alignItems: "stretch",
+                  alignSelf: "stretch",
+                  border: "1px solid #F5F5F5",
+                  borderRadius: "24px 24px 12px 12px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  maxHeight: "calc(90vh - 100px)",
+                  padding: "12px 12px 0 12px",
+                  width: "100%",
+                }}
+              >
+                {/* Header Row: SEND + Asset Count Badge + Compress Icon */}
+                <div
+                  style={{
+                    alignItems: "center",
+                    alignSelf: "stretch",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      alignItems: "center",
+                      display: "flex",
+                      gap: "8px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#8E8E89",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "12px",
+                        fontStyle: "normal",
+                        fontWeight: 500,
+                        letterSpacing: "0.96px",
+                        lineHeight: "16px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Send
+                    </span>
+                    {totalAssetCount > 0 && (
+                      <div
+                        style={{
+                          alignItems: "center",
+                          background: "#EAF1FF",
+                          borderRadius: "100px",
+                          color: "#3D7BFF",
+                          display: "flex",
+                          fontFamily: '"Geist", system-ui, sans-serif',
+                          fontSize: "10px",
+                          fontStyle: "normal",
+                          fontWeight: 600,
+                          gap: "10px",
+                          letterSpacing: "0.6px",
+                          lineHeight: "12px",
+                          padding: "4px 8px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {totalAssetCount} Assets
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Compress / Inward Arrows Icon */}
+                  <button
+                    aria-label="Collapse assets view"
+                    onClick={() => setIsExpandModalOpen(false)}
+                    style={{
+                      alignItems: "center",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexShrink: 0,
+                      height: "14px",
+                      justifyContent: "center",
+                      padding: 0,
+                      width: "14px",
+                    }}
+                    type="button"
+                  >
+                    <svg
+                      fill="none"
+                      height="14"
+                      stroke="#1F1F1F"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.4"
+                      viewBox="0 0 14 14"
+                      width="14"
+                    >
+                      <path d="M1.5 5.5H5.5V1.5M12.5 8.5H8.5V12.5M5.5 5.5L1.5 1.5M8.5 8.5L12.5 12.5" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Scrollable list of asset rows */}
+                <div
+                  style={{
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    maxHeight: "clamp(240px, 48vh, 520px)",
+                    overflowY: "auto",
+                    padding: "8px 4px 8px 2px",
+                    width: "100%",
+                  }}
+                >
+                  {sourceRowsToRender.map(({ token, index }) =>
+                    renderSourceRow(token, index, true)
+                  )}
+                </div>
+
+                {/* Bottom bar inside Inner Frame: Total, Clear All, and Add Asset */}
+                <div
+                  style={{
+                    alignItems: "center",
+                    borderTop: "1px solid #F5F5F5",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                    justifyContent: "space-between",
+                    marginTop: "4px",
+                    padding: "8px 0",
+                    width: "100%",
+                  }}
+                >
+                  {/* Left: Total amount */}
+                  <div
+                    style={{
+                      alignItems: "center",
+                      display: "flex",
+                      gap: "6px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#1F1F1F",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "18px",
+                        fontStyle: "normal",
+                        fontWeight: 500,
+                        lineHeight: "22px",
+                      }}
+                    >
+                      ≈ ${totalUsd > 0 ? totalUsd.toFixed(2) : "0.00"}
+                    </span>
+                    <span
+                      style={{
+                        color: "#8E8E89",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "12px",
+                        fontStyle: "normal",
+                        fontWeight: 600,
+                        letterSpacing: "0.72px",
+                        lineHeight: "16px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      TOTAL
+                    </span>
+                  </div>
+
+                  {/* Right: Clear All & Add Asset buttons */}
+                  <div
+                    style={{
+                      alignItems: "center",
+                      display: "flex",
+                      gap: "4px",
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        handleClearAll();
+                        setIsExpandModalOpen(false);
+                      }}
+                      style={{
+                        alignItems: "center",
+                        background: "transparent",
+                        border: "none",
+                        color: "#BFBFBF",
+                        cursor: "pointer",
+                        display: "flex",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontStyle: "normal",
+                        fontWeight: 500,
+                        lineHeight: "18px",
+                        padding: "8px 10px",
+                      }}
+                      type="button"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={handleAddAsset}
+                      style={{
+                        alignItems: "center",
+                        background: "#EEF2FF",
+                        border: "none",
+                        borderRadius: "10px",
+                        color: "#3D7BFF",
+                        cursor: "pointer",
+                        display: "flex",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontStyle: "normal",
+                        fontWeight: 500,
+                        gap: "4px",
+                        lineHeight: "18px",
+                        padding: "8px 10px",
+                      }}
+                      type="button"
+                    >
+                      <span style={{ fontSize: "16px", lineHeight: "16px" }}>
+                        +
+                      </span>
+                      <span>Add Asset</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Done Button */}
+              <button
+                onClick={() => setIsExpandModalOpen(false)}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#1F1F1F",
+                  border: "none",
+                  borderRadius: "999px",
+                  boxSizing: "border-box",
+                  color: "#FFFFFE",
+                  cursor: "pointer",
+                  display: "flex",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "16px",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  height: "56px",
+                  justifyContent: "center",
+                  lineHeight: "20px",
+                  padding: "12px 24px",
+                  width: "100%",
+                }}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>,
+          document.body
         )}
-      </div>
     </div>
   );
 }

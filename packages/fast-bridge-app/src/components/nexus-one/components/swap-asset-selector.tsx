@@ -130,42 +130,28 @@ export function deriveTokenOptions(
 export const RadioDot = ({ selected }: { selected: boolean }) => (
   <div
     style={{
-      width: 20,
-      height: 20,
-      borderRadius: "999px",
+      backgroundColor: "#FFFFFE",
+      border: selected ? "5px solid #006BF4" : "1.5px solid #E8E8E7",
+      borderRadius: "23px",
       boxSizing: "border-box",
-      border: selected ? "none" : "2px solid #E8E8E7",
-      backgroundColor: selected ? "#006BF4" : "#FFFFFE",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
+      width: 18,
+      height: 18,
     }}
-  >
-    {selected && (
-      <div
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "999px",
-          backgroundColor: "#FFFFFE",
-        }}
-      />
-    )}
-  </div>
+  />
 );
 
-const SelectionControl = ({
+export const SelectionControl = ({
   selected,
   indeterminate = false,
-  multi,
 }: {
   selected: boolean;
   indeterminate?: boolean;
-  multi: boolean;
+  multi?: boolean;
 }) => {
-  if (!multi) return <RadioDot selected={selected} />;
-
   const isActive = selected || indeterminate;
 
   return (
@@ -173,21 +159,25 @@ const SelectionControl = ({
       style={{
         alignItems: "center",
         backgroundColor: isActive ? "#006BF4" : "#FFFFFE",
-        border: isActive ? "none" : "1.5px solid #E0E0DE",
-        borderRadius: "5px",
+        border: isActive ? "none" : "1.5px solid #E8E8E7",
+        borderRadius: "23px",
         boxSizing: "border-box",
         display: "flex",
         flexShrink: 0,
-        height: 20,
+        height: 18,
         justifyContent: "center",
-        width: 20,
+        width: 18,
       }}
     >
       {selected && (
-        <Check style={{ color: "#FFFFFE", height: 14, width: 14 }} />
+        <Check
+          style={{ color: "#FFFFFE", height: 11, strokeWidth: 3, width: 11 }}
+        />
       )}
       {!selected && indeterminate && (
-        <Minus style={{ color: "#FFFFFE", height: 14, width: 14 }} />
+        <Minus
+          style={{ color: "#FFFFFE", height: 11, strokeWidth: 3, width: 11 }}
+        />
       )}
     </div>
   );
@@ -1117,15 +1107,14 @@ export function SwapAssetSelector({
   selectedTokensRef.current = selectedTokens;
   lockedSelectedTokensRef.current = lockedSelectedTokens;
   useEffect(() => {
-    if (!isMulti) return;
     setDraftSelectedTokens(
       mergeTokenOptions(
         selectedTokensRef.current,
         lockedSelectedTokensRef.current
       )
     );
-  }, [isMulti, lockedTokensSelectionKey, selectedTokensSelectionKey]);
-  const activeSelectedTokens = isMulti ? draftSelectedTokens : selectedTokens;
+  }, [lockedTokensSelectionKey, selectedTokensSelectionKey]);
+  const activeSelectedTokens = draftSelectedTokens;
   const emitSelectionChange = useCallback(
     (tokens: SwapTokenOption[]) => {
       const next = mergeTokenOptions(tokens, lockedSelectedTokens);
@@ -1623,7 +1612,7 @@ export function SwapAssetSelector({
       } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
         onToggle(token);
       } else {
-        onSelect(token);
+        setDraftSelectedTokens([token]);
       }
     };
 
@@ -1887,10 +1876,7 @@ export function SwapAssetSelector({
   };
 
   /* ── Render a unified (multi-chain) group row ── */
-  const renderGroupRow = (
-    group: (typeof groupedFiltered)[0],
-    options: { onlyUnifiedRow?: boolean } = {}
-  ) => {
+  const renderGroupRow = (group: (typeof groupedFiltered)[0]) => {
     if (!group.isUnifiedCandidate) {
       return getVisibleIndividualTokens(group).map((token) =>
         renderTokenRow(token)
@@ -1900,177 +1886,179 @@ export function SwapAssetSelector({
     const groupState = getUnifiedGroupDisplayState(group);
     if (!groupState.hasVisibleRows) return null;
 
-    const unifiedRow = groupState.shouldHideUnifiedRow ? null : (
-      <button
-        onClick={(e) => {
-          if (isMulti) {
-            toggleGroup(group.symbol, e);
-            return;
-          }
-          onSelect(groupState.unifiedToken);
-        }}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 14px",
-          backgroundColor: "transparent",
-          border: "none",
-          cursor: "pointer",
-          borderBottom:
-            isMulti && groupState.isExpanded ? "none" : "1px solid #F0F0EF",
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isMulti) handleMultiTokenToggle(groupState.unifiedToken);
-              else onSelect(groupState.unifiedToken);
-            }}
-            style={{ cursor: "pointer" }}
-          >
-            <SelectionControl
-              indeterminate={isMulti ? groupState.isPartiallySelected : false}
-              multi={Boolean(isMulti)}
-              selected={
-                isMulti
-                  ? groupState.areAllChildrenSelected
-                  : groupState.unifiedSelectedInCurrent
-              }
-            />
-          </div>
-          <div
-            style={{
-              position: "relative",
-              flexShrink: 0,
-              width: 40,
-              height: 40,
-            }}
-          >
-            <TokenLogo src={group.logo} symbol={group.symbol} />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontWeight: 500,
-                  fontSize: 15,
-                  color: "#161615",
-                }}
-              >
-                {group.symbol}
-              </span>
-              <span
-                style={{
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#006BF4",
-                  backgroundColor: "#E8F0FF",
-                  borderRadius: 4,
-                  padding: "2px 8px",
-                  letterSpacing: "0.04em",
-                  lineHeight: "18px",
-                }}
-              >
-                UNIFIED
-              </span>
-            </div>
-            <ChainLogos tokens={group.tokens} />
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontWeight: 500,
-                fontSize: 14,
-                color: "#161615",
-              }}
-            >
-              {group.totalBalStr}
-            </span>
-            <span
-              style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 13,
-                color: "#848483",
-              }}
-            >
-              ≈ {group.totalFiatStr}
-            </span>
-          </div>
-          {isMulti && !options.onlyUnifiedRow && (
-            <ChevronDown
-              aria-hidden="true"
-              style={{
-                color: "#848483",
-                height: 15,
-                transform: groupState.isExpanded
-                  ? "rotate(180deg)"
-                  : "rotate(0deg)",
-                transition: "transform 180ms ease",
-                width: 15,
-              }}
-            />
-          )}
-        </div>
-      </button>
-    );
-
-    if (options.onlyUnifiedRow) {
-      return unifiedRow;
-    }
+    const isGroupSelected = isMulti
+      ? groupState.areAllChildrenSelected
+      : groupState.unifiedSelectedInCurrent;
+    const isGroupIndeterminate = isMulti
+      ? groupState.isPartiallySelected
+      : !groupState.unifiedSelectedInCurrent &&
+        group.tokens.some(isTokenSelectedInCurrentSlot);
 
     return (
       <div
         key={group.symbol}
         style={{ display: "flex", flexDirection: "column" }}
       >
-        {unifiedRow}
-        {isMulti ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateRows: groupState.isExpanded ? "1fr" : "0fr",
-              opacity: groupState.isExpanded ? 1 : 0,
-              transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
-            }}
-          >
+        <button
+          onClick={(e) => {
+            toggleGroup(group.symbol, e);
+          }}
+          style={{
+            alignItems: "center",
+            backgroundColor: "transparent",
+            border: "none",
+            borderBottom: groupState.isExpanded ? "none" : "1px solid #F0F0EF",
+            boxSizing: "border-box",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            padding: "10px 14px",
+            width: "100%",
+          }}
+          type="button"
+        >
+          <div style={{ alignItems: "center", display: "flex", gap: 12 }}>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isMulti) {
+                  handleMultiTokenToggle(groupState.unifiedToken);
+                } else if (groupState.unifiedToken) {
+                  setDraftSelectedTokens([groupState.unifiedToken]);
+                }
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <SelectionControl
+                indeterminate={isGroupIndeterminate}
+                selected={isGroupSelected}
+              />
+            </div>
             <div
               style={{
-                backgroundColor: "#F9F9F8",
-                overflow: "hidden",
-                padding: groupState.isExpanded
-                  ? "4px 16px 10px 46px"
-                  : "0 16px 0 46px",
-                transition: "padding 0.3s ease",
+                flexShrink: 0,
+                height: 40,
+                position: "relative",
+                width: 40,
               }}
             >
-              {group.tokens.map((token) => renderTokenRow(token, true, false))}
+              <TokenLogo src={group.logo} symbol={group.symbol} />
+            </div>
+            <div
+              style={{
+                alignItems: "flex-start",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
+                <span
+                  style={{
+                    color: "#161615",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 15,
+                    fontWeight: 500,
+                  }}
+                >
+                  {group.symbol}
+                </span>
+                <span
+                  style={{
+                    backgroundColor: "#E8F0FF",
+                    borderRadius: 4,
+                    color: "#006BF4",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    lineHeight: "18px",
+                    padding: "2px 8px",
+                  }}
+                >
+                  UNIFIED
+                </span>
+              </div>
+              <ChainLogos tokens={group.tokens} />
             </div>
           </div>
-        ) : (
-          !groupState.shouldHideIndividualRows &&
-          groupState.individualTokens.map((token) => renderTokenRow(token))
-        )}
+          <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
+            <div
+              style={{
+                alignItems: "flex-end",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <span
+                style={{
+                  color: "#161615",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              >
+                {group.totalBalStr}
+              </span>
+              <span
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 13,
+                }}
+              >
+                ≈ {group.totalFiatStr}
+              </span>
+            </div>
+            <div
+              onClick={(e) => {
+                toggleGroup(group.symbol, e);
+              }}
+              style={{
+                alignItems: "center",
+                cursor: "pointer",
+                display: "flex",
+                padding: "4px",
+              }}
+            >
+              <ChevronDown
+                aria-hidden="true"
+                style={{
+                  color: "#848483",
+                  height: 15,
+                  transform: groupState.isExpanded
+                    ? "rotate(180deg)"
+                    : "rotate(0deg)",
+                  transition: "transform 180ms ease",
+                  width: 15,
+                }}
+              />
+            </div>
+          </div>
+        </button>
+
+        {/* Collapsible Children */}
+        <div
+          style={{
+            borderBottom: groupState.isExpanded ? "1px solid #F0F0EF" : "none",
+            display: "grid",
+            gridTemplateRows: groupState.isExpanded ? "1fr" : "0fr",
+            opacity: groupState.isExpanded ? 1 : 0,
+            transition: "grid-template-rows 0.3s ease, opacity 0.3s ease",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "#FFFFFF",
+              overflow: "hidden",
+              padding: groupState.isExpanded
+                ? "4px 16px 10px 46px"
+                : "0 16px 0 46px",
+              transition: "padding 0.3s ease",
+            }}
+          >
+            {group.tokens.map((token) => renderTokenRow(token, true, false))}
+          </div>
+        </div>
       </div>
     );
   };
@@ -2286,13 +2274,44 @@ export function SwapAssetSelector({
       ? "All chains"
       : selectedChainToken?.chainName || "Chain";
 
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const filteredChainOptions = useMemo(() => {
+    if (!chainQuery.trim()) return chainOptions;
+    const q = chainQuery.toLowerCase().trim();
+    return chainOptions.filter((c) =>
+      (c.chainName || "").toLowerCase().includes(q)
+    );
+  }, [chainOptions, chainQuery]);
+
+  const defaultTitle = isMulti ? "Select Send Tokens" : "Select tokens";
+  const defaultSubtitle = isMulti
+    ? "You can select multiple assets at once to swap from"
+    : undefined;
+  const displayTitle = title || defaultTitle;
+  const displaySubtitle = subtitle || defaultSubtitle;
+
   const handleDone = () => {
     if (hasSelectionShortfall) return;
-    onDone?.(
-      isMulti
-        ? mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens)
-        : undefined
-    );
+    if (isMulti) {
+      onDone?.(mergeTokenOptions(draftSelectedTokens, lockedSelectedTokens));
+    } else {
+      if (draftSelectedTokens.length > 0 && draftSelectedTokens[0]) {
+        onSelect(draftSelectedTokens[0]);
+      } else {
+        onDone?.();
+      }
+    }
   };
 
   const handleRestoreAuto = () => {
@@ -2316,696 +2335,972 @@ export function SwapAssetSelector({
         flex: "1 1 auto",
         flexDirection: "column",
         height: "100%",
-        maxHeight: "100%",
+        maxHeight: "90vh",
         minHeight: 0,
         overflow: "hidden",
-        padding: "16px",
         width: "100%",
       }}
     >
       {/* Header */}
       <div
         style={{
-          display: "flex",
           alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-          minHeight: 32,
+          boxSizing: "border-box",
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "20px 24px 16px 24px",
+          width: "100%",
+          flexShrink: 0,
         }}
       >
-        <button
-          onClick={onBack}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 99,
-            border: "1px solid #0000000A",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#FFFFFF",
-            boxShadow: "#3C28640F 0px 1px 2px, #3C28640A 0px 2px 6px",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <ChevronDown
-            style={{
-              color: "#5B5B5A",
-              height: 14,
-              transform: "rotate(90deg)",
-              width: 14,
-            }}
-          />
-        </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "2px",
-            justifyContent: "center",
-            minHeight: 32,
             minWidth: 0,
-            flex: "1 1 auto",
           }}
         >
           <span
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: "22px",
               color: "#1F1F1F",
+              fontFamily: '"Delight", "Geist", system-ui, sans-serif',
+              fontSize: "20px",
+              fontStyle: "normal",
+              fontWeight: 500,
+              lineHeight: "24px",
             }}
           >
-            {title}
+            {displayTitle}
           </span>
-          {subtitle && (
+          {displaySubtitle && (
             <span
               style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 13,
                 color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 400,
                 lineHeight: "18px",
               }}
             >
-              {subtitle}
+              {displaySubtitle}
             </span>
           )}
         </div>
-        {isMulti &&
-          selectedAssetCount > 0 &&
-          (onClearSelection || onSelectionChange) && (
-            <button
-              onClick={handleClearSelection}
-              style={{
-                backgroundColor: "transparent",
-                border: "none",
-                color: "#006BF4",
-                cursor: "pointer",
-                flexShrink: 0,
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 13,
-                fontWeight: 500,
-                lineHeight: "20px",
-                padding: "2px 0",
-              }}
-            >
-              Deselect all
-            </button>
-          )}
-      </div>
-
-      {/* Search */}
-      <div style={{ paddingBottom: 16 }}>
-        <div
+        <button
+          aria-label="Close"
+          onClick={onBack}
           style={{
-            display: "flex",
             alignItems: "center",
-            height: 48,
-            gap: 8,
-            borderRadius: 12,
+            background: "transparent",
             border: "none",
-            boxShadow: "#3C28640F 0px 1px 2px inset",
-            boxSizing: "border-box",
-            padding: "0 7px 0 12px",
-            backgroundColor: "#FAFAFC",
+            cursor: "pointer",
+            display: "flex",
+            flexShrink: 0,
+            height: "32px",
+            justifyContent: "center",
+            padding: 0,
+            width: "32px",
           }}
+          type="button"
         >
-          <Search
-            style={{ width: 16, height: 16, color: "#848483", flexShrink: 0 }}
-          />
-          <input
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search token, chain or address"
-            style={{
-              flex: 1,
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
-              lineHeight: "20px",
-              color: "#161615",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            value={query}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <X style={{ width: 16, height: 16, color: "#848483" }} />
-            </button>
-          )}
-          {/* Chain Selector Badge */}
-          <button
-            onClick={openChainSelector}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 10px",
-              borderRadius: 999,
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #0000000A",
-              cursor: "pointer",
-              height: 32,
-              flexShrink: 0,
-              boxShadow: "#3C28640F 0px 1px 2px",
-            }}
-          >
-            {selectedChainFilter === null ? (
-              <Globe
-                style={{
-                  width: 14,
-                  height: 14,
-                  color: "#161615",
-                  flexShrink: 0,
-                }}
-              />
-            ) : (
-              <img
-                alt={selectedChainLabel}
-                src={selectedChainToken?.chainLogo}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            <span
-              style={{
-                color: "#161615",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
-                fontWeight: 500,
-                lineHeight: "20px",
-                maxWidth: "86px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {selectedChainLabel}
-            </span>
-            <ChevronDown style={{ width: 12, height: 12, color: "#848483" }} />
-          </button>
-        </div>
+          <X style={{ color: "#1F1F1F", height: 20, width: 20 }} />
+        </button>
       </div>
 
-      {/* Filter tabs */}
+      {/* Main Body (Tokens panel + Chains panel) */}
       <div
         style={{
-          alignItems: "center",
           display: "flex",
-          gap: 0,
-          backgroundColor: "#F5F6F8",
-          borderRadius: 10,
-          boxShadow: "#2A388B0F 0px 1px 2px inset",
-          padding: 3,
-          marginBottom: 12,
-        }}
-      >
-        {visibleFilterTabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => handleFilterTabClick(tab.key)}
-            style={{
-              alignItems: "center",
-              display: "flex",
-              flex: 1,
-              height: 36,
-              justifyContent: "center",
-              padding: 0,
-              backgroundColor:
-                activeTab === tab.key ? "#FFFFFF" : "transparent",
-              border: "none",
-              borderRadius: 7,
-              cursor: "pointer",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
-              fontWeight: activeTab === tab.key ? 600 : 500,
-              color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
-              boxShadow:
-                activeTab === tab.key
-                  ? "#FFFFFFE6 0px 1px 0px inset, #3C286414 0px 1px 2px, #3C28640F 0px 2px 6px"
-                  : "none",
-              transition:
-                "background-color 150ms ease, box-shadow 150ms ease, color 150ms ease",
-            }}
-          >
-            {autoSelectFilterTabs && tab.key === "all" ? "Any" : tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Token list */}
-      <div
-        ref={listRef}
-        style={{
+          flexDirection: "row",
           flex: "1 1 auto",
           minHeight: 0,
-          overflowY: "auto",
-          paddingBottom: 6,
+          overflow: "hidden",
+          width: "100%",
         }}
       >
-        {isLoading ? (
+        {/* Left Column: Tokens Panel */}
+        <div
+          style={{
+            alignItems: "stretch",
+            boxSizing: "border-box",
+            display: "flex",
+            flex: "1 1 auto",
+            flexDirection: "column",
+            gap: "18px",
+            minWidth: 0,
+            overflowY: "auto",
+            padding: "0 24px 16px 24px",
+            width: isDesktop ? "632px" : "100%",
+          }}
+        >
+          {/* Search bar */}
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              padding: "40px 0",
-              gap: 12,
-            }}
-          >
-            <Loader2
-              style={{
-                width: 20,
-                height: 20,
-                color: "#848483",
-                animation: "spin 1s linear infinite",
-              }}
-            />
-            <p
-              style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 14,
-                color: "#848483",
-              }}
-            >
-              Loading assets…
-            </p>
-          </div>
-        ) : aboveMin.length === 0 && belowMin.length === 0 ? (
-          <p
-            style={{
+              alignSelf: "stretch",
+              background: "#FBFBFB",
+              border: "1px solid #F5F5F5",
+              borderRadius: "12px",
+              boxSizing: "border-box",
+              color: "#9E9E9C",
+              display: "flex",
+              flexShrink: 0,
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
-              color: "#848483",
-              textAlign: "center",
-              padding: "32px 0",
+              fontSize: "13px",
+              fontStyle: "normal",
+              fontWeight: 400,
+              gap: "8px",
+              height: "40px",
+              maxHeight: "40px",
+              minHeight: "40px",
+              padding: "0 12px",
+              width: "100%",
             }}
           >
-            No tokens found
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {(isMulti
-              ? groupedFiltered.length > 0
-              : visibleAssetRows.length > 0) && (
-              <div
+            <Search
+              style={{ color: "#9E9E9C", flexShrink: 0, height: 16, width: 16 }}
+            />
+            <input
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search Tokens"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#1F1F1F",
+                flex: 1,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                minWidth: 0,
+                outline: "none",
+              }}
+              value={query}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
                 style={{
+                  background: "none",
                   border: "none",
-                  borderRadius: 12,
-                  boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
-                  overflow: "hidden",
-                  backgroundColor: "#FFFFFF",
+                  cursor: "pointer",
+                  padding: 0,
                 }}
+                type="button"
               >
-                {isMulti
-                  ? groupedFiltered.map((group) =>
-                      group.tokens.length === 1
-                        ? renderTokenRow(group.tokens[0])
-                        : renderGroupRow(group)
-                    )
-                  : visibleAssetRows.map((row) => (
-                      <React.Fragment key={row.key}>
-                        {row.kind === "group"
-                          ? renderGroupRow(row.group, { onlyUnifiedRow: true })
-                          : renderTokenRow(row.token)}
-                      </React.Fragment>
-                    ))}
-              </div>
+                <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
+              </button>
             )}
-
-            {belowMin.length > 0 && (
-              <div
+            {/* Mobile / Narrow Screen Chain Filter Trigger */}
+            {!isDesktop && (
+              <button
+                onClick={openChainSelector}
                 style={{
-                  backgroundColor: "#FFFFFE",
+                  alignItems: "center",
+                  backgroundColor: "#FFFFFF",
                   border: "1px solid #E8E8E7",
-                  borderRadius: 12,
-                  boxShadow: "#1616150A 0px 1px 2px",
-                  boxSizing: "border-box",
-                  overflow: "clip",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexShrink: 0,
+                  gap: 6,
+                  height: 28,
+                  padding: "4px 8px",
                 }}
+                type="button"
               >
-                <button
-                  onClick={() => setShowBelowMin((v) => !v)}
+                {selectedChainFilter === null ? (
+                  <Globe
+                    style={{
+                      color: "#161615",
+                      flexShrink: 0,
+                      height: 14,
+                      width: 14,
+                    }}
+                  />
+                ) : (
+                  <img
+                    alt={selectedChainLabel}
+                    src={selectedChainToken?.chainLogo}
+                    style={{
+                      borderRadius: "999px",
+                      flexShrink: 0,
+                      height: 16,
+                      objectFit: "cover",
+                      width: 16,
+                    }}
+                  />
+                )}
+                <span
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    backgroundColor: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
+                    color: "#161615",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    maxWidth: "70px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
+                  {selectedChainLabel}
+                </span>
+                <ChevronDown
+                  style={{ color: "#848483", height: 10, width: 10 }}
+                />
+              </button>
+            )}
+          </div>
+
+          {/* Filter tabs with sliding indicator */}
+          {(() => {
+            const activeIndex = Math.max(
+              0,
+              visibleFilterTabs.findIndex((t) => t.key === activeTab)
+            );
+            const tabCount = visibleFilterTabs.length || 1;
+
+            return (
+              <div
+                style={{
+                  alignItems: "center",
+                  alignSelf: "stretch",
+                  background: "#FBFBFB",
+                  border: "1px solid #F5F5F5",
+                  borderRadius: "12px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexShrink: 0,
+                  gap: "4px",
+                  height: "40px",
+                  maxHeight: "40px",
+                  minHeight: "40px",
+                  padding: "4px",
+                  position: "relative",
+                  width: "100%",
+                }}
+              >
+                {/* Sliding active background pill */}
+                <div
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "8px",
+                    bottom: 4,
+                    boxShadow:
+                      "0 2px 6px 0 rgba(60, 40, 100, 0.06), 0 1px 2px 0 rgba(60, 40, 100, 0.08), 0 1px 0 0 rgba(255, 255, 255, 0.90) inset",
+                    left: 4,
+                    pointerEvents: "none",
+                    position: "absolute",
+                    top: 4,
+                    transform: `translateX(calc(${activeIndex} * (100% + 4px)))`,
+                    transition:
+                      "transform 240ms cubic-bezier(0.2, 0, 0, 1), width 240ms ease",
+                    width: `calc((100% - 8px - ${(tabCount - 1) * 4}px) / ${tabCount})`,
+                    zIndex: 1,
+                  }}
+                />
+
+                {visibleFilterTabs.map((tab) => {
+                  const isSelected = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => handleFilterTabClick(tab.key)}
+                      style={{
+                        alignItems: "center",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: isSelected ? "#1F1F1F" : "#8E8E89",
+                        cursor: "pointer",
+                        display: "flex",
+                        flex: 1,
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontStyle: "normal",
+                        fontWeight: isSelected ? 600 : 500,
+                        height: "32px",
+                        justifyContent: "center",
+                        lineHeight: "20px",
+                        padding: "6px 0",
+                        position: "relative",
+                        transition: "color 180ms ease, font-weight 180ms ease",
+                        zIndex: 2,
+                      }}
+                      type="button"
+                    >
+                      {autoSelectFilterTabs && tab.key === "all"
+                        ? "All"
+                        : tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Token list */}
+          <div
+            ref={listRef}
+            style={{
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflowY: "auto",
+              paddingBottom: 6,
+              width: "100%",
+            }}
+          >
+            {isLoading ? (
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  justifyContent: "center",
+                  padding: "40px 0",
+                }}
+              >
+                <Loader2
+                  style={{
+                    animation: "spin 1s linear infinite",
+                    color: "#848483",
+                    height: 20,
+                    width: 20,
+                  }}
+                />
+                <p
+                  style={{
+                    color: "#848483",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: 14,
+                  }}
+                >
+                  Loading assets…
+                </p>
+              </div>
+            ) : aboveMin.length === 0 && belowMin.length === 0 ? (
+              <p
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 14,
+                  padding: "32px 0",
+                  textAlign: "center",
+                }}
+              >
+                No tokens found
+              </p>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                {(isMulti
+                  ? groupedFiltered.length > 0
+                  : visibleAssetRows.length > 0) && (
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      minWidth: 0,
+                      flexDirection: "column",
+                      width: "100%",
                     }}
                   >
-                    <span
+                    {groupedFiltered.map((group) =>
+                      group.tokens.length === 1
+                        ? renderTokenRow(group.tokens[0])
+                        : renderGroupRow(group)
+                    )}
+                  </div>
+                )}
+
+                {belowMin.length > 0 && (
+                  <div
+                    style={{
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flexDirection: "column",
+                      width: "100%",
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowBelowMin((v) => !v)}
                       style={{
                         alignItems: "center",
-                        backgroundColor: "#FFF1E0",
-                        borderRadius: "999px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
                         display: "flex",
-                        flexShrink: 0,
-                        height: 30,
-                        justifyContent: "center",
-                        width: 30,
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        width: "100%",
                       }}
                     >
-                      <Info
-                        style={{ width: 12, height: 12, color: "#B87709" }}
+                      <div
+                        style={{
+                          alignItems: "center",
+                          display: "flex",
+                          gap: 8,
+                          minWidth: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            alignItems: "center",
+                            backgroundColor: "#FFF1E0",
+                            borderRadius: "999px",
+                            display: "flex",
+                            flexShrink: 0,
+                            height: 30,
+                            justifyContent: "center",
+                            width: 30,
+                          }}
+                        >
+                          <Info
+                            style={{ color: "#B87709", height: 12, width: 12 }}
+                          />
+                        </span>
+                        <span
+                          style={{
+                            color: "#1F1F1F",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            lineHeight: "16px",
+                            minWidth: 0,
+                          }}
+                        >
+                          Tokens below minimum
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          {belowMin.slice(0, 3).map((t, i) => (
+                            <TokenLogo
+                              backgroundColor="#E8E8E7"
+                              color="#848483"
+                              fontSize={6}
+                              key={`bm-${t.contractAddress}-${t.chainId}`}
+                              size={16}
+                              src={t.logo}
+                              style={{
+                                border: "1.5px solid #fff",
+                                marginLeft: i > 0 ? -4 : 0,
+                              }}
+                              symbol={t.symbol}
+                            />
+                          ))}
+                          {belowMin.length > 3 && (
+                            <div
+                              style={{
+                                alignItems: "center",
+                                backgroundColor: "#161615",
+                                border: "1.5px solid #fff",
+                                borderRadius: "999px",
+                                color: "#8E8E89",
+                                display: "flex",
+                                fontSize: 7,
+                                fontWeight: 600,
+                                height: 16,
+                                justifyContent: "center",
+                                marginLeft: -4,
+                                width: 16,
+                              }}
+                            >
+                              +{belowMin.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        {showBelowMin ? (
+                          <ChevronUp
+                            style={{ color: "#848483", height: 12, width: 12 }}
+                          />
+                        ) : (
+                          <ChevronDown
+                            style={{ color: "#848483", height: 12, width: 12 }}
+                          />
+                        )}
+                      </div>
+                    </button>
+                    <div
+                      aria-hidden={!showBelowMin}
+                      style={{
+                        borderTop: showBelowMin
+                          ? "1px solid #F0F0EF"
+                          : "0px solid transparent",
+                        display: "grid",
+                        gridTemplateRows: showBelowMin ? "1fr" : "0fr",
+                        opacity: showBelowMin ? 1 : 0,
+                        overflow: "hidden",
+                        transition:
+                          "grid-template-rows 240ms ease, opacity 180ms ease, border-top-width 240ms ease",
+                      }}
+                    >
+                      <div style={{ minHeight: 0, overflow: "hidden" }}>
+                        {belowMin.map((token, index) => (
+                          <div
+                            key={`${token.contractAddress}-${token.chainId}`}
+                            style={{
+                              alignItems: "center",
+                              borderTop:
+                                index === 0 ? "none" : "1px solid #F0F0EF",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              opacity: 0.58,
+                              padding: "8px 12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                alignItems: "center",
+                                display: "flex",
+                                gap: 9,
+                                minWidth: 0,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  flexShrink: 0,
+                                  height: 22,
+                                  position: "relative",
+                                  width: 22,
+                                }}
+                              >
+                                <TokenLogo
+                                  backgroundColor="#C8C8C7"
+                                  fontSize={9}
+                                  size={22}
+                                  src={token.logo}
+                                  style={{ filter: "grayscale(0.2)" }}
+                                  symbol={token.symbol}
+                                />
+                                {token.chainLogo && (
+                                  <img
+                                    alt=""
+                                    src={token.chainLogo}
+                                    style={{
+                                      border: "1.5px solid #FFFFFE",
+                                      borderRadius: "999px",
+                                      bottom: -2,
+                                      filter: "grayscale(0.2)",
+                                      height: 10,
+                                      objectFit: "cover",
+                                      position: "absolute",
+                                      right: -2,
+                                      width: 10,
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <span
+                                style={{
+                                  color: "#848483",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  lineHeight: "18px",
+                                  minWidth: 0,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {token.symbol} on{" "}
+                                {token.chainName || "Unknown chain"}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                color: "#848483",
+                                flexShrink: 0,
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: 12,
+                                fontWeight: 500,
+                                lineHeight: "18px",
+                                marginLeft: 12,
+                              }}
+                            >
+                              {token.balanceInFiat}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Chains Panel (desktop) */}
+        {isDesktop && (
+          <div
+            style={{
+              alignItems: "flex-start",
+              borderLeft: "1px solid #F5F5F5",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              maxWidth: "100%",
+              overflowY: "auto",
+              padding: "0 16px 16px 16px",
+              width: "309px",
+              flexShrink: 0,
+            }}
+          >
+            {/* Search Chains */}
+            <div
+              style={{
+                alignItems: "center",
+                alignSelf: "stretch",
+                background: "#FBFBFB",
+                border: "1px solid #F5F5F5",
+                borderRadius: "12px",
+                boxSizing: "border-box",
+                color: "#9E9E9C",
+                display: "flex",
+                flexShrink: 0,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                gap: "8px",
+                height: "40px",
+                maxHeight: "40px",
+                minHeight: "40px",
+                padding: "0 12px",
+                width: "100%",
+              }}
+            >
+              <Search
+                style={{
+                  color: "#9E9E9C",
+                  flexShrink: 0,
+                  height: 16,
+                  width: 16,
+                }}
+              />
+              <input
+                onChange={(e) => setChainQuery(e.target.value)}
+                placeholder="Search Chains"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#1F1F1F",
+                  flex: 1,
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  minWidth: 0,
+                  outline: "none",
+                }}
+                value={chainQuery}
+              />
+              {chainQuery && (
+                <button
+                  onClick={() => setChainQuery("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  type="button"
+                >
+                  <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
+                </button>
+              )}
+            </div>
+
+            {/* "All" Chain Option */}
+            <button
+              onClick={() => setSelectedChainFilter(null)}
+              style={{
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                gap: "10px",
+                padding: "6px 0",
+                textAlign: "left",
+                width: "100%",
+              }}
+              type="button"
+            >
+              <RadioDot selected={selectedChainFilter === null} />
+              <div
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#161615",
+                  borderRadius: "999px",
+                  display: "flex",
+                  flexShrink: 0,
+                  height: 24,
+                  justifyContent: "center",
+                  width: 24,
+                }}
+              >
+                <Globe style={{ color: "#FFF", height: 14, width: 14 }} />
+              </div>
+              <span
+                style={{
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontWeight: selectedChainFilter === null ? 600 : 500,
+                }}
+              >
+                All
+              </span>
+            </button>
+
+            {/* Section Header */}
+            <div
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "12px",
+                fontWeight: 500,
+                marginTop: "4px",
+              }}
+            >
+              Popular Chains
+            </div>
+
+            {/* Chains List */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                width: "100%",
+              }}
+            >
+              {filteredChainOptions.map((chain) => {
+                const isSelected = selectedChainFilter === chain.chainId;
+                return (
+                  <button
+                    key={chain.chainId}
+                    onClick={() =>
+                      setSelectedChainFilter(
+                        isSelected ? null : (chain.chainId ?? null)
+                      )
+                    }
+                    style={{
+                      alignItems: "center",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: "10px",
+                      padding: "6px 0",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                    type="button"
+                  >
+                    <RadioDot selected={isSelected} />
+                    {chain.chainLogo ? (
+                      <img
+                        alt={chain.chainName}
+                        src={chain.chainLogo}
+                        style={{
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          objectFit: "cover",
+                          width: 24,
+                        }}
                       />
-                    </span>
+                    ) : (
+                      <div
+                        style={{
+                          backgroundColor: "#E5E5EB",
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          width: 24,
+                        }}
+                      />
+                    )}
                     <span
                       style={{
                         color: "#1F1F1F",
                         fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        lineHeight: "16px",
-                        minWidth: 0,
+                        fontSize: "14px",
+                        fontWeight: isSelected ? 600 : 500,
                       }}
                     >
-                      Tokens below minimum
+                      {chain.chainName}
                     </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    {/* Small token logo cluster */}
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      {belowMin.slice(0, 3).map((t, i) => (
-                        <TokenLogo
-                          backgroundColor="#E8E8E7"
-                          color="#848483"
-                          fontSize={6}
-                          key={`bm-${t.contractAddress}-${t.chainId}`}
-                          size={16}
-                          src={t.logo}
-                          style={{
-                            border: "1.5px solid #fff",
-                            marginLeft: i > 0 ? -4 : 0,
-                          }}
-                          symbol={t.symbol}
-                        />
-                      ))}
-                      {belowMin.length > 3 && (
-                        <div
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "999px",
-                            backgroundColor: "#161615",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 7,
-                            fontWeight: 600,
-                            color: "#8E8E89",
-                            marginLeft: -4,
-                            border: "1.5px solid #fff",
-                          }}
-                        >
-                          +{belowMin.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    {showBelowMin ? (
-                      <ChevronUp
-                        style={{ width: 12, height: 12, color: "#848483" }}
-                      />
-                    ) : (
-                      <ChevronDown
-                        style={{ width: 12, height: 12, color: "#848483" }}
-                      />
-                    )}
-                  </div>
-                </button>
-                <div
-                  aria-hidden={!showBelowMin}
-                  style={{
-                    borderTop: showBelowMin
-                      ? "1px solid #F0F0EF"
-                      : "0px solid transparent",
-                    display: "grid",
-                    gridTemplateRows: showBelowMin ? "1fr" : "0fr",
-                    opacity: showBelowMin ? 1 : 0,
-                    overflow: "hidden",
-                    transition:
-                      "grid-template-rows 240ms ease, opacity 180ms ease, border-top-width 240ms ease",
-                  }}
-                >
-                  <div style={{ minHeight: 0, overflow: "hidden" }}>
-                    {belowMin.map((token, index) => (
-                      <div
-                        key={`${token.contractAddress}-${token.chainId}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          borderTop: index === 0 ? "none" : "1px solid #F0F0EF",
-                          opacity: 0.58,
-                          padding: "8px 12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            minWidth: 0,
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "relative",
-                              width: 22,
-                              height: 22,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <TokenLogo
-                              backgroundColor="#C8C8C7"
-                              fontSize={9}
-                              size={22}
-                              src={token.logo}
-                              style={{ filter: "grayscale(0.2)" }}
-                              symbol={token.symbol}
-                            />
-                            {token.chainLogo && (
-                              <img
-                                alt=""
-                                src={token.chainLogo}
-                                style={{
-                                  border: "1.5px solid #FFFFFE",
-                                  borderRadius: "999px",
-                                  bottom: -2,
-                                  filter: "grayscale(0.2)",
-                                  height: 10,
-                                  objectFit: "cover",
-                                  position: "absolute",
-                                  right: -2,
-                                  width: 10,
-                                }}
-                              />
-                            )}
-                          </div>
-                          <span
-                            style={{
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontWeight: 500,
-                              fontSize: 12,
-                              color: "#848483",
-                              lineHeight: "18px",
-                              minWidth: 0,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {token.symbol} on{" "}
-                            {token.chainName || "Unknown chain"}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: 12,
-                            color: "#848483",
-                            fontWeight: 500,
-                            lineHeight: "18px",
-                            flexShrink: 0,
-                            marginLeft: 12,
-                          }}
-                        >
-                          {token.balanceInFiat}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Done button */}
-      {isMulti && (
-        <div style={{ flexShrink: 0, paddingBottom: 6, marginTop: "auto" }}>
-          {shouldShowSelectionProgress && requiredUsdAmount && (
+      {/* Footer */}
+      <div
+        style={{
+          alignItems: "center",
+          backgroundColor: "#FFF",
+          borderTop: "1px solid #F5F5F5",
+          boxSizing: "border-box",
+          display: "flex",
+          flexShrink: 0,
+          gap: "16px",
+          justifyContent: "space-between",
+          padding: "16px 24px",
+          width: "100%",
+        }}
+      >
+        {/* Left: Progress loader & Restore Auto on ExactOut / Shortfall */}
+        {shouldShowSelectionProgress &&
+        requiredUsdAmount &&
+        requiredUsdAmount > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flex: 1,
+              flexDirection: "column",
+              gap: "6px",
+              maxWidth: "520px",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                borderTop: "1px solid #E8E8E7",
-                boxSizing: "border-box",
-                marginBottom: 12,
-                paddingTop: 12,
+                alignItems: "center",
+                display: "flex",
+                justifyContent: "space-between",
               }}
             >
-              <div
+              <span
                 style={{
-                  alignItems: "baseline",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  fontWeight: 500,
                 }}
               >
-                <span
-                  style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
-                    lineHeight: "20px",
-                  }}
-                >
-                  <strong style={{ color: "#161615", fontWeight: 500 }}>
-                    Selected
-                  </strong>
+                Selected
+                <span style={{ color: "#8E8E89", fontWeight: 400 }}>
                   /Required
                 </span>
-                <span
-                  style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
-                    lineHeight: "20px",
-                  }}
-                >
-                  <strong style={{ color: "#161615", fontWeight: 600 }}>
-                    {formatUsdBalanceLabel(selectedUsdAmount)}
-                  </strong>{" "}
-                  / {formatUsdBalanceLabel(requiredUsdAmount)}
-                </span>
-              </div>
-              {showRestoreAuto && onRestoreAuto && (
-                <div
-                  style={{
-                    alignItems: "center",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#848483",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: 12,
-                    }}
-                  >
-                    Manually-selected · covers{" "}
-                    {formatUsdBalanceLabel(selectedUsdAmount)}
-                  </span>
-                  <button
-                    onClick={handleRestoreAuto}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#006BF4",
-                      cursor: "pointer",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: 12,
-                      fontWeight: 500,
-                      padding: 0,
-                    }}
-                    type="button"
-                  >
-                    Restore Auto
-                  </button>
-                </div>
-              )}
-              <div
+              </span>
+              <span
                 style={{
-                  backgroundColor: "#F0F0EF",
-                  borderRadius: "999px",
-                  height: 6,
-                  overflow: "hidden",
-                  width: "100%",
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  fontWeight: 600,
                 }}
               >
-                <div
-                  style={{
-                    backgroundColor: "#006BF4",
-                    borderRadius: "999px",
-                    height: "100%",
-                    transition: "width 240ms ease",
-                    width: `${selectionProgressPercent}%`,
-                  }}
-                />
-              </div>
+                {formatUsdBalanceLabel(selectedUsdAmount)}{" "}
+                <span style={{ color: "#8E8E89", fontWeight: 400 }}>
+                  / {formatUsdBalanceLabel(requiredUsdAmount)}
+                </span>
+              </span>
             </div>
-          )}
-          {!hasSelectionShortfall && (
-            <button
-              onClick={handleDone}
+            <div
               style={{
-                width: "100%",
-                height: 48,
-                display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#1F1F1F",
-                color: "#FFFFFE",
-                border: "none",
-                borderRadius: 14,
-                cursor: "pointer",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 16,
-                fontWeight: 600,
-                boxShadow: "0px 1px 4px 0px #5555550D",
+                display: "flex",
+                justifyContent: "space-between",
               }}
             >
-              Done
-            </button>
-          )}
-        </div>
-      )}
+              <span
+                style={{
+                  color: "#8E8E89",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "12px",
+                  fontWeight: 400,
+                }}
+              >
+                Manually-selected · covers{" "}
+                {formatUsdBalanceLabel(selectedUsdAmount)}
+              </span>
+              {showRestoreAuto && onRestoreAuto && (
+                <button
+                  onClick={handleRestoreAuto}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#006BF4",
+                    cursor: "pointer",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    padding: 0,
+                    textDecoration: "none",
+                  }}
+                  type="button"
+                >
+                  Restore Auto
+                </button>
+              )}
+            </div>
+            <div
+              style={{
+                backgroundColor: "#E5E7EB",
+                borderRadius: "999px",
+                height: "4px",
+                overflow: "hidden",
+                width: "100%",
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#006BF4",
+                  borderRadius: "999px",
+                  height: "100%",
+                  transition: "width 0.2s ease",
+                  width: `${Math.min(100, Math.max(0, (selectedUsdAmount / requiredUsdAmount) * 100))}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {/* Right: Done button */}
+        <button
+          onClick={handleDone}
+          style={{
+            alignItems: "center",
+            backgroundColor: "#1F1F1F",
+            border: "none",
+            borderRadius: "999px",
+            boxSizing: "border-box",
+            color: "#FFFFFE",
+            cursor: "pointer",
+            display: "flex",
+            flexShrink: 0,
+            fontFamily: '"Geist", system-ui, sans-serif',
+            fontSize: "16px",
+            fontWeight: 500,
+            height: "48px",
+            justifyContent: "center",
+            lineHeight: "20px",
+            marginLeft: "auto",
+            minWidth: "160px",
+            padding: "12px 24px",
+          }}
+          type="button"
+        >
+          Done
+        </button>
+      </div>
 
       {/* Chain Selector Modal */}
       {showChainSelector &&

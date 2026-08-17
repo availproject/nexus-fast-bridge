@@ -12,7 +12,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import {
   createPublicClient,
   encodeFunctionData,
@@ -60,6 +60,7 @@ import {
   NexusOneProgressScreen,
 } from "./components/nexus-one-progress-screen";
 import {
+  getAllReceiveTokenOptions,
   getCachedReceiveTokenMatch,
   preloadReceiveTokens,
   ReceiveAssetSelector,
@@ -217,8 +218,8 @@ const QUOTE_REFRESH_INTERVAL_MS = 30000;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
 const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
-const MODAL_HEIGHT_TRANSITION_MS = 220;
-const ROOT_HEIGHT_TRANSITION_MS = 220;
+const MODAL_HEIGHT_TRANSITION_MS = 280;
+const ROOT_HEIGHT_TRANSITION_MS = 280;
 const ASSET_SELECTOR_DRAWER_HEIGHT = "calc(100% - 72px)";
 const NEXUS_ONE_LIST_MIN_HEIGHT = "min(560px, 90dvh)";
 const BASIS_POINTS = 10000;
@@ -3221,6 +3222,7 @@ function NexusOneInner({
   const rootHeightTransitionTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
+  const [isMultiAssetMode, setIsMultiAssetMode] = useState(false);
   const [fromTokens, setFromTokens] = useState<SwapTokenOption[]>([]);
   const [sourceSelectionTouched, setSourceSelectionTouched] = useState(false);
   const [sourceSelectionRevision, setSourceSelectionRevision] = useState(0);
@@ -3240,6 +3242,39 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
+  const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
+    useState<SwapTokenOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getAllReceiveTokenOptions(swapSupportedChainsAndTokens).then(
+      (tokens) => {
+        if (active && tokens.length > 0) {
+          setDisconnectedAvailableTokens(tokens);
+        }
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [swapSupportedChainsAndTokens]);
+
+  const previousOwnerAddressRef = useRef<string | undefined>(ownerAddress);
+
+  useEffect(() => {
+    const prevOwner = previousOwnerAddressRef.current;
+    previousOwnerAddressRef.current = ownerAddress;
+
+    if (!prevOwner && ownerAddress) {
+      setFromTokens([]);
+      setAmount("");
+      clearPendingSwapIntent();
+      setSwapQuoteIssue(null);
+      setReceiveAmountIssue(null);
+      setPredictiveQuote(null);
+    }
+  }, [ownerAddress]);
+
   const [fromTokensQuoteKey, setFromTokensQuoteKey] = useState("");
 
   useEffect(() => {
@@ -3620,7 +3655,7 @@ function NexusOneInner({
         window.cancelAnimationFrame(frame);
       }
       frame = window.requestAnimationFrame(() => {
-        syncRootContentHeight(false);
+        syncRootContentHeight(true);
       });
     });
 
@@ -3632,7 +3667,7 @@ function NexusOneInner({
       }
       observer.disconnect();
     };
-  }, [activeMode, swapStep, syncRootContentHeight]);
+  }, [activeMode, swapStep, isMultiAssetMode, syncRootContentHeight]);
 
   useEffect(() => {
     currentSwapIdRef.current = currentSwapId;
@@ -4532,25 +4567,59 @@ function NexusOneInner({
     sourceTokens?: SwapTokenOption[];
     type?: SwapType;
   } = {}): ReceiveAmountIssue | null => {
+    if (!destinationToken) return null;
     const limit = getDestinationReceiveLimitUsd(destinationToken);
-    if (!limit || !destinationToken) return null;
-
     const parsedAmount = parseFiatNumber(inputAmount);
     if (!parsedAmount || parsedAmount.lte(0)) return null;
-    if (mode === "swap" && type === "exactIn" && sourceTokens.length === 0) {
-      return null;
-    }
 
     const chainName = getShortChainName(
       destinationToken.chainId,
       destinationToken.chainName
     );
-    if (parsedAmount.gt(limit)) {
+    if (limit && parsedAmount.gt(limit)) {
       return {
         ctaLabel: "Receive limit exceeded",
         message: `Maximum receive amount on ${chainName} is ${formatUsdDisplay(limit)}.`,
         type: "receiveLimitExceeded",
       };
+    }
+
+    if (mode === "swap" && type === "exactIn" && sourceTokens.length === 0) {
+      return null;
+    }
+
+    // In Exact Out single-asset mode, check if any single asset can cover the requested amount
+    if (
+      ownerAddress &&
+      mode === "swap" &&
+      type === "exactOut" &&
+      !isMultiAssetMode
+    ) {
+      const rate = destinationRate ?? getTokenUsdRate(destinationToken);
+      const requestedReceiveUsd = rate.gt(0)
+        ? parsedAmount.times(rate)
+        : parsedAmount;
+
+      if (requestedReceiveUsd.gt(0)) {
+        const availableTokens = excludeSwapExactOutDestinationTokens(
+          getGasCapableBalanceSourceTokens()
+        );
+        let maxSingleAssetUsd = new Decimal(0);
+        for (const token of availableTokens) {
+          const usd = getTokenBalanceUsd(token);
+          if (usd.gt(maxSingleAssetUsd)) {
+            maxSingleAssetUsd = usd;
+          }
+        }
+        if (maxSingleAssetUsd.lt(requestedReceiveUsd)) {
+          return {
+            ctaLabel: "Insufficient balance",
+            message:
+              "Insufficient balance to cover with a single asset. Try Multi-assets Mode.",
+            type: "insufficientSources" as any,
+          };
+        }
+      }
     }
 
     return null;
@@ -4700,12 +4769,11 @@ function NexusOneInner({
   const hasReadyExactInSwapInput = (
     tokens: SwapTokenOption[],
     destination?: SwapTokenOption
-  ) =>
-    Boolean(
-      destination?.chainId &&
-        destination.contractAddress &&
-        getReadyExactInSourceTokens(tokens).length > 0
-    );
+  ) => {
+    if (!destination?.chainId || !destination.contractAddress) return false;
+    if (tokens.length === 0) return false;
+    return getReadyExactInSourceTokens(tokens).length > 0;
+  };
 
   const getExpandedSourceTokens = (tokens: SwapTokenOption[]) => {
     const expanded = tokens.flatMap((token) => {
@@ -5087,6 +5155,19 @@ function NexusOneInner({
       );
     }
 
+    if (!ownerAddress || !swapBalance || swapBalance.length === 0) {
+      const synthetic = getSyntheticDisconnectedSourceTokens(
+        disconnectedAvailableTokens
+      );
+      if (mode === "selected" && fromTokens.length > 0) {
+        const selectedKeys = new Set(fromTokens.map(getTokenSelectionKey));
+        return synthetic.filter((t) =>
+          selectedKeys.has(getTokenSelectionKey(t))
+        );
+      }
+      return excludeSwapExactOutDestinationTokens(synthetic);
+    }
+
     return excludeSwapExactOutDestinationTokens(
       getGasCapableBalanceSourceTokens()
     );
@@ -5435,6 +5516,50 @@ function NexusOneInner({
     !address ||
     address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     address.toLowerCase() === "0x0000000000000000000000000000000000000000";
+
+  const getSyntheticDisconnectedSourceTokens = useCallback(
+    (tokens: SwapTokenOption[]) => {
+      return tokens
+        .map((token) => {
+          const isEthOnEthereum =
+            token.chainId === 1 &&
+            (token.symbol.toUpperCase() === "ETH" ||
+              isNativeTokenAddress(token.contractAddress));
+          const isUsdc = token.symbol.toUpperCase() === "USDC";
+          const isUsdt = token.symbol.toUpperCase() === "USDT";
+          const isNative = isNativeTokenAddress(token.contractAddress);
+
+          if (isEthOnEthereum) {
+            return {
+              ...token,
+              balance: "333.3333 ETH",
+              balanceInFiat: "$1,000,000.00",
+              userAmount: token.userAmount ?? "",
+            };
+          }
+
+          if (isUsdc || isUsdt || isNative) {
+            const rate = getTokenUsdRate(token);
+            const price = rate.gt(0)
+              ? rate
+              : isUsdc || isUsdt
+                ? new Decimal(1)
+                : new Decimal(100);
+            const amountNum = new Decimal(100).div(price);
+            return {
+              ...token,
+              balance: `${amountNum.toFixed(4)} ${token.symbol}`,
+              balanceInFiat: "$100.00",
+              userAmount: token.userAmount ?? "",
+            };
+          }
+
+          return null;
+        })
+        .filter((token): token is SwapTokenOption => token !== null);
+    },
+    []
+  );
 
   const formatReadableTokenAmount = (rawAmount: bigint, decimals: number) =>
     new Decimal(rawAmount.toString())
@@ -6763,7 +6888,11 @@ function NexusOneInner({
       : activeMode === "send"
         ? Boolean(hasPositiveDecimalInput(amount) && toToken)
         : isSwapExactOut
-          ? Boolean(hasPositiveDecimalInput(amount) && toToken)
+          ? Boolean(
+              hasPositiveDecimalInput(amount) &&
+                toToken &&
+                !buildReceiveAmountIssue()
+            )
           : false;
   const buildImmediatePredictiveExactOutQuote = (
     sourceTokens: SwapTokenOption[],
@@ -6801,10 +6930,18 @@ function NexusOneInner({
       parseFiatNumber(baseline?.exactOutSourceUsdPerDestinationUsd)
     );
     const destinationKey = getTokenSelectionKey(toToken);
+    const allAvailableTokens =
+      swapBalance && swapSupportedChainsAndTokens
+        ? deriveTokenOptions(swapBalance, swapSupportedChainsAndTokens)
+        : getSyntheticDisconnectedSourceTokens(disconnectedAvailableTokens);
+    const sourcePool =
+      sourceTokens && sourceTokens.length > 0
+        ? sourceTokens
+        : allAvailableTokens;
     const candidates = sortExactOutSourcesBySdkPriority(
       filterMinimumSourceUsdTokens(
         getExpandedSourceTokens(
-          excludeSwapExactOutDestinationTokens(sourceTokens)
+          excludeSwapExactOutDestinationTokens(sourcePool)
         )
       )
         .filter((token) => getTokenSelectionKey(token) !== destinationKey)
@@ -7002,8 +7139,7 @@ function NexusOneInner({
     if (
       !isExactOutPaymentFlow ||
       swapStep !== "idle" ||
-      swapType !== "exactOut" ||
-      !nexusSDK
+      swapType !== "exactOut"
     ) {
       setPredictiveQuote((current) =>
         current?.mode === "exactOut" ? null : current
@@ -7104,6 +7240,7 @@ function NexusOneInner({
     depositAmountMode,
     destinationBalance,
     fromTokensQuoteKey,
+    isMultiAssetMode,
     nexusSDK,
     selectedOpportunityIdentity,
     sourceSelectionRevision,
@@ -7251,7 +7388,7 @@ function NexusOneInner({
   }, []);
 
   const isSourcePickerMultiselect =
-    activeMode === "swap" || isExactOutPaymentFlow;
+    isMultiAssetMode && (activeMode === "swap" || isExactOutPaymentFlow);
 
   const beginSourcePickerEdit = useCallback(() => {
     if (!isSourcePickerMultiselect) {
@@ -7340,6 +7477,32 @@ function NexusOneInner({
       setSourcePickerDraftSelection,
     ]
   );
+
+  const handleAutoExactOut = useCallback(() => {
+    sourcePickerDraftDepositFilterRef.current = "all";
+    sourcePickerDraftTouchedRef.current = false;
+    sourcePickerDraftModeRef.current = "all";
+    setSourcePickerDraftTouched(false);
+    setSourceSelectionTouched(false);
+    setExactOutQuoteSourceModeValue("all");
+    if (activeMode === "deposit") {
+      setDepositSourceFilter("all");
+    }
+
+    setFromTokens([]);
+    setSwapQuoteIssue(null);
+    setTxError(null);
+    setSourceSelectionRevision((current) => current + 1);
+
+    clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
+    setQuoteRefreshing(true);
+    invalidateExactOutQuoteForRefresh();
+  }, [
+    activeMode,
+    clearPendingSwapIntent,
+    invalidateExactOutQuoteForRefresh,
+    setExactOutQuoteSourceModeValue,
+  ]);
 
   const commitSourcePickerDraft = useCallback(
     (tokens?: SwapTokenOption[]) => {
@@ -9286,12 +9449,21 @@ function NexusOneInner({
     setSwapStep("idle");
   };
 
+  const sanitizeNumericInput = (raw: string) => {
+    if (!raw) return "";
+    let next = raw.replaceAll(/[^0-9.]/g, "");
+    const parts = next.split(".");
+    if (parts.length > 2) next = `${parts[0]}.${parts.slice(1).join("")}`;
+    return next;
+  };
+
   const handleSwapAmountChange = (val: string, panel: "send" | "receive") => {
+    const sanitizedVal = sanitizeNumericInput(val);
     syncingIntentSourcesRef.current = false;
     setSwapQuoteIssue(null);
     setTxError(null);
-    const nextAmount = parseFiatNumber(val);
-    const receiveIssue = buildReceiveAmountIssue({ inputAmount: val });
+    const nextAmount = parseFiatNumber(sanitizedVal);
+    const receiveIssue = buildReceiveAmountIssue({ inputAmount: sanitizedVal });
     applyReceiveAmountIssue(receiveIssue);
     const hasSelectedSourceToken = fromTokens.some(
       (token) => token.chainId && token.contractAddress
@@ -9309,7 +9481,7 @@ function NexusOneInner({
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
     }
-    setAmount(val);
+    setAmount(sanitizedVal);
     if (panel === "receive") {
       const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
       if (isZeroOrEmpty) {
@@ -9343,6 +9515,7 @@ function NexusOneInner({
   const handleSwapTokensUpdate = (tokens: SwapTokenOption[]) => {
     setSwapQuoteIssue(null);
     setTxError(null);
+    setSourceSelectionTouched(true);
     applyReceiveAmountIssue(buildReceiveAmountIssue({ sourceTokens: tokens }));
     setFromTokens(tokens);
   };
@@ -9611,7 +9784,11 @@ function NexusOneInner({
   // Render
   // ---------------------------------------------------------------------------
   const insufficientSourceIssue =
-    swapQuoteIssue?.type === "insufficientSources" ? swapQuoteIssue : null;
+    swapQuoteIssue?.type === "insufficientSources"
+      ? swapQuoteIssue
+      : receiveAmountIssue?.type === "insufficientSources"
+        ? receiveAmountIssue
+        : null;
   const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
@@ -9939,9 +10116,7 @@ function NexusOneInner({
   const exactOutIdleSourceTokens =
     swapType === "exactOut" && !hasPositiveDecimalInput(amount)
       ? []
-      : displayFromTokens.length > 0
-        ? displayFromTokens
-        : exactOutBalanceSourceTokens;
+      : displayFromTokens;
   const exactOutShowQuotedAmounts = Boolean(
     shouldShowPredictiveExactOutDisplay ||
       (hasCurrentExactOutPaymentIntent &&
@@ -9967,7 +10142,7 @@ function NexusOneInner({
     (activeMode === "swap" ||
       activeMode === "deposit" ||
       activeMode === "send") &&
-    hasCurrentQuoteIntent &&
+    (hasCurrentQuoteIntent || quoteRefreshing || previewQuoteRefreshing) &&
     (swapStep === "idle" || swapStep === "preview-intent");
   const isRecipientDrawerClosing = closingDrawerStep === "enter-recipient";
   const isSwapAssetDrawerClosing = closingDrawerStep === "choose-swap-asset";
@@ -9995,14 +10170,14 @@ function NexusOneInner({
       className={className}
       data-nexus-one-root
       style={{
-        backgroundColor: theme.colors.surface,
+        backgroundColor: "#FFFFFF",
         backgroundImage: "none",
         backgroundPosition: "center",
         backgroundPositionX: "center",
         backgroundPositionY: "center",
         backgroundSize: "cover",
-        borderRadius: theme.radius.modal,
-        boxShadow: appConfig.boxShadow || theme.shadows.root,
+        borderRadius: "32px",
+        boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -10010,7 +10185,7 @@ function NexusOneInner({
         fontSize: "12px",
         fontSynthesis: "none",
         fontVariantNumeric: "tabular-nums",
-        gap: "7px",
+        gap: "16px",
         height: shouldUseMeasuredRootHeight
           ? `${rootContentHeight + 24}px`
           : "fit-content",
@@ -10029,15 +10204,17 @@ function NexusOneInner({
         position: "relative",
         transition: (() => {
           const transitions = [];
-          if (hasMeasuredRootContent && shouldAnimateRootHeight) {
-            transitions.push(`height ${ROOT_HEIGHT_TRANSITION_MS}ms ease-out`);
+          if (hasMeasuredRootContent) {
+            transitions.push(
+              `height ${ROOT_HEIGHT_TRANSITION_MS}ms cubic-bezier(0.2, 0, 0, 1)`
+            );
           }
           transitions.push("box-shadow 0.5s ease-in-out");
           return transitions.join(", ");
         })(),
         willChange: "height",
-        width: "420px",
-        maxWidth: "100%",
+        width: "100%",
+        maxWidth: "512px",
         minWidth: "280px",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
@@ -10050,207 +10227,350 @@ function NexusOneInner({
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
-          gap: "7px",
+          gap: "12px",
           minHeight: 0,
           width: "100%",
         }}
       >
-        <div
-          style={{
-            alignItems: "center",
-            boxSizing: "border-box",
-            display: "flex",
-            flexShrink: 0,
-            justifyContent: "space-between",
-            padding: 0,
-            width: "100%",
-            position: "relative",
-            zIndex: 10,
-          }}
-        >
-          <div className="flex items-center gap-x-2">
-            {canGoBack && (
-              <button
-                aria-label="Back"
-                onClick={handleBack}
-                style={{
-                  alignItems: "center",
-                  backgroundColor: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  padding: "4px",
-                  marginRight: "4px",
-                }}
-              >
-                <ArrowLeft
-                  className="w-5 h-5"
-                  style={{ color: theme.colors.textStrong }}
-                />
-              </button>
-            )}
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div
-                style={{
-                  boxSizing: "border-box",
-                  color: theme.colors.text,
-                  ...theme.typography.headingPanel,
-                }}
-              >
-                {getTitle()}
-              </div>
-              {activeMode === "swap" &&
-                [
-                  "idle",
-                  "choose-swap-asset",
-                  "choose-receive-asset",
-                  "enter-recipient",
-                ].includes(swapStep) && (
-                  <div
-                    style={{
-                      color: "#848483",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "12px",
-                      fontWeight: 400,
-                      lineHeight: "16px",
-                      marginTop: "1px",
-                    }}
-                  >
-                    {swapType === "exactIn"
-                      ? "you are swapping using exact in"
-                      : "you are swapping using exact out"}
-                  </div>
-                )}
-            </div>
-
-            {/* Sub-screen asset counts */}
-            {!isTitleCentered() &&
-              activeMode === "swap" &&
-              swapStep === "choose-swap-asset" &&
-              swapType === "exactIn" && (
-                <span
-                  style={{
-                    color: theme.colors.muted,
-                    fontFamily: theme.fonts.sans,
-                    fontSize: "14px",
-                    marginLeft: "7px",
-                  }}
-                >
-                  {fromTokens.length} asset(s) selected
-                </span>
-              )}
-          </div>
-
-          {/* Right side icons */}
+        {/* Header row: in idle mode show Multi-assets mode toggle */}
+        {activeMode === "swap" &&
+        [
+          "idle",
+          "choose-swap-asset",
+          "choose-receive-asset",
+          "enter-recipient",
+        ].includes(swapStep) &&
+        !canGoBack ? (
           <div
             style={{
               alignItems: "center",
               boxSizing: "border-box",
               display: "flex",
-              gap: "9px",
+              flexShrink: 0,
+              justifyContent: "space-between",
+              padding: "4px 6px 0 6px",
+              width: "100%",
+              position: "relative",
+              zIndex: 10,
             }}
           >
-            {hasQuoteRefreshCountdown && (
-              <QuoteRefreshCountdown
-                isRefreshing={quoteRefreshing || previewQuoteRefreshing}
-                progress={quoteRefreshProgress}
-                secondsRemaining={quoteRefreshSecondsRemaining}
-              />
-            )}
-            {swapStep !== "history" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  lineHeight: "normal",
+                }}
+              >
+                Multi-assets Mode
+              </span>
+              <button
+                aria-label="Toggle multi-assets mode"
+                onClick={() => {
+                  const willEnable = !isMultiAssetMode;
+                  setIsMultiAssetMode(willEnable);
+                  if (!willEnable) {
+                    setFromTokens([]);
+                    handleSwapAmountChange("", "send");
+                    clearPendingSwapIntent();
+                  } else if (swapType === "exactOut" && amount && toToken) {
+                    setExactOutQuoteSourceModeValue("all");
+                    setFromTokens([]);
+                    const immediatePrediction =
+                      buildImmediatePredictiveExactOutQuote([], true);
+                    if (immediatePrediction) {
+                      setPredictiveQuote(immediatePrediction);
+                    }
+                  }
+                  if (swapType === "exactOut") {
+                    invalidateExactOutQuoteForRefresh();
+                  }
+                }}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: isMultiAssetMode ? "#1F1F1F" : "#D9D9DE",
+                  border: "none",
+                  borderRadius: "999px",
+                  cursor: "pointer",
+                  display: "flex",
+                  height: "20px",
+                  outline: "none",
+                  padding: "2px",
+                  transition: "background-color 0.2s ease",
+                  width: "36px",
+                }}
+                type="button"
+              >
+                <div
+                  style={{
+                    backgroundColor: "#FFF",
+                    borderRadius: "999px",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                    height: "16px",
+                    transform: isMultiAssetMode
+                      ? "translateX(16px)"
+                      : "translateX(0px)",
+                    transition: "transform 0.2s ease",
+                    width: "16px",
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* Right: Countdown Timer + History toggle icon */}
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                gap: "8px",
+              }}
+            >
+              {hasQuoteRefreshCountdown && (
+                <QuoteRefreshCountdown
+                  isRefreshing={quoteRefreshing || previewQuoteRefreshing}
+                  progress={quoteRefreshProgress}
+                  secondsRemaining={quoteRefreshSecondsRemaining}
+                />
+              )}
               <button
                 aria-label="View transaction history"
                 onClick={handleHistoryToggle}
                 style={{
                   alignItems: "center",
-                  backgroundColor: theme.primitives.iconButton.backgroundColor,
-                  borderColor: theme.primitives.iconButton.borderColor,
-                  borderRadius: theme.radius.iconButton,
-                  borderStyle: "solid",
-                  borderWidth: "1px",
-                  boxShadow: theme.primitives.iconButton.boxShadow,
+                  backgroundColor: "transparent",
+                  border: "none",
+                  borderRadius: "999px",
                   boxSizing: "border-box",
+                  cursor: "pointer",
                   display: "flex",
                   flexShrink: 0,
                   height: "28px",
                   justifyContent: "center",
-                  width: "28px",
-                  cursor: "pointer",
                   padding: 0,
+                  width: "28px",
+                  color: "#1F1F1F",
                 }}
+                type="button"
               >
                 <svg
                   fill="none"
-                  height="14"
-                  style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                  height="16"
+                  style={{ width: "16px", height: "16px", flexShrink: 0 }}
                   viewBox="0 0 16 16"
-                  width="14"
+                  width="16"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
                     d="M8 4V8L10.5 9.5"
-                    stroke={theme.colors.textStrong}
+                    stroke="#1F1F1F"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="1.4"
+                    strokeWidth="1.5"
                   />
                   <path
                     d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
-                    stroke={theme.colors.textStrong}
+                    stroke="#1F1F1F"
                     strokeLinecap="round"
-                    strokeWidth="1.4"
+                    strokeWidth="1.5"
                   />
                   <path
                     d="M13.5 2V5H10.5"
-                    stroke={theme.colors.textStrong}
+                    stroke="#1F1F1F"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth="1.4"
+                    strokeWidth="1.5"
                   />
                 </svg>
               </button>
-            )}
-            {showCloseButton && (
-              <button
-                aria-label="Close"
-                onClick={handleClose}
-                style={{
-                  alignItems: "center",
-                  backgroundColor: theme.primitives.iconButton.backgroundColor,
-                  borderColor: theme.primitives.iconButton.borderColor,
-                  borderRadius: theme.radius.iconButton,
-                  borderStyle: "solid",
-                  borderWidth: "1px",
-                  boxShadow: theme.primitives.iconButton.boxShadow,
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexShrink: 0,
-                  height: "28px",
-                  justifyContent: "center",
-                  padding: 0,
-                  width: "28px",
-                }}
-              >
-                <svg
-                  fill="none"
-                  height="14"
-                  style={{ width: "14px", height: "14px", flexShrink: 0 }}
-                  viewBox="0 0 16 16"
-                  width="14"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M4 4L12 12M12 4L4 12"
-                    stroke={theme.colors.textStrong}
-                    strokeLinecap="round"
-                    strokeWidth="1.4"
-                  />
-                </svg>
-              </button>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              alignItems: "center",
+              boxSizing: "border-box",
+              display: "flex",
+              flexShrink: 0,
+              justifyContent: "space-between",
+              padding: 0,
+              width: "100%",
+              position: "relative",
+              zIndex: 10,
+            }}
+          >
+            <div className="flex items-center gap-x-2">
+              {canGoBack && (
+                <button
+                  aria-label="Back"
+                  onClick={handleBack}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    padding: "4px",
+                    marginRight: "4px",
+                  }}
+                >
+                  <ArrowLeft
+                    className="w-5 h-5"
+                    style={{ color: theme.colors.textStrong }}
+                  />
+                </button>
+              )}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    boxSizing: "border-box",
+                    color: theme.colors.text,
+                    ...theme.typography.headingPanel,
+                  }}
+                >
+                  {getTitle()}
+                </div>
+              </div>
+
+              {/* Sub-screen asset counts */}
+              {!isTitleCentered() &&
+                activeMode === "swap" &&
+                swapStep === "choose-swap-asset" &&
+                swapType === "exactIn" && (
+                  <span
+                    style={{
+                      color: theme.colors.muted,
+                      fontFamily: theme.fonts.sans,
+                      fontSize: "14px",
+                      marginLeft: "7px",
+                    }}
+                  >
+                    {fromTokens.length} asset(s) selected
+                  </span>
+                )}
+            </div>
+
+            {/* Right side icons */}
+            <div
+              style={{
+                alignItems: "center",
+                boxSizing: "border-box",
+                display: "flex",
+                gap: "9px",
+              }}
+            >
+              {hasQuoteRefreshCountdown && (
+                <QuoteRefreshCountdown
+                  isRefreshing={quoteRefreshing || previewQuoteRefreshing}
+                  progress={quoteRefreshProgress}
+                  secondsRemaining={quoteRefreshSecondsRemaining}
+                />
+              )}
+              {swapStep !== "history" && (
+                <button
+                  aria-label="View transaction history"
+                  onClick={handleHistoryToggle}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor:
+                      theme.primitives.iconButton.backgroundColor,
+                    borderColor: theme.primitives.iconButton.borderColor,
+                    borderRadius: theme.radius.iconButton,
+                    borderStyle: "solid",
+                    borderWidth: "1px",
+                    boxShadow: theme.primitives.iconButton.boxShadow,
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexShrink: 0,
+                    height: "28px",
+                    justifyContent: "center",
+                    width: "28px",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <svg
+                    fill="none"
+                    height="14"
+                    style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                    viewBox="0 0 16 16"
+                    width="14"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M8 4V8L10.5 9.5"
+                      stroke={theme.colors.textStrong}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.4"
+                    />
+                    <path
+                      d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
+                      stroke={theme.colors.textStrong}
+                      strokeLinecap="round"
+                      strokeWidth="1.4"
+                    />
+                    <path
+                      d="M13.5 2V5H10.5"
+                      stroke={theme.colors.textStrong}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.4"
+                    />
+                  </svg>
+                </button>
+              )}
+              {showCloseButton && (
+                <button
+                  aria-label="Close"
+                  onClick={handleClose}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor:
+                      theme.primitives.iconButton.backgroundColor,
+                    borderColor: theme.primitives.iconButton.borderColor,
+                    borderRadius: theme.radius.iconButton,
+                    borderStyle: "solid",
+                    borderWidth: "1px",
+                    boxShadow: theme.primitives.iconButton.boxShadow,
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexShrink: 0,
+                    height: "28px",
+                    justifyContent: "center",
+                    padding: 0,
+                    width: "28px",
+                  }}
+                >
+                  <svg
+                    fill="none"
+                    height="14"
+                    style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                    viewBox="0 0 16 16"
+                    width="14"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M4 4L12 12M12 4L4 12"
+                      stroke={theme.colors.textStrong}
+                      strokeLinecap="round"
+                      strokeWidth="1.4"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* Main content area */}
@@ -10392,14 +10712,18 @@ function NexusOneInner({
                 <SwapIdleForm
                   amount={amount}
                   defaultRecipientAddress={defaultRecipientAddress}
+                  destinationGasFeeUsd={previewDestinationGasFeeUsd}
                   fromTokens={
                     swapType === "exactOut"
                       ? exactOutIdleSourceTokens
                       : fromTokens
                   }
+                  intentData={intentData}
+                  isMultiAssetMode={isMultiAssetMode}
                   isReceiveAmountLoading={isReceiveAmountLoading}
                   isReceiveUsdLoading={isReceiveUsdLoading}
                   missingUsd={insufficientSourceIssue?.missingUsd}
+                  needsWalletConnection={needsWalletConnection}
                   onAmountChange={(val, panel) => {
                     handleSwapAmountChange(val, panel);
                   }}
@@ -10408,19 +10732,21 @@ function NexusOneInner({
                   }
                   onOpenRecipientPicker={handleOpenRecipientEditor}
                   onOpenSourcePicker={(index) => {
-                    if (needsWalletConnection) {
-                      void handleConnectWallet();
-                      return;
-                    }
                     setEditingAssetIndex(index ?? null);
                     beginSourcePickerEdit();
                     openDrawerStep("choose-swap-asset");
                   }}
+                  onRestoreAuto={handleAutoExactOut}
                   onSetPercent={handleSendPercentSelect}
                   onUpdateTokens={handleSwapTokensUpdate}
                   receiveQuoteAmount={idleReceiveQuoteAmount}
                   receiveQuoteUsd={idleReceiveQuoteUsd}
                   recipientAddress={effectiveRecipientAddress}
+                  showRestoreAuto={
+                    isExactOutPaymentFlow &&
+                    (sourceSelectionTouched ||
+                      exactOutQuoteSourceModeRef.current === "selected")
+                  }
                   sourceRouteMessage={insufficientSourceIssue?.message}
                   sourceRouteStatus={
                     insufficientSourceIssue
@@ -10432,6 +10758,7 @@ function NexusOneInner({
                   swapType={swapType}
                   toToken={toTokenWithFetchedBalance}
                   totalBalance={totalSwapBalanceUsd}
+                  totalFeeUsd={intentFeeUsd}
                   usdValue={
                     swapType === "exactOut"
                       ? exactOutReceiveUsd
@@ -10440,18 +10767,14 @@ function NexusOneInner({
                         : ""
                   }
                 />
-                <EstimatedFeesDisclosure
-                  destinationGasFeeUsd={previewDestinationGasFeeUsd}
-                  intentData={intentData}
-                  totalFeeUsd={intentFeeUsd}
-                />
 
-                {receiveAmountIssue && (
-                  <StatusAlert
-                    message={receiveAmountIssue.message}
-                    type="error"
-                  />
-                )}
+                {receiveAmountIssue &&
+                  receiveAmountIssue.type !== "insufficientSources" && (
+                    <StatusAlert
+                      message={receiveAmountIssue.message}
+                      type="error"
+                    />
+                  )}
 
                 {txError && !blockingQuoteIssue && (
                   <StatusAlert message={txError} type="error" />
@@ -10463,6 +10786,8 @@ function NexusOneInner({
                     boxSizing: "border-box",
                     display: "flex",
                     flexDirection: "column",
+                    marginTop: "4px",
+                    width: "100%",
                   }}
                 >
                   <button
@@ -10476,72 +10801,79 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: blockingQuoteIssue
-                        ? "#FCEEED"
-                        : isSwapCtaDisabled
-                          ? theme.colors.surfaceCool
-                          : theme.colors.text,
-                      border: blockingQuoteIssue ? "1px solid #F7C4C1" : "none",
-                      borderRadius: theme.radius.primaryButton,
-                      boxShadow:
-                        blockingQuoteIssue || isSwapCtaDisabled
-                          ? "none"
-                          : theme.shadows.primaryButton,
+                      backgroundColor: isSwapCtaDisabled
+                        ? "#E4E4E4"
+                        : "#1F1F1F",
+                      border: "none",
+                      borderRadius: "32px",
                       boxSizing: "border-box",
+                      color: "#FFFFFE",
+                      cursor: isSwapCtaDisabled ? "not-allowed" : "pointer",
                       display: "flex",
                       flexShrink: 0,
-                      gap: "7px",
-                      height: "42px",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "16px",
+                      fontWeight: 500,
                       justifyContent: "center",
-                      marginTop: "8px",
-                      paddingInline: "16px",
-                      cursor: isSwapCtaDisabled ? "default" : "pointer",
+                      letterSpacing: "-0.08px",
+                      lineHeight: "20px",
+                      padding: "16px 20px",
+                      position: "relative",
+                      textAlign: "center",
+                      textTransform: "capitalize",
+                      transition: "background-color 0.2s ease",
                       width: "100%",
                     }}
+                    type="button"
                   >
-                    {blockingQuoteIssue ? (
-                      <AlertCircle
-                        style={{
-                          color: "#D32F2F",
-                          height: "14px",
-                          width: "14px",
-                        }}
-                      />
-                    ) : (needsWalletConnection && walletConnectBusy) ||
-                      quoteRefreshing ||
-                      receiveMaxCalculating ? (
-                      <Loader2
-                        className="animate-spin"
-                        style={{
-                          color: isSwapCtaDisabled
-                            ? theme.colors.muted
-                            : theme.colors.surface,
-                          height: "14px",
-                          width: "14px",
-                        }}
-                      />
-                    ) : null}
-                    <div
+                    <span
                       style={{
-                        boxSizing: "border-box",
-                        color: blockingQuoteIssue
-                          ? "#D32F2F"
-                          : isSwapCtaDisabled
-                            ? theme.colors.muted
-                            : theme.colors.surface,
-                        fontFamily: theme.fonts.sans,
-                        fontSize: blockingQuoteIssue ? "13px" : "14px",
-                        fontWeight: 500,
-                        letterSpacing: "0",
-                        lineHeight: blockingQuoteIssue ? "17px" : "19px",
+                        alignItems: "center",
+                        display: "inline-flex",
+                        gap: "8px",
+                        justifyContent: "center",
+                        position: "relative",
                       }}
                     >
-                      {needsWalletConnection
-                        ? walletCtaLabel
-                        : !isSwapExactOut && fromTokens.length === 0
-                          ? "Add Assets to Bridge"
-                          : quoteCtaLabel("Proceed to Swap")}
-                    </div>
+                      {quoteRefreshing ||
+                      receiveMaxCalculating ||
+                      (needsWalletConnection && walletConnectBusy) ? (
+                        <Loader2
+                          className="animate-spin"
+                          style={{
+                            color: "#FFFFFE",
+                            height: "16px",
+                            width: "16px",
+                          }}
+                        />
+                      ) : null}
+                      <span>
+                        {needsWalletConnection
+                          ? walletCtaLabel
+                          : "Approve & Swap"}
+                      </span>
+                      {!isSwapCtaDisabled && !needsWalletConnection && (
+                        <span
+                          className="nexus-cta-est-time"
+                          style={{
+                            color: "#8E8E89",
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: "12px",
+                            fontWeight: 400,
+                            left: "calc(100% + 8px)",
+                            letterSpacing: "-0.06px",
+                            lineHeight: "20px",
+                            pointerEvents: "none",
+                            position: "absolute",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          (Est. Time: ~10 Sec)
+                        </span>
+                      )}
+                    </span>
                   </button>
                 </div>
               </>
@@ -11118,72 +11450,57 @@ function NexusOneInner({
           </div>
         )}
 
-      {/* Drawer: choose-swap-asset */}
+      {/* Modal: choose-swap-asset */}
       {(activeMode === "swap" ||
         activeMode === "send" ||
         activeMode === "deposit") &&
-        swapStep === "choose-swap-asset" && (
+        swapStep === "choose-swap-asset" &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                if (isSourcePickerMultiselect) {
+                  handleSourcePickerCancel();
+                } else {
+                  closeDrawerToIdle();
+                }
+              }
+            }}
             style={{
-              height: "100%",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
+              alignItems: "center",
+              animation: "nexusFadeIn 0.2s ease-out",
+              backdropFilter: "blur(8px)",
+              background: "rgba(215, 218, 220, 0.50)",
               bottom: 0,
-              zIndex: 40,
-              pointerEvents: "none",
+              boxSizing: "border-box",
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
+              inset: 0,
+              justifyContent: "center",
+              left: 0,
+              padding: "16px",
+              position: "fixed",
+              right: 0,
+              top: 0,
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 9999999,
             }}
           >
             <div
-              onClick={closeDrawerToIdle}
+              onClick={(e) => e.stopPropagation()}
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "rgba(255,255,255,0.55)",
-                pointerEvents: "auto",
-                opacity: isSwapAssetDrawerClosing ? 0 : 1,
-                transition: `opacity ${DRAWER_CLOSE_MS}ms ease`,
-              }}
-            />
-            <div
-              className={
-                isSwapAssetDrawerClosing
-                  ? undefined
-                  : "animate-in slide-in-from-bottom-full duration-300"
-              }
-              data-nexus-one-sheet
-              style={{
-                backfaceVisibility: "hidden",
-                bottom: 0,
-                contain: "layout paint",
-                height: ASSET_SELECTOR_DRAWER_HEIGHT,
-                left: 0,
-                maxHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
-                minHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
-                position: "absolute",
-                right: 0,
-                width: "100%",
+                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                 backgroundColor: "#FFFFFF",
-                borderRadius: "12px 12px 0 0",
+                borderRadius: "32px",
+                boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
+                boxSizing: "border-box",
                 display: "flex",
                 flexDirection: "column",
+                maxHeight: "90vh",
+                maxWidth: "980px",
+                minWidth: "280px",
                 overflow: "hidden",
-                pointerEvents: "auto",
-                boxShadow: theme.shadows.sheet,
-                boxSizing: "border-box",
-                opacity: isSwapAssetDrawerClosing ? 0 : 1,
-                transform: isSwapAssetDrawerClosing
-                  ? "translateY(100%)"
-                  : "translateY(0)",
-                transition: `transform ${DRAWER_CLOSE_MS}ms ease, opacity ${DRAWER_CLOSE_MS}ms ease`,
-                willChange: "transform, opacity",
+                width: "100%",
               }}
             >
               <SwapAssetSelector
@@ -11246,12 +11563,11 @@ function NexusOneInner({
                     );
                     const next = [...fromTokens];
                     const targetIndex =
-                      editingAssetIndex !== null &&
-                      editingAssetIndex < next.length
-                        ? editingAssetIndex
-                        : null;
+                      editingAssetIndex !== null ? editingAssetIndex : null;
                     const existingToken =
-                      targetIndex !== null ? next[targetIndex] : undefined;
+                      targetIndex !== null && targetIndex < next.length
+                        ? next[targetIndex]
+                        : undefined;
                     const tokenChanged = !isSameTokenSelection(
                       existingToken,
                       token
@@ -11265,31 +11581,31 @@ function NexusOneInner({
                       userAmount: preservedAmount,
                     };
 
-                    if (targetIndex !== null) {
-                      next[targetIndex] = newToken;
+                    if (!isMultiAssetMode) {
+                      next.length = 0;
+                      next.push(newToken);
+                    } else if (targetIndex !== null) {
+                      if (targetIndex < next.length) {
+                        next[targetIndex] = newToken;
+                      } else {
+                        next.push(newToken);
+                      }
                     } else {
                       next.push(newToken);
                     }
 
-                    if (tokenChanged || shouldClearDestination) {
-                      clearPendingSwapIntent();
-                    }
-                    if (tokenChanged) {
-                      setAmount(getSourceAmountInput(next));
+                    setFromTokens(next);
+                    if (targetIndex === 0 && preservedAmount) {
+                      setAmount(preservedAmount);
                     }
                     if (shouldClearDestination) {
                       setToToken(undefined);
+                      setDestinationBalance(undefined);
                     }
-                    if (swapType !== "exactIn") {
-                      setSwapType("exactIn");
-                    }
-                    setFromTokens(next);
                     closeDrawerToIdle();
-                  } else if (isExactOutPaymentFlow) {
-                    handleSourcePickerDraftSelectionChange([
-                      { ...token, userAmount: "" },
-                    ]);
+                    return;
                   }
+                  handleSelectToken(token);
                 }}
                 onSelectionChange={
                   isSourcePickerMultiselect
@@ -11458,6 +11774,11 @@ function NexusOneInner({
                   activeMode === "swap" && swapType === "exactIn"
                 }
                 showRestoreAuto={sourcePickerDraftTouched}
+                staticOptions={
+                  !ownerAddress || !swapBalance || swapBalance.length === 0
+                    ? disconnectedAvailableTokens
+                    : undefined
+                }
                 swapBalance={swapBalance}
                 swapSupportedChains={swapSupportedChainsAndTokens}
                 title={
@@ -11469,75 +11790,57 @@ function NexusOneInner({
                 }
               />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
-      {/* Drawer: choose-receive-asset */}
+      {/* Modal: choose-receive-asset */}
       {(activeMode === "swap" ||
         activeMode === "send" ||
         activeMode === "deposit") &&
-        swapStep === "choose-receive-asset" && (
+        swapStep === "choose-receive-asset" &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeDrawerToIdle();
+              }
+            }}
             style={{
-              height: "100%",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
+              alignItems: "center",
+              animation: "nexusFadeIn 0.2s ease-out",
+              backdropFilter: "blur(8px)",
+              background: "rgba(215, 218, 220, 0.50)",
               bottom: 0,
-              zIndex: 40,
-              pointerEvents: "none",
+              boxSizing: "border-box",
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-end",
+              inset: 0,
+              justifyContent: "center",
+              left: 0,
+              padding: "16px",
+              position: "fixed",
+              right: 0,
+              top: 0,
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 9999999,
             }}
           >
             <div
-              onClick={closeDrawerToIdle}
+              onClick={(e) => e.stopPropagation()}
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "rgba(255,255,255,0.55)",
-                pointerEvents: "auto",
-                opacity: isReceiveAssetDrawerClosing ? 0 : 1,
-                transition: `opacity ${DRAWER_CLOSE_MS}ms ease`,
-              }}
-            />
-            <div
-              className={
-                isReceiveAssetDrawerClosing
-                  ? undefined
-                  : "animate-in slide-in-from-bottom-full duration-300"
-              }
-              data-nexus-one-sheet
-              style={{
-                backfaceVisibility: "hidden",
-                bottom: 0,
-                contain: "layout paint",
-                height: ASSET_SELECTOR_DRAWER_HEIGHT,
-                left: 0,
-                maxHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
-                minHeight: ASSET_SELECTOR_DRAWER_HEIGHT,
-                position: "absolute",
-                right: 0,
-                width: "100%",
+                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
                 backgroundColor: "#FFFFFF",
-                borderRadius: "12px 12px 0 0",
+                borderRadius: "32px",
+                boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
+                boxSizing: "border-box",
                 display: "flex",
                 flexDirection: "column",
+                maxHeight: "90vh",
+                maxWidth: "980px",
+                minWidth: "280px",
                 overflow: "hidden",
-                pointerEvents: "auto",
-                boxShadow: theme.shadows.sheet,
-                boxSizing: "border-box",
-                opacity: isReceiveAssetDrawerClosing ? 0 : 1,
-                transform: isReceiveAssetDrawerClosing
-                  ? "translateY(100%)"
-                  : "translateY(0)",
-                transition: `transform ${DRAWER_CLOSE_MS}ms ease, opacity ${DRAWER_CLOSE_MS}ms ease`,
-                willChange: "transform, opacity",
+                width: "100%",
               }}
             >
               <ReceiveAssetSelector
@@ -11551,6 +11854,14 @@ function NexusOneInner({
                       contractAddress: token.contractAddress,
                       symbol: token.symbol,
                     });
+                  }
+                  if (
+                    activeMode === "swap" &&
+                    isSwapExactOut &&
+                    sourceSelectionIncludesTokenChainPair(token, fromTokens)
+                  ) {
+                    setFromTokens([]);
+                    setExactOutQuoteSourceModeValue("all");
                   }
                   if (
                     activeMode === "send" ||
@@ -11587,9 +11898,11 @@ function NexusOneInner({
                   setToToken(token);
                   closeDrawerToIdle();
                 }}
+                selectedToken={toToken}
               />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
     </div>
   );
