@@ -20,6 +20,63 @@ export const LANDING_META_IMAGE_URL =
 // ---------------------------------------------------------------------------
 
 export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
+  // ── Universal App Route ──────────────────────────────────────────────────
+  app: {
+    slug: "app",
+    appConfig: {
+      chainId: 1,
+      chainName: "Ethereum",
+      chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      chainRpcUrl: "https://ethereum-rpc.publicnode.com",
+      chainBlockExplorerUrl: "https://etherscan.io",
+      chainTestnet: false,
+      useChainLogo: false,
+      chainIconUrl: "/avail_logo.svg",
+      chainLogoUrl: "/fastbridge-logo.png",
+      backgroundImageUrl: "",
+      chainGifUrl: "",
+      chainGifAlt: "",
+      heroText: "Move your assets across chains faster than ever!",
+      appTitle: "FastBridge | Multi-Chain Fast Bridge",
+      appDescription: "FastBridge Multi-Chain Fast Bridge",
+      primaryColor: "#0065FF",
+      secondaryColor: "#ECE8E8",
+      nexusNetwork: "mainnet",
+      nexusSupportedChain: 1,
+      nexusPrimaryToken: "",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #2B2B2B0A 0px 2px 4px, #2B2B2B29 0px 12px 24px, #2B2B2B26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/universal-ribbon.png",
+      meta: {
+        title: "FastBridge – Universal Multi-Chain Crypto Bridge",
+        description:
+          "Bridge tokens across major EVM chains in one seamless transaction with zero slippage and gas abstraction.",
+        canonicalUrl: "https://fastbridge.availproject.org/app",
+        imageUrl: LANDING_META_IMAGE_URL,
+        faviconUrl: "/avail_logo.svg",
+        themeColor: "#0065FF",
+        backgroundColor: "#FFFFFE",
+      },
+    },
+    chainFeatures: {
+      slug: "app",
+      analyticsFastBridgeKey: "app",
+      maxBridgeAmount: 550,
+      walletInitDelayMs: 0,
+      showFluffeyMascot: false,
+      showEthMascot: false,
+      showPromoBanner: false,
+      showSupportCta: true,
+      supportCtaHref: "https://discord.com/invite/AvailProject",
+      supportCtaLine1: "Need help?",
+      supportCtaLine2: "Reach out to us.",
+      mapUsdmDisplaySymbolToUsdc: false,
+      mapUsdmToUsdcBalance: false,
+      denyIntentOnReset: true,
+      buttonFg: "white",
+    },
+  },
+
   // ── MegaETH ─────────────────────────────────────────────────────────────
   megaeth: {
     slug: "megaeth",
@@ -67,9 +124,12 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.MEGAETH]: 5000,
+      },
       maxBridgeAmountByTokenAndChain: {
         USDM: {
-          [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+          [SUPPORTED_CHAINS.MEGAETH]: 5000,
         },
       },
       walletInitDelayMs: 500,
@@ -237,6 +297,9 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "black",
       analyticsFastBridgeKey: "citrea",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.CITREA]: 2000,
+      },
       maxBridgeAmountByTokenAndChain: {
         USDC: { [SUPPORTED_CHAINS.CITREA]: 2000 },
         USDT: { [SUPPORTED_CHAINS.CITREA]: 2000 },
@@ -602,6 +665,9 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       buttonFg: "black",
       analyticsFastBridgeKey: "scroll",
       maxBridgeAmount: 550,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.SCROLL]: 500,
+      },
       mapUsdmToUsdcBalance: true,
       denyIntentOnReset: true,
       tokenDenyListByChainId: {},
@@ -873,7 +939,7 @@ export function isValidChainSlug(slug: string): boolean {
 
 export function getChainSlugById(chainId: number): string | undefined {
   const settings = Object.values(CHAIN_REGISTRY).find(
-    (s) => s.appConfig.chainId === chainId
+    (s) => s.slug !== "app" && s.appConfig.chainId === chainId
   );
   return settings?.slug;
 }
@@ -888,10 +954,12 @@ export function getChainSlugByName(chainName?: string): string | undefined {
   }
 
   const normalized = normalizeChainLookupValue(chainName);
-  const settings = Object.values(CHAIN_REGISTRY).find((entry) =>
-    [entry.slug, entry.appConfig.chainName].some(
-      (candidate) => normalizeChainLookupValue(candidate) === normalized
-    )
+  const settings = Object.values(CHAIN_REGISTRY).find(
+    (entry) =>
+      entry.slug !== "app" &&
+      [entry.slug, entry.appConfig.chainName].some(
+        (candidate) => normalizeChainLookupValue(candidate) === normalized
+      )
   );
 
   return settings?.slug;

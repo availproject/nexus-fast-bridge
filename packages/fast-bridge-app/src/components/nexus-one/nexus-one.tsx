@@ -207,7 +207,7 @@ type PredictiveQuoteBaseline = {
 };
 
 const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
-  [SUPPORTED_CHAINS.MEGAETH]: 10_000,
+  [SUPPORTED_CHAINS.MEGAETH]: 5000,
   [SUPPORTED_CHAINS.CITREA]: 2000,
   [SUPPORTED_CHAINS.SCROLL]: 500,
 };
@@ -3117,7 +3117,7 @@ function NexusOneInner({
   onClose,
   onConnectWallet,
 }: NexusOneProps) {
-  const { appConfig } = useRuntime();
+  const { appConfig, chainFeatures } = useRuntime();
   const {
     nexusSDK,
     bridgableBalance,
@@ -4492,7 +4492,11 @@ function NexusOneInner({
 
   const getDestinationReceiveLimitUsd = (token?: SwapTokenOption) => {
     if (!token?.chainId) return undefined;
-    const limit = DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID[token.chainId];
+    const featureLimit =
+      chainFeatures.maxBridgeAmountByDestinationChainId?.[token.chainId];
+    const defaultLimit =
+      DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID[token.chainId];
+    const limit = featureLimit ?? defaultLimit;
     return limit ? new Decimal(limit) : undefined;
   };
 
@@ -4536,6 +4540,7 @@ function NexusOneInner({
     destinationToken = toToken,
     inputAmount = amount,
     mode = activeMode,
+    receiveQuoteAmount = idleReceiveQuoteAmount,
     sourceTokens = fromTokens,
     type = swapType,
   }: {
@@ -4543,6 +4548,7 @@ function NexusOneInner({
     destinationToken?: SwapTokenOption;
     inputAmount?: string;
     mode?: NexusOneMode;
+    receiveQuoteAmount?: string;
     sourceTokens?: SwapTokenOption[];
     type?: SwapType;
   } = {}): ReceiveAmountIssue | null => {
@@ -4559,38 +4565,7 @@ function NexusOneInner({
       destinationToken.chainId,
       destinationToken.chainName
     );
-    const resolvedDestinationRate =
-      destinationRate ??
-      getImmediateDestinationReceiveUsdRate(destinationToken);
-
-    if (!resolvedDestinationRate || resolvedDestinationRate.lte(0)) {
-      return {
-        ctaLabel: "Price unavailable",
-        message: `Unable to price ${destinationToken.symbol} on ${chainName}. Select another receive token.`,
-        type: "unpricedReceiveToken",
-      };
-    }
-
-    let receiveUsd: Decimal | undefined;
-    if (mode === "swap" && type === "exactIn") {
-      receiveUsd = getExactInSourceUsdForReceiveLimit(
-        sourceTokens,
-        inputAmount
-      );
-      if (!receiveUsd || receiveUsd.lte(0)) {
-        return {
-          ctaLabel: "Price unavailable",
-          message: `Unable to price selected assets for ${chainName}'s receive limit.`,
-          type: "unpricedReceiveToken",
-        };
-      }
-    } else if (mode === "deposit" && depositAmountMode === "usd") {
-      receiveUsd = parsedAmount;
-    } else {
-      receiveUsd = parsedAmount.mul(resolvedDestinationRate);
-    }
-
-    if (receiveUsd.gt(limit)) {
+    if (parsedAmount.gt(limit)) {
       return {
         ctaLabel: "Receive limit exceeded",
         message: `Maximum receive amount on ${chainName} is ${formatUsdDisplay(limit)}.`,

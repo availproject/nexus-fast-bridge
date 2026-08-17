@@ -62,24 +62,24 @@ export interface UseTransactionFlowProps extends BaseTransactionFlowProps {
   connectedAddress?: Address;
 }
 
-type State = {
+interface State {
   inputs: TransactionFlowInputs;
   status: TransactionStatus;
-};
+}
 
 type Action =
   | { type: "setInputs"; payload: Partial<TransactionFlowInputs> }
   | { type: "resetInputs" }
   | { type: "setStatus"; payload: TransactionStatus };
 
-type SourceBalance = {
+interface SourceBalance {
   balance?: string;
   balanceInFiat?: number | string;
   chain: {
     id: number;
   };
   value?: number | string;
-};
+}
 
 type TokenBalanceWithSources = Omit<TokenBalance, "chainBalances"> & {
   breakdown?: SourceBalance[];
@@ -561,10 +561,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     debouncedRefreshMaxForSelection(requestId);
   }, [
     allAvailableSourceChainIds.length,
-    configuredMaxAmount,
     debouncedRefreshMaxForSelection,
-    inputs?.recipient,
-    sourceSelectionKey,
     inputs?.chain,
     inputs?.token,
     nexusSDK,
@@ -593,11 +590,11 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
 
   useEffect(() => {
     invalidatePendingExecution();
-  }, [inputs, invalidatePendingExecution]);
+  }, [invalidatePendingExecution]);
 
   useEffect(() => {
     setSelectedSourceChains(null);
-  }, [inputs?.token]);
+  }, []);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -616,7 +613,7 @@ export function useTransactionFlow(props: UseTransactionFlowProps) {
     if (txError) {
       setTxError(null);
     }
-  }, [inputs, txError]);
+  }, [txError]);
 
   return {
     inputs,

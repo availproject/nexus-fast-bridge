@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loadLastChain } from "@/providers/runtime-context";
+
+// import { loadLastChain } from "@/providers/runtime-context";
 
 const WEBKIT_REGEX = /AppleWebKit/;
 const CHROME_REGEX = /Chrome|Chromium|Android|Edg|OPR|SamsungBrowser/;
@@ -52,7 +53,7 @@ const BLOG_ITEMS = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [cssLoaded, setCssLoaded] = useState(false);
+  const [cssLoaded] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
   const [isHiwVisible, setIsHiwVisible] = useState(false);
   const [isTabActive, setIsTabActive] = useState(true);
@@ -76,8 +77,9 @@ export default function LandingPage() {
   const isVideoPlaybackFailedRef = useRef(false);
 
   const handleBridgeClick = () => {
-    const lastChain = loadLastChain();
-    navigate(`/${lastChain}`);
+    // const lastChain = loadLastChain();
+    // navigate(`/${lastChain}`);
+    navigate("/app");
   };
 
   const isWebKit = () => {
@@ -231,30 +233,21 @@ export default function LandingPage() {
 
     document.documentElement.classList.add("has-enhanced-animations");
 
-    let loadedCount = 0;
-    const links = STYLESHEETS.map((href) => {
-      const link = document.createElement("link");
-      link.href = href;
-      link.rel = "stylesheet";
-      link.onload = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      link.onerror = () => {
-        loadedCount++;
-        if (loadedCount === STYLESHEETS.length) {
-          setCssLoaded(true);
-        }
-      };
-      document.head.appendChild(link);
-      return link;
-    });
+    const addedLinks: HTMLLinkElement[] = [];
+    for (const href of STYLESHEETS) {
+      const existing = document.querySelector(`link[href="${href}"]`);
+      if (!existing) {
+        const link = document.createElement("link");
+        link.href = href;
+        link.rel = "stylesheet";
+        document.head.appendChild(link);
+        addedLinks.push(link);
+      }
+    }
 
     return () => {
       document.documentElement.classList.remove("has-enhanced-animations");
-      for (const link of links) {
+      for (const link of addedLinks) {
         if (document.head.contains(link)) {
           document.head.removeChild(link);
         }
@@ -513,13 +506,7 @@ export default function LandingPage() {
   }, [cssLoaded, selectIndex]);
 
   return (
-    <main
-      className="page"
-      style={{
-        opacity: cssLoaded ? 1 : 0,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-    >
+    <main className="page landing-page">
       <section className="hero" data-hero-animate id="hero">
         <div aria-hidden="true" className="hero__bg">
           <div className="hero__gradient-wrap" style={heroParallaxStyle}>
@@ -1292,7 +1279,9 @@ export default function LandingPage() {
                 >
                   Docs
                 </a>
+                <Link to="/about">About</Link>
                 <Link to="/faqs">FAQs</Link>
+                <Link to="/guides">Guides</Link>
                 <a
                   href="https://discord.com/invite/AvailProject"
                   rel="noopener noreferrer"
