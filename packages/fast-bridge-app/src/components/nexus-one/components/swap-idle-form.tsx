@@ -1180,6 +1180,9 @@ export function SwapIdleForm({
 
   const warningMessage = React.useMemo(() => {
     if (missingUsd && parseDecimal(missingUsd)?.gt(0)) {
+      if (!isMultiAssetMode) {
+        return `You're $${Number(missingUsd).toFixed(2)} short. Add more assets to swap. Use Multi-assets Mode`;
+      }
       return `You're $${Number(missingUsd).toFixed(2)} short. Add more assets to swap`;
     }
     if (sourceRouteStatus === "insufficient" || sourceRouteMessage) {
@@ -1188,7 +1191,7 @@ export function SwapIdleForm({
       );
     }
     return null;
-  }, [missingUsd, sourceRouteStatus, sourceRouteMessage]);
+  }, [missingUsd, isMultiAssetMode, sourceRouteStatus, sourceRouteMessage]);
 
   const renderSourceRow = (
     token: SwapTokenOption | null,

@@ -1147,12 +1147,6 @@ export function SwapAssetSelector({
     );
   }, [normalizedInitialFilterTab]);
 
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = 0;
-    }
-  }, [query, activeTab, selectedChainFilter]);
-
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
@@ -1452,6 +1446,59 @@ export function SwapAssetSelector({
     query,
     showBelowMinimumInline,
   ]);
+
+  const INITIAL_BATCH_SIZE = 40;
+  const BATCH_INCREMENT = 40;
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(INITIAL_BATCH_SIZE);
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [query, activeTab, selectedChainFilter]);
+
+  // Progressive background batch rendering without blocking the UI
+  useEffect(() => {
+    if (visibleCount >= groupedFiltered.length) return;
+
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const scheduleNextBatch = () => {
+      setVisibleCount((prev) =>
+        Math.min(groupedFiltered.length, prev + BATCH_INCREMENT)
+      );
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = (
+        window as unknown as {
+          requestIdleCallback: (
+            cb: () => void,
+            opts?: { timeout: number }
+          ) => number;
+        }
+      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
+    } else {
+      timerId = setTimeout(scheduleNextBatch, 50);
+    }
+
+    return () => {
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (
+          window as unknown as { cancelIdleCallback: (id: number) => void }
+        ).cancelIdleCallback(idleId);
+      }
+      if (timerId !== null) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [visibleCount, groupedFiltered.length]);
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -2640,6 +2687,14 @@ export function SwapAssetSelector({
 
           {/* Token list */}
           <div
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+              if (scrollHeight - scrollTop - clientHeight < 300) {
+                setVisibleCount((prev) =>
+                  Math.min(groupedFiltered.length, prev + BATCH_INCREMENT)
+                );
+              }
+            }}
             ref={listRef}
             style={{
               flex: "1 1 auto",
@@ -2704,11 +2759,13 @@ export function SwapAssetSelector({
                       width: "100%",
                     }}
                   >
-                    {groupedFiltered.map((group) =>
-                      group.tokens.length === 1
-                        ? renderTokenRow(group.tokens[0])
-                        : renderGroupRow(group)
-                    )}
+                    {groupedFiltered
+                      .slice(0, visibleCount)
+                      .map((group) =>
+                        group.tokens.length === 1
+                          ? renderTokenRow(group.tokens[0])
+                          : renderGroupRow(group)
+                      )}
                   </div>
                 )}
 

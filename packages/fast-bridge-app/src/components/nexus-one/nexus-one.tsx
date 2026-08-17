@@ -3244,13 +3244,25 @@ function NexusOneInner({
   );
   const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
     useState<SwapTokenOption[]>([]);
-
   useEffect(() => {
     let active = true;
     void getAllReceiveTokenOptions(swapSupportedChainsAndTokens).then(
       (tokens) => {
         if (active && tokens.length > 0) {
-          setDisconnectedAvailableTokens(tokens);
+          const isNativeAddr = (address?: string) =>
+            !address ||
+            address.toLowerCase() ===
+              "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+            address.toLowerCase() ===
+              "0x0000000000000000000000000000000000000000";
+          const filtered = tokens.filter((token) => {
+            const sym = token.symbol.toUpperCase();
+            const isUsdc = sym === "USDC" || sym === "USDC.E";
+            const isUsdt = sym === "USDT";
+            const isNative = isNativeAddr(token.contractAddress);
+            return isUsdc || isUsdt || isNative;
+          });
+          setDisconnectedAvailableTokens(filtered);
         }
       }
     );
@@ -5425,7 +5437,9 @@ function NexusOneInner({
     if (swapType !== "exactIn" || fromTokens.length === 0) return undefined;
 
     return fromTokens.reduce((sum, token) => {
-      const requestedAmount = parseFiatNumber(token.userAmount);
+      const requestedAmount = parseFiatNumber(
+        token.userAmount || (!isMultiAssetMode ? amount : undefined)
+      );
       if (!requestedAmount || requestedAmount.lte(0)) return sum;
 
       if (token.userAmountMode === "usd") {
@@ -5434,12 +5448,17 @@ function NexusOneInner({
         return sum.plus(requestedAmount.minus(availableUsd));
       }
 
-      const availableTokenAmount = parseFiatNumber(token.balance);
-      if (!availableTokenAmount || requestedAmount.lte(availableTokenAmount)) {
+      const availableTokenAmount =
+        parseFiatNumber(token.balance) ?? new Decimal(0);
+      if (requestedAmount.lte(availableTokenAmount)) {
         return sum;
       }
 
       const missingTokenAmount = requestedAmount.minus(availableTokenAmount);
+      const rate = getTokenUsdRate(token);
+      if (rate.gt(0)) {
+        return sum.plus(missingTokenAmount.mul(rate));
+      }
       const fiatBalance = parseFiatNumber(token.balanceInFiat);
       if (fiatBalance && availableTokenAmount.gt(0)) {
         return sum.plus(
@@ -5475,18 +5494,36 @@ function NexusOneInner({
     const availableUsd = getExactOutAvailableSourceUsd();
     const exactInSourceDeficitUsd = getExactInSourceDeficitUsd();
 
+    console.log("[InsufficientSources Debug]", {
+      rawError: error,
+      errorText,
+      errorDetails: details,
+      requiredFromError: requiredFromError?.toString(),
+      availableFromError: availableFromError?.toString(),
+      exactInSourceDeficitUsd: exactInSourceDeficitUsd?.toString(),
+      requestedUsd: requestedUsd?.toString(),
+      availableUsd: availableUsd?.toString(),
+      singleModeAmount: amount,
+      fromToken: fromTokens[0],
+    });
+
     let missingUsd =
-      exactInSourceDeficitUsd && exactInSourceDeficitUsd.gt(0)
-        ? exactInSourceDeficitUsd
-        : requiredFromError && availableFromError
-          ? requiredFromError.minus(availableFromError)
-          : undefined;
+      swapType === "exactIn"
+        ? exactInSourceDeficitUsd && exactInSourceDeficitUsd.gt(0)
+          ? new Decimal(exactInSourceDeficitUsd.toDecimalPlaces(2).toFixed())
+          : undefined
+        : exactInSourceDeficitUsd && exactInSourceDeficitUsd.gt(0)
+          ? exactInSourceDeficitUsd
+          : requiredFromError && availableFromError
+            ? requiredFromError.minus(availableFromError)
+            : undefined;
 
     if (isSwapExactOut && requestedUsd) {
       missingUsd = requestedUsd.minus(availableUsd);
     }
 
     if (
+      isSwapExactOut &&
       requestedUsd &&
       (!missingUsd || missingUsd.lte(0) || missingUsd.gt(requestedUsd.mul(5)))
     ) {

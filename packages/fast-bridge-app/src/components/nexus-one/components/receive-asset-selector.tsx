@@ -754,14 +754,6 @@ export function ReceiveAssetSelector({
     };
   }, [tooltipState]);
 
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(30);
-    if (listRef.current) {
-      listRef.current.scrollTop = 0;
-    }
-  }, [deferredQuery, activeTab, selectedChainFilter]);
-
   // Cross-reference map for chain names & logos, and balances
   const chainMetaMap = useMemo(() => {
     const map = new Map<number, { name: string; logo: string }>();
@@ -976,6 +968,54 @@ export function ReceiveAssetSelector({
       );
     });
   }, [filtered, deferredQuery]);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(40);
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [deferredQuery, activeTab, selectedChainFilter]);
+
+  // Progressive background batch rendering without blocking the UI
+  useEffect(() => {
+    if (visibleCount >= sortedFiltered.length) return;
+
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const scheduleNextBatch = () => {
+      setVisibleCount((prev) => Math.min(sortedFiltered.length, prev + 40));
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = (
+        window as unknown as {
+          requestIdleCallback: (
+            cb: () => void,
+            opts?: { timeout: number }
+          ) => number;
+        }
+      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
+    } else {
+      timerId = setTimeout(scheduleNextBatch, 50);
+    }
+
+    return () => {
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (
+          window as unknown as { cancelIdleCallback: (id: number) => void }
+        ).cancelIdleCallback(idleId);
+      }
+      if (timerId !== null) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [visibleCount, sortedFiltered.length]);
 
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth >= 768 : true
@@ -1334,20 +1374,19 @@ export function ReceiveAssetSelector({
           <div
             onScroll={(e) => {
               const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-              if (scrollHeight - scrollTop - clientHeight < 200) {
-                setVisibleCount((prev) => prev + 30);
+              if (scrollHeight - scrollTop - clientHeight < 300) {
+                setVisibleCount((prev) =>
+                  Math.min(sortedFiltered.length, prev + 40)
+                );
               }
             }}
             ref={listRef}
             style={{
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #E8E8E7",
-              borderRadius: 12,
-              boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
               flex: "1 1 auto",
               minHeight: 0,
               overflowX: "hidden",
               overflowY: "auto",
+              paddingBottom: 6,
               position: "relative",
               width: "100%",
               zIndex: hoveredHash || tooltipState ? 20 : 1,
