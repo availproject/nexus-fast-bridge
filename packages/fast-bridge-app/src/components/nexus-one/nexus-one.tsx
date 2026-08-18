@@ -9996,6 +9996,7 @@ function NexusOneInner({
       Boolean(blockingQuoteIssue);
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
+    if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
     if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
@@ -10012,6 +10013,7 @@ function NexusOneInner({
   };
   const sendCtaLabel = (() => {
     if (needsWalletConnection) return walletCtaLabel;
+    if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
     if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
@@ -10891,10 +10893,7 @@ function NexusOneInner({
                 />
 
                 {effectiveNexusInitError && (
-                  <StatusAlert
-                    message={effectiveNexusInitError}
-                    type="warning"
-                  />
+                  <StatusAlert message={effectiveNexusInitError} type="error" />
                 )}
 
                 {receiveAmountIssue &&
@@ -10930,13 +10929,17 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: isSwapCtaDisabled
-                        ? "#E4E4E4"
-                        : "#1F1F1F",
-                      border: "none",
+                      backgroundColor: effectiveNexusInitError
+                        ? "#FCEEED"
+                        : isSwapCtaDisabled
+                          ? "#E4E4E4"
+                          : "#1F1F1F",
+                      border: effectiveNexusInitError
+                        ? "1px solid #F7C4C1"
+                        : "none",
                       borderRadius: "32px",
                       boxSizing: "border-box",
-                      color: "#FFFFFE",
+                      color: effectiveNexusInitError ? "#D32F2F" : "#FFFFFE",
                       cursor: isSwapCtaDisabled ? "not-allowed" : "pointer",
                       display: "flex",
                       flexShrink: 0,
@@ -10964,10 +10967,11 @@ function NexusOneInner({
                         position: "relative",
                       }}
                     >
-                      {(!needsWalletConnection && isBalancesLoading) ||
-                      quoteRefreshing ||
-                      receiveMaxCalculating ||
-                      (needsWalletConnection && walletConnectBusy) ? (
+                      {!effectiveNexusInitError &&
+                      ((!needsWalletConnection && isBalancesLoading) ||
+                        quoteRefreshing ||
+                        receiveMaxCalculating ||
+                        (needsWalletConnection && walletConnectBusy)) ? (
                         <Loader2
                           className="animate-spin"
                           style={{
@@ -10978,11 +10982,9 @@ function NexusOneInner({
                         />
                       ) : null}
                       <span>
-                        {needsWalletConnection
-                          ? walletCtaLabel
-                          : isBalancesLoading
-                            ? "Fetching balances..."
-                            : "Approve & Swap"}
+                        {quoteCtaLabel(
+                          isSwapExactOut ? "Pay & Swap" : "Approve & Swap"
+                        )}
                       </span>
                       {!isSwapCtaDisabled && !needsWalletConnection && (
                         <span
@@ -11066,7 +11068,7 @@ function NexusOneInner({
                     {effectiveNexusInitError && (
                       <StatusAlert
                         message={effectiveNexusInitError}
-                        type="warning"
+                        type="error"
                       />
                     )}
 
@@ -11101,19 +11103,24 @@ function NexusOneInner({
                         }}
                         style={{
                           alignItems: "center",
-                          backgroundColor: blockingQuoteIssue
-                            ? "#FCEEED"
-                            : isDepositCtaDisabled
-                              ? theme.colors.surfaceCool
-                              : theme.colors.text,
-                          border: blockingQuoteIssue
-                            ? "1px solid #F7C4C1"
-                            : "none",
-                          borderRadius: blockingQuoteIssue
-                            ? "4px"
-                            : theme.radius.primaryButton,
+                          backgroundColor:
+                            effectiveNexusInitError || blockingQuoteIssue
+                              ? "#FCEEED"
+                              : isDepositCtaDisabled
+                                ? theme.colors.surfaceCool
+                                : theme.colors.text,
+                          border:
+                            effectiveNexusInitError || blockingQuoteIssue
+                              ? "1px solid #F7C4C1"
+                              : "none",
+                          borderRadius:
+                            effectiveNexusInitError || blockingQuoteIssue
+                              ? "4px"
+                              : theme.radius.primaryButton,
                           boxShadow:
-                            blockingQuoteIssue || isDepositCtaDisabled
+                            blockingQuoteIssue ||
+                            isDepositCtaDisabled ||
+                            effectiveNexusInitError
                               ? "none"
                               : theme.shadows.primaryButton,
                           boxSizing: "border-box",
@@ -11123,7 +11130,9 @@ function NexusOneInner({
                           height: "40px",
                           justifyContent: "center",
                           paddingInline: "16px",
-                          cursor: isDepositCtaDisabled ? "default" : "pointer",
+                          cursor: isDepositCtaDisabled
+                            ? "not-allowed"
+                            : "pointer",
                           width: "100%",
                         }}
                       >
@@ -11135,10 +11144,11 @@ function NexusOneInner({
                               width: "14px",
                             }}
                           />
-                        ) : (needsWalletConnection && walletConnectBusy) ||
-                          (!hasCurrentIntentSources &&
-                            (quoteRefreshing || intentLoading)) ||
-                          receiveMaxCalculating ? (
+                        ) : !effectiveNexusInitError &&
+                          ((needsWalletConnection && walletConnectBusy) ||
+                            (!hasCurrentIntentSources &&
+                              (quoteRefreshing || intentLoading)) ||
+                            receiveMaxCalculating) ? (
                           <Loader2
                             className="animate-spin"
                             style={{
@@ -11153,11 +11163,12 @@ function NexusOneInner({
                         <div
                           style={{
                             boxSizing: "border-box",
-                            color: blockingQuoteIssue
-                              ? "#D32F2F"
-                              : isDepositCtaDisabled
-                                ? theme.colors.muted
-                                : theme.colors.surface,
+                            color:
+                              effectiveNexusInitError || blockingQuoteIssue
+                                ? "#D32F2F"
+                                : isDepositCtaDisabled
+                                  ? theme.colors.muted
+                                  : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
                             fontSize: blockingQuoteIssue ? "13px" : "14px",
                             fontWeight: 500,
@@ -11229,10 +11240,7 @@ function NexusOneInner({
                 />
 
                 {effectiveNexusInitError && (
-                  <StatusAlert
-                    message={effectiveNexusInitError}
-                    type="warning"
-                  />
+                  <StatusAlert message={effectiveNexusInitError} type="error" />
                 )}
 
                 {receiveAmountIssue && (
@@ -11268,17 +11276,24 @@ function NexusOneInner({
                     }}
                     style={{
                       alignItems: "center",
-                      backgroundColor: blockingQuoteIssue
-                        ? "#FCEEED"
-                        : isSendCtaDisabled
-                          ? theme.colors.surfaceCool
-                          : theme.colors.text,
-                      border: blockingQuoteIssue ? "1px solid #F7C4C1" : "none",
-                      borderRadius: blockingQuoteIssue
-                        ? "4px"
-                        : theme.radius.primaryButton,
+                      backgroundColor:
+                        effectiveNexusInitError || blockingQuoteIssue
+                          ? "#FCEEED"
+                          : isSendCtaDisabled
+                            ? theme.colors.surfaceCool
+                            : theme.colors.text,
+                      border:
+                        effectiveNexusInitError || blockingQuoteIssue
+                          ? "1px solid #F7C4C1"
+                          : "none",
+                      borderRadius:
+                        effectiveNexusInitError || blockingQuoteIssue
+                          ? "4px"
+                          : theme.radius.primaryButton,
                       boxShadow:
-                        blockingQuoteIssue || isSendCtaDisabled
+                        blockingQuoteIssue ||
+                        isSendCtaDisabled ||
+                        effectiveNexusInitError
                           ? "none"
                           : theme.shadows.primaryButton,
                       boxSizing: "border-box",
@@ -11288,7 +11303,7 @@ function NexusOneInner({
                       height: "40px",
                       justifyContent: "center",
                       paddingInline: "16px",
-                      cursor: isSendCtaDisabled ? "default" : "pointer",
+                      cursor: isSendCtaDisabled ? "not-allowed" : "pointer",
                       width: "100%",
                     }}
                   >
@@ -11300,11 +11315,12 @@ function NexusOneInner({
                           width: "14px",
                         }}
                       />
-                    ) : (needsWalletConnection && walletConnectBusy) ||
-                      (!sendNeedsRecipient &&
-                        ((!hasCurrentIntentSources &&
-                          (quoteRefreshing || intentLoading)) ||
-                          receiveMaxCalculating)) ? (
+                    ) : !effectiveNexusInitError &&
+                      ((needsWalletConnection && walletConnectBusy) ||
+                        (!sendNeedsRecipient &&
+                          ((!hasCurrentIntentSources &&
+                            (quoteRefreshing || intentLoading)) ||
+                            receiveMaxCalculating))) ? (
                       <Loader2
                         className="animate-spin"
                         style={{
@@ -11319,11 +11335,12 @@ function NexusOneInner({
                     <div
                       style={{
                         boxSizing: "border-box",
-                        color: blockingQuoteIssue
-                          ? "#D32F2F"
-                          : isSendCtaDisabled
-                            ? theme.colors.muted
-                            : theme.colors.surface,
+                        color:
+                          effectiveNexusInitError || blockingQuoteIssue
+                            ? "#D32F2F"
+                            : isSendCtaDisabled
+                              ? theme.colors.muted
+                              : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
                         fontSize: blockingQuoteIssue ? "13px" : "14px",
                         fontWeight: 500,
