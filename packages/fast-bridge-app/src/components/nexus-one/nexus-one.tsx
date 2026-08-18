@@ -247,7 +247,7 @@ const PROGRESS_EVENT_NAMES = {
   SWAP_PLAN_LIST: "swap_plan_list",
   SWAP_PLAN_PROGRESS: "swap_plan_progress",
 } as const;
-const PLAN_FINAL_STATES = new Set(["completed", "confirmed", "submitted"]);
+const PLAN_FINAL_STATES = new Set(["completed", "confirmed", "success"]);
 const PLAN_STEP_FUNDS_MOVED_STATES = new Set([
   "completed",
   "confirmed",
