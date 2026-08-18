@@ -16,7 +16,7 @@ interface SendIdleFormProps {
   fromTokens: SwapTokenOption[];
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
-  isSourcePickerDisabled?: boolean;
+  needsWalletConnection?: boolean;
   onAmountChange: (val: string) => void;
   onOpenAssetPicker: () => void;
   onOpenRecipientPicker: () => void;
@@ -598,6 +598,7 @@ export function SendIdleForm({
   isQuoteRefreshing,
   showAutoBadge = true,
   isSourcePickerDisabled = false,
+  needsWalletConnection = false,
   reserveSourceRows = false,
 }: SendIdleFormProps) {
   const [pendingPercent, setPendingPercent] = useState<number | null>(null);
@@ -989,7 +990,11 @@ export function SendIdleForm({
               {toToken && (
                 <PercentButtons
                   onSelect={handlePercentSelect}
-                  visible={Boolean(toToken) && isAmountFocused}
+                  visible={
+                    !needsWalletConnection &&
+                    Boolean(toToken) &&
+                    isAmountFocused
+                  }
                 />
               )}
             </div>
@@ -1003,7 +1008,7 @@ export function SendIdleForm({
                 flex: 1,
               }}
             >
-              {toToken && (
+              {toToken && !needsWalletConnection && (
                 <>
                   <span
                     style={{

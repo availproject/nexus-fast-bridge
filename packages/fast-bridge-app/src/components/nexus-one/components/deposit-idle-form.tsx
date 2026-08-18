@@ -18,6 +18,7 @@ interface DepositIdleFormProps {
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
   isSourcePickerDisabled?: boolean;
+  needsWalletConnection?: boolean;
   onAmountChange: (val: string) => void;
   onAmountModeToggle: () => void;
   onOpenSourcePicker: () => void;
@@ -597,6 +598,7 @@ export function DepositIdleForm({
   isQuoteRefreshing,
   showAutoBadge = true,
   isSourcePickerDisabled = false,
+  needsWalletConnection = false,
   reserveSourceRows = false,
 }: DepositIdleFormProps) {
   const [pendingPercent, setPendingPercent] = useState<number | null>(null);
@@ -900,42 +902,48 @@ export function DepositIdleForm({
               {toToken && (
                 <PercentButtons
                   onSelect={handlePercentSelect}
-                  visible={Boolean(toToken) && isAmountFocused}
+                  visible={
+                    !needsWalletConnection &&
+                    Boolean(toToken) &&
+                    isAmountFocused
+                  }
                 />
               )}
             </div>
 
-            <div
-              style={{
-                alignItems: "center",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "5px",
-                flex: 1,
-              }}
-            >
-              <span
+            {!needsWalletConnection && (
+              <div
                 style={{
-                  color: "#7C7C7A",
-                  fontFamily: uiFont,
-                  fontSize: "11px",
-                  lineHeight: "15px",
+                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "5px",
+                  flex: 1,
                 }}
               >
-                Balance:
-              </span>
-              <span
-                style={{
-                  color: primary,
-                  fontFamily: uiFont,
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  lineHeight: "15px",
-                }}
-              >
-                {destinationBalanceLabel}
-              </span>
-            </div>
+                <span
+                  style={{
+                    color: "#7C7C7A",
+                    fontFamily: uiFont,
+                    fontSize: "11px",
+                    lineHeight: "15px",
+                  }}
+                >
+                  Balance:
+                </span>
+                <span
+                  style={{
+                    color: primary,
+                    fontFamily: uiFont,
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    lineHeight: "15px",
+                  }}
+                >
+                  {destinationBalanceLabel}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Percent buttons moved next to balance */}

@@ -37,6 +37,7 @@ import {
 
 interface ReceiveAssetSelectorProps {
   excludedTokens?: SwapTokenOption[];
+  needsWalletConnection?: boolean;
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
   selectedToken?: SwapTokenOption;
@@ -598,6 +599,7 @@ export function ReceiveAssetSelector({
   onBack,
   selectedToken,
   excludedTokens = [],
+  needsWalletConnection = false,
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -608,7 +610,9 @@ export function ReceiveAssetSelector({
     swapBalance,
     swapSupportedChainsAndTokens,
   } = useNexus();
-  const isBalanceLoading = swapBalance === null || swapBalance === undefined;
+  const isBalanceLoading =
+    !needsWalletConnection &&
+    (swapBalance === null || swapBalance === undefined);
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChainsAndTokens),
     [swapSupportedChainsAndTokens]
@@ -1620,7 +1624,7 @@ export function ReceiveAssetSelector({
                           </div>
                         </div>
                       </div>
-                      {isBalanceLoading ? (
+                      {needsWalletConnection ? null : isBalanceLoading ? (
                         <div
                           style={{
                             alignItems: "flex-end",
@@ -1942,6 +1946,8 @@ export function ReceiveAssetSelector({
             lineHeight: "20px",
             minWidth: "160px",
             padding: "12px 24px",
+            userSelect: "none",
+            WebkitUserSelect: "none",
           }}
           type="button"
         >

@@ -3834,6 +3834,11 @@ function NexusOneInner({
     return total > 0 ? String(total) : "";
   };
 
+  const isNativeTokenAddress = (address?: string) =>
+    !address ||
+    address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    address.toLowerCase() === "0x0000000000000000000000000000000000000000";
+
   const parseFiatNumber = (value: unknown) => {
     if (value === null || value === undefined || value === "") return undefined;
     if (Decimal.isDecimal(value)) return value;
@@ -3967,7 +3972,279 @@ function NexusOneInner({
       return value.gte(minimumSourceUsd) ? sum.plus(value) : sum;
     }, new Decimal(0));
 
+  const getTokenUsdRateFromSupportedChains = (
+    chains: any[] | null | undefined,
+    chainId?: number,
+    contractAddress?: string,
+    symbol?: string
+  ) => {
+    if (!chainId) return undefined;
+    const chain = chains?.find(
+      (item: any) => Number(item?.id ?? item?.chainId) === chainId
+    );
+    if (!chain) return undefined;
+    const tokens = chain?.tokens ?? chain?.assets ?? [];
+    const lookupAddress = contractAddress
+      ? getFeeTokenLookupAddress(contractAddress)
+      : undefined;
+    const lookupSymbol = symbol?.toUpperCase();
+    const matchedToken = tokens.find((token: any) => {
+      const tokenAddress = getFeeTokenLookupAddress(
+        token?.contractAddress ?? token?.address ?? token?.tokenAddress
+      );
+      const tokenSymbol = (token?.symbol ?? token?.tokenSymbol ?? "")
+        .toString()
+        .toUpperCase();
+
+      if (lookupSymbol) {
+        if (tokenSymbol !== lookupSymbol) return false;
+        if (lookupAddress && tokenAddress && tokenAddress !== zeroAddress) {
+          return tokenAddress === lookupAddress;
+        }
+        return true;
+      }
+
+      return Boolean(lookupAddress) && tokenAddress === lookupAddress;
+    });
+    const priceUsd = parseFiatNumber(
+      matchedToken?.priceUSD ??
+        matchedToken?.priceUsd ??
+        matchedToken?.usdPrice ??
+        matchedToken?.price
+    );
+    return priceUsd && priceUsd.gt(0) ? priceUsd : undefined;
+  };
+
+  const getDisconnectedUsdRate = (
+    token?: Partial<SwapTokenOption> | null
+  ): Decimal => {
+    if (!token) return new Decimal(0);
+    const symbolUpper = (token.symbol ?? "").toUpperCase().trim();
+    const chainId = token.chainId;
+    const contractAddr = (token.contractAddress ?? "").toLowerCase().trim();
+
+    // 1) ETH / WETH / native ETH variants -> ETH (zero address) on Ethereum (Chain ID 1)
+    if (
+      symbolUpper === "ETH" ||
+      symbolUpper === "WETH" ||
+      symbolUpper.endsWith("ETH")
+    ) {
+      const ethRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          1,
+          zeroAddress,
+          "ETH"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          1,
+          zeroAddress,
+          "ETH"
+        ) ??
+        getUsdRateForSymbol("ETH");
+      if (ethRate && ethRate.gt(0)) return ethRate;
+    }
+
+    // 2) USDT / USDT.e -> USDT (0xdAC17F958D2ee523a2206206994597C13D831ec7) on Ethereum (Chain ID 1)
+    if (symbolUpper.startsWith("USDT")) {
+      const usdtAddr = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+      const usdtRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          1,
+          usdtAddr,
+          "USDT"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          1,
+          usdtAddr,
+          "USDT"
+        ) ??
+        getUsdRateForSymbol("USDT");
+      if (usdtRate && usdtRate.gt(0)) return usdtRate;
+      return new Decimal(1);
+    }
+
+    // 3) USDC / USDC.e -> USDC (0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) on Ethereum (Chain ID 1)
+    if (symbolUpper.startsWith("USDC")) {
+      const usdcAddr = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+      const usdcRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          1,
+          usdcAddr,
+          "USDC"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          1,
+          usdcAddr,
+          "USDC"
+        ) ??
+        getUsdRateForSymbol("USDC");
+      if (usdcRate && usdcRate.gt(0)) return usdcRate;
+      return new Decimal(1);
+    }
+
+    // 4) BTC / BTC.b / CBTC / WBTC / tBTC -> WBTC (0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599) on Ethereum (Chain ID 1)
+    if (
+      symbolUpper.startsWith("BTC") ||
+      symbolUpper.includes("BTC") ||
+      symbolUpper === "CBTC" ||
+      symbolUpper === "WBTC"
+    ) {
+      const wbtcAddr = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599";
+      const wbtcRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          1,
+          wbtcAddr,
+          "WBTC"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          1,
+          wbtcAddr,
+          "WBTC"
+        ) ??
+        getUsdRateForSymbol("WBTC") ??
+        getUsdRateForSymbol("BTC");
+      if (wbtcRate && wbtcRate.gt(0)) return wbtcRate;
+    }
+
+    // 5) POL / MATIC -> zero address on Polygon (137)
+    if (
+      symbolUpper.startsWith("POL") ||
+      symbolUpper.startsWith("MATIC") ||
+      chainId === 137
+    ) {
+      const polRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          137,
+          zeroAddress,
+          "POL"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          137,
+          zeroAddress,
+          "MATIC"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          137,
+          zeroAddress,
+          "POL"
+        ) ??
+        getUsdRateForSymbol("POL") ??
+        getUsdRateForSymbol("MATIC");
+      if (polRate && polRate.gt(0)) return polRate;
+    }
+
+    // 6) AVAX -> zero address on Avalanche (43114)
+    if (symbolUpper.startsWith("AVAX") || chainId === 43114) {
+      const avaxRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          43114,
+          zeroAddress,
+          "AVAX"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          43114,
+          zeroAddress,
+          "AVAX"
+        ) ??
+        getUsdRateForSymbol("AVAX");
+      if (avaxRate && avaxRate.gt(0)) return avaxRate;
+    }
+
+    // 7) BNB -> zero address on BSC (56)
+    if (symbolUpper.startsWith("BNB") || chainId === 56) {
+      const bnbRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          56,
+          zeroAddress,
+          "BNB"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          56,
+          zeroAddress,
+          "BNB"
+        ) ??
+        getUsdRateForSymbol("BNB");
+      if (bnbRate && bnbRate.gt(0)) return bnbRate;
+    }
+
+    // 8) HYPE -> zero address on HyperEVM
+    if (symbolUpper.startsWith("HYPE")) {
+      const targetChainId = chainId ?? 998;
+      const hypeRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          targetChainId,
+          zeroAddress,
+          "HYPE"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          targetChainId,
+          zeroAddress,
+          "HYPE"
+        ) ??
+        getUsdRateForSymbol("HYPE");
+      if (hypeRate && hypeRate.gt(0)) return hypeRate;
+    }
+
+    // 9) MON -> zero address on Monad
+    if (symbolUpper.startsWith("MON")) {
+      const targetChainId = chainId ?? 10143;
+      const monRate =
+        getTokenUsdRateFromSupportedChains(
+          supportedChainsAndTokens,
+          targetChainId,
+          zeroAddress,
+          "MON"
+        ) ??
+        getTokenUsdRateFromSupportedChains(
+          swapSupportedChainsAndTokens,
+          targetChainId,
+          zeroAddress,
+          "MON"
+        ) ??
+        getUsdRateForSymbol("MON");
+      if (monRate && monRate.gt(0)) return monRate;
+    }
+
+    // Fallback
+    const targetChainId = chainId ?? 1;
+    const directRate =
+      getTokenUsdRateFromSupportedChains(
+        supportedChainsAndTokens,
+        targetChainId,
+        contractAddr,
+        symbolUpper
+      ) ??
+      getTokenUsdRateFromSupportedChains(
+        swapSupportedChainsAndTokens,
+        targetChainId,
+        contractAddr,
+        symbolUpper
+      ) ??
+      getUsdRateForSymbol(symbolUpper);
+    return directRate && directRate.gt(0) ? directRate : new Decimal(0);
+  };
+
   const getTokenUsdRate = (token: SwapTokenOption) => {
+    if (needsWalletConnection) {
+      return getDisconnectedUsdRate(token);
+    }
     const tokenBalance = parseFiatNumber(token.balance) ?? new Decimal(0);
     const fiatBalance = parseFiatNumber(token.balanceInFiat) ?? new Decimal(0);
     if (tokenBalance.gt(0) && fiatBalance.gt(0)) {
@@ -3979,7 +4256,10 @@ function NexusOneInner({
       return new Decimal(fallbackRate);
     }
 
-    return getCachedIntentUsdRate(token) ?? new Decimal(0);
+    const cached = getCachedIntentUsdRate(token);
+    if (cached && cached.gt(0)) return cached;
+
+    return getDisconnectedUsdRate(token);
   };
   const getUsdRateForSymbol = (symbol?: string) => {
     if (!symbol) return new Decimal(0);
@@ -4035,41 +4315,6 @@ function NexusOneInner({
     }
 
     return undefined;
-  };
-
-  const getTokenUsdRateFromSupportedChains = (
-    chains: any[] | null | undefined,
-    chainId?: number,
-    contractAddress?: string,
-    symbol?: string
-  ) => {
-    if (!chainId) return undefined;
-    const chain = chains?.find(
-      (item: any) => Number(item?.id ?? item?.chainId) === chainId
-    );
-    const tokens = chain?.tokens ?? chain?.assets ?? [];
-    const lookupAddress = getFeeTokenLookupAddress(contractAddress);
-    const lookupSymbol = symbol?.toUpperCase();
-    const matchedToken = tokens.find((token: any) => {
-      const tokenAddress = getFeeTokenLookupAddress(
-        token?.contractAddress ?? token?.address ?? token?.tokenAddress
-      );
-      const addressMatches =
-        Boolean(lookupAddress) && tokenAddress === lookupAddress;
-      const tokenSymbol = (token?.symbol ?? token?.tokenSymbol ?? "")
-        .toString()
-        .toUpperCase();
-      const symbolMatches =
-        Boolean(lookupSymbol) && tokenSymbol === lookupSymbol;
-      return addressMatches || symbolMatches;
-    });
-    const priceUsd = parseFiatNumber(
-      matchedToken?.priceUSD ??
-        matchedToken?.priceUsd ??
-        matchedToken?.usdPrice ??
-        matchedToken?.price
-    );
-    return priceUsd && priceUsd.gt(0) ? priceUsd : undefined;
   };
 
   const getIntentDestinationGasUsdValue = (intent?: SwapIntentData | null) => {
@@ -5549,11 +5794,6 @@ function NexusOneInner({
       message: "Add more source balance across your assets",
     };
   };
-
-  const isNativeTokenAddress = (address?: string) =>
-    !address ||
-    address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
-    address.toLowerCase() === "0x0000000000000000000000000000000000000000";
 
   const getSyntheticDisconnectedSourceTokens = useCallback(
     (tokens: SwapTokenOption[]) => {
@@ -9938,10 +10178,11 @@ function NexusOneInner({
 
   const needsWalletConnection = !ownerAddress || !nexusSDK;
   const isBalancesLoading =
-    nexusLoading ||
-    swapBalance === null ||
-    swapBalance === undefined ||
-    Boolean(effectiveNexusInitError);
+    !needsWalletConnection &&
+    (nexusLoading ||
+      swapBalance === null ||
+      swapBalance === undefined ||
+      Boolean(effectiveNexusInitError));
   const isExactOutPaymentQuotePending =
     isExactOutPaymentFlow && (quoteRefreshing || intentLoading);
   const walletConnectBusy =
@@ -10120,12 +10361,59 @@ function NexusOneInner({
     resolvedToToken && destinationBalance
       ? { ...resolvedToToken, balance: destinationBalance }
       : resolvedToToken;
-  const idleReceiveQuoteAmount =
-    activeMode === "swap" && swapType === "exactIn"
+  const predictiveDisconnectedReceiveQuote = useMemo(() => {
+    if (!needsWalletConnection || !toToken) return undefined;
+
+    let totalSourceUsd = new Decimal(0);
+    if (fromTokens.length > 0) {
+      for (const t of fromTokens) {
+        const amt = parseFiatNumber(t.userAmount);
+        if (amt && amt.gt(0)) {
+          const rate = getTokenUsdRate(t);
+          totalSourceUsd = totalSourceUsd.plus(amt.mul(rate));
+        }
+      }
+    }
+    if (totalSourceUsd.lte(0)) {
+      const inputNum = parseFiatNumber(amount);
+      if (inputNum && inputNum.gt(0) && fromTokens[0]) {
+        const rate = getTokenUsdRate(fromTokens[0]);
+        totalSourceUsd = inputNum.mul(rate);
+      }
+    }
+
+    if (totalSourceUsd.lte(0)) return undefined;
+
+    const destRate = getTokenUsdRate(toToken);
+    const receiveAmount = destRate.gt(0)
+      ? totalSourceUsd.div(destRate)
+      : new Decimal(0);
+
+    const formattedAmount = receiveAmount.gt(0)
+      ? receiveAmount
+          .toDecimalPlaces(
+            Math.min(toToken.decimals ?? 18, 6),
+            Decimal.ROUND_DOWN
+          )
+          .toFixed()
+      : "0";
+    const formattedUsd = totalSourceUsd.gt(0) ? totalSourceUsd.toFixed(2) : "0";
+
+    return {
+      toAmount: formattedAmount,
+      toUsd: formattedUsd,
+    };
+  }, [needsWalletConnection, amount, toToken, fromTokens, getTokenUsdRate]);
+
+  const idleReceiveQuoteAmount = needsWalletConnection
+    ? predictiveDisconnectedReceiveQuote?.toAmount
+    : activeMode === "swap" && swapType === "exactIn"
       ? (intentToAmount ?? predictiveExactInQuote?.toAmount)
       : undefined;
-  const idleReceiveQuoteUsd =
-    activeMode === "swap" && swapType === "exactIn"
+
+  const idleReceiveQuoteUsd = needsWalletConnection
+    ? predictiveDisconnectedReceiveQuote?.toUsd
+    : activeMode === "swap" && swapType === "exactIn"
       ? (previewToAmountUsd ?? predictiveExactInQuote?.toUsd)
       : previewToAmountUsd;
   const exactOutDestinationCoverage = getExactOutDestinationBalanceCoverage({
@@ -10254,13 +10542,17 @@ function NexusOneInner({
     swapStep === "idle" &&
     (quoteRefreshing || intentLoading);
   const isReceiveAmountLoading =
-    receiveMaxCalculating ||
-    (isIdleSwapQuoteLoading &&
-      swapType === "exactIn" &&
-      !idleReceiveQuoteAmount);
+    !needsWalletConnection &&
+    (receiveMaxCalculating ||
+      (isIdleSwapQuoteLoading &&
+        swapType === "exactIn" &&
+        !idleReceiveQuoteAmount));
   const isReceiveUsdLoading =
-    receiveMaxCalculating ||
-    (isIdleSwapQuoteLoading && swapType === "exactIn" && !idleReceiveQuoteUsd);
+    !needsWalletConnection &&
+    (receiveMaxCalculating ||
+      (isIdleSwapQuoteLoading &&
+        swapType === "exactIn" &&
+        !idleReceiveQuoteUsd));
   const hasQuoteRefreshCountdown =
     (activeMode === "swap" ||
       activeMode === "deposit" ||
@@ -10841,6 +11133,7 @@ function NexusOneInner({
                       ? exactOutIdleSourceTokens
                       : fromTokens
                   }
+                  getTokenUsdRate={(t) => getTokenUsdRate(t).toNumber()}
                   intentData={intentData}
                   isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
@@ -10886,9 +11179,17 @@ function NexusOneInner({
                   usdValue={
                     swapType === "exactOut"
                       ? exactOutReceiveUsd
-                      : amount && usdValue > 0
-                        ? usdValue.toFixed(2)
-                        : ""
+                      : needsWalletConnection && fromTokens[0] && amount
+                        ? (() => {
+                            const inputNum = parseFiatNumber(amount);
+                            if (!inputNum || inputNum.lte(0)) return "";
+                            const rate = getTokenUsdRate(fromTokens[0]);
+                            const val = inputNum.mul(rate);
+                            return val.gt(0) ? val.toFixed(2) : "";
+                          })()
+                        : amount && usdValue > 0
+                          ? usdValue.toFixed(2)
+                          : ""
                   }
                 />
 
@@ -10954,6 +11255,8 @@ function NexusOneInner({
                       textAlign: "center",
                       textTransform: "capitalize",
                       transition: "background-color 0.2s ease",
+                      userSelect: "none",
+                      WebkitUserSelect: "none",
                       width: "100%",
                     }}
                     type="button"
@@ -11039,6 +11342,7 @@ function NexusOneInner({
                       isSourcePickerDisabled={
                         !toTokenWithFetchedBalance || !hasPositiveRootAmount
                       }
+                      needsWalletConnection={needsWalletConnection}
                       onAmountChange={handleDepositAmountChange}
                       onAmountModeToggle={handleDepositAmountModeToggle}
                       onOpenSourcePicker={() => {
@@ -11133,6 +11437,8 @@ function NexusOneInner({
                           cursor: isDepositCtaDisabled
                             ? "not-allowed"
                             : "pointer",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
                           width: "100%",
                         }}
                       >
@@ -11207,6 +11513,7 @@ function NexusOneInner({
                   isSourcePickerDisabled={
                     !toTokenWithFetchedBalance || !hasPositiveRootAmount
                   }
+                  needsWalletConnection={needsWalletConnection}
                   onAmountChange={handleSendAmountChange}
                   onOpenAssetPicker={() =>
                     openDrawerStep("choose-receive-asset")
@@ -11235,7 +11542,17 @@ function NexusOneInner({
                   toToken={toTokenWithFetchedBalance}
                   totalBalance={totalSwapBalanceUsd}
                   usdValue={
-                    amount && sendAmountUsd > 0 ? sendAmountUsd.toFixed(2) : ""
+                    needsWalletConnection && fromTokens[0] && amount
+                      ? (() => {
+                          const inputNum = parseFiatNumber(amount);
+                          if (!inputNum || inputNum.lte(0)) return "";
+                          const rate = getTokenUsdRate(fromTokens[0]);
+                          const val = inputNum.mul(rate);
+                          return val.gt(0) ? val.toFixed(2) : "";
+                        })()
+                      : amount && sendAmountUsd > 0
+                        ? sendAmountUsd.toFixed(2)
+                        : ""
                   }
                 />
 
@@ -11698,6 +12015,7 @@ function NexusOneInner({
                 isLoadingBalances={nexusLoading || swapBalance === undefined}
                 isMulti={isSourcePickerMultiselect}
                 lockedTokens={lockedDestinationSourceTokens}
+                needsWalletConnection={needsWalletConnection}
                 onBack={
                   isSourcePickerMultiselect
                     ? handleSourcePickerCancel
@@ -12088,6 +12406,7 @@ function NexusOneInner({
                 excludedTokens={fromTokens.filter(
                   (t) => !t.isUnifiedCandidate && !(t as any).isUnified
                 )}
+                needsWalletConnection={needsWalletConnection}
                 onBack={closeDrawerToIdle}
                 onSelect={(token) => {
                   const tokenChanged = !isSameTokenSelection(toToken, token);

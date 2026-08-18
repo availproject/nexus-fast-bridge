@@ -19,6 +19,7 @@ interface ExactOutSwapIdleFormProps {
   isBalanceLoading?: boolean;
   isQuoteLoading?: boolean;
   isSourcePickerDisabled?: boolean;
+  needsWalletConnection?: boolean;
   onAmountChange: (value: string) => void;
   onOpenDestinationPicker: () => void;
   onOpenRecipientPicker: () => void;
@@ -217,6 +218,7 @@ export function ExactOutSwapIdleForm({
   isBalanceLoading = false,
   isQuoteLoading = false,
   isSourcePickerDisabled = false,
+  needsWalletConnection = false,
   onAmountChange,
   onOpenDestinationPicker,
   onOpenRecipientPicker,
@@ -413,7 +415,9 @@ export function ExactOutSwapIdleForm({
             <PercentButtons
               disabled={!toToken || isQuoteLoading}
               onSelect={onSetPercent}
-              visible={Boolean(toToken) && isAmountFocused}
+              visible={
+                !needsWalletConnection && Boolean(toToken) && isAmountFocused
+              }
             />
             {toToken && (
               <span

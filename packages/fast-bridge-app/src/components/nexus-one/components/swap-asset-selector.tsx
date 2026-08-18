@@ -1063,9 +1063,11 @@ export function SwapAssetSelector({
   restoreAutoTokens,
   showRestoreAuto = false,
   isLoadingBalances = false,
+  needsWalletConnection = false,
 }: SwapAssetSelectorProps) {
   const isBalanceLoading =
-    isLoadingBalances || swapBalance === null || swapBalance === undefined;
+    !needsWalletConnection &&
+    (isLoadingBalances || swapBalance === null || swapBalance === undefined);
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChains),
     [swapSupportedChains]
@@ -1729,19 +1731,21 @@ export function SwapAssetSelector({
               {token.chainName || "Unknown chain"}
             </span>
           </span>
-          <span
-            style={{
-              color: "#1F1F1F",
-              flexShrink: 0,
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "14px",
-              fontVariantNumeric: "tabular-nums",
-              fontWeight: 500,
-              lineHeight: "20px",
-            }}
-          >
-            {formatTokenAmountDisplay(token.balance)}
-          </span>
+          {!needsWalletConnection && (
+            <span
+              style={{
+                color: "#1F1F1F",
+                flexShrink: 0,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontVariantNumeric: "tabular-nums",
+                fontWeight: 500,
+                lineHeight: "20px",
+              }}
+            >
+              {formatTokenAmountDisplay(token.balance)}
+            </span>
+          )}
         </button>
       );
     }
@@ -1834,69 +1838,71 @@ export function SwapAssetSelector({
             )}
           </div>
         </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-          }}
-        >
-          {isBalanceLoading ? (
-            <div
-              style={{
-                alignItems: "flex-end",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
+        {needsWalletConnection ? null : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+            }}
+          >
+            {isBalanceLoading ? (
               <div
-                className="nexus-balance-skeleton"
                 style={{
-                  animation:
-                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                  backgroundColor: "#E8E8E7",
-                  borderRadius: 4,
-                  height: 14,
-                  width: 55,
-                }}
-              />
-              <div
-                className="nexus-balance-skeleton"
-                style={{
-                  animation:
-                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                  backgroundColor: "#F0F0EF",
-                  borderRadius: 4,
-                  height: 12,
-                  width: 35,
-                }}
-              />
-            </div>
-          ) : (
-            <>
-              <span
-                style={{
-                  color: "#161615",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: isDesktop ? 14 : 12,
-                  fontWeight: 500,
+                  alignItems: "flex-end",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
                 }}
               >
-                {formatBalanceWithSymbol(token)}
-              </span>
-              <span
-                style={{
-                  color: "#848483",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: isDesktop ? 13 : 11,
-                }}
-              >
-                ≈ {token.balanceInFiat}
-              </span>
-            </>
-          )}
-        </div>
+                <div
+                  className="nexus-balance-skeleton"
+                  style={{
+                    animation:
+                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                    backgroundColor: "#E8E8E7",
+                    borderRadius: 4,
+                    height: 14,
+                    width: 55,
+                  }}
+                />
+                <div
+                  className="nexus-balance-skeleton"
+                  style={{
+                    animation:
+                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                    backgroundColor: "#F0F0EF",
+                    borderRadius: 4,
+                    height: 12,
+                    width: 35,
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                <span
+                  style={{
+                    color: "#161615",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: isDesktop ? 14 : 12,
+                    fontWeight: 500,
+                  }}
+                >
+                  {formatBalanceWithSymbol(token)}
+                </span>
+                <span
+                  style={{
+                    color: "#848483",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: isDesktop ? 13 : 11,
+                  }}
+                >
+                  ≈ {token.balanceInFiat}
+                </span>
+              </>
+            )}
+          </div>
+        )}
       </button>
     );
   };
@@ -2108,33 +2114,35 @@ export function SwapAssetSelector({
               gap: isDesktop ? 8 : 6,
             }}
           >
-            <div
-              style={{
-                alignItems: "flex-end",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <span
+            {!needsWalletConnection && (
+              <div
                 style={{
-                  color: "#161615",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: isDesktop ? 14 : 12,
-                  fontWeight: 500,
+                  alignItems: "flex-end",
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
-                {group.totalBalStr}
-              </span>
-              <span
-                style={{
-                  color: "#848483",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: isDesktop ? 13 : 11,
-                }}
-              >
-                ≈ {group.totalFiatStr}
-              </span>
-            </div>
+                <span
+                  style={{
+                    color: "#161615",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: isDesktop ? 14 : 12,
+                    fontWeight: 500,
+                  }}
+                >
+                  {group.totalBalStr}
+                </span>
+                <span
+                  style={{
+                    color: "#848483",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: isDesktop ? 13 : 11,
+                  }}
+                >
+                  ≈ {group.totalFiatStr}
+                </span>
+              </div>
+            )}
             <div
               onClick={(e) => {
                 toggleGroup(group.symbol, e);
@@ -3429,6 +3437,8 @@ export function SwapAssetSelector({
             padding: "12px 24px",
             textAlign: "center",
             transition: "opacity 0.15s ease",
+            userSelect: "none",
+            WebkitUserSelect: "none",
             width: "100%",
           }}
           type="button"

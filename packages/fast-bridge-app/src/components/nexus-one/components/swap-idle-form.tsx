@@ -24,6 +24,7 @@ interface SwapIdleFormProps {
   defaultRecipientAddress?: string;
   destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
+  getTokenUsdRate?: (token: SwapTokenOption) => number;
   intentData?: any;
   isExpanded?: boolean;
   isLoadingBalances?: boolean;
@@ -683,6 +684,7 @@ export function SwapIdleForm({
   onRestoreAuto,
   showRestoreAuto = false,
   needsWalletConnection = false,
+  getTokenUsdRate,
 }: SwapIdleFormProps) {
   const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
     null
@@ -853,20 +855,29 @@ export function SwapIdleForm({
     onAmountChange(total > 0 ? String(total) : "", "send");
   };
 
-  const getSourceUsdValue = React.useCallback((token: SwapTokenOption) => {
-    if (!token || !token.userAmount) return 0;
-    const quotedUsd = parseDecimal(token.userAmountUsd);
-    if (quotedUsd && quotedUsd.gte(0)) return quotedUsd.toNumber();
-    const tokenBalance =
-      Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
-    const fiatBalance =
-      Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
-    const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
-    const amountNumber = Number(token.userAmount || 0);
-    if (!Number.isFinite(amountNumber)) return 0;
-    if (token.userAmountMode === "usd") return amountNumber;
-    return amountNumber * price;
-  }, []);
+  const getSourceUsdValue = React.useCallback(
+    (token: SwapTokenOption) => {
+      if (!token || !token.userAmount) return 0;
+      const quotedUsd = parseDecimal(token.userAmountUsd);
+      if (quotedUsd && quotedUsd.gt(0)) return quotedUsd.toNumber();
+      const tokenBalance =
+        Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
+      const fiatBalance =
+        Number(String(token.balanceInFiat).replace(/[^0-9.]/g, "")) || 0;
+      const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
+      const amountNumber = Number(token.userAmount || 0);
+      if (!Number.isFinite(amountNumber)) return 0;
+      if (token.userAmountMode === "usd") return amountNumber;
+      if (price > 0) return amountNumber * price;
+      if (getTokenUsdRate) {
+        const rate = getTokenUsdRate(token);
+        if (Number.isFinite(rate) && rate > 0) return amountNumber * rate;
+      }
+      const fallbackUsd = Number(usdValue || 0);
+      return Number.isFinite(fallbackUsd) && fallbackUsd > 0 ? fallbackUsd : 0;
+    },
+    [getTokenUsdRate, usdValue]
+  );
 
   const totalUsd = React.useMemo(() => {
     return fromTokens.reduce((sum, token) => sum + getSourceUsdValue(token), 0);
@@ -1684,43 +1695,46 @@ export function SwapIdleForm({
               onSelect={(pct) => handleSendPercentForToken(index, pct, token)}
               selectedPct={token?.selectedPct}
               visible={
-                isMultiAssetMode
+                !needsWalletConnection &&
+                (isMultiAssetMode
                   ? focusedRow === index || hoveredRow === index
                   : focusedPanel === "send" ||
                     hoveredPanel === "send" ||
                     focusedRow === 0 ||
-                    hoveredRow === 0
+                    hoveredRow === 0)
               }
             />
-            <div
-              style={{
-                color: "#8E8E89",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "13px",
-                fontStyle: "normal",
-                fontWeight: 400,
-                lineHeight: "16px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {isLoadingBalances ? (
-                <span
-                  className="nexus-balance-skeleton"
-                  style={{
-                    animation:
-                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                    backgroundColor: "#E8E8E7",
-                    borderRadius: "6px",
-                    display: "inline-block",
-                    height: "14px",
-                    verticalAlign: "middle",
-                    width: "90px",
-                  }}
-                />
-              ) : (
-                `Balance · ${formatTokenBalanceLabel(token)}`
-              )}
-            </div>
+            {!needsWalletConnection && (
+              <div
+                style={{
+                  color: "#8E8E89",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "16px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isLoadingBalances ? (
+                  <span
+                    className="nexus-balance-skeleton"
+                    style={{
+                      animation:
+                        "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                      backgroundColor: "#E8E8E7",
+                      borderRadius: "6px",
+                      display: "inline-block",
+                      height: "14px",
+                      verticalAlign: "middle",
+                      width: "90px",
+                    }}
+                  />
+                ) : (
+                  `Balance · ${formatTokenBalanceLabel(token)}`
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

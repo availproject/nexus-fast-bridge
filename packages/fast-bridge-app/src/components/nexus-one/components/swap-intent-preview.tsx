@@ -1990,6 +1990,8 @@ export function SwapIntentPreview({
           height: "42px",
           lineHeight: "19px",
           paddingInline: "16px",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           width: "100%",
         }}
       >
