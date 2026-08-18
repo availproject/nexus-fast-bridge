@@ -608,6 +608,7 @@ export function ReceiveAssetSelector({
     swapBalance,
     swapSupportedChainsAndTokens,
   } = useNexus();
+  const isBalanceLoading = swapBalance === null || swapBalance === undefined;
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChainsAndTokens),
     [swapSupportedChainsAndTokens]
@@ -1619,37 +1620,71 @@ export function ReceiveAssetSelector({
                           </div>
                         </div>
                       </div>
-                      {hasBalance && (
+                      {isBalanceLoading ? (
                         <div
                           style={{
                             alignItems: "flex-end",
                             display: "flex",
                             flexDirection: "column",
+                            gap: 4,
                           }}
                         >
-                          <span
+                          <div
+                            className="nexus-balance-skeleton"
                             style={{
-                              color: "#161615",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 14,
-                              fontWeight: 500,
+                              animation:
+                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                              backgroundColor: "#E8E8E7",
+                              borderRadius: 4,
+                              height: 14,
+                              width: 55,
                             }}
-                          >
-                            {formatTokenBalance(t.balance, {
-                              decimals: t.decimals,
-                              symbol: t.symbol,
-                            }) ?? `${t.balance} ${t.symbol}`}
-                          </span>
-                          <span
+                          />
+                          <div
+                            className="nexus-balance-skeleton"
                             style={{
-                              color: "#848483",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 13,
+                              animation:
+                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                              backgroundColor: "#F0F0EF",
+                              borderRadius: 4,
+                              height: 12,
+                              width: 35,
                             }}
-                          >
-                            {t.balanceInFiat}
-                          </span>
+                          />
                         </div>
+                      ) : (
+                        hasBalance && (
+                          <div
+                            style={{
+                              alignItems: "flex-end",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#161615",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                              }}
+                            >
+                              {formatTokenBalance(t.balance, {
+                                decimals: t.decimals,
+                                symbol: t.symbol,
+                              }) ?? `${t.balance} ${t.symbol}`}
+                            </span>
+                            <span
+                              style={{
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: 13,
+                              }}
+                            >
+                              {t.balanceInFiat}
+                            </span>
+                          </div>
+                        )
                       )}
                     </button>
                   );
@@ -1884,10 +1919,10 @@ export function ReceiveAssetSelector({
       >
         <button
           onClick={() => {
+            onBack();
             if (selectedTokenFull) {
               onSelect(selectedTokenFull);
             }
-            onBack();
           }}
           style={{
             alignItems: "center",

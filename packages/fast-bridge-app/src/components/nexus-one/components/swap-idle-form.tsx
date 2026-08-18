@@ -26,6 +26,7 @@ interface SwapIdleFormProps {
   fromTokens: SwapTokenOption[];
   intentData?: any;
   isExpanded?: boolean;
+  isLoadingBalances?: boolean;
   isMultiAssetMode?: boolean;
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
@@ -677,6 +678,7 @@ export function SwapIdleForm({
   totalFeeUsd,
   isMultiAssetMode = false,
   isExpanded = false,
+  isLoadingBalances = false,
   onToggleExpand,
   onRestoreAuto,
   showRestoreAuto = false,
@@ -1454,7 +1456,20 @@ export function SwapIdleForm({
               paddingTop: "2px",
             }}
           >
-            {token ? (
+            {isLoadingBalances ? (
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#E8E8E7",
+                  borderRadius: "999px",
+                  flexShrink: 0,
+                  height: "36px",
+                  width: "110px",
+                }}
+              />
+            ) : token ? (
               <>
                 <button
                   disabled={isSourcePickerDisabled}
@@ -1686,7 +1701,23 @@ export function SwapIdleForm({
                 whiteSpace: "nowrap",
               }}
             >
-              Balance · {formatTokenBalanceLabel(token)}
+              {isLoadingBalances ? (
+                <span
+                  className="nexus-balance-skeleton"
+                  style={{
+                    animation:
+                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                    backgroundColor: "#E8E8E7",
+                    borderRadius: "6px",
+                    display: "inline-block",
+                    height: "14px",
+                    verticalAlign: "middle",
+                    width: "90px",
+                  }}
+                />
+              ) : (
+                `Balance · ${formatTokenBalanceLabel(token)}`
+              )}
             </div>
           </div>
         )}
@@ -2333,7 +2364,20 @@ export function SwapIdleForm({
               height: "32px",
             }}
           >
-            {toToken ? (
+            {isLoadingBalances ? (
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#E8E8E7",
+                  borderRadius: "999px",
+                  flexShrink: 0,
+                  height: "36px",
+                  width: "110px",
+                }}
+              />
+            ) : toToken ? (
               <button
                 onClick={onOpenDestPicker}
                 style={{

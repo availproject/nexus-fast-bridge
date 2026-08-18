@@ -9913,6 +9913,8 @@ function NexusOneInner({
     ? Boolean(hasPositiveRootAmount && toToken)
     : hasReadyExactInSwapInput(fromTokens, toToken);
   const needsWalletConnection = !ownerAddress || !nexusSDK;
+  const isBalancesLoading =
+    nexusLoading || swapBalance === null || swapBalance === undefined;
   const isExactOutPaymentQuotePending =
     isExactOutPaymentFlow && (quoteRefreshing || intentLoading);
   const walletConnectBusy =
@@ -9930,20 +9932,22 @@ function NexusOneInner({
     : "Connect your wallet to proceed";
   const isSwapCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
-    : isSwapExactOut
-      ? !hasReadySwapQuoteInput ||
-        receiveMaxCalculating ||
-        isExactOutPaymentQuotePending ||
-        (!hasCurrentExactOutPaymentIntent &&
-          isQuoteUnavailableForAutoSourceFlow) ||
-        Boolean(blockingQuoteIssue)
-      : !hasReadySwapQuoteInput ||
-        receiveMaxCalculating ||
-        quoteRefreshing ||
-        Boolean(blockingQuoteIssue);
+    : isBalancesLoading ||
+      (isSwapExactOut
+        ? !hasReadySwapQuoteInput ||
+          receiveMaxCalculating ||
+          isExactOutPaymentQuotePending ||
+          (!hasCurrentExactOutPaymentIntent &&
+            isQuoteUnavailableForAutoSourceFlow) ||
+          Boolean(blockingQuoteIssue)
+        : !hasReadySwapQuoteInput ||
+          receiveMaxCalculating ||
+          quoteRefreshing ||
+          Boolean(blockingQuoteIssue));
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
-    : !hasPositiveRootAmount ||
+    : isBalancesLoading ||
+      !hasPositiveRootAmount ||
       !toToken ||
       receiveMaxCalculating ||
       isExactOutPaymentQuotePending ||
@@ -9953,7 +9957,8 @@ function NexusOneInner({
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
-    : !hasPositiveRootAmount ||
+    : isBalancesLoading ||
+      !hasPositiveRootAmount ||
       !toToken ||
       hasSameOwnerSendRecipient ||
       receiveMaxCalculating ||
@@ -9964,6 +9969,7 @@ function NexusOneInner({
       Boolean(blockingQuoteIssue);
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
+    if (isBalancesLoading) return "Fetching balances...";
     if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (receiveMaxCalculating) return "Calculating...";
@@ -9979,6 +9985,7 @@ function NexusOneInner({
   };
   const sendCtaLabel = (() => {
     if (needsWalletConnection) return walletCtaLabel;
+    if (isBalancesLoading) return "Fetching balances...";
     if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (!hasPositiveRootAmount) return "Enter amount";
@@ -10806,6 +10813,7 @@ function NexusOneInner({
                       : fromTokens
                   }
                   intentData={intentData}
+                  isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
                   isReceiveAmountLoading={isReceiveAmountLoading}
                   isReceiveUsdLoading={isReceiveUsdLoading}
@@ -10922,7 +10930,8 @@ function NexusOneInner({
                         position: "relative",
                       }}
                     >
-                      {quoteRefreshing ||
+                      {(!needsWalletConnection && isBalancesLoading) ||
+                      quoteRefreshing ||
                       receiveMaxCalculating ||
                       (needsWalletConnection && walletConnectBusy) ? (
                         <Loader2
@@ -10937,7 +10946,9 @@ function NexusOneInner({
                       <span>
                         {needsWalletConnection
                           ? walletCtaLabel
-                          : "Approve & Swap"}
+                          : isBalancesLoading
+                            ? "Fetching balances..."
+                            : "Approve & Swap"}
                       </span>
                       {!isSwapCtaDisabled && !needsWalletConnection && (
                         <span
@@ -11619,6 +11630,7 @@ function NexusOneInner({
                       ? "custom"
                       : "all"
                 }
+                isLoadingBalances={nexusLoading || swapBalance === undefined}
                 isMulti={isSourcePickerMultiselect}
                 lockedTokens={lockedDestinationSourceTokens}
                 onBack={

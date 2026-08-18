@@ -66,6 +66,7 @@ interface SwapAssetSelectorProps {
   filterTabBehavior?: FilterTabBehavior;
   hideCustomTab?: boolean;
   initialFilterTab?: FilterTab;
+  isLoadingBalances?: boolean;
   isMulti?: boolean;
   lockedTokens?: SwapTokenOption[];
   onBack: () => void;
@@ -1055,7 +1056,10 @@ export function SwapAssetSelector({
   requiredUsd,
   restoreAutoTokens,
   showRestoreAuto = false,
+  isLoadingBalances = false,
 }: SwapAssetSelectorProps) {
+  const isBalanceLoading =
+    isLoadingBalances || swapBalance === null || swapBalance === undefined;
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChains),
     [swapSupportedChains]
@@ -1815,25 +1819,61 @@ export function SwapAssetSelector({
             alignItems: "flex-end",
           }}
         >
-          <span
-            style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontWeight: 500,
-              fontSize: 14,
-              color: "#161615",
-            }}
-          >
-            {formatBalanceWithSymbol(token)}
-          </span>
-          <span
-            style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
-              color: "#848483",
-            }}
-          >
-            ≈ {token.balanceInFiat}
-          </span>
+          {isBalanceLoading ? (
+            <div
+              style={{
+                alignItems: "flex-end",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#E8E8E7",
+                  borderRadius: 4,
+                  height: 14,
+                  width: 55,
+                }}
+              />
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#F0F0EF",
+                  borderRadius: 4,
+                  height: 12,
+                  width: 35,
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <span
+                style={{
+                  color: "#161615",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              >
+                {formatBalanceWithSymbol(token)}
+              </span>
+              <span
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: 13,
+                }}
+              >
+                ≈ {token.balanceInFiat}
+              </span>
+            </>
+          )}
         </div>
       </button>
     );
@@ -2356,9 +2396,8 @@ export function SwapAssetSelector({
     } else {
       if (draftSelectedTokens.length > 0 && draftSelectedTokens[0]) {
         onSelect(draftSelectedTokens[0]);
-      } else {
-        onDone?.();
       }
+      onDone?.();
     }
   };
 
@@ -3333,6 +3372,7 @@ export function SwapAssetSelector({
 
         {/* Right: Done button */}
         <button
+          disabled={hasSelectionShortfall}
           onClick={handleDone}
           style={{
             alignItems: "center",
@@ -3341,7 +3381,7 @@ export function SwapAssetSelector({
             borderRadius: "999px",
             boxSizing: "border-box",
             color: "#FFFFFE",
-            cursor: "pointer",
+            cursor: hasSelectionShortfall ? "not-allowed" : "pointer",
             display: "flex",
             flexShrink: 0,
             fontFamily: '"Geist", system-ui, sans-serif',
@@ -3352,7 +3392,9 @@ export function SwapAssetSelector({
             lineHeight: "20px",
             marginLeft: "auto",
             minWidth: "160px",
+            opacity: hasSelectionShortfall ? 0.5 : 1,
             padding: "12px 24px",
+            transition: "opacity 0.15s ease",
           }}
           type="button"
         >
