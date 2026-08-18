@@ -36,6 +36,7 @@ import {
 } from "./swap-asset-selector";
 
 interface ReceiveAssetSelectorProps {
+  excludedTokens?: SwapTokenOption[];
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
   selectedToken?: SwapTokenOption;
@@ -596,6 +597,7 @@ export function ReceiveAssetSelector({
   onSelect,
   onBack,
   selectedToken,
+  excludedTokens = [],
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -903,6 +905,22 @@ export function ReceiveAssetSelector({
     t.contractAddress.toLowerCase() ===
       "0x0000000000000000000000000000000000000000";
 
+  const excludedTokensMap = useMemo(() => {
+    const set = new Set<string>();
+    for (const ex of excludedTokens) {
+      if (!ex.chainId || !ex.contractAddress) continue;
+      // Unified assets on Send do not exclude individual tokens on Receive!
+      if (ex.isUnifiedCandidate || (ex as any).isUnified) continue;
+      const addr =
+        ex.contractAddress.toLowerCase() ===
+        "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ? "0x0000000000000000000000000000000000000000"
+          : ex.contractAddress.toLowerCase();
+      set.add(`${ex.chainId}-${addr}`);
+    }
+    return set;
+  }, [excludedTokens]);
+
   const filtered = useMemo(() => {
     let result = tokensWithBalances.filter(
       (token) =>
@@ -910,6 +928,16 @@ export function ReceiveAssetSelector({
         token.hasBalance ||
         isNativeToken(token)
     );
+    if (excludedTokensMap.size > 0) {
+      result = result.filter((token) => {
+        const addr =
+          token.contractAddress.toLowerCase() ===
+          "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            ? "0x0000000000000000000000000000000000000000"
+            : token.contractAddress.toLowerCase();
+        return !excludedTokensMap.has(`${token.chainId}-${addr}`);
+      });
+    }
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
     if (deferredQuery.trim()) {
@@ -929,6 +957,7 @@ export function ReceiveAssetSelector({
     return result;
   }, [
     tokensWithBalances,
+    excludedTokensMap,
     selectedChainFilter,
     deferredQuery,
     activeTab,

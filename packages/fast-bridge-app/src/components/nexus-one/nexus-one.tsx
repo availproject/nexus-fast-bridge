@@ -7458,11 +7458,51 @@ function NexusOneInner({
     closeDrawerToIdle();
   }, [closeDrawerToIdle, resetSourcePickerDraft]);
 
+  const tokenUserAmountsRef = useRef<
+    Map<
+      string,
+      {
+        userAmount: string;
+        userAmountMode?: "usd" | "token";
+        selectedPct?: number | null;
+      }
+    >
+  >(new Map());
+
+  useEffect(() => {
+    for (const t of fromTokens) {
+      const key = getTokenSelectionKey(t);
+      if (key && t.userAmount) {
+        tokenUserAmountsRef.current.set(key, {
+          userAmount: t.userAmount,
+          userAmountMode: t.userAmountMode,
+          selectedPct: t.selectedPct,
+        });
+      }
+    }
+  }, [fromTokens]);
+
+  const applyPreservedUserAmounts = useCallback((tokens: SwapTokenOption[]) => {
+    return tokens.map((token) => {
+      const key = getTokenSelectionKey(token);
+      const stored = key ? tokenUserAmountsRef.current.get(key) : undefined;
+      const preservedAmount = token.userAmount || stored?.userAmount || "";
+      return {
+        ...token,
+        userAmount: preservedAmount,
+        userAmountMode: token.userAmountMode ?? stored?.userAmountMode,
+        selectedPct: token.selectedPct ?? stored?.selectedPct,
+      };
+    });
+  }, []);
+
   const handleSourcePickerDraftSelectionChange = useCallback(
     (tokens: SwapTokenOption[]) => {
       if (!isSourcePickerMultiselect) return;
 
-      setSourcePickerDraftSelection(tokens);
+      const mergedTokens = applyPreservedUserAmounts(tokens);
+
+      setSourcePickerDraftSelection(mergedTokens);
       sourcePickerDraftTouchedRef.current = true;
       sourcePickerDraftModeRef.current = "selected";
       setSourcePickerDraftTouched(true);
@@ -7470,7 +7510,12 @@ function NexusOneInner({
         sourcePickerDraftDepositFilterRef.current = "custom";
       }
     },
-    [activeMode, isSourcePickerMultiselect, setSourcePickerDraftSelection]
+    [
+      activeMode,
+      applyPreservedUserAmounts,
+      isSourcePickerMultiselect,
+      setSourcePickerDraftSelection,
+    ]
   );
 
   const handleSourcePickerFilterTabSelect = useCallback(
@@ -7551,12 +7596,10 @@ function NexusOneInner({
 
       const nextTokens =
         tokens ?? sourcePickerDraftTokensRef.current ?? fromTokens;
+
       const normalizedTokens = excludeSwapExactOutDestinationTokens(
-        nextTokens
-      ).map((token) => ({
-        ...token,
-        userAmount: token.userAmount ?? "",
-      }));
+        applyPreservedUserAmounts(nextTokens)
+      );
 
       const isManualSelection = sourcePickerDraftTouchedRef.current;
       setSourceSelectionTouched(isManualSelection);
@@ -7566,6 +7609,13 @@ function NexusOneInner({
       }
       setSourceSelectionRevision((current) => current + 1);
       setFromTokens(normalizedTokens);
+
+      const totalSendVal = normalizedTokens.reduce((sum, t) => {
+        const num = Number(t.userAmount || 0);
+        return sum + (Number.isFinite(num) ? num : 0);
+      }, 0);
+      setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+
       if (activeMode === "swap" && swapType === "exactIn") {
         clearPendingSwapIntent();
         setSwapQuoteIssue(null);
@@ -11550,8 +11600,10 @@ function NexusOneInner({
                 autoSelectFilterTabs={isExactOutPaymentFlow}
                 editingAssetIndex={editingAssetIndex}
                 excludedTokens={
-                  isSwapExactOut && toTokenWithFetchedBalance
-                    ? [toTokenWithFetchedBalance]
+                  toToken &&
+                  !toToken.isUnifiedCandidate &&
+                  !(toToken as any).isUnified
+                    ? [toToken]
                     : []
                 }
                 filterTabBehavior={
@@ -11598,7 +11650,11 @@ function NexusOneInner({
                       toToken &&
                         sourceSelectionIncludesTokenChainPair(token, toToken)
                     );
-                    const next = [...fromTokens];
+                    const baseList =
+                      isSourcePickerMultiselect && sourcePickerDraftTokens
+                        ? sourcePickerDraftTokens
+                        : fromTokens;
+                    const next = [...baseList];
                     const targetIndex =
                       editingAssetIndex !== null ? editingAssetIndex : null;
                     const existingToken =
@@ -11621,7 +11677,10 @@ function NexusOneInner({
                     if (!isMultiAssetMode) {
                       next.length = 0;
                       next.push(newToken);
-                    } else if (targetIndex !== null) {
+                    } else if (
+                      targetIndex !== null &&
+                      !isSourcePickerMultiselect
+                    ) {
                       if (targetIndex < next.length) {
                         next[targetIndex] = newToken;
                       } else {
@@ -11632,14 +11691,18 @@ function NexusOneInner({
                     }
 
                     setFromTokens(next);
-                    if (targetIndex === 0 && preservedAmount) {
-                      setAmount(preservedAmount);
+                    if (isSourcePickerMultiselect) {
+                      handleSourcePickerDraftSelectionChange(next);
                     }
+                    const totalSendVal = next.reduce((sum, t) => {
+                      const num = Number(t.userAmount || 0);
+                      return sum + (Number.isFinite(num) ? num : 0);
+                    }, 0);
+                    setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
                     if (shouldClearDestination) {
                       setToToken(undefined);
                       setDestinationBalance(undefined);
                     }
-                    closeDrawerToIdle();
                     return;
                   }
                   handleSelectToken(token);
@@ -11650,8 +11713,47 @@ function NexusOneInner({
                     : undefined
                 }
                 onToggle={(token) => {
+                  if (
+                    editingAssetIndex !== null &&
+                    !isSourcePickerMultiselect
+                  ) {
+                    const baseList = fromTokens;
+                    const next = [...baseList];
+                    const targetIndex = editingAssetIndex;
+                    const existingToken =
+                      targetIndex < next.length ? next[targetIndex] : undefined;
+                    const tokenChanged = !isSameTokenSelection(
+                      existingToken,
+                      token
+                    );
+                    const preservedAmount = tokenChanged
+                      ? ""
+                      : existingToken?.userAmount || "";
+                    const newToken = {
+                      ...token,
+                      userAmount: preservedAmount,
+                    };
+
+                    if (!isMultiAssetMode) {
+                      next.length = 0;
+                      next.push(newToken);
+                    } else if (targetIndex < next.length) {
+                      next[targetIndex] = newToken;
+                    } else {
+                      next.push(newToken);
+                    }
+
+                    setFromTokens(next);
+                    const totalSendVal = next.reduce((sum, t) => {
+                      const num = Number(t.userAmount || 0);
+                      return sum + (Number.isFinite(num) ? num : 0);
+                    }, 0);
+                    setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+                    return;
+                  }
+
                   const prev = isSourcePickerMultiselect
-                    ? sourcePickerSelectedTokens
+                    ? (sourcePickerDraftTokens ?? sourcePickerSelectedTokens)
                     : fromTokens;
                   if (!isSourcePickerMultiselect) {
                     clearPendingSwapIntent();
@@ -11682,15 +11784,36 @@ function NexusOneInner({
                           token.isUnified &&
                           item.unifiedSymbol === token.unifiedSymbol
                       );
-                    const withDefaultAmount = (item: SwapTokenOption) => ({
-                      ...item,
-                      userAmount:
-                        activeMode === "swap" &&
-                        !isSwapExactOut &&
-                        prev.length === 0
-                          ? amount
-                          : "",
-                    });
+                    const withDefaultAmount = (item: SwapTokenOption) => {
+                      const existingInPrev = prev.find(
+                        (p) =>
+                          isSameSelection(p, item) ||
+                          (Boolean(p.contractAddress) &&
+                            Boolean(item.contractAddress) &&
+                            p.contractAddress.toLowerCase() ===
+                              item.contractAddress.toLowerCase() &&
+                            p.chainId === item.chainId)
+                      );
+                      if (existingInPrev && existingInPrev.userAmount) {
+                        return {
+                          ...item,
+                          userAmount: existingInPrev.userAmount,
+                          userAmountMode:
+                            existingInPrev.userAmountMode ??
+                            item.userAmountMode,
+                          selectedPct: existingInPrev.selectedPct,
+                        };
+                      }
+                      return {
+                        ...item,
+                        userAmount:
+                          activeMode === "swap" &&
+                          !isSwapExactOut &&
+                          prev.length === 0
+                            ? amount
+                            : (item.userAmount ?? ""),
+                      };
+                    };
                     if (token.isUnified && sourceTokens.length > 0) {
                       const isSameGroupToken = (item: SwapTokenOption) =>
                         Boolean(
@@ -11787,11 +11910,15 @@ function NexusOneInner({
                     return [...withoutUnifiedGroup, withDefaultAmount(token)];
                   })();
 
+                  setFromTokens(nextTokens);
                   if (isSourcePickerMultiselect) {
                     handleSourcePickerDraftSelectionChange(nextTokens);
-                  } else {
-                    setFromTokens(nextTokens);
                   }
+                  const totalSendVal = nextTokens.reduce((sum, t) => {
+                    const num = Number(t.userAmount || 0);
+                    return sum + (Number.isFinite(num) ? num : 0);
+                  }, 0);
+                  setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
                 }}
                 preserveSelectedBelowMinimum={false}
                 requiredUsd={
@@ -11881,6 +12008,9 @@ function NexusOneInner({
               }}
             >
               <ReceiveAssetSelector
+                excludedTokens={fromTokens.filter(
+                  (t) => !t.isUnifiedCandidate && !(t as any).isUnified
+                )}
                 onBack={closeDrawerToIdle}
                 onSelect={(token) => {
                   const tokenChanged = !isSameTokenSelection(toToken, token);

@@ -98,13 +98,21 @@ export function PercentButtons({
   visible = true,
   onSelect,
   maxLabel = "Max",
+  selectedPct,
 }: {
   disabled?: boolean;
   visible?: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
+  selectedPct?: number | null;
 }) {
   const [hoveredPct, setHoveredPct] = useState<number | null>(null);
+  const [internalSelectedPct, setInternalSelectedPct] = useState<number | null>(
+    null
+  );
+
+  const activePct =
+    selectedPct !== undefined ? selectedPct : internalSelectedPct;
 
   return (
     <div
@@ -129,6 +137,7 @@ export function PercentButtons({
       {[20, 50, 100].map((pct) => {
         const label = pct === 100 ? maxLabel : `${pct}%`;
         const isHovered = hoveredPct === pct;
+        const isSelected = activePct === pct;
 
         return (
           <button
@@ -137,6 +146,7 @@ export function PercentButtons({
             onClick={(e) => {
               e.stopPropagation();
               if (disabled) return;
+              setInternalSelectedPct(pct);
               onSelect(pct);
             }}
             onMouseDown={(e) => {
@@ -146,18 +156,24 @@ export function PercentButtons({
             onMouseLeave={() => setHoveredPct(null)}
             style={{
               alignItems: "center",
-              backgroundColor: isHovered ? "#FFFFFF" : "transparent",
+              backgroundColor: isSelected
+                ? "#FFFFFF"
+                : isHovered
+                  ? "#FFFFFF"
+                  : "transparent",
               borderRadius: "6px",
-              boxShadow: isHovered
-                ? "0 1px 2px rgba(42, 56, 139, 0.08)"
-                : "none",
+              boxShadow: isSelected
+                ? "0 1px 3px 0 rgba(42, 56, 139, 0.14), 0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+                : isHovered
+                  ? "0 1px 2px rgba(42, 56, 139, 0.08)"
+                  : "none",
               boxSizing: "border-box",
-              color: "#1F1F1F",
+              color: isSelected ? "#006BF4" : "#1F1F1F",
               cursor: disabled ? "default" : "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "11px",
-              fontWeight: 500,
+              fontWeight: isSelected ? 600 : 500,
               height: "22px",
               justifyContent: "center",
               flex: "1 1 0%",
@@ -673,6 +689,7 @@ export function SwapIdleForm({
     null
   );
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [extraSlots, setExtraSlots] = useState(0);
   const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
   const [tooltip, setTooltip] = useState<string | null>(null);
@@ -685,12 +702,18 @@ export function SwapIdleForm({
   const previousSourceCountRef = useRef(fromTokens.length);
 
   useEffect(() => {
-    setExtraSlots(0);
+    if (isMultiAssetMode) {
+      setExtraSlots(Math.max(0, 2 - fromTokens.length));
+    } else {
+      setExtraSlots(0);
+    }
   }, [isMultiAssetMode]);
 
   useEffect(() => {
     const previousSourceCount = previousSourceCountRef.current;
     if (fromTokens.length > previousSourceCount && previousSourceCount > 0) {
+      const addedCount = fromTokens.length - previousSourceCount;
+      setExtraSlots((prev) => Math.max(0, prev - addedCount));
       const newIndex = fromTokens.length - 1;
       requestAnimationFrame(() => {
         const input = sourceInputRefs.current[newIndex];
@@ -763,10 +786,16 @@ export function SwapIdleForm({
 
   const handleSendInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const token = fromTokens.length === 1 ? fromTokens[0] : undefined;
-    onAmountChange(
-      sanitizeInput(e.target.value, getTokenInputDecimals(token)),
-      "send"
+    const sanitized = sanitizeInput(
+      e.target.value,
+      getTokenInputDecimals(token)
     );
+    if (fromTokens.length > 0 && onUpdateTokens) {
+      const next = [...fromTokens];
+      next[0] = { ...next[0], userAmount: sanitized, selectedPct: null };
+      onUpdateTokens(next);
+    }
+    onAmountChange(sanitized, "send");
   };
 
   const handleTokenAmountChange = (index: number, val: string) => {
@@ -782,7 +811,7 @@ export function SwapIdleForm({
     );
 
     const next = [...fromTokens];
-    next[index] = { ...token, userAmount: sanitized };
+    next[index] = { ...token, userAmount: sanitized, selectedPct: null };
     onUpdateTokens(next);
 
     // Also update total amount for backwards compatibility if needed
@@ -802,7 +831,9 @@ export function SwapIdleForm({
     const price = tokenBalance > 0 ? fiatBalance / tokenBalance : 0;
     if (price === 0) return;
 
-    const currentVal = Number(token.userAmount || 0);
+    const currentVal = Number(
+      token.userAmount || (!isMultiAssetMode ? amount : 0) || 0
+    );
     const next = [...fromTokens];
     if (token.userAmountMode === "usd") {
       const newTokenVal = currentVal > 0 ? (currentVal / price).toString() : "";
@@ -867,7 +898,7 @@ export function SwapIdleForm({
         ? [{ token: fromTokens[0], index: 0, position: 0 }]
         : [{ token: null, index: 0, position: 0 }];
     }
-    const count = Math.max(2, fromTokens.length + extraSlots);
+    const count = Math.max(1, fromTokens.length + extraSlots);
     const rows: Array<{
       token: SwapTokenOption | null;
       index: number;
@@ -884,15 +915,23 @@ export function SwapIdleForm({
   }, [isMultiAssetMode, fromTokens, extraSlots]);
 
   const totalAssetCount = isMultiAssetMode
-    ? Math.max(
-        fromTokens.length,
-        sourceRowsToRender.filter((r) => r.token !== null).length ||
-          sourceRowsToRender.length
-      )
+    ? sourceRowsToRender.length
     : fromTokens.length;
 
   const handleAddAsset = () => {
+    const nextIndex = sourceRowsToRender.length;
     setExtraSlots((prev) => prev + 1);
+    setFocusedRow(nextIndex);
+    setTimeout(() => {
+      const el = sourceRowRefs.current[nextIndex];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      const inputEl = sourceInputRefs.current[nextIndex];
+      if (inputEl) {
+        inputEl.focus();
+      }
+    }, 50);
   };
 
   const handleClearAll = () => {
@@ -900,7 +939,7 @@ export function SwapIdleForm({
       onUpdateTokens([]);
     }
     onAmountChange("", "send");
-    setExtraSlots(0);
+    setExtraSlots(isMultiAssetMode ? 1 : 0);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -912,7 +951,31 @@ export function SwapIdleForm({
       return;
     }
 
-    if (fromTokens[index]) {
+    const currentTotalRows = sourceRowsToRender.length;
+    if (currentTotalRows <= 1) {
+      if (fromTokens.length > 0) {
+        const firstToken = fromTokens[0];
+        if (
+          firstToken &&
+          firstToken.userAmount &&
+          firstToken.userAmount !== ""
+        ) {
+          const next = [{ ...firstToken, userAmount: "" }];
+          if (onUpdateTokens) {
+            onUpdateTokens(next);
+          }
+        } else {
+          if (onUpdateTokens) {
+            onUpdateTokens([]);
+          }
+        }
+      }
+      onAmountChange("", "send");
+      setExtraSlots(fromTokens.length > 0 ? 0 : 1);
+      return;
+    }
+
+    if (index < fromTokens.length) {
       const next = [...fromTokens];
       next.splice(index, 1);
       if (onUpdateTokens) {
@@ -920,8 +983,7 @@ export function SwapIdleForm({
       }
       const total = getTokenAmountTotal(next);
       onAmountChange(total > 0 ? String(total) : "", "send");
-    }
-    if (extraSlots > 0) {
+    } else {
       setExtraSlots((prev) => Math.max(0, prev - 1));
     }
   };
@@ -1015,6 +1077,7 @@ export function SwapIdleForm({
       ...next[index],
       userAmount: finalVal,
       userAmountMode: isUsdMode ? "usd" : "token",
+      selectedPct: pct,
     };
     onUpdateTokens(next);
     const total = getTokenAmountTotal(next);
@@ -1104,23 +1167,12 @@ export function SwapIdleForm({
 
   // Price impact display for slippage tooltip
   const priceImpactDisplay = React.useMemo(() => {
-    const explicitImpactUsd = parseDecimal((intentData as any)?.priceImpactUsd);
-    if (explicitImpactUsd !== undefined) {
-      return `$ ${explicitImpactUsd.abs().toFixed(2)}`;
-    }
-
     let sourceUsdTotal = new Decimal(0);
     if (fromTokens.length > 0) {
       for (const t of fromTokens) {
-        if (!t.userAmount) continue;
-        const amt = parseDecimal(t.userAmount);
-        if (!amt || amt.lte(0)) continue;
-        const rate =
-          t.balanceInFiat && t.balance
-            ? parseDecimal(t.balanceInFiat)?.div(parseDecimal(t.balance) || 1)
-            : undefined;
-        if (rate) {
-          sourceUsdTotal = sourceUsdTotal.plus(amt.mul(rate));
+        const val = getSourceUsdValue(t);
+        if (val > 0) {
+          sourceUsdTotal = sourceUsdTotal.plus(val);
         }
       }
     }
@@ -1138,6 +1190,15 @@ export function SwapIdleForm({
         ? parseDecimal(intentData.destination.value)
         : undefined);
 
+    const explicitImpactUsd = parseDecimal((intentData as any)?.priceImpactUsd);
+    if (
+      explicitImpactUsd !== undefined &&
+      sourceUsdTotal.gt(0) &&
+      explicitImpactUsd.abs().lte(sourceUsdTotal)
+    ) {
+      return `$ ${explicitImpactUsd.abs().toFixed(2)}`;
+    }
+
     if (sourceUsdTotal.gt(0) && destUsd && destUsd.gt(0)) {
       const rawFee =
         parseDecimal(totalFeeUsd) ??
@@ -1151,7 +1212,13 @@ export function SwapIdleForm({
     }
 
     return "$ 0.00";
-  }, [intentData, fromTokens, receiveUsdAmount, totalFeeUsd]);
+  }, [
+    intentData,
+    fromTokens,
+    getSourceUsdValue,
+    receiveUsdAmount,
+    totalFeeUsd,
+  ]);
 
   const hasSendToken = isMultiAssetMode
     ? fromTokens.length > 0 &&
@@ -1218,6 +1285,10 @@ export function SwapIdleForm({
         }}
       >
         <div
+          onMouseEnter={() => setHoveredRow(index)}
+          onMouseLeave={() =>
+            setHoveredRow((prev) => (prev === index ? null : prev))
+          }
           style={{
             alignItems: "flex-start",
             alignSelf: "stretch",
@@ -1255,7 +1326,7 @@ export function SwapIdleForm({
                 setFocusedRow(index);
                 setFocusedPanel("send");
               }}
-              placeholder="0"
+              placeholder={token?.userAmountMode === "usd" ? "$0" : "0"}
               ref={(element) => {
                 if (!inModal) {
                   sourceInputRefs.current[index] = element;
@@ -1290,25 +1361,87 @@ export function SwapIdleForm({
                     : ""
               }
             />
-            <div
+            <button
+              onClick={() => handleToggleMode(index)}
               style={{
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
                 color: "#8E8E89",
+                cursor: token ? "pointer" : "default",
+                display: "inline-flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "14px",
                 fontStyle: "normal",
                 fontWeight: 400,
+                gap: "4px",
                 lineHeight: "18px",
+                padding: 0,
+                textAlign: "left",
+                transition: "color 0.15s ease",
+                userSelect: "none",
               }}
+              type="button"
             >
-              ≈ $
-              {token?.userAmount
-                ? getSourceUsdValue(token)
-                  ? getSourceUsdValue(token).toFixed(2)
-                  : "0"
-                : isMultiAssetMode
-                  ? "0"
-                  : usdValue || "0"}
-            </div>
+              {token?.userAmountMode === "usd" ? (
+                <>
+                  ≈ {(() => {
+                    const tokenBal =
+                      Number(String(token.balance).replace(/[^0-9.]/g, "")) ||
+                      0;
+                    const fiatBal =
+                      Number(
+                        String(token.balanceInFiat).replace(/[^0-9.]/g, "")
+                      ) || 0;
+                    const price = tokenBal > 0 ? fiatBal / tokenBal : 0;
+                    const usdVal = Number(token.userAmount || 0);
+                    if (price > 0 && usdVal > 0) {
+                      return `${(usdVal / price).toFixed(6).replace(/\.?0+$/, "")} ${token.symbol}`;
+                    }
+                    return `0 ${token.symbol}`;
+                  })()}
+                  <svg
+                    fill="none"
+                    height="12"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    style={{ opacity: 0.6 }}
+                    viewBox="0 0 24 24"
+                    width="12"
+                  >
+                    <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                  </svg>
+                </>
+              ) : (
+                <>
+                  ≈ $
+                  {token?.userAmount
+                    ? getSourceUsdValue(token)
+                      ? getSourceUsdValue(token).toFixed(2)
+                      : "0"
+                    : isMultiAssetMode
+                      ? "0"
+                      : usdValue || "0"}
+                  {token && (
+                    <svg
+                      fill="none"
+                      height="12"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                      style={{ opacity: 0.6 }}
+                      viewBox="0 0 24 24"
+                      width="12"
+                    >
+                      <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                    </svg>
+                  )}
+                </>
+              )}
+            </button>
           </div>
 
           {/* Right: Select assets or Token Pill + Cross */}
@@ -1532,7 +1665,15 @@ export function SwapIdleForm({
             <PercentButtons
               disabled={!token?.balance}
               onSelect={(pct) => handleSendPercentForToken(index, pct, token)}
-              visible={true}
+              selectedPct={token?.selectedPct}
+              visible={
+                isMultiAssetMode
+                  ? focusedRow === index || hoveredRow === index
+                  : focusedPanel === "send" ||
+                    hoveredPanel === "send" ||
+                    focusedRow === 0 ||
+                    hoveredRow === 0
+              }
             />
             <div
               style={{
@@ -2779,7 +2920,7 @@ export function SwapIdleForm({
                 display: "flex",
                 flexDirection: "column",
                 gap: "16px",
-                maxHeight: "90vh",
+                maxHeight: "calc(95vh - 20px)",
                 maxWidth: "512px",
                 minWidth: "280px",
                 padding: "12px",
@@ -2795,9 +2936,11 @@ export function SwapIdleForm({
                   borderRadius: "24px 24px 12px 12px",
                   boxSizing: "border-box",
                   display: "flex",
+                  flex: "1 1 auto",
                   flexDirection: "column",
                   gap: "8px",
-                  maxHeight: "calc(90vh - 100px)",
+                  maxHeight: "calc(95vh - 100px)",
+                  minHeight: 0,
                   padding: "12px 12px 0 12px",
                   width: "100%",
                 }}
@@ -2896,9 +3039,11 @@ export function SwapIdleForm({
                   style={{
                     boxSizing: "border-box",
                     display: "flex",
+                    flex: "1 1 auto",
                     flexDirection: "column",
                     gap: "12px",
-                    maxHeight: "clamp(240px, 48vh, 520px)",
+                    maxHeight: "calc(80vh - 140px)",
+                    minHeight: 0,
                     overflowY: "auto",
                     padding: "8px 4px 8px 2px",
                     width: "100%",

@@ -516,11 +516,12 @@ const buildStatusRows = ({
       immutableApprovalTotal,
       Math.max(1, approvalCompletedCount + 1)
     );
+    const currentApprovalIndex = Math.min(
+      approvalCompletedCount,
+      Math.max(0, approvalSymbols.length - 1)
+    );
     const approvalSymbol =
-      activeApprovalSymbol ??
-      approvalSymbols[
-        Math.min(approvalCompletedCount, approvalSymbols.length - 1)
-      ];
+      approvalSymbols[currentApprovalIndex] ?? activeApprovalSymbol;
     const approvalDescription = approvalSymbol
       ? `Approve ${approvalSymbol} in wallet`
       : "Approve in wallet";

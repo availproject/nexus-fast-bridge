@@ -48,6 +48,7 @@ export interface SwapTokenOption {
   logo?: string;
   name: string;
   priceUSD?: number | string;
+  selectedPct?: number | null;
   sourceTokens?: SwapTokenOption[];
   symbol: string;
   unifiedSymbol?: "USDC" | "USDT" | "ETH";
