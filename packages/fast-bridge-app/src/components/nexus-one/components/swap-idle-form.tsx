@@ -1293,17 +1293,18 @@ export function SwapIdleForm({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "0px",
           width: "100%",
         }}
       >
+        {/* Top Row: Input (left) & Token Selector Pill + Clear (right) */}
         <div
           onMouseEnter={() => setHoveredRow(index)}
           onMouseLeave={() =>
             setHoveredRow((prev) => (prev === index ? null : prev))
           }
           style={{
-            alignItems: "flex-start",
+            alignItems: "center",
             alignSelf: "stretch",
             boxSizing: "border-box",
             display: "flex",
@@ -1312,14 +1313,12 @@ export function SwapIdleForm({
             width: "100%",
           }}
         >
-          {/* Left: Input & Dollar value */}
+          {/* Left: Input */}
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
               flex: 1,
               minWidth: 0,
-              gap: "2px",
             }}
           >
             <input
@@ -1374,87 +1373,6 @@ export function SwapIdleForm({
                     : ""
               }
             />
-            <button
-              onClick={() => handleToggleMode(index)}
-              style={{
-                alignItems: "center",
-                background: "transparent",
-                border: "none",
-                color: "#8E8E89",
-                cursor: token ? "pointer" : "default",
-                display: "inline-flex",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
-                fontStyle: "normal",
-                fontWeight: 400,
-                gap: "4px",
-                lineHeight: "18px",
-                padding: 0,
-                textAlign: "left",
-                transition: "color 0.15s ease",
-                userSelect: "none",
-              }}
-              type="button"
-            >
-              {token?.userAmountMode === "usd" ? (
-                <>
-                  ≈ {(() => {
-                    const tokenBal =
-                      Number(String(token.balance).replace(/[^0-9.]/g, "")) ||
-                      0;
-                    const fiatBal =
-                      Number(
-                        String(token.balanceInFiat).replace(/[^0-9.]/g, "")
-                      ) || 0;
-                    const price = tokenBal > 0 ? fiatBal / tokenBal : 0;
-                    const usdVal = Number(token.userAmount || 0);
-                    if (price > 0 && usdVal > 0) {
-                      return `${(usdVal / price).toFixed(6).replace(/\.?0+$/, "")} ${token.symbol}`;
-                    }
-                    return `0 ${token.symbol}`;
-                  })()}
-                  <svg
-                    fill="none"
-                    height="12"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    style={{ opacity: 0.6 }}
-                    viewBox="0 0 24 24"
-                    width="12"
-                  >
-                    <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
-                  </svg>
-                </>
-              ) : (
-                <>
-                  ≈ $
-                  {token?.userAmount
-                    ? getSourceUsdValue(token)
-                      ? getSourceUsdValue(token).toFixed(2)
-                      : "0"
-                    : isMultiAssetMode
-                      ? "0"
-                      : usdValue || "0"}
-                  {token && (
-                    <svg
-                      fill="none"
-                      height="12"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.8"
-                      style={{ opacity: 0.6 }}
-                      viewBox="0 0 24 24"
-                      width="12"
-                    >
-                      <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
-                    </svg>
-                  )}
-                </>
-              )}
-            </button>
           </div>
 
           {/* Right: Select assets or Token Pill + Cross */}
@@ -1464,7 +1382,6 @@ export function SwapIdleForm({
               alignItems: "center",
               gap: "6px",
               flexShrink: 0,
-              paddingTop: "2px",
             }}
           >
             {isLoadingBalances ? (
@@ -1677,66 +1594,158 @@ export function SwapIdleForm({
           </div>
         </div>
 
-        {/* Bottom row: Percent Buttons & Balance */}
-        {token && (
-          <div
+        {/* Bottom Row: USD Value (left) & Percent Buttons + Balance (right) on SAME vertical level */}
+        <div
+          style={{
+            alignItems: "center",
+            boxSizing: "border-box",
+            display: "flex",
+            justifyContent: "space-between",
+            minHeight: "26px",
+            marginTop: "0px",
+            width: "100%",
+          }}
+        >
+          {/* Left: USD Value Button */}
+          <button
+            onClick={() => handleToggleMode(index)}
             style={{
               alignItems: "center",
-              display: "flex",
-              gap: "8px",
-              justifyContent: "flex-end",
-              width: "100%",
-              flexWrap: "wrap",
-              marginTop: "4px",
+              background: "transparent",
+              border: "none",
+              color: "#8E8E89",
+              cursor: token ? "pointer" : "default",
+              display: "inline-flex",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "14px",
+              fontStyle: "normal",
+              fontWeight: 400,
+              gap: "4px",
+              lineHeight: "18px",
+              padding: 0,
+              textAlign: "left",
+              transition: "color 0.15s ease",
+              userSelect: "none",
             }}
+            type="button"
           >
-            <PercentButtons
-              disabled={!token?.balance}
-              onSelect={(pct) => handleSendPercentForToken(index, pct, token)}
-              selectedPct={token?.selectedPct}
-              visible={
-                !needsWalletConnection &&
-                (isMultiAssetMode
-                  ? focusedRow === index || hoveredRow === index
-                  : focusedPanel === "send" ||
-                    hoveredPanel === "send" ||
-                    focusedRow === 0 ||
-                    hoveredRow === 0)
-              }
-            />
-            {!needsWalletConnection && (
-              <div
-                style={{
-                  color: "#8E8E89",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  fontStyle: "normal",
-                  fontWeight: 400,
-                  lineHeight: "16px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isLoadingBalances ? (
-                  <span
-                    className="nexus-balance-skeleton"
-                    style={{
-                      animation:
-                        "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                      backgroundColor: "#E8E8E7",
-                      borderRadius: "6px",
-                      display: "inline-block",
-                      height: "14px",
-                      verticalAlign: "middle",
-                      width: "90px",
-                    }}
-                  />
-                ) : (
-                  `Balance · ${formatTokenBalanceLabel(token)}`
+            {token?.userAmountMode === "usd" ? (
+              <>
+                ≈ {(() => {
+                  const tokenBal =
+                    Number(String(token.balance).replace(/[^0-9.]/g, "")) || 0;
+                  const fiatBal =
+                    Number(
+                      String(token.balanceInFiat).replace(/[^0-9.]/g, "")
+                    ) || 0;
+                  const price = tokenBal > 0 ? fiatBal / tokenBal : 0;
+                  const usdVal = Number(token.userAmount || 0);
+                  if (price > 0 && usdVal > 0) {
+                    return `${(usdVal / price).toFixed(6).replace(/\.?0+$/, "")} ${token.symbol}`;
+                  }
+                  return `0 ${token.symbol}`;
+                })()}
+                <svg
+                  fill="none"
+                  height="12"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  style={{ opacity: 0.6 }}
+                  viewBox="0 0 24 24"
+                  width="12"
+                >
+                  <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                </svg>
+              </>
+            ) : (
+              <>
+                ≈ $
+                {token?.userAmount
+                  ? getSourceUsdValue(token)
+                    ? getSourceUsdValue(token).toFixed(2)
+                    : "0"
+                  : isMultiAssetMode
+                    ? "0"
+                    : usdValue || "0"}
+                {token && (
+                  <svg
+                    fill="none"
+                    height="12"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    style={{ opacity: 0.6 }}
+                    viewBox="0 0 24 24"
+                    width="12"
+                  >
+                    <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                  </svg>
                 )}
-              </div>
+              </>
             )}
-          </div>
-        )}
+          </button>
+
+          {/* Right: Percent Buttons & Balance */}
+          {token && (
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <PercentButtons
+                disabled={!token?.balance}
+                onSelect={(pct) => handleSendPercentForToken(index, pct, token)}
+                selectedPct={token?.selectedPct}
+                visible={
+                  !needsWalletConnection &&
+                  (isMultiAssetMode
+                    ? focusedRow === index || hoveredRow === index
+                    : focusedPanel === "send" ||
+                      hoveredPanel === "send" ||
+                      focusedRow === 0 ||
+                      hoveredRow === 0)
+                }
+              />
+              {!needsWalletConnection && (
+                <div
+                  style={{
+                    color: "#8E8E89",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "13px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "16px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {isLoadingBalances ? (
+                    <span
+                      className="nexus-balance-skeleton"
+                      style={{
+                        animation:
+                          "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                        backgroundColor: "#E8E8E7",
+                        borderRadius: "6px",
+                        display: "inline-block",
+                        height: "14px",
+                        verticalAlign: "middle",
+                        width: "90px",
+                      }}
+                    />
+                  ) : (
+                    `Balance · ${formatTokenBalanceLabel(token)}`
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
