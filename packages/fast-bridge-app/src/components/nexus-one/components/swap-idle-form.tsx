@@ -1482,8 +1482,8 @@ export function SwapIdleForm({
                     boxShadow: ASSET_DROPDOWN_SHADOW,
                     boxSizing: "border-box",
                     display: "flex",
-                    gap: "8px",
-                    padding: "8px",
+                    gap: "6px",
+                    padding: "5px 10px 5px 6px",
                     cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
                     flexShrink: 0,
                     opacity: isSourcePickerDisabled ? 0.72 : 1,
@@ -1526,7 +1526,7 @@ export function SwapIdleForm({
                     style={{
                       color: "#1F1F1F",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "15px",
+                      fontSize: "13.5px",
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "18px",
@@ -1537,42 +1537,44 @@ export function SwapIdleForm({
                   </span>
                   <ChevronDownIcon color="#3D7BFF" />
                 </button>
-                <button
-                  aria-label="Clear asset"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveRow(index);
-                  }}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: "#F0F0EF",
-                    border: "none",
-                    borderRadius: "999px",
-                    color: "#8E8E89",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexShrink: 0,
-                    height: "24px",
-                    justifyContent: "center",
-                    padding: 0,
-                    width: "24px",
-                  }}
-                  type="button"
-                >
-                  <svg
-                    fill="none"
-                    height="10"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    width="10"
+                {isMultiAssetMode && (
+                  <button
+                    aria-label="Clear asset row"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveRow(index);
+                    }}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor: "#F5F5F4",
+                      border: "none",
+                      borderRadius: "999px",
+                      color: "#848483",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexShrink: 0,
+                      height: "24px",
+                      justifyContent: "center",
+                      padding: 0,
+                      width: "24px",
+                    }}
+                    type="button"
                   >
-                    <line x1="18" x2="6" y1="6" y2="18" />
-                    <line x1="6" x2="18" y1="6" y2="18" />
-                  </svg>
-                </button>
+                    <svg
+                      fill="none"
+                      height="10"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      width="10"
+                    >
+                      <line x1="18" x2="6" y1="6" y2="18" />
+                      <line x1="6" x2="18" y1="6" y2="18" />
+                    </svg>
+                  </button>
+                )}
               </>
             ) : (
               <>
@@ -1587,8 +1589,8 @@ export function SwapIdleForm({
                     boxShadow: ASSET_DROPDOWN_SHADOW,
                     boxSizing: "border-box",
                     display: "flex",
-                    gap: "8px",
-                    padding: "8px",
+                    gap: "6px",
+                    padding: "5px 10px 5px 6px",
                     cursor: isSourcePickerDisabled ? "not-allowed" : "pointer",
                     flexShrink: 0,
                     opacity: isSourcePickerDisabled ? 0.72 : 1,
@@ -1610,7 +1612,7 @@ export function SwapIdleForm({
                     style={{
                       color: "#1F1F1F",
                       fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "15px",
+                      fontSize: "13.5px",
                       fontStyle: "normal",
                       fontWeight: 500,
                       lineHeight: "18px",
@@ -2388,8 +2390,8 @@ export function SwapIdleForm({
                   boxShadow: ASSET_DROPDOWN_SHADOW,
                   boxSizing: "border-box",
                   display: "flex",
-                  gap: "8px",
-                  padding: "8px",
+                  gap: "6px",
+                  padding: "5px 10px 5px 6px",
                   cursor: "pointer",
                   flexShrink: 0,
                 }}
@@ -2431,7 +2433,7 @@ export function SwapIdleForm({
                   style={{
                     color: "#1F1F1F",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "15px",
+                    fontSize: "13.5px",
                     fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "18px",
@@ -2453,8 +2455,8 @@ export function SwapIdleForm({
                   boxShadow: ASSET_DROPDOWN_SHADOW,
                   boxSizing: "border-box",
                   display: "flex",
-                  gap: "8px",
-                  padding: "8px",
+                  gap: "6px",
+                  padding: "5px 10px 5px 6px",
                   cursor: "pointer",
                   flexShrink: 0,
                 }}
@@ -2475,7 +2477,7 @@ export function SwapIdleForm({
                   style={{
                     color: "#1F1F1F",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "15px",
+                    fontSize: "13.5px",
                     fontStyle: "normal",
                     fontWeight: 500,
                     lineHeight: "18px",

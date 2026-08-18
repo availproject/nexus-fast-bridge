@@ -67,6 +67,7 @@ interface NexusContextType {
   intent: RefObject<OnIntentHookData | null>;
   loading: boolean;
   network?: NexusNetwork;
+  nexusInitError: string | null;
   nexusSDK: NexusClient | null;
   resolveTokenUsdRate: (tokenSymbol: string) => Promise<number | null>;
   setAllowance: (data: OnAllowanceHookData | null) => void;
@@ -152,6 +153,26 @@ const filterUnsupportedSwapSources = (
   });
 };
 
+const NEXUS_INIT_ERROR_MSG =
+  "Failed to initialize Nexus. Refresh and try again. If the problem persists, contact support.";
+
+const withTimeout = <T,>(promise: Promise<T>, ms = 15_000): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Timeout initializing Nexus"));
+    }, ms);
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
+
 const NexusProvider = ({
   children,
   config = defaultConfig,
@@ -167,6 +188,7 @@ const NexusProvider = ({
   const [sdk, setSdk] = useState<NexusClient | null>(null);
   const [nexusSDK, setNexusSDK] = useState<NexusClient | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [nexusInitError, setNexusInitError] = useState<string | null>(null);
   const supportedChainsAndTokens =
     useRef<SupportedChainsAndTokensResult | null>(null);
   const swapSupportedChainsAndTokens = useRef<SupportedChainsResult | null>(
@@ -201,14 +223,14 @@ const NexusProvider = ({
 
   useEffect(() => {
     let cancelled = false;
+    setNexusInitError(null);
     console.log("NEXUS CONFIG", stableConfig);
     const nextSdk = createNexusClient({
       network: stableConfig.network,
       debug: stableConfig.debug,
     });
 
-    void nextSdk
-      .initialize()
+    withTimeout(nextSdk.initialize(), 15_000)
       .then(() => {
         if (cancelled) {
           return;
@@ -219,10 +241,14 @@ const NexusProvider = ({
         console.log("SupportedChains", nextSdk.getSupportedChains());
       })
       .catch((err) => {
+        if (cancelled) {
+          return;
+        }
         console.error(
           "Failed to initialize default read-only Nexus client:",
           err
         );
+        setNexusInitError(NEXUS_INIT_ERROR_MSG);
       });
 
     return () => {
@@ -495,60 +521,73 @@ const NexusProvider = ({
   const setupNexus = useCallback(async () => {
     const activeSdk = sdkRef.current;
     if (!activeSdk) {
+      setNexusInitError(NEXUS_INIT_ERROR_MSG);
       return;
     }
-    const list = activeSdk.getSupportedChains();
-    supportedChainsAndTokens.current = list ?? null;
-    setSupportedChainsAndTokensState(list ?? null);
-    usdPeggedSymbols.current = buildUsdPeggedSymbolSet(list ?? null);
-    const swapList = activeSdk.getSupportedChains();
-    swapSupportedChainsAndTokens.current = swapList ?? null;
-    setSwapSupportedChainsAndTokensState(swapList ?? null);
-    const [bridgeAbleBalanceResult, swapBalanceResult, rates] =
-      await Promise.allSettled([
-        activeSdk.getBalancesForBridge(),
-        activeSdk.getBalancesForSwap(),
-        getCoinbaseRates(),
-      ]);
+    try {
+      const list = activeSdk.getSupportedChains();
+      supportedChainsAndTokens.current = list ?? null;
+      setSupportedChainsAndTokensState(list ?? null);
+      usdPeggedSymbols.current = buildUsdPeggedSymbolSet(list ?? null);
+      const swapList = activeSdk.getSupportedChains();
+      swapSupportedChainsAndTokens.current = swapList ?? null;
+      setSwapSupportedChainsAndTokensState(swapList ?? null);
 
-    if (rates?.status === "fulfilled") {
-      const usdPerUnit: Record<string, number> = {};
+      const [bridgeAbleBalanceResult, swapBalanceResult, rates] =
+        await withTimeout(
+          Promise.allSettled([
+            activeSdk.getBalancesForBridge(),
+            activeSdk.getBalancesForSwap(),
+            getCoinbaseRates(),
+          ]),
+          15_000
+        );
 
-      for (const [symbol, value] of Object.entries(rates.value)) {
-        const unitsPerUsd = Number.parseFloat(String(value));
-        if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-          usdPerUnit[normalizeTokenSymbol(symbol)] = 1 / unitsPerUsd;
+      if (rates?.status === "fulfilled") {
+        const usdPerUnit: Record<string, number> = {};
+
+        for (const [symbol, value] of Object.entries(rates.value)) {
+          const unitsPerUsd = Number.parseFloat(String(value));
+          if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+            usdPerUnit[normalizeTokenSymbol(symbol)] = 1 / unitsPerUsd;
+          }
         }
+        exchangeRate.current = usdPerUnit;
+        setExchangeRateState(usdPerUnit);
       }
-      exchangeRate.current = usdPerUnit;
-      setExchangeRateState(usdPerUnit);
-    }
 
-    if (bridgeAbleBalanceResult.status === "fulfilled") {
-      setBridgableBalance(
-        normalizeUserAssetFiatValues(bridgeAbleBalanceResult.value)
-      );
-    }
+      if (bridgeAbleBalanceResult?.status === "fulfilled") {
+        setBridgableBalance(
+          normalizeUserAssetFiatValues(bridgeAbleBalanceResult.value)
+        );
+      }
 
-    if (swapBalanceResult.status === "fulfilled") {
-      const rawSwapBalance = swapBalanceResult.value;
-      const filteredSwapBalance = filterUnsupportedSwapSources(
-        rawSwapBalance,
-        swapList
-      );
-      const normalizedSwapBalance =
-        normalizeUserAssetFiatValues(filteredSwapBalance);
-      console.log(
-        "[NexusProvider] getBalancesForSwap:init raw",
-        rawSwapBalance
-      );
-      setSwapBalance(normalizedSwapBalance);
+      if (swapBalanceResult?.status === "fulfilled") {
+        const rawSwapBalance = swapBalanceResult.value;
+        const filteredSwapBalance = filterUnsupportedSwapSources(
+          rawSwapBalance,
+          swapList
+        );
+        const normalizedSwapBalance =
+          normalizeUserAssetFiatValues(filteredSwapBalance);
+        console.log(
+          "[NexusProvider] getBalancesForSwap:init raw",
+          rawSwapBalance
+        );
+        setSwapBalance(normalizedSwapBalance);
+      } else {
+        setNexusInitError(NEXUS_INIT_ERROR_MSG);
+      }
+    } catch (err) {
+      console.error("Error setting up Nexus balances:", err);
+      setNexusInitError(NEXUS_INIT_ERROR_MSG);
     }
   }, [normalizeUserAssetFiatValues]);
 
   const initializeNexus = useCallback(
     async (provider: EthereumProvider) => {
       setLoading(true);
+      setNexusInitError(null);
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
         const nextSdk = createNexusClient({
@@ -556,8 +595,8 @@ const NexusProvider = ({
           debug: stableConfig.debug,
         });
 
-        await nextSdk.initialize();
-        await nextSdk.setEVMProvider(provider);
+        await withTimeout(nextSdk.initialize(), 15_000);
+        await withTimeout(nextSdk.setEVMProvider(provider), 15_000);
 
         sdkRef.current = nextSdk;
         setSdk(nextSdk);
@@ -565,6 +604,7 @@ const NexusProvider = ({
         setNexusSDK(nextSdk);
       } catch (error) {
         console.error("Error initializing Nexus:", error);
+        setNexusInitError(NEXUS_INIT_ERROR_MSG);
         throw error;
       } finally {
         setLoading(false);
@@ -584,6 +624,7 @@ const NexusProvider = ({
       setNexusSDK(null);
       setBridgableBalance(null);
       setSwapBalance(null);
+      setNexusInitError(null);
       intent.current = null;
       swapIntent.current = null;
       allowance.current = null;
@@ -604,14 +645,17 @@ const NexusProvider = ({
         return;
       }
       if (!provider || typeof provider.request !== "function") {
+        setNexusInitError(NEXUS_INIT_ERROR_MSG);
         throw new Error("Invalid EIP-1193 provider");
       }
       try {
+        setNexusInitError(null);
         await initializeNexus(provider);
         await setupNexus();
         attachEventHooks();
       } catch (error) {
         console.error("Error during Nexus setup flow:", error);
+        setNexusInitError(NEXUS_INIT_ERROR_MSG);
         throw error;
       }
     },
@@ -624,10 +668,14 @@ const NexusProvider = ({
       if (!activeSdk) {
         return;
       }
-      const updatedBalance = await activeSdk.getBalancesForBridge();
+      const updatedBalance = await withTimeout(
+        activeSdk.getBalancesForBridge(),
+        15_000
+      );
       setBridgableBalance(normalizeUserAssetFiatValues(updatedBalance));
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
+      setNexusInitError(NEXUS_INIT_ERROR_MSG);
     }
   }, [normalizeUserAssetFiatValues]);
 
@@ -637,7 +685,10 @@ const NexusProvider = ({
       if (!activeSdk) {
         return null;
       }
-      const updatedBalance = await activeSdk.getBalancesForSwap();
+      const updatedBalance = await withTimeout(
+        activeSdk.getBalancesForSwap(),
+        15_000
+      );
       const filteredSwapBalance = filterUnsupportedSwapSources(
         updatedBalance,
         swapSupportedChainsAndTokens.current
@@ -652,6 +703,7 @@ const NexusProvider = ({
       return normalizedSwapBalance;
     } catch (error) {
       console.error("Error fetching swap balance:", error);
+      setNexusInitError(NEXUS_INIT_ERROR_MSG);
       return null;
     }
   }, [normalizeUserAssetFiatValues]);
@@ -683,6 +735,7 @@ const NexusProvider = ({
   const value = useMemo(
     () => ({
       nexusSDK,
+      nexusInitError,
       initializeNexus,
       deinitializeNexus,
       attachEventHooks,
@@ -706,6 +759,7 @@ const NexusProvider = ({
     }),
     [
       nexusSDK,
+      nexusInitError,
       initializeNexus,
       deinitializeNexus,
       attachEventHooks,

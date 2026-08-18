@@ -3101,6 +3101,7 @@ function NexusOneInner({
   const { appConfig, chainFeatures } = useRuntime();
   const {
     nexusSDK,
+    nexusInitError,
     bridgableBalance,
     swapBalance,
     getFiatValue,
@@ -9912,9 +9913,35 @@ function NexusOneInner({
   const hasReadySwapQuoteInput = isSwapExactOut
     ? Boolean(hasPositiveRootAmount && toToken)
     : hasReadyExactInSwapInput(fromTokens, toToken);
+  const [localInitError, setLocalInitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (
+      (nexusLoading ||
+        (ownerAddress &&
+          (swapBalance === null || swapBalance === undefined))) &&
+      !nexusInitError
+    ) {
+      const timer = setTimeout(() => {
+        setLocalInitError(
+          "Failed to initialize Nexus. Refresh and try again. If the problem persists, contact support."
+        );
+      }, 15000);
+      return () => clearTimeout(timer);
+    }
+    if (!nexusLoading && swapBalance !== null && swapBalance !== undefined) {
+      setLocalInitError(null);
+    }
+  }, [nexusLoading, swapBalance, nexusInitError, ownerAddress]);
+
+  const effectiveNexusInitError = nexusInitError || localInitError;
+
   const needsWalletConnection = !ownerAddress || !nexusSDK;
   const isBalancesLoading =
-    nexusLoading || swapBalance === null || swapBalance === undefined;
+    nexusLoading ||
+    swapBalance === null ||
+    swapBalance === undefined ||
+    Boolean(effectiveNexusInitError);
   const isExactOutPaymentQuotePending =
     isExactOutPaymentFlow && (quoteRefreshing || intentLoading);
   const walletConnectBusy =
@@ -10863,6 +10890,13 @@ function NexusOneInner({
                   }
                 />
 
+                {effectiveNexusInitError && (
+                  <StatusAlert
+                    message={effectiveNexusInitError}
+                    type="warning"
+                  />
+                )}
+
                 {receiveAmountIssue &&
                   receiveAmountIssue.type !== "insufficientSources" && (
                     <StatusAlert
@@ -11029,6 +11063,13 @@ function NexusOneInner({
                       usdValue={depositUsdDisplay}
                     />
 
+                    {effectiveNexusInitError && (
+                      <StatusAlert
+                        message={effectiveNexusInitError}
+                        type="warning"
+                      />
+                    )}
+
                     {receiveAmountIssue && (
                       <StatusAlert
                         message={receiveAmountIssue.message}
@@ -11186,6 +11227,13 @@ function NexusOneInner({
                     amount && sendAmountUsd > 0 ? sendAmountUsd.toFixed(2) : ""
                   }
                 />
+
+                {effectiveNexusInitError && (
+                  <StatusAlert
+                    message={effectiveNexusInitError}
+                    type="warning"
+                  />
+                )}
 
                 {receiveAmountIssue && (
                   <StatusAlert

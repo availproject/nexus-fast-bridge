@@ -252,7 +252,13 @@ function TokenLogo({
 }
 
 /* ── Chain logo cluster ── */
-const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
+const ChainLogos = ({
+  tokens,
+  isDesktop = true,
+}: {
+  tokens: SwapTokenOption[];
+  isDesktop?: boolean;
+}) => {
   const clusterRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -471,8 +477,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
             key={c.id}
             src={c.logo}
             style={{
-              width: 16,
-              height: 16,
+              width: isDesktop ? 16 : 13,
+              height: isDesktop ? 16 : 13,
               borderRadius: "999px",
               objectFit: "cover",
               border: "1px solid #fff",
@@ -482,8 +488,8 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
           <div
             key={c.id}
             style={{
-              width: 16,
-              height: 16,
+              width: isDesktop ? 16 : 13,
+              height: isDesktop ? 16 : 13,
               borderRadius: "999px",
               backgroundColor: "#E8E8E7",
             }}
@@ -493,7 +499,7 @@ const ChainLogos = ({ tokens }: { tokens: SwapTokenOption[] }) => {
       <span
         style={{
           fontFamily: '"Geist", system-ui, sans-serif',
-          fontSize: 12,
+          fontSize: isDesktop ? 12 : 11,
           color: "#848483",
           marginLeft: 2,
         }}
@@ -1750,8 +1756,8 @@ export function SwapAssetSelector({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "10px 14px",
-          paddingLeft: "14px",
+          padding: isDesktop ? "10px 14px" : "8px 10px",
+          paddingLeft: isDesktop ? "14px" : "10px",
           backgroundColor: "transparent",
           border: "none",
           cursor: disabled ? "not-allowed" : "pointer",
@@ -1760,13 +1766,29 @@ export function SwapAssetSelector({
           opacity: isDisabledByUnified ? 0.5 : 1,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: isDesktop ? 12 : 8,
+          }}
+        >
           <SelectionControl
             multi={Boolean(isMulti)}
             selected={selectedInCurrent}
           />
-          <div style={{ flexShrink: 0, height: 40, width: 40 }}>
-            <TokenLogo src={token.logo} symbol={token.symbol} />
+          <div
+            style={{
+              flexShrink: 0,
+              height: isDesktop ? 40 : 30,
+              width: isDesktop ? 40 : 30,
+            }}
+          >
+            <TokenLogo
+              size={isDesktop ? 40 : 30}
+              src={token.logo}
+              symbol={token.symbol}
+            />
           </div>
           <div
             style={{
@@ -1779,7 +1801,7 @@ export function SwapAssetSelector({
               style={{
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontWeight: 500,
-                fontSize: 15,
+                fontSize: isDesktop ? 15 : 13,
                 color: "#161615",
               }}
             >
@@ -1793,16 +1815,16 @@ export function SwapAssetSelector({
                     src={token.chainLogo}
                     style={{
                       borderRadius: "999px",
-                      height: 14,
+                      height: isDesktop ? 14 : 12,
                       objectFit: "cover",
-                      width: 14,
+                      width: isDesktop ? 14 : 12,
                     }}
                   />
                 )}
                 <span
                   style={{
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 13,
+                    fontSize: isDesktop ? 13 : 11,
                     color: "#848483",
                   }}
                 >
@@ -1857,7 +1879,7 @@ export function SwapAssetSelector({
                 style={{
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: 14,
+                  fontSize: isDesktop ? 14 : 12,
                   fontWeight: 500,
                 }}
               >
@@ -1867,7 +1889,7 @@ export function SwapAssetSelector({
                 style={{
                   color: "#848483",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: 13,
+                  fontSize: isDesktop ? 13 : 11,
                 }}
               >
                 ≈ {token.balanceInFiat}
@@ -2025,12 +2047,16 @@ export function SwapAssetSelector({
             <div
               style={{
                 flexShrink: 0,
-                height: 40,
+                height: isDesktop ? 40 : 30,
                 position: "relative",
-                width: 40,
+                width: isDesktop ? 40 : 30,
               }}
             >
-              <TokenLogo src={group.logo} symbol={group.symbol} />
+              <TokenLogo
+                size={isDesktop ? 40 : 30}
+                src={group.logo}
+                symbol={group.symbol}
+              />
             </div>
             <div
               style={{
@@ -2039,12 +2065,18 @@ export function SwapAssetSelector({
                 flexDirection: "column",
               }}
             >
-              <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  gap: isDesktop ? 8 : 6,
+                }}
+              >
                 <span
                   style={{
                     color: "#161615",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 15,
+                    fontSize: isDesktop ? 15 : 13,
                     fontWeight: 500,
                   }}
                 >
@@ -2056,20 +2088,26 @@ export function SwapAssetSelector({
                     borderRadius: 4,
                     color: "#006BF4",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: 11,
+                    fontSize: isDesktop ? 11 : 9.5,
                     fontWeight: 600,
                     letterSpacing: "0.04em",
-                    lineHeight: "18px",
-                    padding: "2px 8px",
+                    lineHeight: isDesktop ? "18px" : "14px",
+                    padding: isDesktop ? "2px 8px" : "1px 5px",
                   }}
                 >
                   UNIFIED
                 </span>
               </div>
-              <ChainLogos tokens={group.tokens} />
+              <ChainLogos isDesktop={isDesktop} tokens={group.tokens} />
             </div>
           </div>
-          <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: isDesktop ? 8 : 6,
+            }}
+          >
             <div
               style={{
                 alignItems: "flex-end",
@@ -2081,7 +2119,7 @@ export function SwapAssetSelector({
                 style={{
                   color: "#161615",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: 14,
+                  fontSize: isDesktop ? 14 : 12,
                   fontWeight: 500,
                 }}
               >
@@ -2091,7 +2129,7 @@ export function SwapAssetSelector({
                 style={{
                   color: "#848483",
                   fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: 13,
+                  fontSize: isDesktop ? 13 : 11,
                 }}
               >
                 ≈ {group.totalFiatStr}
@@ -3253,124 +3291,121 @@ export function SwapAssetSelector({
           borderTop: "1px solid #F5F5F5",
           boxSizing: "border-box",
           display: "flex",
+          flexDirection: "column",
           flexShrink: 0,
-          gap: "16px",
-          justifyContent: "space-between",
-          padding: "16px 24px",
+          gap: "12px",
+          justifyContent: "center",
+          padding: isDesktop ? "16px 24px" : "12px 16px",
           width: "100%",
         }}
       >
         {/* Left: Progress loader & Restore Auto on ExactOut / Shortfall */}
         {shouldShowSelectionProgress &&
-        requiredUsdAmount &&
-        requiredUsdAmount > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flex: 1,
-              flexDirection: "column",
-              gap: "6px",
-              maxWidth: "520px",
-              minWidth: 0,
-            }}
-          >
+          requiredUsdAmount &&
+          requiredUsdAmount > 0 && (
             <div
               style={{
-                alignItems: "center",
                 display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <span
-                style={{
-                  color: "#1F1F1F",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 500,
-                }}
-              >
-                Selected
-                <span style={{ color: "#8E8E89", fontWeight: 400 }}>
-                  /Required
-                </span>
-              </span>
-              <span
-                style={{
-                  color: "#1F1F1F",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  fontWeight: 600,
-                }}
-              >
-                {formatUsdBalanceLabel(selectedUsdAmount)}{" "}
-                <span style={{ color: "#8E8E89", fontWeight: 400 }}>
-                  / {formatUsdBalanceLabel(requiredUsdAmount)}
-                </span>
-              </span>
-            </div>
-            <div
-              style={{
-                alignItems: "center",
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <span
-                style={{
-                  color: "#8E8E89",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
-                  fontWeight: 400,
-                }}
-              >
-                Manually-selected · covers{" "}
-                {formatUsdBalanceLabel(selectedUsdAmount)}
-              </span>
-              {showRestoreAuto && onRestoreAuto && (
-                <button
-                  onClick={handleRestoreAuto}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#006BF4",
-                    cursor: "pointer",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    padding: 0,
-                    textDecoration: "none",
-                  }}
-                  type="button"
-                >
-                  Restore Auto
-                </button>
-              )}
-            </div>
-            <div
-              style={{
-                backgroundColor: "#E5E7EB",
-                borderRadius: "999px",
-                height: "4px",
-                overflow: "hidden",
+                flexDirection: "column",
+                gap: "6px",
                 width: "100%",
               }}
             >
               <div
                 style={{
-                  backgroundColor: "#006BF4",
-                  borderRadius: "999px",
-                  height: "100%",
-                  transition: "width 0.2s ease",
-                  width: `${Math.min(100, Math.max(0, (selectedUsdAmount / requiredUsdAmount) * 100))}%`,
+                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "space-between",
                 }}
-              />
+              >
+                <span
+                  style={{
+                    color: "#1F1F1F",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "13px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Selected
+                  <span style={{ color: "#8E8E89", fontWeight: 400 }}>
+                    /Required
+                  </span>
+                </span>
+                <span
+                  style={{
+                    color: "#1F1F1F",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {formatUsdBalanceLabel(selectedUsdAmount)}{" "}
+                  <span style={{ color: "#8E8E89", fontWeight: 400 }}>
+                    / {formatUsdBalanceLabel(requiredUsdAmount)}
+                  </span>
+                </span>
+              </div>
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <span
+                  style={{
+                    color: "#8E8E89",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "12px",
+                    fontWeight: 400,
+                  }}
+                >
+                  Manually-selected · covers{" "}
+                  {formatUsdBalanceLabel(selectedUsdAmount)}
+                </span>
+                {showRestoreAuto && onRestoreAuto && (
+                  <button
+                    onClick={handleRestoreAuto}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#006BF4",
+                      cursor: "pointer",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      padding: 0,
+                      textDecoration: "none",
+                    }}
+                    type="button"
+                  >
+                    Restore Auto
+                  </button>
+                )}
+              </div>
+              <div
+                style={{
+                  backgroundColor: "#E5E7EB",
+                  borderRadius: "999px",
+                  height: "4px",
+                  overflow: "hidden",
+                  width: "100%",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#006BF4",
+                    borderRadius: "999px",
+                    height: "100%",
+                    transition: "width 0.2s ease",
+                    width: `${Math.min(100, Math.max(0, (selectedUsdAmount / requiredUsdAmount) * 100))}%`,
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        ) : (
-          <div />
-        )}
+          )}
 
-        {/* Right: Done button */}
+        {/* Done button */}
         <button
           disabled={hasSelectionShortfall}
           onClick={handleDone}
@@ -3390,11 +3425,11 @@ export function SwapAssetSelector({
             height: "48px",
             justifyContent: "center",
             lineHeight: "20px",
-            marginLeft: "auto",
-            minWidth: "160px",
             opacity: hasSelectionShortfall ? 0.5 : 1,
             padding: "12px 24px",
+            textAlign: "center",
             transition: "opacity 0.15s ease",
+            width: "100%",
           }}
           type="button"
         >
