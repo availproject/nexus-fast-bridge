@@ -41,7 +41,9 @@ interface SwapIdleFormProps {
   onRestoreAuto?: () => void;
   onSetPercent?: (pct: number) => void;
   onToggleExpand?: () => void;
+  onToggleMultiAssetMode?: () => void;
   onUpdateTokens?: (tokens: SwapTokenOption[]) => void;
+  receiveAmountIssue?: { type: string; message: string; title?: string } | null;
   receiveQuoteAmount?: string;
   receiveQuoteUsd?: string;
   recipientAddress?: string;
@@ -655,6 +657,7 @@ export function SwapIdleForm({
   amount,
   receiveQuoteAmount,
   receiveQuoteUsd,
+  receiveAmountIssue,
   isReceiveAmountLoading = false,
   isReceiveUsdLoading = false,
   sourceRouteStatus,
@@ -681,6 +684,7 @@ export function SwapIdleForm({
   isExpanded = false,
   isLoadingBalances = false,
   onToggleExpand,
+  onToggleMultiAssetMode,
   onRestoreAuto,
   showRestoreAuto = false,
   needsWalletConnection = false,
@@ -696,6 +700,16 @@ export function SwapIdleForm({
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [extraSlots, setExtraSlots] = useState(0);
   const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
+  const [isExpandModalClosing, setIsExpandModalClosing] = useState(false);
+  const [removingRowIndex, setRemovingRowIndex] = useState<number | null>(null);
+
+  const closeExpandModal = () => {
+    setIsExpandModalClosing(true);
+    setTimeout(() => {
+      setIsExpandModalClosing(false);
+      setIsExpandModalOpen(false);
+    }, 220);
+  };
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
     null
@@ -703,18 +717,42 @@ export function SwapIdleForm({
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const isFirstMountRef = useRef(true);
+  const prevMultiAssetModeRef = useRef(isMultiAssetMode);
   const previousSourceCountRef = useRef(fromTokens.length);
 
   useEffect(() => {
-    if (isMultiAssetMode) {
-      setExtraSlots(Math.max(0, 2 - fromTokens.length));
-    } else {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      if (isMultiAssetMode) {
+        if (fromTokens.length === 0) {
+          setExtraSlots(2);
+        } else if (fromTokens.length === 1) {
+          setExtraSlots(1);
+        }
+      }
+      return;
+    }
+
+    if (isMultiAssetMode && !prevMultiAssetModeRef.current) {
+      if (fromTokens.length === 0) {
+        setExtraSlots(2);
+      } else if (fromTokens.length === 1) {
+        setExtraSlots(1);
+      } else {
+        setExtraSlots(0);
+      }
+    } else if (!isMultiAssetMode) {
       setExtraSlots(0);
     }
-  }, [isMultiAssetMode]);
+    prevMultiAssetModeRef.current = isMultiAssetMode;
+  }, [isMultiAssetMode, fromTokens.length]);
 
   useEffect(() => {
     const previousSourceCount = previousSourceCountRef.current;
+    if (fromTokens.length > 0 && fromTokens.length !== previousSourceCount) {
+      setExtraSlots(0);
+    }
     if (fromTokens.length > previousSourceCount && previousSourceCount > 0) {
       const addedCount = fromTokens.length - previousSourceCount;
       setExtraSlots((prev) => Math.max(0, prev - addedCount));
@@ -769,9 +807,48 @@ export function SwapIdleForm({
     return next;
   };
 
+  const [receiveAmountMode, setReceiveAmountMode] = useState<"token" | "usd">(
+    "token"
+  );
+  const [receiveUsdInput, setReceiveUsdInput] = useState("");
+
   const handleReceiveInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const sanitized = sanitizeInput(e.target.value, toToken?.decimals ?? 18);
-    onAmountChange(sanitized, "receive");
+    if (receiveAmountMode === "usd") {
+      const sanitized = sanitizeInput(e.target.value, 2);
+      setReceiveUsdInput(sanitized);
+      const rate = getReceiveUsdRate();
+      if (rate && rate.gt(0) && Number(sanitized) > 0) {
+        const tokenVal = new Decimal(sanitized)
+          .div(rate)
+          .toDecimalPlaces(
+            Math.max(0, toToken?.decimals ?? 6),
+            Decimal.ROUND_DOWN
+          )
+          .toFixed();
+        onAmountChange(tokenVal, "receive");
+      } else {
+        onAmountChange(sanitized ? "0" : "", "receive");
+      }
+    } else {
+      const sanitized = sanitizeInput(e.target.value, toToken?.decimals ?? 18);
+      onAmountChange(sanitized, "receive");
+    }
+  };
+
+  const handleToggleReceiveMode = () => {
+    if (!toToken) return;
+    if (receiveAmountMode === "token") {
+      setReceiveAmountMode("usd");
+      const r = getReceiveUsdRate();
+      if (r && r.gt(0) && receiveInputValue) {
+        const parsed = parseDecimal(receiveInputValue);
+        if (parsed && parsed.gt(0)) {
+          setReceiveUsdInput(parsed.mul(r).toFixed(2));
+        }
+      }
+    } else {
+      setReceiveAmountMode("token");
+    }
   };
 
   const handleBlurAmount = (index: number) => {
@@ -901,30 +978,30 @@ export function SwapIdleForm({
     requestAnimationFrame(updateSourceListScrollState);
   }, [fromTokens.length, updateSourceListScrollState]);
 
-  const sourceRowsToRender: Array<{
-    token: SwapTokenOption | null;
-    index: number;
-    position: number;
-  }> = React.useMemo(() => {
+  const sourceRowsToRender = React.useMemo(() => {
     if (!isMultiAssetMode) {
       return fromTokens.length > 0
         ? [{ token: fromTokens[0], index: 0, position: 0 }]
         : [{ token: null, index: 0, position: 0 }];
     }
-    const count = Math.max(1, fromTokens.length + extraSlots);
-    const rows: Array<{
-      token: SwapTokenOption | null;
-      index: number;
-      position: number;
-    }> = [];
-    for (let i = 0; i < count; i++) {
-      rows.push({
-        token: fromTokens[i] || null,
-        index: i,
-        position: i,
-      });
+    const rows = fromTokens.map((token, i) => ({
+      token,
+      index: i,
+      position: i,
+    }));
+    const blanks = Array.from({ length: extraSlots }).map((_, i) => ({
+      token: null,
+      index: fromTokens.length + i,
+      position: fromTokens.length + i,
+    }));
+    const combined = [...rows, ...blanks];
+    if (combined.length === 0) {
+      return [
+        { token: null, index: 0, position: 0 },
+        { token: null, index: 1, position: 1 },
+      ];
     }
-    return rows;
+    return combined;
   }, [isMultiAssetMode, fromTokens, extraSlots]);
 
   const totalAssetCount = isMultiAssetMode
@@ -932,19 +1009,7 @@ export function SwapIdleForm({
     : fromTokens.length;
 
   const handleAddAsset = () => {
-    const nextIndex = sourceRowsToRender.length;
-    setExtraSlots((prev) => prev + 1);
-    setFocusedRow(nextIndex);
-    setTimeout(() => {
-      const el = sourceRowRefs.current[nextIndex];
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-      const inputEl = sourceInputRefs.current[nextIndex];
-      if (inputEl) {
-        inputEl.focus();
-      }
-    }, 50);
+    onOpenSourcePicker(null);
   };
 
   const handleClearAll = () => {
@@ -956,6 +1021,14 @@ export function SwapIdleForm({
   };
 
   const handleRemoveRow = (index: number) => {
+    setRemovingRowIndex(index);
+    setTimeout(() => {
+      setRemovingRowIndex(null);
+      executeRemoveRow(index);
+    }, 200);
+  };
+
+  const executeRemoveRow = (index: number) => {
     if (!isMultiAssetMode) {
       if (onUpdateTokens) {
         onUpdateTokens([]);
@@ -1040,6 +1113,23 @@ export function SwapIdleForm({
     : receiveTokenAmount && receiveUsdRate
       ? receiveTokenAmount.mul(receiveUsdRate)
       : undefined;
+  const receiveUsdDisplay = (() => {
+    if (receiveUsdAmount && receiveUsdAmount.gt(0)) {
+      return formatUsdValue(receiveUsdAmount);
+    }
+    const r = getReceiveUsdRate();
+    if (r && r.gt(0) && receiveInputValue) {
+      const parsed = parseDecimal(receiveInputValue);
+      if (parsed && parsed.gt(0)) {
+        return parsed.mul(r).toFixed(2);
+      }
+    }
+    if (receiveDisplayValue && toToken?.priceUSD) {
+      const num = Number(receiveDisplayValue) * Number(toToken.priceUSD);
+      if (Number.isFinite(num) && num > 0) return num.toFixed(2);
+    }
+    return "0";
+  })();
   const getTokenAmountTotal = (tokens: SwapTokenOption[]) =>
     tokens.reduce((sum, item) => sum + Number(item.userAmount || 0), 0);
 
@@ -1259,6 +1349,9 @@ export function SwapIdleForm({
     (hasReceiveAmount && hasReceiveToken && hasSendToken && hasSendAmount);
 
   const warningMessage = React.useMemo(() => {
+    if (receiveAmountIssue?.message) {
+      return receiveAmountIssue.message;
+    }
     if (missingUsd && parseDecimal(missingUsd)?.gt(0)) {
       if (!isMultiAssetMode) {
         return `You're $${Number(missingUsd).toFixed(2)} short. Add more assets to swap. Use Multi-assets Mode`;
@@ -1271,38 +1364,61 @@ export function SwapIdleForm({
       );
     }
     return null;
-  }, [missingUsd, isMultiAssetMode, sourceRouteStatus, sourceRouteMessage]);
+  }, [
+    receiveAmountIssue,
+    missingUsd,
+    isMultiAssetMode,
+    sourceRouteStatus,
+    sourceRouteMessage,
+  ]);
 
   const renderSourceRow = (
     token: SwapTokenOption | null,
     index: number,
     inModal = false
   ) => {
+    const isRemoving = removingRowIndex === index;
+    const showRowHover = isMultiAssetMode;
     return (
       <div
+        className={showRowHover ? "nexus-asset-row" : undefined}
         key={
           token
             ? `${token.contractAddress}-${token.chainId}-${index}${inModal ? "-modal" : ""}`
             : `empty-slot-${index}${inModal ? "-modal" : ""}`
         }
+        onMouseEnter={() => {
+          if (showRowHover) setHoveredRow(index);
+        }}
+        onMouseLeave={() => {
+          if (showRowHover) {
+            setHoveredRow((prev) => (prev === index ? null : prev));
+          }
+        }}
         ref={(element) => {
           if (!inModal) {
             sourceRowRefs.current[index] = element;
           }
         }}
         style={{
+          backgroundColor:
+            showRowHover && hoveredRow === index ? "#EAECEF" : "transparent",
+          borderRadius: showRowHover ? "14px" : "0px",
+          boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
-          gap: "0px",
+          gap: "2px",
+          padding: showRowHover ? "6px 8px" : "0px",
+          transition:
+            "background-color 0.15s ease, all 0.28s cubic-bezier(0.2, 0, 0, 1)",
           width: "100%",
+          animation: isRemoving
+            ? "nexusRowCollapse 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+            : "nexusRowExpand 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         {/* Top Row: Input (left) & Token Selector Pill + Clear (right) */}
         <div
-          onMouseEnter={() => setHoveredRow(index)}
-          onMouseLeave={() =>
-            setHoveredRow((prev) => (prev === index ? null : prev))
-          }
           style={{
             alignItems: "center",
             alignSelf: "stretch",
@@ -1990,6 +2106,8 @@ export function SwapIdleForm({
               overflowY: isMultiAssetMode ? "auto" : "visible",
               padding: isMultiAssetMode ? "8px 4px 8px 2px" : undefined,
               width: "100%",
+              transition:
+                "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1), padding 0.3s ease",
             }}
           >
             {sourceRowsToRender.map(({ token, index }) =>
@@ -1999,15 +2117,15 @@ export function SwapIdleForm({
         )}
 
         {/* Warning Container */}
-        {warningMessage && (
+        {(warningMessage ||
+          (missingUsd && parseDecimal(missingUsd)?.gt(0))) && (
           <div
             style={{
               alignItems: "center",
-              background:
-                "linear-gradient(90deg, rgba(249, 115, 22, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%), #FFF",
+              background: "#FFF7ED",
               borderRadius: "12px",
               boxSizing: "border-box",
-              color: "#FF7B20",
+              color: "#E06A26",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "13px",
@@ -2017,8 +2135,11 @@ export function SwapIdleForm({
               lineHeight: "130%",
               marginTop: "4px",
               maxWidth: "100%",
-              padding: "8px",
-              width: "fit-content",
+              padding: "8px 12px",
+              width: "100%",
+              animation:
+                "nexusBannerSlideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+              transition: "all 0.25s cubic-bezier(0.2, 0, 0, 1)",
             }}
           >
             <div
@@ -2042,11 +2163,11 @@ export function SwapIdleForm({
                   cx="8"
                   cy="8"
                   r="7"
-                  stroke="#FF7B20"
+                  stroke="#E06A26"
                   strokeWidth="1.3"
                 />
                 <line
-                  stroke="#FF7B20"
+                  stroke="#E06A26"
                   strokeLinecap="round"
                   strokeWidth="1.3"
                   x1="8"
@@ -2054,10 +2175,69 @@ export function SwapIdleForm({
                   y1="5"
                   y2="8.5"
                 />
-                <circle cx="8" cy="11.25" fill="#FF7B20" r="0.75" />
+                <circle cx="8" cy="11.25" fill="#E06A26" r="0.75" />
               </svg>
             </div>
-            <span>{warningMessage}</span>
+            {missingUsd && parseDecimal(missingUsd)?.gt(0) ? (
+              <span style={{ color: "#E06A26" }}>
+                You're{" "}
+                <strong style={{ fontWeight: 700, color: "#E06A26" }}>
+                  ${Number(missingUsd).toFixed(2)}
+                </strong>{" "}
+                short.{" "}
+                {!isMultiAssetMode && onToggleMultiAssetMode ? (
+                  <>
+                    Switch to{" "}
+                    <button
+                      onClick={onToggleMultiAssetMode}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#006BF4",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        fontSize: "inherit",
+                        fontWeight: 700,
+                        padding: 0,
+                        textDecoration: "underline",
+                      }}
+                      type="button"
+                    >
+                      Multi-assets Mode
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Add Assets
+                    {onRestoreAuto ? (
+                      <>
+                        {" "}
+                        OR switch to{" "}
+                        <button
+                          onClick={onRestoreAuto}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#006BF4",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            fontSize: "inherit",
+                            fontWeight: 700,
+                            padding: 0,
+                            textDecoration: "underline",
+                          }}
+                          type="button"
+                        >
+                          AUTO
+                        </button>
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </span>
+            ) : (
+              <span>{warningMessage}</span>
+            )}
           </div>
         )}
 
@@ -2337,7 +2517,7 @@ export function SwapIdleForm({
                 onBlur={() => setFocusedPanel(null)}
                 onChange={handleReceiveInput}
                 onFocus={() => setFocusedPanel("receive")}
-                placeholder="0"
+                placeholder={receiveAmountMode === "usd" ? "$0" : "0"}
                 style={{
                   boxSizing: "border-box",
                   color: "#1F1F1F",
@@ -2356,28 +2536,79 @@ export function SwapIdleForm({
                   minWidth: 0,
                 }}
                 type="text"
-                value={receiveDisplayValue}
+                value={
+                  receiveAmountMode === "usd"
+                    ? focusedPanel === "receive"
+                      ? receiveUsdInput
+                      : receiveUsdDisplay !== "0"
+                        ? `$${receiveUsdDisplay}`
+                        : ""
+                    : receiveDisplayValue
+                }
               />
             )}
-            <div
+            <button
+              onClick={handleToggleReceiveMode}
               style={{
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
                 color: "#8E8E89",
+                cursor: toToken ? "pointer" : "default",
+                display: "inline-flex",
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "14px",
                 fontStyle: "normal",
                 fontWeight: 400,
+                gap: "4px",
                 lineHeight: "18px",
+                padding: 0,
+                textAlign: "left",
+                transition: "color 0.15s ease",
+                userSelect: "none",
               }}
+              type="button"
             >
-              ≈ $
-              {receiveUsdAmount
-                ? formatUsdValue(receiveUsdAmount)
-                : receiveDisplayValue && toToken?.priceUSD
-                  ? (
-                      Number(receiveDisplayValue) * Number(toToken.priceUSD)
-                    ).toFixed(2)
-                  : "0"}
-            </div>
+              {receiveAmountMode === "usd" ? (
+                <>
+                  ≈ {receiveDisplayValue || "0"} {toToken?.symbol ?? ""}
+                  {toToken && (
+                    <svg
+                      fill="none"
+                      height="12"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                      style={{ opacity: 0.6 }}
+                      viewBox="0 0 24 24"
+                      width="12"
+                    >
+                      <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                    </svg>
+                  )}
+                </>
+              ) : (
+                <>
+                  ≈ ${receiveUsdDisplay}
+                  {toToken && (
+                    <svg
+                      fill="none"
+                      height="12"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.8"
+                      style={{ opacity: 0.6 }}
+                      viewBox="0 0 24 24"
+                      width="12"
+                    >
+                      <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" />
+                    </svg>
+                  )}
+                </>
+              )}
+            </button>
           </div>
 
           {/* Right: Select asset / Token pill */}
@@ -2952,18 +3183,20 @@ export function SwapIdleForm({
       )}
 
       {/* ─── EXPANDED FULL-SCREEN ASSETS MODAL ─── */}
-      {isExpandModalOpen &&
+      {(isExpandModalOpen || isExpandModalClosing) &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setIsExpandModalOpen(false);
+                closeExpandModal();
               }
             }}
             style={{
               alignItems: "center",
-              animation: "nexusFadeIn 0.2s ease-out",
+              animation: isExpandModalClosing
+                ? "nexusBackdropFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                : "nexusBackdropFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
               backdropFilter: "blur(8px)",
               background: "rgba(215, 218, 220, 0.50)",
               bottom: 0,
@@ -2981,7 +3214,9 @@ export function SwapIdleForm({
               onClick={(e) => e.stopPropagation()}
               style={{
                 alignItems: "center",
-                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                animation: isExpandModalClosing
+                  ? "nexusZoomFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                  : "nexusZoomFadeIn 0.28s cubic-bezier(0.34, 1.25, 0.64, 1)",
                 background: "#FFF",
                 borderRadius: "38px",
                 boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
@@ -2994,6 +3229,8 @@ export function SwapIdleForm({
                 minWidth: "280px",
                 padding: "12px",
                 width: "100%",
+                transition:
+                  "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1)",
               }}
             >
               {/* Inner Frame */}
@@ -3073,7 +3310,7 @@ export function SwapIdleForm({
                   {/* Compress / Inward Arrows Icon */}
                   <button
                     aria-label="Collapse assets view"
-                    onClick={() => setIsExpandModalOpen(false)}
+                    onClick={closeExpandModal}
                     style={{
                       alignItems: "center",
                       background: "transparent",
@@ -3236,7 +3473,7 @@ export function SwapIdleForm({
 
               {/* Done Button */}
               <button
-                onClick={() => setIsExpandModalOpen(false)}
+                onClick={closeExpandModal}
                 style={{
                   alignItems: "center",
                   backgroundColor: "#1F1F1F",

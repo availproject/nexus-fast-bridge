@@ -198,6 +198,7 @@ type PredictiveQuote = {
   sources?: SwapTokenOption[];
   toAmount?: string;
   toUsd?: string;
+  missingUsd?: string;
 };
 
 type PredictiveQuoteBaseline = {
@@ -3871,8 +3872,7 @@ function NexusOneInner({
   const hasMinimumSourceUsdBalance = (
     token: Pick<SwapTokenOption, "balanceInFiat">
   ) => hasMinimumSourceUsdValue(token.balanceInFiat);
-  const filterMinimumSourceUsdTokens = (tokens: SwapTokenOption[]) =>
-    tokens.filter(hasMinimumSourceUsdBalance);
+  const filterMinimumSourceUsdTokens = (tokens: SwapTokenOption[]) => tokens;
 
   const getTokenUsdRateCacheKeyFromParts = (
     chainId?: number,
@@ -4846,34 +4846,60 @@ function NexusOneInner({
       return null;
     }
 
-    // In Exact Out single-asset mode, check if any single asset can cover the requested amount
-    if (
-      ownerAddress &&
-      mode === "swap" &&
-      type === "exactOut" &&
-      !isMultiAssetMode
-    ) {
+    // In Exact Out single-asset mode, check if the selected asset or wallet can cover the requested amount
+    if (ownerAddress && mode === "swap" && type === "exactOut") {
       const rate = destinationRate ?? getTokenUsdRate(destinationToken);
       const requestedReceiveUsd = rate.gt(0)
         ? parsedAmount.times(rate)
         : parsedAmount;
 
       if (requestedReceiveUsd.gt(0)) {
+        if (!isMultiAssetMode) {
+          const singleToken = sourceTokens[0] ?? fromTokens[0];
+          if (singleToken) {
+            const isNative =
+              singleToken.contractAddress === zeroAddress ||
+              isNativeTokenAddress(singleToken.contractAddress);
+            const gasReserveUsd = isNative
+              ? singleToken.chainId === 1
+                ? new Decimal(0.5)
+                : new Decimal(0.1)
+              : new Decimal(0);
+            const fullAvailableUsd = getTokenBalanceUsd(singleToken);
+            const availableUsd = Decimal.max(
+              0,
+              fullAvailableUsd.minus(gasReserveUsd)
+            );
+            if (availableUsd.lt(requestedReceiveUsd)) {
+              const shortfall = requestedReceiveUsd.minus(availableUsd);
+              const missingUsd = shortfall.toDecimalPlaces(2).toFixed();
+              return {
+                ctaLabel: "Insufficient balance",
+                message: `You're $${missingUsd} short. Switch to Multi-assets Mode`,
+                missingUsd,
+                type: "insufficientSources" as any,
+              };
+            }
+          }
+        }
+
         const availableTokens = excludeSwapExactOutDestinationTokens(
           getGasCapableBalanceSourceTokens()
         );
-        let maxSingleAssetUsd = new Decimal(0);
+        let totalWalletUsd = new Decimal(0);
         for (const token of availableTokens) {
           const usd = getTokenBalanceUsd(token);
-          if (usd.gt(maxSingleAssetUsd)) {
-            maxSingleAssetUsd = usd;
-          }
+          totalWalletUsd = totalWalletUsd.plus(usd);
         }
-        if (maxSingleAssetUsd.lt(requestedReceiveUsd)) {
+        if (totalWalletUsd.lt(requestedReceiveUsd)) {
+          const maxSwapDisplay = `$${totalWalletUsd.toFixed(2)}`;
           return {
-            ctaLabel: "Insufficient balance",
-            message:
-              "Insufficient balance to cover with a single asset. Try Multi-assets Mode.",
+            ctaLabel: "Cannot Fulfill Amount",
+            message: `Cannot fulfill the amount. The maximum your wallet can swap is ${maxSwapDisplay} at the moment.`,
+            missingUsd: requestedReceiveUsd
+              .minus(totalWalletUsd)
+              .toDecimalPlaces(2)
+              .toFixed(),
             type: "insufficientSources" as any,
           };
         }
@@ -5402,7 +5428,10 @@ function NexusOneInner({
       );
     }
 
-    if (mode === "selected" && fromTokens.length > 0) {
+    if (
+      (mode === "selected" || sourceSelectionTouched) &&
+      fromTokens.length > 0
+    ) {
       // A committed manual selection must be forwarded exactly as chosen.
       // The SDK owns source-chain gas handling for explicit sources; applying
       // the automatic gas-capability filter here silently drops valid assets.
@@ -5476,22 +5505,49 @@ function NexusOneInner({
     if (requiredSourceUsd.lte(0)) return [];
 
     const destinationKey = getTokenSelectionKey(toToken);
-    const candidates = sortExactOutSourcesBySdkPriority(
-      getExactOutSourceTokens(
-        exactOutQuoteSourceModeRef.current,
-        requiredSourceUsd
-      )
-        .filter((token) => getTokenSelectionKey(token) !== destinationKey)
-        .filter(hasMinimumSourceUsdBalance)
+    const singleAssetToken =
+      !isMultiAssetMode && fromTokens.length > 0 ? fromTokens[0] : undefined;
+    const isExplicitUserSelection = Boolean(
+      singleAssetToken ||
+        (fromTokens && fromTokens.length > 0 && sourceSelectionTouched)
     );
+    const sourcePool = singleAssetToken
+      ? [singleAssetToken]
+      : isExplicitUserSelection
+        ? fromTokens
+        : getExactOutSourceTokens(
+            exactOutQuoteSourceModeRef.current,
+            requiredSourceUsd
+          );
+    const candidates = isExplicitUserSelection
+      ? getExpandedSourceTokens(
+          excludeSwapExactOutDestinationTokens(sourcePool)
+        ).filter((token) => getTokenSelectionKey(token) !== destinationKey)
+      : sortExactOutSourcesBySdkPriority(
+          getExpandedSourceTokens(
+            excludeSwapExactOutDestinationTokens(sourcePool)
+          ).filter((token) => getTokenSelectionKey(token) !== destinationKey)
+        );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
 
     for (const token of candidates) {
       if (remainingUsd.lte(0)) break;
 
-      const availableUsd = getTokenBalanceUsd(token);
-      if (availableUsd.lt(minimumSourceUsd)) continue;
+      const isNative =
+        token.contractAddress === zeroAddress ||
+        isNativeTokenAddress(token.contractAddress);
+      const gasReserveUsd = isNative
+        ? token.chainId === 1
+          ? new Decimal(0.5)
+          : new Decimal(0.1)
+        : new Decimal(0);
+      const fullAvailableUsd = getTokenBalanceUsd(token);
+      const availableUsd = Decimal.max(
+        0,
+        fullAvailableUsd.minus(gasReserveUsd)
+      );
+      if (availableUsd.lte(0)) continue;
 
       const rate = await resolveUsdRateForToken(token);
       if (rate.lte(0)) continue;
@@ -5513,7 +5569,7 @@ function NexusOneInner({
       remainingUsd = remainingUsd.minus(targetUsd);
     }
 
-    return remainingUsd.gt(0.01) ? [] : sources;
+    return sources;
   };
 
   const getErrorText = (error: unknown) => {
@@ -6272,6 +6328,7 @@ function NexusOneInner({
       setSwapQuoteIssue(null);
 
       if (
+        isMultiAssetMode &&
         !sourceSelectionTouched &&
         !isQuoteEditLocked() &&
         (activeMode === "send" ||
@@ -7212,28 +7269,52 @@ function NexusOneInner({
       swapBalance && swapSupportedChainsAndTokens
         ? deriveTokenOptions(swapBalance, swapSupportedChainsAndTokens)
         : getSyntheticDisconnectedSourceTokens(disconnectedAvailableTokens);
-    const sourcePool =
-      sourceTokens && sourceTokens.length > 0
+    const singleAssetToken =
+      !isMultiAssetMode &&
+      ((sourceTokens && sourceTokens.length > 0
+        ? sourceTokens[0]
+        : undefined) ??
+        fromTokens[0]);
+    const isExplicitUserSelection = Boolean(
+      singleAssetToken || (sourceTokens && sourceTokens.length > 0)
+    );
+    const sourcePool = singleAssetToken
+      ? [singleAssetToken]
+      : isExplicitUserSelection
         ? sourceTokens
         : allAvailableTokens;
-    const candidates = sortExactOutSourcesBySdkPriority(
-      filterMinimumSourceUsdTokens(
-        getExpandedSourceTokens(
+    const candidates = isExplicitUserSelection
+      ? getExpandedSourceTokens(
           excludeSwapExactOutDestinationTokens(sourcePool)
-        )
-      )
-        .filter((token) => getTokenSelectionKey(token) !== destinationKey)
-        .filter(hasGasForSource)
-    );
+        ).filter((token) => getTokenSelectionKey(token) !== destinationKey)
+      : sortExactOutSourcesBySdkPriority(
+          getExpandedSourceTokens(
+            excludeSwapExactOutDestinationTokens(sourcePool)
+          )
+            .filter((token) => getTokenSelectionKey(token) !== destinationKey)
+            .filter(hasGasForSource)
+        );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
 
     for (const token of candidates) {
       if (remainingUsd.lte(0)) break;
 
-      const availableUsd = getTokenBalanceUsd(token);
+      const isNative =
+        token.contractAddress === zeroAddress ||
+        isNativeTokenAddress(token.contractAddress);
+      const gasReserveUsd = isNative
+        ? token.chainId === 1
+          ? new Decimal(0.5)
+          : new Decimal(0.1)
+        : new Decimal(0);
+      const fullAvailableUsd = getTokenBalanceUsd(token);
+      const availableUsd = Decimal.max(
+        0,
+        fullAvailableUsd.minus(gasReserveUsd)
+      );
       const sourceRate = getTokenUsdRate(token);
-      if (availableUsd.lt(minimumSourceUsd) || sourceRate.lte(0)) continue;
+      if (availableUsd.lte(0) || sourceRate.lte(0)) continue;
 
       const targetUsd = Decimal.min(remainingUsd, availableUsd);
       const tokenAmount = targetUsd
@@ -7255,8 +7336,8 @@ function NexusOneInner({
     const hasUncoveredSourceAmount = remainingUsd.gt(0.01);
     if (
       requiredSourceUsd.gt(0) &&
-      (sources.length === 0 ||
-        (hasUncoveredSourceAmount && !allowPartialSources))
+      sources.length === 0 &&
+      !allowPartialSources
     ) {
       return null;
     }
@@ -7267,6 +7348,9 @@ function NexusOneInner({
       sources,
       toAmount: getPredictiveDisplayAmount(destinationAmount, toToken),
       toUsd: destinationUsd.toDecimalPlaces(6).toFixed(),
+      missingUsd: hasUncoveredSourceAmount
+        ? remainingUsd.toDecimalPlaces(2).toFixed()
+        : undefined,
     };
   };
   const invalidateExactOutQuoteForRefresh = (options?: {
@@ -7647,6 +7731,17 @@ function NexusOneInner({
   );
 
   const getAutoExactOutSourceTokensForPicker = useCallback(() => {
+    if (intentData?.sources && intentData.sources.length > 0) {
+      const intentSources = excludeSwapExactOutDestinationTokens(
+        (intentData.sources ?? [])
+          .map(buildIntentSourceToken)
+          .filter((t) => Boolean(t.contractAddress && t.symbol))
+      );
+      if (intentSources.length > 0) {
+        return intentSources;
+      }
+    }
+
     const autoIntentTokens = excludeSwapExactOutDestinationTokens(
       lastAutoIntentSourceTokensRef.current
     );
@@ -7654,10 +7749,18 @@ function NexusOneInner({
       return autoIntentTokens;
     }
 
-    return sourceSelectionTouched
-      ? []
-      : excludeSwapExactOutDestinationTokens(fromTokens);
-  }, [fromTokens, isSwapExactOut, sourceSelectionTouched, toToken]);
+    if (fromTokens.length > 0) {
+      return excludeSwapExactOutDestinationTokens(fromTokens);
+    }
+
+    return [];
+  }, [
+    buildIntentSourceToken,
+    fromTokens,
+    intentData?.sources,
+    isSwapExactOut,
+    toToken,
+  ]);
 
   const resetSourcePickerDraft = useCallback(() => {
     sourcePickerDraftTokensRef.current = null;
@@ -7678,20 +7781,21 @@ function NexusOneInner({
     sourcePickerDraftTouchedRef.current = sourceSelectionTouched;
     sourcePickerDraftModeRef.current = exactOutQuoteSourceModeRef.current;
     setSourcePickerDraftTouched(sourceSelectionTouched);
-    const activeTokens =
-      swapType === "exactOut" && fromTokens.length === 0
-        ? getAutoExactOutSourceTokensForPicker()
-        : fromTokens;
+    const activeTokens = isExactOutPaymentFlow
+      ? fromTokens.length > 0 && sourceSelectionTouched
+        ? fromTokens
+        : getAutoExactOutSourceTokensForPicker()
+      : fromTokens;
     setSourcePickerDraftSelection(activeTokens);
   }, [
     depositSourceFilter,
     fromTokens,
     getAutoExactOutSourceTokensForPicker,
+    isExactOutPaymentFlow,
     isSourcePickerMultiselect,
     resetSourcePickerDraft,
     setSourcePickerDraftSelection,
     sourceSelectionTouched,
-    swapType,
   ]);
 
   const handleSourcePickerCancel = useCallback(() => {
@@ -7838,43 +7942,78 @@ function NexusOneInner({
       const nextTokens =
         tokens ?? sourcePickerDraftTokensRef.current ?? fromTokens;
 
-      const normalizedTokens = excludeSwapExactOutDestinationTokens(
-        applyPreservedUserAmounts(nextTokens)
+      const normalizedTokens = getExpandedSourceTokens(
+        excludeSwapExactOutDestinationTokens(
+          applyPreservedUserAmounts(nextTokens)
+        )
       );
 
-      const isManualSelection = sourcePickerDraftTouchedRef.current;
+      const isManualSelection =
+        normalizedTokens.length > 0 || sourcePickerDraftTouchedRef.current;
       setSourceSelectionTouched(isManualSelection);
-      setExactOutQuoteSourceModeValue(sourcePickerDraftModeRef.current);
+      sourcePickerDraftTouchedRef.current = isManualSelection;
+      setSourcePickerDraftTouched(isManualSelection);
+      if (isManualSelection) {
+        setExactOutQuoteSourceModeValue("selected");
+        sourcePickerDraftModeRef.current = "selected";
+      } else {
+        setExactOutQuoteSourceModeValue(sourcePickerDraftModeRef.current);
+      }
       if (activeMode === "deposit") {
         setDepositSourceFilter(sourcePickerDraftDepositFilterRef.current);
       }
       setSourceSelectionRevision((current) => current + 1);
       setFromTokens(normalizedTokens);
 
-      const totalSendVal = normalizedTokens.reduce((sum, t) => {
-        const num = Number(t.userAmount || 0);
-        return sum + (Number.isFinite(num) ? num : 0);
-      }, 0);
-      setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+      const isReceiveEmptyOrZero =
+        swapType === "exactOut" && !hasPositiveDecimalInput(amount);
 
-      if (activeMode === "swap" && swapType === "exactIn") {
+      if (
+        (activeMode === "swap" && swapType === "exactIn") ||
+        isReceiveEmptyOrZero
+      ) {
+        const totalSendVal = normalizedTokens.reduce((sum, t) => {
+          const num = Number(t.userAmount || 0);
+          return sum + (Number.isFinite(num) ? num : 0);
+        }, 0);
+        if (totalSendVal > 0) {
+          setAmount(String(totalSendVal));
+        }
         clearPendingSwapIntent();
         setSwapQuoteIssue(null);
         setTxError(null);
       } else {
-        const shouldLoadQuote = invalidateExactOutQuoteForRefresh({
-          sourceTokens: normalizedTokens,
-        });
-        if (shouldLoadQuote) {
-          const immediatePrediction = buildImmediatePredictiveExactOutQuote(
-            normalizedTokens,
-            isManualSelection
-          );
+        const immediatePrediction = buildImmediatePredictiveExactOutQuote(
+          normalizedTokens,
+          isManualSelection
+        );
+        if (
+          immediatePrediction?.missingUsd &&
+          Number(immediatePrediction.missingUsd) > 0
+        ) {
+          setPredictiveQuote(immediatePrediction);
+          setQuoteRefreshing(false);
+          setIntentLoading(false);
+          setReceiveMaxCalculating(false);
+          const msg = !isMultiAssetMode
+            ? `You're $${immediatePrediction.missingUsd} short. Switch to Multi-assets Mode`
+            : `You're $${immediatePrediction.missingUsd} short. Add Assets`;
+          const shortfallIssue = {
+            type: "insufficientSources" as const,
+            message: msg,
+            missingUsd: immediatePrediction.missingUsd,
+          };
+          setSwapQuoteIssue(shortfallIssue as any);
+          clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+        } else {
           setPredictiveQuote(
             (current) =>
               immediatePrediction ??
               (current?.mode === "exactOut" ? null : current)
           );
+          invalidateExactOutQuoteForRefresh({
+            sourceTokens: normalizedTokens,
+          });
         }
       }
       resetSourcePickerDraft();
@@ -7893,10 +8032,11 @@ function NexusOneInner({
     ]
   );
 
-  const activeSourceTokensForPicker =
-    swapType === "exactOut" && fromTokens.length === 0
-      ? getAutoExactOutSourceTokensForPicker()
-      : fromTokens;
+  const activeSourceTokensForPicker = isExactOutPaymentFlow
+    ? fromTokens.length > 0 && sourceSelectionTouched
+      ? fromTokens
+      : getAutoExactOutSourceTokensForPicker()
+    : fromTokens;
 
   const sourcePickerSelectedTokens =
     isSourcePickerMultiselect && swapStep === "choose-swap-asset"
@@ -8925,14 +9065,33 @@ function NexusOneInner({
             fromTokens,
             true
           );
+          if (
+            immediatePredictiveOut?.missingUsd &&
+            Number(immediatePredictiveOut.missingUsd) > 0.01
+          ) {
+            setIntentLoading(false);
+            setQuoteRefreshing(false);
+            setReceiveMaxCalculating(false);
+            setSwapQuoteIssue({
+              type: "insufficientSources",
+              message: `You're $${immediatePredictiveOut.missingUsd} short. Add Assets`,
+              missingUsd: immediatePredictiveOut.missingUsd,
+            } as any);
+            return;
+          }
           const exactOutSources =
-            activePredictiveOut?.sources &&
-            activePredictiveOut.sources.length > 0
-              ? activePredictiveOut.sources
-              : immediatePredictiveOut?.sources &&
-                  immediatePredictiveOut.sources.length > 0
+            fromTokens.length > 0
+              ? immediatePredictiveOut?.sources &&
+                immediatePredictiveOut.sources.length > 0
                 ? immediatePredictiveOut.sources
-                : fromTokens;
+                : fromTokens
+              : activePredictiveOut?.sources &&
+                  activePredictiveOut.sources.length > 0
+                ? activePredictiveOut.sources
+                : immediatePredictiveOut?.sources &&
+                    immediatePredictiveOut.sources.length > 0
+                  ? immediatePredictiveOut.sources
+                  : fromTokens;
           const exactOutFromPayload: {
             chainId: number;
             tokenAddress: `0x${string}`;
@@ -9788,54 +9947,98 @@ function NexusOneInner({
   const handleSwapAmountChange = (val: string, panel: "send" | "receive") => {
     const sanitizedVal = sanitizeNumericInput(val);
     syncingIntentSourcesRef.current = false;
-    setSwapQuoteIssue(null);
     setTxError(null);
-    const nextAmount = parseFiatNumber(sanitizedVal);
-    const receiveIssue = buildReceiveAmountIssue({ inputAmount: sanitizedVal });
-    applyReceiveAmountIssue(receiveIssue);
-    const hasSelectedSourceToken = fromTokens.some(
-      (token) => token.chainId && token.contractAddress
-    );
-    const shouldLoadQuote = Boolean(
-      !receiveIssue &&
-        nexusSDK &&
-        nextAmount?.gt(0) &&
-        toToken &&
-        hasSelectedSourceToken
-    );
-    if (!receiveIssue) {
-      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
-    }
-    if (shouldLoadQuote) {
-      setQuoteRefreshing(true);
-    }
     setAmount(sanitizedVal);
+
     if (panel === "receive") {
-      const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
-      if (isZeroOrEmpty) {
-        setFromTokens([]);
-        setPredictiveQuote(null);
-        setSourceSelectionTouched(false);
-        setExactOutQuoteSourceModeValue("all");
-      } else {
-        setFromTokens((prev) =>
-          prev.map((token) => ({ ...token, userAmount: "" }))
-        );
-        if (hasSelectedSourceToken) {
-          setSourceSelectionTouched(true);
-          setExactOutQuoteSourceModeValue("selected");
-          sourcePickerDraftModeRef.current = "selected";
-          sourcePickerDraftTouchedRef.current = true;
-        }
+      if (swapType !== "exactOut") {
+        setSwapType("exactOut");
       }
+      const nextAmount = parseFiatNumber(sanitizedVal);
+      const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
+
+      if (isZeroOrEmpty) {
+        setPredictiveQuote(null);
+        setReceiveAmountIssue(null);
+        setSwapQuoteIssue(null);
+        setTxError(null);
+        setQuoteRefreshing(false);
+        clearPendingSwapIntent();
+        return;
+      }
+
+      const hasSelectedSourceToken = fromTokens.some(
+        (token) => token.chainId && token.contractAddress
+      );
+      if (hasSelectedSourceToken) {
+        setSourceSelectionTouched(true);
+        setExactOutQuoteSourceModeValue("selected");
+        sourcePickerDraftModeRef.current = "selected";
+        sourcePickerDraftTouchedRef.current = true;
+      }
+
+      const immediatePrediction = buildImmediatePredictiveExactOutQuote(
+        fromTokens,
+        true
+      );
+      if (immediatePrediction) {
+        setPredictiveQuote(immediatePrediction);
+      }
+
+      if (
+        immediatePrediction?.missingUsd &&
+        Number(immediatePrediction.missingUsd) > 0
+      ) {
+        setQuoteRefreshing(false);
+        setIntentLoading(false);
+        setReceiveMaxCalculating(false);
+        const msg = !isMultiAssetMode
+          ? `You're $${immediatePrediction.missingUsd} short. Switch to Multi-assets Mode`
+          : `You're $${immediatePrediction.missingUsd} short. Add Assets`;
+        const shortfallIssue = {
+          type: "insufficientSources" as const,
+          message: msg,
+          missingUsd: immediatePrediction.missingUsd,
+        };
+        setSwapQuoteIssue(shortfallIssue as any);
+        clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+        return;
+      }
+
+      const receiveIssue = buildReceiveAmountIssue({
+        inputAmount: sanitizedVal,
+      });
+      applyReceiveAmountIssue(receiveIssue);
+      if (receiveIssue) {
+        return;
+      }
+
+      setSwapQuoteIssue(null);
+      const shouldLoadQuote = Boolean(
+        nexusSDK && nextAmount?.gt(0) && toToken && hasSelectedSourceToken
+      );
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+      if (shouldLoadQuote) {
+        setQuoteRefreshing(true);
+      }
+      return;
     }
+
     if (panel === "send") {
       if (swapType !== "exactIn") {
         setSwapType("exactIn");
       }
-    } else if (panel === "receive") {
-      if (swapType !== "exactOut") {
-        setSwapType("exactOut");
+      setSwapQuoteIssue(null);
+      const nextAmount = parseFiatNumber(sanitizedVal);
+      const hasSelectedSourceToken = fromTokens.some(
+        (token) => token.chainId && token.contractAddress
+      );
+      const shouldLoadQuote = Boolean(
+        nexusSDK && nextAmount?.gt(0) && toToken && hasSelectedSourceToken
+      );
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
+      if (shouldLoadQuote) {
+        setQuoteRefreshing(true);
       }
     }
   };
@@ -9844,6 +10047,12 @@ function NexusOneInner({
     setSwapQuoteIssue(null);
     setTxError(null);
     setSourceSelectionTouched(true);
+    sourcePickerDraftTouchedRef.current = true;
+    setSourcePickerDraftTouched(true);
+    if (swapType === "exactOut" && !hasPositiveDecimalInput(amount)) {
+      setSwapType("exactIn");
+      setExactOutQuoteSourceModeValue("all");
+    }
     applyReceiveAmountIssue(buildReceiveAmountIssue({ sourceTokens: tokens }));
     setFromTokens(tokens);
   };
@@ -9875,6 +10084,39 @@ function NexusOneInner({
   const handleSwapTypeChange = (nextType: SwapType) => {
     applySwapTypeChange(nextType, true);
   };
+
+  const handleToggleMultiAssetMode = useCallback(() => {
+    const willEnable = !isMultiAssetMode;
+    setIsMultiAssetMode(willEnable);
+    if (!willEnable) {
+      setFromTokens([]);
+      handleSwapAmountChange("", "send");
+      clearPendingSwapIntent();
+    } else if (swapType === "exactOut" && amount && toToken) {
+      setExactOutQuoteSourceModeValue("all");
+      setFromTokens([]);
+      const immediatePrediction = buildImmediatePredictiveExactOutQuote(
+        [],
+        true
+      );
+      if (immediatePrediction) {
+        setPredictiveQuote(immediatePrediction);
+      }
+    }
+    if (swapType === "exactOut") {
+      invalidateExactOutQuoteForRefresh();
+    }
+  }, [
+    isMultiAssetMode,
+    swapType,
+    amount,
+    toToken,
+    clearPendingSwapIntent,
+    setExactOutQuoteSourceModeValue,
+    buildImmediatePredictiveExactOutQuote,
+    invalidateExactOutQuoteForRefresh,
+    handleSwapAmountChange,
+  ]);
 
   useEffect(() => {
     if (activeMode !== "swap") return;
@@ -10111,12 +10353,32 @@ function NexusOneInner({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  const predictiveExactInQuote =
+    predictiveQuote?.mode === "exactIn" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
+      ? predictiveQuote
+      : null;
+  const predictiveExactOutQuote =
+    predictiveQuote?.mode === "exactOut" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
+      ? predictiveQuote
+      : null;
+
   const insufficientSourceIssue =
     swapQuoteIssue?.type === "insufficientSources"
       ? swapQuoteIssue
       : receiveAmountIssue?.type === "insufficientSources"
         ? receiveAmountIssue
-        : null;
+        : predictiveExactOutQuote?.missingUsd &&
+            Number(predictiveExactOutQuote.missingUsd) > 0
+          ? {
+              type: "insufficientSources" as const,
+              message: !isMultiAssetMode
+                ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
+                : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
+              missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(2),
+            }
+          : null;
   const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
@@ -10328,16 +10590,6 @@ function NexusOneInner({
       ? value.toDecimalPlaces(6, Decimal.ROUND_DOWN).toFixed()
       : undefined;
   })();
-  const predictiveExactInQuote =
-    predictiveQuote?.mode === "exactIn" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
-      ? predictiveQuote
-      : null;
-  const predictiveExactOutQuote =
-    predictiveQuote?.mode === "exactOut" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
-      ? predictiveQuote
-      : null;
   const shouldUseCurrentExactOutIntentSources =
     isExactOutPaymentFlow && hasCurrentQuoteIntent && hasIntentSources;
   const currentExactOutIntentSourceTokens =
@@ -10440,13 +10692,58 @@ function NexusOneInner({
         ((predictiveExactOutQuote.sources?.length ?? 0) > 0 ||
           destinationBalanceDisplayToken)
     );
-  const baseDisplayFromTokens = excludeSwapExactOutDestinationTokens(
-    shouldUseCurrentExactOutIntentSources
-      ? currentExactOutIntentSourceTokens
-      : shouldShowPredictiveExactOutDisplay
-        ? (predictiveExactOutQuote?.sources ?? fromTokens)
-        : fromTokens
-  );
+  const baseDisplayFromTokens = (() => {
+    if (!isMultiAssetMode && fromTokens.length > 0) {
+      const singleToken = fromTokens[0];
+      const calculatedSources =
+        predictiveExactOutQuote?.sources ??
+        (shouldUseCurrentExactOutIntentSources
+          ? currentExactOutIntentSourceTokens
+          : []);
+      const match = calculatedSources.find(
+        (s) => getTokenSelectionKey(s) === getTokenSelectionKey(singleToken)
+      );
+      return [
+        {
+          ...singleToken,
+          userAmount: match?.userAmount || singleToken.userAmount || "",
+          userAmountMode:
+            match?.userAmountMode || singleToken.userAmountMode || "token",
+          userAmountUsd:
+            match?.userAmountUsd || singleToken.userAmountUsd || "",
+        },
+      ];
+    }
+    if (fromTokens.length > 0 && sourceSelectionTouched) {
+      const calculatedSources =
+        predictiveExactOutQuote?.sources ??
+        (shouldUseCurrentExactOutIntentSources
+          ? currentExactOutIntentSourceTokens
+          : []);
+      const calculatedMap = new Map<string, SwapTokenOption>();
+      for (const s of calculatedSources) {
+        const k = getTokenSelectionKey(s);
+        if (k) calculatedMap.set(k, s);
+      }
+      return fromTokens.map((t) => {
+        const k = getTokenSelectionKey(t);
+        const match = k ? calculatedMap.get(k) : undefined;
+        return {
+          ...t,
+          userAmount: match?.userAmount || t.userAmount || "",
+          userAmountMode: match?.userAmountMode || t.userAmountMode || "token",
+          userAmountUsd: match?.userAmountUsd || t.userAmountUsd || "",
+        };
+      });
+    }
+    return excludeSwapExactOutDestinationTokens(
+      shouldUseCurrentExactOutIntentSources
+        ? currentExactOutIntentSourceTokens
+        : shouldShowPredictiveExactOutDisplay
+          ? (predictiveExactOutQuote?.sources ?? fromTokens)
+          : fromTokens
+    );
+  })();
   const displayFromTokens = (() => {
     if (!destinationBalanceDisplayToken || !isExactOutPaymentFlow) {
       return mergeDisplaySourceTokens(
@@ -10525,7 +10822,9 @@ function NexusOneInner({
     ? getExactOutTotalSourceBalanceUsd()
     : new Decimal(0);
   const exactOutIdleSourceTokens =
-    swapType === "exactOut" && !hasPositiveDecimalInput(amount)
+    swapType === "exactOut" &&
+    !hasPositiveDecimalInput(amount) &&
+    fromTokens.length === 0
       ? []
       : displayFromTokens;
   const exactOutShowQuotedAmounts = Boolean(
@@ -10690,26 +10989,7 @@ function NexusOneInner({
               </span>
               <button
                 aria-label="Toggle multi-assets mode"
-                onClick={() => {
-                  const willEnable = !isMultiAssetMode;
-                  setIsMultiAssetMode(willEnable);
-                  if (!willEnable) {
-                    setFromTokens([]);
-                    handleSwapAmountChange("", "send");
-                    clearPendingSwapIntent();
-                  } else if (swapType === "exactOut" && amount && toToken) {
-                    setExactOutQuoteSourceModeValue("all");
-                    setFromTokens([]);
-                    const immediatePrediction =
-                      buildImmediatePredictiveExactOutQuote([], true);
-                    if (immediatePrediction) {
-                      setPredictiveQuote(immediatePrediction);
-                    }
-                  }
-                  if (swapType === "exactOut") {
-                    invalidateExactOutQuoteForRefresh();
-                  }
-                }}
+                onClick={handleToggleMultiAssetMode}
                 style={{
                   alignItems: "center",
                   backgroundColor: isMultiAssetMode ? "#1F1F1F" : "#D9D9DE",
@@ -11129,9 +11409,11 @@ function NexusOneInner({
                   defaultRecipientAddress={defaultRecipientAddress}
                   destinationGasFeeUsd={previewDestinationGasFeeUsd}
                   fromTokens={
-                    swapType === "exactOut"
-                      ? exactOutIdleSourceTokens
-                      : fromTokens
+                    swapType === "exactOut" && fromTokens.length > 0
+                      ? fromTokens
+                      : swapType === "exactOut"
+                        ? exactOutIdleSourceTokens
+                        : fromTokens
                   }
                   getTokenUsdRate={(t) => getTokenUsdRate(t).toNumber()}
                   intentData={intentData}
@@ -11155,7 +11437,9 @@ function NexusOneInner({
                   }}
                   onRestoreAuto={handleAutoExactOut}
                   onSetPercent={handleSendPercentSelect}
+                  onToggleMultiAssetMode={handleToggleMultiAssetMode}
                   onUpdateTokens={handleSwapTokensUpdate}
+                  receiveAmountIssue={receiveAmountIssue}
                   receiveQuoteAmount={idleReceiveQuoteAmount}
                   receiveQuoteUsd={idleReceiveQuoteUsd}
                   recipientAddress={effectiveRecipientAddress}
@@ -11196,14 +11480,6 @@ function NexusOneInner({
                 {effectiveNexusInitError && (
                   <StatusAlert message={effectiveNexusInitError} type="error" />
                 )}
-
-                {receiveAmountIssue &&
-                  receiveAmountIssue.type !== "insufficientSources" && (
-                    <StatusAlert
-                      message={receiveAmountIssue.message}
-                      type="error"
-                    />
-                  )}
 
                 {txError && !blockingQuoteIssue && (
                   <StatusAlert message={txError} type="error" />
@@ -11372,13 +11648,6 @@ function NexusOneInner({
                     {effectiveNexusInitError && (
                       <StatusAlert
                         message={effectiveNexusInitError}
-                        type="error"
-                      />
-                    )}
-
-                    {receiveAmountIssue && (
-                      <StatusAlert
-                        message={receiveAmountIssue.message}
                         type="error"
                       />
                     )}
@@ -11558,13 +11827,6 @@ function NexusOneInner({
 
                 {effectiveNexusInitError && (
                   <StatusAlert message={effectiveNexusInitError} type="error" />
-                )}
-
-                {receiveAmountIssue && (
-                  <StatusAlert
-                    message={receiveAmountIssue.message}
-                    type="error"
-                  />
                 )}
 
                 {txError && !blockingQuoteIssue && (
@@ -11934,7 +12196,8 @@ function NexusOneInner({
       {(activeMode === "swap" ||
         activeMode === "send" ||
         activeMode === "deposit") &&
-        swapStep === "choose-swap-asset" &&
+        (swapStep === "choose-swap-asset" ||
+          closingDrawerStep === "choose-swap-asset") &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -11949,7 +12212,10 @@ function NexusOneInner({
             }}
             style={{
               alignItems: "center",
-              animation: "nexusFadeIn 0.2s ease-out",
+              animation:
+                closingDrawerStep === "choose-swap-asset"
+                  ? "nexusBackdropFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                  : "nexusBackdropFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
               backdropFilter: "blur(8px)",
               background: "rgba(215, 218, 220, 0.50)",
               bottom: 0,
@@ -11969,7 +12235,10 @@ function NexusOneInner({
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                animation:
+                  closingDrawerStep === "choose-swap-asset"
+                    ? "nexusZoomFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                    : "nexusZoomFadeIn 0.28s cubic-bezier(0.34, 1.25, 0.64, 1)",
                 backgroundColor: "#FFFFFF",
                 borderRadius: "32px",
                 boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
@@ -11981,6 +12250,8 @@ function NexusOneInner({
                 minWidth: "280px",
                 overflow: "hidden",
                 width: "100%",
+                transition:
+                  "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1)",
               }}
             >
               <SwapAssetSelector
@@ -12037,70 +12308,90 @@ function NexusOneInner({
                     : undefined
                 }
                 onSelect={(token) => {
-                  if (isSwapExactOutDestinationToken(token)) {
-                    return;
-                  }
-                  if (activeMode === "swap" && !isSwapExactOut) {
-                    const shouldClearDestination = Boolean(
-                      toToken &&
-                        sourceSelectionIncludesTokenChainPair(token, toToken)
-                    );
-                    const baseList =
-                      isSourcePickerMultiselect && sourcePickerDraftTokens
-                        ? sourcePickerDraftTokens
-                        : fromTokens;
-                    const next = [...baseList];
-                    const targetIndex =
-                      editingAssetIndex !== null ? editingAssetIndex : null;
-                    const existingToken =
-                      targetIndex !== null && targetIndex < next.length
-                        ? next[targetIndex]
-                        : undefined;
-                    const tokenChanged = !isSameTokenSelection(
-                      existingToken,
-                      token
-                    );
-                    const preservedAmount = tokenChanged
-                      ? ""
-                      : existingToken?.userAmount ||
-                        (targetIndex === 0 ? amount : "");
-                    const newToken = {
-                      ...token,
-                      userAmount: preservedAmount,
-                    };
+                  const shouldClearDestination = Boolean(
+                    (toToken &&
+                      sourceSelectionIncludesTokenChainPair(token, toToken)) ||
+                      isSwapExactOutDestinationToken(token)
+                  );
+                  const baseList =
+                    isSourcePickerMultiselect && sourcePickerDraftTokens
+                      ? sourcePickerDraftTokens
+                      : fromTokens;
+                  const next = [...baseList];
+                  const targetIndex =
+                    editingAssetIndex !== null ? editingAssetIndex : null;
+                  const existingToken =
+                    targetIndex !== null && targetIndex < next.length
+                      ? next[targetIndex]
+                      : undefined;
+                  const tokenChanged = !isSameTokenSelection(
+                    existingToken,
+                    token
+                  );
+                  const preservedAmount = tokenChanged
+                    ? ""
+                    : existingToken?.userAmount ||
+                      (targetIndex === 0 ? amount : "");
+                  const newToken = {
+                    ...token,
+                    userAmount: preservedAmount,
+                  };
 
-                    if (!isMultiAssetMode) {
-                      next.length = 0;
-                      next.push(newToken);
-                    } else if (
-                      targetIndex !== null &&
-                      !isSourcePickerMultiselect
-                    ) {
-                      if (targetIndex < next.length) {
-                        next[targetIndex] = newToken;
-                      } else {
-                        next.push(newToken);
-                      }
+                  if (!isMultiAssetMode) {
+                    next.length = 0;
+                    next.push(newToken);
+                  } else if (
+                    targetIndex !== null &&
+                    !isSourcePickerMultiselect
+                  ) {
+                    if (targetIndex < next.length) {
+                      next[targetIndex] = newToken;
                     } else {
                       next.push(newToken);
                     }
-
-                    setFromTokens(next);
-                    if (isSourcePickerMultiselect) {
-                      handleSourcePickerDraftSelectionChange(next);
+                  } else {
+                    const alreadyExists = next.some((t) =>
+                      isSameTokenSelection(t, token)
+                    );
+                    if (!alreadyExists) {
+                      next.push(newToken);
                     }
+                  }
+
+                  setSourceSelectionTouched(true);
+                  sourcePickerDraftTouchedRef.current = true;
+                  setSourcePickerDraftTouched(true);
+                  setFromTokens(next);
+                  if (isSourcePickerMultiselect) {
+                    handleSourcePickerDraftSelectionChange(next);
+                  }
+                  const isReceiveEmptyOrZero =
+                    swapType === "exactOut" && !hasPositiveDecimalInput(amount);
+
+                  if (isReceiveEmptyOrZero) {
+                    setSwapType("exactIn");
+                    setExactOutQuoteSourceModeValue("all");
+                  }
+
+                  if (swapType === "exactIn" || isReceiveEmptyOrZero) {
                     const totalSendVal = next.reduce((sum, t) => {
                       const num = Number(t.userAmount || 0);
                       return sum + (Number.isFinite(num) ? num : 0);
                     }, 0);
                     setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
-                    if (shouldClearDestination) {
-                      setToToken(undefined);
-                      setDestinationBalance(undefined);
-                    }
-                    return;
                   }
-                  handleSelectToken(token);
+                  if (shouldClearDestination) {
+                    setToToken(undefined);
+                    setDestinationBalance(undefined);
+                  }
+                  if (isSwapExactOut) {
+                    invalidateExactOutQuoteForRefresh({
+                      sourceTokens: next,
+                    });
+                  }
+                  if (!isSourcePickerMultiselect) {
+                    closeDrawerToIdle();
+                  }
                 }}
                 onSelectionChange={
                   isSourcePickerMultiselect
@@ -12139,11 +12430,13 @@ function NexusOneInner({
                     }
 
                     setFromTokens(next);
-                    const totalSendVal = next.reduce((sum, t) => {
-                      const num = Number(t.userAmount || 0);
-                      return sum + (Number.isFinite(num) ? num : 0);
-                    }, 0);
-                    setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+                    if (swapType === "exactIn") {
+                      const totalSendVal = next.reduce((sum, t) => {
+                        const num = Number(t.userAmount || 0);
+                        return sum + (Number.isFinite(num) ? num : 0);
+                      }, 0);
+                      setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+                    }
                     return;
                   }
 
@@ -12305,15 +12598,28 @@ function NexusOneInner({
                     return [...withoutUnifiedGroup, withDefaultAmount(token)];
                   })();
 
+                  setSourceSelectionTouched(true);
+                  sourcePickerDraftTouchedRef.current = true;
+                  setSourcePickerDraftTouched(true);
                   setFromTokens(nextTokens);
                   if (isSourcePickerMultiselect) {
                     handleSourcePickerDraftSelectionChange(nextTokens);
                   }
-                  const totalSendVal = nextTokens.reduce((sum, t) => {
-                    const num = Number(t.userAmount || 0);
-                    return sum + (Number.isFinite(num) ? num : 0);
-                  }, 0);
-                  setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+                  const isReceiveEmptyOrZero =
+                    swapType === "exactOut" && !hasPositiveDecimalInput(amount);
+
+                  if (isReceiveEmptyOrZero) {
+                    setSwapType("exactIn");
+                    setExactOutQuoteSourceModeValue("all");
+                  }
+
+                  if (swapType === "exactIn" || isReceiveEmptyOrZero) {
+                    const totalSendVal = nextTokens.reduce((sum, t) => {
+                      const num = Number(t.userAmount || 0);
+                      return sum + (Number.isFinite(num) ? num : 0);
+                    }, 0);
+                    setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
+                  }
                 }}
                 preserveSelectedBelowMinimum={false}
                 requiredUsd={
@@ -12329,9 +12635,7 @@ function NexusOneInner({
                     : undefined
                 }
                 selectedTokens={sourcePickerSelectedTokens}
-                showBelowMinimumInline={
-                  activeMode === "swap" && swapType === "exactIn"
-                }
+                showBelowMinimumInline={true}
                 showRestoreAuto={sourcePickerDraftTouched}
                 staticOptions={
                   !ownerAddress || !swapBalance || swapBalance.length === 0
@@ -12357,7 +12661,8 @@ function NexusOneInner({
       {(activeMode === "swap" ||
         activeMode === "send" ||
         activeMode === "deposit") &&
-        swapStep === "choose-receive-asset" &&
+        (swapStep === "choose-receive-asset" ||
+          closingDrawerStep === "choose-receive-asset") &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -12368,7 +12673,10 @@ function NexusOneInner({
             }}
             style={{
               alignItems: "center",
-              animation: "nexusFadeIn 0.2s ease-out",
+              animation:
+                closingDrawerStep === "choose-receive-asset"
+                  ? "nexusBackdropFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                  : "nexusBackdropFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
               backdropFilter: "blur(8px)",
               background: "rgba(215, 218, 220, 0.50)",
               bottom: 0,
@@ -12388,7 +12696,10 @@ function NexusOneInner({
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                animation: "nexusPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                animation:
+                  closingDrawerStep === "choose-receive-asset"
+                    ? "nexusZoomFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
+                    : "nexusZoomFadeIn 0.28s cubic-bezier(0.34, 1.25, 0.64, 1)",
                 backgroundColor: "#FFFFFF",
                 borderRadius: "32px",
                 boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
@@ -12400,6 +12711,8 @@ function NexusOneInner({
                 minWidth: "280px",
                 overflow: "hidden",
                 width: "100%",
+                transition:
+                  "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1)",
               }}
             >
               <ReceiveAssetSelector

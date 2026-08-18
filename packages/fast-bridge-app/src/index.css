@@ -563,3 +563,79 @@ button,
     animation: none;
   }
 }
+
+@keyframes nexusZoomFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexusZoomFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes nexusPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexusBackdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes nexusBackdropFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nexusRowCollapse {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    max-height: 100px;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-10px);
+    max-height: 0px;
+    margin-top: -12px;
+  }
+}
+
+.nexus-asset-row {
+  border-radius: 12px !important;
+  transition:
+    background-color 0.15s ease,
+    transform 0.12s ease !important;
+}
+
+.nexus-asset-row:hover {
+  background-color: #eaecef !important;
+}

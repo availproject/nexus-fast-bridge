@@ -1170,7 +1170,7 @@ export function ReceiveAssetSelector({
         </button>
       </div>
 
-      {/* Main Body (Tokens panel + Chains panel) */}
+      {/* Main Body (Chains panel + Tokens panel) */}
       <div
         style={{
           display: "flex",
@@ -1181,7 +1181,216 @@ export function ReceiveAssetSelector({
           width: "100%",
         }}
       >
-        {/* Left Column: Tokens panel */}
+        {/* Left Column: Chains Panel (desktop) */}
+        {isDesktop && (
+          <div
+            style={{
+              alignItems: "flex-start",
+              borderRight: "1px solid #F5F5F5",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              maxWidth: "100%",
+              overflowY: "auto",
+              padding: "0 16px 16px 16px",
+              width: "280px",
+              flexShrink: 0,
+            }}
+          >
+            {/* Search Chains */}
+            <div
+              style={{
+                alignItems: "center",
+                alignSelf: "stretch",
+                background: "#FBFBFB",
+                border: "1px solid #F5F5F5",
+                borderRadius: "12px",
+                boxSizing: "border-box",
+                color: "#9E9E9C",
+                display: "flex",
+                flexShrink: 0,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                gap: "8px",
+                height: "40px",
+                maxHeight: "40px",
+                minHeight: "40px",
+                padding: "0 12px",
+                width: "100%",
+              }}
+            >
+              <Search
+                style={{
+                  color: "#9E9E9C",
+                  flexShrink: 0,
+                  height: 16,
+                  width: 16,
+                }}
+              />
+              <input
+                onChange={(e) => setChainQuery(e.target.value)}
+                placeholder="Search Chains"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#1F1F1F",
+                  flex: 1,
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  minWidth: 0,
+                  outline: "none",
+                }}
+                value={chainQuery}
+              />
+              {chainQuery && (
+                <button
+                  onClick={() => setChainQuery("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  type="button"
+                >
+                  <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
+                </button>
+              )}
+            </div>
+
+            {/* "All" Chain Option */}
+            <button
+              onClick={() => setSelectedChainFilter(null)}
+              style={{
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                gap: "10px",
+                padding: "6px 0",
+                textAlign: "left",
+                width: "100%",
+              }}
+              type="button"
+            >
+              <RadioDot selected={selectedChainFilter === null} />
+              <div
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#161615",
+                  borderRadius: "999px",
+                  display: "flex",
+                  flexShrink: 0,
+                  height: 24,
+                  justifyContent: "center",
+                  width: 24,
+                }}
+              >
+                <Globe style={{ color: "#FFF", height: 14, width: 14 }} />
+              </div>
+              <span
+                style={{
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontWeight: selectedChainFilter === null ? 600 : 500,
+                }}
+              >
+                All
+              </span>
+            </button>
+
+            {/* Section Header */}
+            <div
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "12px",
+                fontWeight: 500,
+                marginTop: "4px",
+              }}
+            >
+              Popular Chains
+            </div>
+
+            {/* Chains List */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                width: "100%",
+              }}
+            >
+              {filteredChainOptions.map((chain) => {
+                const isSelected = selectedChainFilter === chain.chainId;
+                return (
+                  <button
+                    key={chain.chainId}
+                    onClick={() =>
+                      setSelectedChainFilter(
+                        isSelected ? null : (chain.chainId ?? null)
+                      )
+                    }
+                    style={{
+                      alignItems: "center",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: "10px",
+                      padding: "6px 0",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                    type="button"
+                  >
+                    <RadioDot selected={isSelected} />
+                    {chain.chainLogo ? (
+                      <img
+                        alt={chain.chainName}
+                        src={chain.chainLogo}
+                        style={{
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          objectFit: "cover",
+                          width: 24,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          backgroundColor: "#E5E5EB",
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          width: 24,
+                        }}
+                      />
+                    )}
+                    <span
+                      style={{
+                        color: "#1F1F1F",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontWeight: isSelected ? 600 : 500,
+                      }}
+                    >
+                      {chain.chainName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Right Column: Tokens panel */}
         <div
           style={{
             alignItems: "stretch",
@@ -1193,7 +1402,7 @@ export function ReceiveAssetSelector({
             minWidth: 0,
             overflowY: "auto",
             padding: "0 24px 16px 24px",
-            width: isDesktop ? "632px" : "100%",
+            width: isDesktop ? "auto" : "100%",
           }}
         >
           {/* Search bar */}
@@ -1319,7 +1528,7 @@ export function ReceiveAssetSelector({
             )}
           </div>
 
-          {/* Filter tabs with sliding indicator */}
+          {/* Filter tabs */}
           {(() => {
             const activeIndex = Math.max(
               0,
@@ -1347,7 +1556,6 @@ export function ReceiveAssetSelector({
                   width: "100%",
                 }}
               >
-                {/* Sliding active background pill */}
                 <div
                   style={{
                     backgroundColor: "#FFFFFF",
@@ -1404,7 +1612,7 @@ export function ReceiveAssetSelector({
             );
           })()}
 
-          {/* Token list */}
+          {/* Tokens List */}
           <div
             onScroll={(e) => {
               const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -1697,215 +1905,6 @@ export function ReceiveAssetSelector({
             )}
           </div>
         </div>
-
-        {/* Right Column: Chains Panel (desktop) */}
-        {isDesktop && (
-          <div
-            style={{
-              alignItems: "flex-start",
-              borderLeft: "1px solid #F5F5F5",
-              boxSizing: "border-box",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              maxWidth: "100%",
-              overflowY: "auto",
-              padding: "0 16px 16px 16px",
-              width: "309px",
-              flexShrink: 0,
-            }}
-          >
-            {/* Search Chains */}
-            <div
-              style={{
-                alignItems: "center",
-                alignSelf: "stretch",
-                background: "#FBFBFB",
-                border: "1px solid #F5F5F5",
-                borderRadius: "12px",
-                boxSizing: "border-box",
-                color: "#9E9E9C",
-                display: "flex",
-                flexShrink: 0,
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "13px",
-                fontStyle: "normal",
-                fontWeight: 400,
-                gap: "8px",
-                height: "40px",
-                maxHeight: "40px",
-                minHeight: "40px",
-                padding: "0 12px",
-                width: "100%",
-              }}
-            >
-              <Search
-                style={{
-                  color: "#9E9E9C",
-                  flexShrink: 0,
-                  height: 16,
-                  width: 16,
-                }}
-              />
-              <input
-                onChange={(e) => setChainQuery(e.target.value)}
-                placeholder="Search Chains"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#1F1F1F",
-                  flex: 1,
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "13px",
-                  minWidth: 0,
-                  outline: "none",
-                }}
-                value={chainQuery}
-              />
-              {chainQuery && (
-                <button
-                  onClick={() => setChainQuery("")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                  type="button"
-                >
-                  <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
-                </button>
-              )}
-            </div>
-
-            {/* "All" Chain Option */}
-            <button
-              onClick={() => setSelectedChainFilter(null)}
-              style={{
-                alignItems: "center",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                gap: "10px",
-                padding: "6px 0",
-                textAlign: "left",
-                width: "100%",
-              }}
-              type="button"
-            >
-              <RadioDot selected={selectedChainFilter === null} />
-              <div
-                style={{
-                  alignItems: "center",
-                  backgroundColor: "#161615",
-                  borderRadius: "999px",
-                  display: "flex",
-                  flexShrink: 0,
-                  height: 24,
-                  justifyContent: "center",
-                  width: 24,
-                }}
-              >
-                <Globe style={{ color: "#FFF", height: 14, width: 14 }} />
-              </div>
-              <span
-                style={{
-                  color: "#1F1F1F",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "14px",
-                  fontWeight: selectedChainFilter === null ? 600 : 500,
-                }}
-              >
-                All
-              </span>
-            </button>
-
-            {/* Section Header */}
-            <div
-              style={{
-                color: "#8E8E89",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
-                fontWeight: 500,
-                marginTop: "4px",
-              }}
-            >
-              Popular Chains
-            </div>
-
-            {/* Chains List */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-                width: "100%",
-              }}
-            >
-              {filteredChainOptions.map((chain) => {
-                const isSelected = selectedChainFilter === chain.chainId;
-                return (
-                  <button
-                    key={chain.chainId}
-                    onClick={() =>
-                      setSelectedChainFilter(
-                        isSelected ? null : (chain.chainId ?? null)
-                      )
-                    }
-                    style={{
-                      alignItems: "center",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      gap: "10px",
-                      padding: "6px 0",
-                      textAlign: "left",
-                      width: "100%",
-                    }}
-                    type="button"
-                  >
-                    <RadioDot selected={isSelected} />
-                    {chain.chainLogo ? (
-                      <img
-                        alt={chain.chainName}
-                        src={chain.chainLogo}
-                        style={{
-                          borderRadius: "999px",
-                          flexShrink: 0,
-                          height: 24,
-                          objectFit: "cover",
-                          width: 24,
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          backgroundColor: "#E5E5EB",
-                          borderRadius: "999px",
-                          flexShrink: 0,
-                          height: 24,
-                          width: 24,
-                        }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        color: "#1F1F1F",
-                        fontFamily: '"Geist", system-ui, sans-serif',
-                        fontSize: "14px",
-                        fontWeight: isSelected ? 600 : 500,
-                      }}
-                    >
-                      {chain.chainName}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Bottom Footer: Done Button */}
@@ -1930,6 +1929,7 @@ export function ReceiveAssetSelector({
           }}
           style={{
             alignItems: "center",
+            alignSelf: "flex-end",
             backgroundColor: "#1F1F1F",
             border: "none",
             borderRadius: "999px",
@@ -1939,15 +1939,19 @@ export function ReceiveAssetSelector({
             display: "flex",
             flexShrink: 0,
             fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "16px",
+            fontSize: "15px",
             fontWeight: 500,
-            height: "48px",
+            height: "44px",
             justifyContent: "center",
             lineHeight: "20px",
-            minWidth: "160px",
-            padding: "12px 24px",
+            minWidth: "130px",
+            opacity: 1,
+            padding: "10px 28px",
+            textAlign: "center",
+            transition: "opacity 0.15s ease",
             userSelect: "none",
             WebkitUserSelect: "none",
+            width: "auto",
           }}
           type="button"
         >
