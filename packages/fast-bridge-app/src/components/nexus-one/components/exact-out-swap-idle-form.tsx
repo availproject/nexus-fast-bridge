@@ -431,7 +431,7 @@ export function ExactOutSwapIdleForm({
                   lineHeight: "16px",
                 }}
               >
-                Balance ·{" "}
+                Balance:{" "}
                 {isBalanceLoading ? (
                   <BalanceSkeleton width={78} />
                 ) : (

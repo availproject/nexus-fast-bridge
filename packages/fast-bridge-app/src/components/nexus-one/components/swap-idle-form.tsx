@@ -1887,7 +1887,7 @@ export function SwapIdleForm({
                       }}
                     />
                   ) : (
-                    `Balance · ${formatTokenBalanceLabel(token)}`
+                    `Balance: ${formatTokenBalanceLabel(token)}`
                   )}
                 </div>
               )}

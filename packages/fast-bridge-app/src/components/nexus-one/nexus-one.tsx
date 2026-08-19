@@ -7898,17 +7898,30 @@ function NexusOneInner({
     sourcePickerDraftModeRef.current = exactOutQuoteSourceModeRef.current;
     setSourcePickerDraftTouched(sourceSelectionTouched);
     const activeTokens = isExactOutPaymentFlow
-      ? fromTokens.length > 0 && sourceSelectionTouched
-        ? fromTokens
-        : getAutoExactOutSourceTokensForPicker()
+      ? predictiveQuote?.mode === "exactOut" &&
+        (predictiveQuote.sources?.length ?? 0) > 0
+        ? (predictiveQuote.sources ?? [])
+        : intentData?.sources && intentData.sources.length > 0
+          ? excludeSwapExactOutDestinationTokens(
+              (intentData.sources ?? [])
+                .map(buildIntentSourceToken)
+                .filter((t) => Boolean(t.contractAddress && t.symbol))
+            )
+          : fromTokens.length > 0 && sourceSelectionTouched
+            ? fromTokens
+            : getAutoExactOutSourceTokensForPicker()
       : fromTokens;
     setSourcePickerDraftSelection(activeTokens);
   }, [
+    buildIntentSourceToken,
     depositSourceFilter,
     fromTokens,
     getAutoExactOutSourceTokensForPicker,
+    intentData?.sources,
     isExactOutPaymentFlow,
     isSourcePickerMultiselect,
+    predictiveQuote?.mode,
+    predictiveQuote?.sources,
     resetSourcePickerDraft,
     setSourcePickerDraftSelection,
     sourceSelectionTouched,
@@ -8149,9 +8162,18 @@ function NexusOneInner({
   );
 
   const activeSourceTokensForPicker = isExactOutPaymentFlow
-    ? fromTokens.length > 0 && sourceSelectionTouched
-      ? fromTokens
-      : getAutoExactOutSourceTokensForPicker()
+    ? predictiveQuote?.mode === "exactOut" &&
+      (predictiveQuote.sources?.length ?? 0) > 0
+      ? (predictiveQuote.sources ?? [])
+      : intentData?.sources && intentData.sources.length > 0
+        ? excludeSwapExactOutDestinationTokens(
+            (intentData.sources ?? [])
+              .map(buildIntentSourceToken)
+              .filter((t) => Boolean(t.contractAddress && t.symbol))
+          )
+        : fromTokens.length > 0 && sourceSelectionTouched
+          ? fromTokens
+          : getAutoExactOutSourceTokensForPicker()
     : fromTokens;
 
   const sourcePickerSelectedTokens =
