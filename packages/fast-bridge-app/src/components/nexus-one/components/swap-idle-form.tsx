@@ -716,7 +716,6 @@ export function SwapIdleForm({
   const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
     null
   );
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const [scrollProgress, setScrollProgress] = useState({
     thumbTop: 0,
     thumbHeight: 77,
@@ -753,14 +752,57 @@ export function SwapIdleForm({
     }
   }, []);
 
-  const handleMultiScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setShowBackToTop(e.currentTarget.scrollTop > 30);
+  const handleMultiScroll = () => {
     updateScrollProgress();
   };
 
-  const handleScrollToTop = () => {
-    multiScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  const [expandModalScrollProgress, setExpandModalScrollProgress] = useState({
+    thumbTop: 0,
+    thumbHeight: 77,
+    isScrollable: false,
+  });
+  const expandModalScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const updateExpandModalScrollProgress = useCallback(() => {
+    const el = expandModalScrollRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const trackHeight = clientHeight;
+    if (scrollHeight > trackHeight && trackHeight > 0) {
+      const thumbHeightRatio = trackHeight / scrollHeight;
+      const thumbHeight = Math.max(
+        32,
+        Math.min(140, Math.round(trackHeight * thumbHeightRatio))
+      );
+      const availableTrack = trackHeight - thumbHeight;
+      const scrollRatio = scrollTop / Math.max(1, scrollHeight - trackHeight);
+      const thumbTop = Math.min(
+        availableTrack,
+        Math.round(scrollRatio * availableTrack)
+      );
+      setExpandModalScrollProgress({
+        thumbTop,
+        thumbHeight,
+        isScrollable: true,
+      });
+    } else {
+      setExpandModalScrollProgress({
+        thumbTop: 0,
+        thumbHeight: 77,
+        isScrollable: false,
+      });
+    }
+  }, []);
+
+  const handleExpandModalScroll = () => {
+    updateExpandModalScrollProgress();
   };
+
+  useEffect(() => {
+    if (isExpandModalOpen) {
+      requestAnimationFrame(updateExpandModalScrollProgress);
+    }
+  }, [isExpandModalOpen, fromTokens.length, updateExpandModalScrollProgress]);
 
   useEffect(() => {
     updateScrollProgress();
@@ -2178,10 +2220,13 @@ export function SwapIdleForm({
         ) : isMultiAssetMode && totalAssetCount > 3 ? (
           <div
             style={{
+              backgroundColor: "inherit",
+              border: "1px solid #F5F5F5",
+              borderRadius: "19px",
               boxSizing: "border-box",
-              margin: "0 -8px",
+              padding: "10px 12px",
               position: "relative",
-              width: "calc(100% + 16px)",
+              width: "100%",
             }}
           >
             {/* Scrollable rows without native scrollbar */}
@@ -2197,6 +2242,7 @@ export function SwapIdleForm({
                 maxHeight: "221px",
                 overflowX: "hidden",
                 overflowY: "auto",
+                paddingRight: "8px",
                 width: "100%",
               }}
             >
@@ -2215,8 +2261,8 @@ export function SwapIdleForm({
                 overflow: "hidden",
                 pointerEvents: "none",
                 position: "absolute",
-                right: "-2px",
-                top: "0px",
+                right: "6px",
+                top: "10px",
                 width: "3px",
                 zIndex: 2,
               }}
@@ -2233,48 +2279,6 @@ export function SwapIdleForm({
                 }}
               />
             </div>
-
-            {showBackToTop && (
-              <button
-                onClick={handleScrollToTop}
-                style={{
-                  alignItems: "center",
-                  background: "#34383E",
-                  border: "none",
-                  borderRadius: "999px",
-                  bottom: "8px",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  color: "#FFFFFF",
-                  cursor: "pointer",
-                  display: "flex",
-                  fontFamily: '"Geist", system-ui, sans-serif',
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  gap: "4px",
-                  left: "50%",
-                  padding: "6px 12px",
-                  position: "absolute",
-                  transform: "translateX(-50%)",
-                  transition: "opacity 0.2s ease, transform 0.2s ease",
-                  zIndex: 10,
-                }}
-                type="button"
-              >
-                <svg
-                  fill="none"
-                  height="12"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  viewBox="0 0 24 24"
-                  width="12"
-                >
-                  <polyline points="18 15 12 9 6 15" />
-                </svg>
-                Back to top
-              </button>
-            )}
           </div>
         ) : (
           <div
@@ -3453,23 +3457,69 @@ export function SwapIdleForm({
                   </button>
                 </div>
 
-                {/* Scrollable list of asset rows */}
+                {/* Scrollable list of asset rows with custom mock scrollbar */}
                 <div
                   style={{
                     boxSizing: "border-box",
                     display: "flex",
                     flex: "1 1 auto",
-                    flexDirection: "column",
-                    gap: "12px",
                     maxHeight: "calc(80vh - 140px)",
                     minHeight: 0,
-                    overflowY: "auto",
-                    padding: "8px 4px 8px 2px",
+                    position: "relative",
                     width: "100%",
                   }}
                 >
-                  {sourceRowsToRender.map(({ token, index }) =>
-                    renderSourceRow(token, index, true)
+                  <div
+                    className="nexus-no-scrollbar"
+                    onScroll={handleExpandModalScroll}
+                    ref={expandModalScrollRef}
+                    style={{
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flex: "1 1 auto",
+                      flexDirection: "column",
+                      gap: "12px",
+                      maxHeight: "calc(80vh - 140px)",
+                      minHeight: 0,
+                      overflowX: "hidden",
+                      overflowY: "auto",
+                      padding: "8px 10px 8px 2px",
+                      width: "100%",
+                    }}
+                  >
+                    {sourceRowsToRender.map(({ token, index }) =>
+                      renderSourceRow(token, index, true)
+                    )}
+                  </div>
+
+                  {expandModalScrollProgress.isScrollable && (
+                    <div
+                      style={{
+                        backgroundColor: "#F5F5F5",
+                        borderRadius: "18px",
+                        bottom: "8px",
+                        boxSizing: "border-box",
+                        overflow: "hidden",
+                        pointerEvents: "none",
+                        position: "absolute",
+                        right: "0px",
+                        top: "8px",
+                        width: "3px",
+                        zIndex: 2,
+                      }}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: "#9DBAFA",
+                          borderRadius: "18px",
+                          height: `${expandModalScrollProgress.thumbHeight}px`,
+                          position: "absolute",
+                          top: `${expandModalScrollProgress.thumbTop}px`,
+                          transition: "top 0.04s linear",
+                          width: "3px",
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
 
