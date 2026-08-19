@@ -12431,11 +12431,7 @@ function NexusOneInner({
             >
               <SwapAssetSelector
                 allowSelectedTokenRemoval={false}
-                allowUnified={
-                  activeMode === "deposit" ||
-                  activeMode === "send" ||
-                  activeMode === "swap"
-                }
+                allowUnified={false}
                 autoSelectFilterTabs={isExactOutPaymentFlow}
                 editingAssetIndex={editingAssetIndex}
                 excludedTokens={
