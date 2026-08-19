@@ -2316,10 +2316,9 @@ function SwapReceiptPanel({
     >
       <div
         style={{
-          background: "#FFFFFE",
-          border: "1px solid #E8E8E7",
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0px 0px 3px",
+          background: "linear-gradient(0deg, #FFFFFE 0%, #F0FFF3 100%)",
+          border: "1px solid #F5F5F5",
+          borderRadius: "24px 24px 12px 12px",
           padding: "20px 16px",
           textAlign: "center",
         }}
@@ -2433,9 +2432,8 @@ function SwapReceiptPanel({
       <div
         style={{
           background: "#FFFFFE",
-          border: "1px solid #E8E8E7",
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0px 0px 3px",
+          border: "1px solid #F5F5F5",
+          borderRadius: "12px 12px 24px 24px",
           overflow: "hidden",
         }}
       >
@@ -2505,7 +2503,7 @@ function SwapReceiptPanel({
         <div
           aria-hidden={!showSourceDetails}
           style={{
-            borderTop: showSourceDetails ? "1px solid #E8E8E7" : 0,
+            borderTop: showSourceDetails ? "1px solid #F5F5F5" : 0,
             display: "grid",
             gridTemplateRows: showSourceDetails ? "1fr" : "0fr",
             opacity: showSourceDetails ? 1 : 0,
@@ -2528,7 +2526,7 @@ function SwapReceiptPanel({
           <div
             style={{
               alignItems: "center",
-              borderTop: "1px solid #E8E8E7",
+              borderTop: "1px solid #F5F5F5",
               display: "flex",
               justifyContent: "space-between",
               padding: "13px 16px",
@@ -2546,7 +2544,7 @@ function SwapReceiptPanel({
           <div
             style={{
               alignItems: "center",
-              borderTop: "1px solid #E8E8E7",
+              borderTop: "1px solid #F5F5F5",
               display: "flex",
               justifyContent: "space-between",
               padding: "13px 16px",
@@ -2571,7 +2569,7 @@ function SwapReceiptPanel({
           <div
             style={{
               alignItems: "center",
-              borderTop: "1px solid #E8E8E7",
+              borderTop: "1px solid #F5F5F5",
               display: "flex",
               justifyContent: "space-between",
               padding: "13px 16px",
@@ -2595,7 +2593,7 @@ function SwapReceiptPanel({
         <div
           style={{
             alignItems: "center",
-            borderTop: "1px solid #E8E8E7",
+            borderTop: "1px solid #F5F5F5",
             display: "flex",
             justifyContent: "space-between",
             padding: "13px 16px",
@@ -2620,19 +2618,19 @@ function SwapReceiptPanel({
           alignItems: "center",
           background: "#1F1F1F",
           border: "none",
-          borderRadius: "10px",
-          boxShadow:
-            "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 7px 18px",
+          borderRadius: "999px",
           color: "#FFFFFE",
           cursor: "pointer",
           display: "flex",
           fontFamily: uiFont,
-          fontSize: "14px",
+          fontSize: "16px",
           fontWeight: 500,
-          height: "42px",
+          height: "48px",
           justifyContent: "center",
-          lineHeight: "19px",
-          paddingInline: "16px",
+          lineHeight: "20px",
+          paddingInline: "20px",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           width: "100%",
         }}
       >

@@ -1070,9 +1070,8 @@ export function NexusOneProgressScreen({
       <div
         style={{
           background: "#FFFFFE",
-          border: `1px solid ${border}`,
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0px 0px 3px",
+          border: "1px solid #F5F5F5",
+          borderRadius: "24px 24px 12px 12px",
           boxSizing: "border-box",
           minHeight: "312px",
           padding: "17px 15px 14px",
@@ -1111,8 +1110,10 @@ export function NexusOneProgressScreen({
           src="https://files.availproject.org/nexus-elements/nexus-one/progress-grid.gif"
           style={{
             display: "block",
-            height: "152px",
+            flexShrink: 0,
+            height: "167px",
             margin: "14px auto 12px",
+            maxWidth: "382px",
             objectFit: "cover",
             objectPosition: "center",
             width: "100%",
@@ -1167,9 +1168,8 @@ export function NexusOneProgressScreen({
         aria-live="polite"
         style={{
           background: "#FFFFFE",
-          border: `1px solid ${border}`,
-          borderRadius: "12px",
-          boxShadow: "#3C286433 0px 0px 3px",
+          border: "1px solid #F5F5F5",
+          borderRadius: "12px 12px 24px 24px",
           boxSizing: "border-box",
           overflow: "hidden",
           transition: "box-shadow 220ms ease, border-color 220ms ease",
