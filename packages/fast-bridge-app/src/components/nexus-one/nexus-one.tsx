@@ -10575,8 +10575,41 @@ function NexusOneInner({
       ? predictiveQuote
       : null;
 
-  const insufficientSourceIssue =
-    swapQuoteIssue?.type === "insufficientSources"
+  const hasExactInSourceBalanceExceeded = useMemo(() => {
+    if (
+      activeMode !== "swap" &&
+      activeMode !== "send" &&
+      activeMode !== "deposit"
+    ) {
+      return false;
+    }
+    if (swapType !== "exactIn") return false;
+    if (fromTokens.length === 0) return false;
+
+    return fromTokens.some((token, index) => {
+      const raw =
+        token.userAmount || (!isMultiAssetMode && index === 0 ? amount : "");
+      if (!hasPositiveDecimalInput(raw)) return false;
+      const requested = parseFiatNumber(raw);
+      if (!requested || requested.lte(0)) return false;
+
+      if (token.userAmountMode === "usd") {
+        const fiatBal = parseFiatNumber(token.balanceInFiat);
+        return fiatBal !== null && requested.gt(fiatBal);
+      }
+
+      const tokenBal = parseFiatNumber(token.balance);
+      return tokenBal !== null && requested.gt(tokenBal);
+    });
+  }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
+
+  const insufficientSourceIssue = hasExactInSourceBalanceExceeded
+    ? {
+        type: "insufficientSources" as const,
+        message:
+          "Cannot proceed with this swap due to insufficient balance on source",
+      }
+    : swapQuoteIssue?.type === "insufficientSources"
       ? swapQuoteIssue
       : receiveAmountIssue?.type === "insufficientSources"
         ? receiveAmountIssue

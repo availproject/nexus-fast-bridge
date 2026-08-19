@@ -1401,7 +1401,37 @@ export function SwapIdleForm({
       (isIntentActive && !intentData && !totalFeeUsd)
   );
 
+  const isSourceRowAmountExceeded = (
+    token: SwapTokenOption | null,
+    index: number
+  ): boolean => {
+    const actualToken =
+      token ??
+      (!isMultiAssetMode && fromTokens.length > 0 ? fromTokens[0] : null);
+    if (!actualToken) return false;
+    const rawInput =
+      actualToken.userAmount ??
+      (!isMultiAssetMode && index === 0 ? amount : undefined);
+    if (!rawInput) return false;
+    const requested = parseDecimal(rawInput);
+    if (!requested || requested.lte(0)) return false;
+
+    if (actualToken.userAmountMode === "usd") {
+      const fiatBal = parseDecimal(actualToken.balanceInFiat);
+      return fiatBal !== null && requested.gt(fiatBal);
+    }
+
+    const tokenBal = parseDecimal(actualToken.balance);
+    return tokenBal !== null && requested.gt(tokenBal);
+  };
+
   const warningMessage = React.useMemo(() => {
+    const hasAnySourceAmountExceeded = sourceRowsToRender.some(
+      ({ token, index }) => isSourceRowAmountExceeded(token, index)
+    );
+    if (hasAnySourceAmountExceeded) {
+      return "Cannot proceed with this swap due to insufficient balance on source";
+    }
     if (receiveAmountIssue?.message) {
       return receiveAmountIssue.message;
     }
@@ -1413,14 +1443,18 @@ export function SwapIdleForm({
     }
     if (sourceRouteStatus === "insufficient" || sourceRouteMessage) {
       return (
-        sourceRouteMessage || "Your balance is too low to complete this swap"
+        sourceRouteMessage ||
+        "Cannot proceed with this swap due to insufficient balance on source"
       );
     }
     return null;
   }, [
+    sourceRowsToRender,
+    amount,
+    fromTokens,
+    isMultiAssetMode,
     receiveAmountIssue,
     missingUsd,
-    isMultiAssetMode,
     sourceRouteStatus,
     sourceRouteMessage,
   ]);
@@ -1435,6 +1469,8 @@ export function SwapIdleForm({
     const isRowFocused = focusedRow === index;
     const isRowHovered = hoveredRow === index;
     const hasMoreThanThreeAssets = isMultiAssetMode && totalAssetCount > 3;
+    const isAmountExceeded = isSourceRowAmountExceeded(token, index);
+    const isInputErrored = isAmountExceeded && focusedRow !== index;
 
     return (
       <div
@@ -1525,7 +1561,7 @@ export function SwapIdleForm({
               }}
               style={{
                 boxSizing: "border-box",
-                color: "#1F1F1F",
+                color: isInputErrored ? "#E06A26" : "#1F1F1F",
                 fontFamily: '"Geist", system-ui, sans-serif',
                 fontSize: "clamp(22px, 5.5vw, 28px)",
                 fontStyle: "normal",
@@ -1538,6 +1574,7 @@ export function SwapIdleForm({
                 padding: 0,
                 width: "100%",
                 minWidth: 0,
+                transition: "color 0.15s ease",
               }}
               type="text"
               value={
