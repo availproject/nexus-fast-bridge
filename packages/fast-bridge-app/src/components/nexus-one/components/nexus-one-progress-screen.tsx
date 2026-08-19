@@ -153,16 +153,57 @@ const DESTINATION_SWAP_TYPES = [
 ];
 const BRIDGE_FILL_RECEIVE_TYPES = ["BRIDGE_FILL"];
 
+const isNativeAddress = (address?: string) => {
+  if (!address) return true;
+  const lower = address.toLowerCase();
+  return (
+    lower === "0x0000000000000000000000000000000000000000" ||
+    lower === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    lower === "0x" ||
+    lower === ""
+  );
+};
+
+const isNativeSourceSwapStep = (step?: ProgressSdkStep) => {
+  if (!step) return false;
+  const type = getStepType(step);
+  const rawType = String(
+    (step as any)?.rawType ??
+      (step as any)?.type ??
+      (step as any)?.stepType ??
+      ""
+  ).toLowerCase();
+  const isSourceSwap =
+    type.includes("SOURCE_SWAP") || rawType === "source_swap";
+  if (!isSourceSwap) return false;
+
+  const swaps = getStepSwaps(step);
+  if (swaps.length > 0) {
+    return swaps.some((s) => isNativeAddress(s?.input?.contractAddress));
+  }
+  const contractAddress =
+    (step as any)?.contractAddress ??
+    (step as any)?.asset?.contractAddress ??
+    (step as any)?.token?.contractAddress;
+  return isNativeAddress(contractAddress);
+};
+
+const isApprovalStep = (step?: ProgressSdkStep) => {
+  if (!step) return false;
+  if (stepMatches(step, SWAP_APPROVAL_TYPES)) return true;
+  return isNativeSourceSwapStep(step);
+};
+
 const getStatusForStep = (
   step: ProgressSdkStep | undefined,
   mode: NexusOneMode,
   hasTransferAction = false
 ): ProgressStatusId | null => {
-  const type = getStepType(step);
-
-  if (SWAP_APPROVAL_TYPES.some((token) => type.includes(token))) {
+  if (isApprovalStep(step)) {
     return "approveTokens";
   }
+
+  const type = getStepType(step);
 
   if (
     type === "APPROVAL" ||
@@ -268,7 +309,7 @@ const getStepSwaps = (step?: ProgressSdkStep) => {
 };
 
 const getApprovalUnitsForStep = (step?: ProgressSdkStep): ApprovalUnit[] => {
-  if (!stepMatches(step, SWAP_APPROVAL_TYPES)) return [];
+  if (!isApprovalStep(step)) return [];
 
   const swaps = getStepSwaps(step);
   if (swaps.length > 0) {
@@ -295,6 +336,33 @@ const getApprovalUnitsForStep = (step?: ProgressSdkStep): ApprovalUnit[] => {
 const countApprovalUnits = (steps: ProgressSdkStep[]) =>
   steps.reduce((sum, step) => sum + getApprovalUnitsForStep(step).length, 0);
 
+const APPROVAL_FINAL_STATES = new Set([
+  "completed",
+  "confirmed",
+  "success",
+  "submitted",
+  "tx_sent",
+]);
+
+const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
+  if (event.completed) return true;
+  const rawState = String(
+    (event as any)?.rawEvent?.state ??
+      (event.step as any)?.state ??
+      (event.event as any)?.state ??
+      ""
+  ).toLowerCase();
+  return APPROVAL_FINAL_STATES.has(rawState);
+};
+
+const isApprovalStepItemCompleted = (item: ProgressStep) => {
+  if (item.completed) return true;
+  const rawState = String(
+    (item.step as any)?.state ?? (item.step as any)?.rawEvent?.state ?? ""
+  ).toLowerCase();
+  return APPROVAL_FINAL_STATES.has(rawState);
+};
+
 const countCompletedApprovalUnitsFromEvents = (
   events: NexusOneProgressEvent[]
 ) => {
@@ -304,7 +372,7 @@ const countCompletedApprovalUnitsFromEvents = (
   for (const event of events) {
     if (
       event.name !== PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS ||
-      !event.completed
+      !isApprovalEventCompleted(event)
     ) {
       continue;
     }
@@ -329,7 +397,7 @@ const countCompletedApprovalUnitsFromSteps = (steps: ProgressStep[]) => {
   let count = 0;
 
   for (const item of steps) {
-    if (!item.completed) continue;
+    if (!isApprovalStepItemCompleted(item)) continue;
     const stepId = String(
       (item.step as any)?.id ??
         (item.step as any)?.stepId ??
@@ -393,7 +461,7 @@ const getActiveApprovalProgressEvent = (events: NexusOneProgressEvent[]) =>
     .find(
       (event) =>
         event.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
-        !event.completed &&
+        !isApprovalEventCompleted(event) &&
         getApprovalUnitsForStep(event.step).length > 0
     );
 
@@ -538,7 +606,7 @@ const buildStatusRows = ({
   if (immutableApprovalTotal > 0) {
     const approvalSteps = (
       swapListSteps.length > 0 ? swapListSteps : fallbackSteps
-    ).filter((s) => stepMatches(s, SWAP_APPROVAL_TYPES));
+    ).filter(isApprovalStep);
     const activeApprovalEvent = getActiveApprovalProgressEvent(events);
     const activeStepId = String(
       (activeApprovalEvent?.step as any)?.id ??
