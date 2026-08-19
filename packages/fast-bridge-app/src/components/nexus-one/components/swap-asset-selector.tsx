@@ -149,26 +149,32 @@ export const RadioDot = ({ selected }: { selected: boolean }) => (
 export const SelectionControl = ({
   selected,
   indeterminate = false,
+  multi = false,
 }: {
   selected: boolean;
   indeterminate?: boolean;
   multi?: boolean;
 }) => {
+  if (!multi && !indeterminate) {
+    return <RadioDot selected={selected} />;
+  }
+
   const isActive = selected || indeterminate;
 
   return (
     <div
       style={{
         alignItems: "center",
-        backgroundColor: isActive ? "#006BF4" : "#FFFFFE",
+        background: isActive ? "#006BF4" : "#FFFFFE",
         border: isActive ? "none" : "1.5px solid #E8E8E7",
-        borderRadius: "23px",
+        borderRadius: "4px",
         boxSizing: "border-box",
         display: "flex",
         flexShrink: 0,
-        height: 18,
+        height: "18px",
         justifyContent: "center",
-        width: 18,
+        padding: "4px",
+        width: "18px",
       }}
     >
       {selected && (
@@ -2049,6 +2055,7 @@ export function SwapAssetSelector({
             >
               <SelectionControl
                 indeterminate={isGroupIndeterminate}
+                multi={Boolean(isMulti)}
                 selected={isGroupSelected}
               />
             </div>
