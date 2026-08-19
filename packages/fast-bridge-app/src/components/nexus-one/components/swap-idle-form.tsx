@@ -1,7 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 import Decimal from "decimal.js";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AddressIdenticon } from "./address-identicon";
 import {
@@ -717,6 +717,11 @@ export function SwapIdleForm({
     null
   );
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState({
+    thumbTop: 0,
+    thumbHeight: 77,
+    isScrollable: true,
+  });
   const multiScrollRef = useRef<HTMLDivElement | null>(null);
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -725,13 +730,41 @@ export function SwapIdleForm({
   const prevMultiAssetModeRef = useRef(isMultiAssetMode);
   const previousSourceCountRef = useRef(fromTokens.length);
 
+  const updateScrollProgress = useCallback(() => {
+    const el = multiScrollRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const trackHeight = clientHeight || 221;
+    if (scrollHeight > trackHeight) {
+      const thumbHeightRatio = trackHeight / scrollHeight;
+      const thumbHeight = Math.max(
+        32,
+        Math.min(140, Math.round(trackHeight * thumbHeightRatio))
+      );
+      const availableTrack = trackHeight - thumbHeight;
+      const scrollRatio = scrollTop / Math.max(1, scrollHeight - trackHeight);
+      const thumbTop = Math.min(
+        availableTrack,
+        Math.round(scrollRatio * availableTrack)
+      );
+      setScrollProgress({ thumbTop, thumbHeight, isScrollable: true });
+    } else {
+      setScrollProgress({ thumbTop: 0, thumbHeight: 77, isScrollable: true });
+    }
+  }, []);
+
   const handleMultiScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setShowBackToTop(e.currentTarget.scrollTop > 30);
+    updateScrollProgress();
   };
 
   const handleScrollToTop = () => {
     multiScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    updateScrollProgress();
+  }, [fromTokens.length, extraSlots, isMultiAssetMode, updateScrollProgress]);
 
   useEffect(() => {
     if (isFirstMountRef.current) {
@@ -1427,21 +1460,19 @@ export function SwapIdleForm({
         style={{
           backgroundColor: isMultiAssetMode
             ? isRowFocused
-              ? hasMoreThanThreeAssets && !inModal
-                ? "#FFFFFF"
-                : "#FBFBFB"
+              ? "#FBFBFB"
               : isRowHovered
                 ? "#F5F5F4"
                 : "transparent"
             : "transparent",
-          borderRadius: isMultiAssetMode ? "14px" : "0px",
+          borderRadius: isMultiAssetMode ? "12px" : "0px",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
           gap: "2px",
           padding: isMultiAssetMode ? "6px 8px" : "0px",
-          margin: isMultiAssetMode ? "0 -8px" : "0px",
-          width: isMultiAssetMode ? "calc(100% + 16px)" : "100%",
+          margin: "0px",
+          width: "100%",
           transition:
             "background-color 0.15s ease, all 0.28s cubic-bezier(0.2, 0, 0, 1)",
           animation: isRemoving
@@ -2130,36 +2161,62 @@ export function SwapIdleForm({
         ) : isMultiAssetMode && totalAssetCount > 3 ? (
           <div
             style={{
-              borderRadius: "19px",
-              border: "1px solid #F5F5F5",
-              background: "#FBFBFB",
-              position: "relative",
-              width: "100%",
               boxSizing: "border-box",
-              overflow: "hidden",
+              margin: "0 -8px",
+              position: "relative",
+              width: "calc(100% + 16px)",
             }}
           >
+            {/* Scrollable rows without native scrollbar */}
             <div
-              className="nexus-source-token-scroll"
+              className="nexus-no-scrollbar"
               onScroll={handleMultiScroll}
               ref={multiScrollRef}
               style={{
+                boxSizing: "border-box",
                 display: "flex",
-                padding: "12px 12px 0 12px",
                 flexDirection: "column",
                 gap: "12px",
-                alignSelf: "stretch",
-                maxHeight: "260px",
+                maxHeight: "221px",
+                overflowX: "hidden",
                 overflowY: "auto",
-                boxSizing: "border-box",
                 width: "100%",
-                paddingBottom: "12px",
               }}
             >
               {sourceRowsToRender.map(({ token, index }) =>
                 renderSourceRow(token, index, false)
               )}
             </div>
+
+            {/* Custom Mock Scrollbar Track & Thumb */}
+            <div
+              style={{
+                backgroundColor: "#F5F5F5",
+                borderRadius: "18px",
+                boxSizing: "border-box",
+                height: "221px",
+                overflow: "hidden",
+                pointerEvents: "none",
+                position: "absolute",
+                right: "-2px",
+                top: "0px",
+                width: "3px",
+                zIndex: 2,
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "#9DBAFA",
+                  borderRadius: "18px",
+                  height: `${scrollProgress.thumbHeight}px`,
+                  position: "absolute",
+                  top: `${scrollProgress.thumbTop}px`,
+                  transition: "top 0.04s linear",
+                  width: "3px",
+                }}
+              />
+            </div>
+
             {showBackToTop && (
               <button
                 onClick={handleScrollToTop}
@@ -2168,7 +2225,7 @@ export function SwapIdleForm({
                   background: "#34383E",
                   border: "none",
                   borderRadius: "999px",
-                  bottom: "12px",
+                  bottom: "8px",
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                   color: "#FFFFFF",
                   cursor: "pointer",
@@ -2181,8 +2238,8 @@ export function SwapIdleForm({
                   padding: "6px 12px",
                   position: "absolute",
                   transform: "translateX(-50%)",
-                  zIndex: 10,
                   transition: "opacity 0.2s ease, transform 0.2s ease",
+                  zIndex: 10,
                 }}
                 type="button"
               >
@@ -2209,7 +2266,8 @@ export function SwapIdleForm({
               display: "flex",
               flexDirection: "column",
               gap: "12px",
-              width: "100%",
+              margin: isMultiAssetMode ? "0 -8px" : "0px",
+              width: isMultiAssetMode ? "calc(100% + 16px)" : "100%",
             }}
           >
             {sourceRowsToRender.map(({ token, index }) =>
