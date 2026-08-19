@@ -31,6 +31,12 @@ import {
 } from "../../common/utils/constant";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
+export const formatMiddleTruncatedAddress = (address?: string) => {
+  if (!address) return "";
+  if (address.length <= 10) return address;
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
+};
+
 const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
   fontVariantNumeric: "tabular-nums",
@@ -1096,6 +1102,24 @@ export function SwapAssetSelector({
     null
   );
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
+  const [copiedTokenAddress, setCopiedTokenAddress] = useState<string | null>(
+    null
+  );
+
+  const handleCopyTokenAddress = useCallback(
+    (e: React.MouseEvent, addr: string) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (navigator?.clipboard?.writeText) {
+        void navigator.clipboard.writeText(addr);
+        setCopiedTokenAddress(addr);
+        setTimeout(() => {
+          setCopiedTokenAddress((curr) => (curr === addr ? null : curr));
+        }, 1500);
+      }
+    },
+    []
+  );
   const lockedSelectedTokens = useMemo(
     () => dedupeTokenOptions(lockedTokens),
     [lockedTokens]
@@ -1841,6 +1865,28 @@ export function SwapAssetSelector({
                 >
                   {token.chainName}
                 </span>
+                {token.contractAddress && (
+                  <span
+                    onClick={(e) =>
+                      handleCopyTokenAddress(e, token.contractAddress)
+                    }
+                    style={{
+                      color: "#8E8E89",
+                      fontFamily: "Geist, system-ui, sans-serif",
+                      fontSize: "14px",
+                      fontStyle: "normal",
+                      fontWeight: 400,
+                      lineHeight: "20px",
+                      cursor: "pointer",
+                      userSelect: "none",
+                    }}
+                    title="Click to copy token address"
+                  >
+                    {copiedTokenAddress === token.contractAddress
+                      ? "Copied!"
+                      : formatMiddleTruncatedAddress(token.contractAddress)}
+                  </span>
+                )}
               </div>
             )}
           </div>

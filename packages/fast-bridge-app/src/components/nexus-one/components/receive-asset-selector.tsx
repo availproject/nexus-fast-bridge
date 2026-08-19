@@ -27,6 +27,7 @@ import {
   getCitreaReceiveTokenOptions,
 } from "../utils/citrea-tokens";
 import {
+  formatMiddleTruncatedAddress,
   getTokenSearchRank,
   RadioDot,
   SelectionControl,
@@ -638,6 +639,24 @@ export function ReceiveAssetSelector({
     useState<SwapTokenOption | null>(() => selectedToken ?? null);
   const [hoveredHash, setHoveredHash] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [copiedTokenAddress, setCopiedTokenAddress] = useState<string | null>(
+    null
+  );
+
+  const handleCopyTokenAddress = useCallback(
+    (e: React.MouseEvent, addr: string) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (navigator?.clipboard?.writeText) {
+        void navigator.clipboard.writeText(addr);
+        setCopiedTokenAddress(addr);
+        setTimeout(() => {
+          setCopiedTokenAddress((curr) => (curr === addr ? null : curr));
+        }, 1500);
+      }
+    },
+    []
+  );
   const [visibleCount, setVisibleCount] = useState(30);
   const [tooltipState, setTooltipState] = useState<{
     hash: string;
@@ -1761,8 +1780,32 @@ export function ReceiveAssetSelector({
                             >
                               {isDetailActive
                                 ? `${t.contractAddress.slice(0, 6)}...${t.contractAddress.slice(-4)}`
-                                : `on ${t.chainName || "Unknown chain"}`}
+                                : t.chainName || "Unknown chain"}
                             </span>
+                            {!isDetailActive && t.contractAddress && (
+                              <span
+                                onClick={(e) =>
+                                  handleCopyTokenAddress(e, t.contractAddress)
+                                }
+                                style={{
+                                  color: "#8E8E89",
+                                  fontFamily: "Geist, system-ui, sans-serif",
+                                  fontSize: "14px",
+                                  fontStyle: "normal",
+                                  fontWeight: 400,
+                                  lineHeight: "20px",
+                                  cursor: "pointer",
+                                  userSelect: "none",
+                                }}
+                                title="Click to copy token address"
+                              >
+                                {copiedTokenAddress === t.contractAddress
+                                  ? "Copied!"
+                                  : formatMiddleTruncatedAddress(
+                                      t.contractAddress
+                                    )}
+                              </span>
+                            )}
                             {isDetailActive && (
                               <div
                                 style={{

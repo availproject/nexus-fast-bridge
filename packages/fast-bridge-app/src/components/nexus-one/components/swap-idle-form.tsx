@@ -1518,9 +1518,9 @@ export function SwapIdleForm({
         style={{
           backgroundColor: isMultiAssetMode
             ? isRowFocused
-              ? "#FBFBFB"
+              ? "#F9F9F9"
               : isRowHovered
-                ? "#F5F5F4"
+                ? "#F0F0F0"
                 : "transparent"
             : "transparent",
           borderRadius: isMultiAssetMode ? "12px" : "0px",
@@ -2036,7 +2036,7 @@ export function SwapIdleForm({
               : hoveredPanel === "send"
                 ? "1px solid #F0F0F0"
                 : "1px solid #F5F5F5",
-          backgroundColor: focusedPanel === "send" ? "#FBFBFB" : "#FFF",
+          backgroundColor: focusedPanel === "send" ? "#F9F9F9" : "#FFF",
           boxShadow:
             focusedPanel !== "send" && hoveredPanel === "send"
               ? ASSET_DROPDOWN_SHADOW
@@ -2582,7 +2582,7 @@ export function SwapIdleForm({
               : hoveredPanel === "receive"
                 ? "1px solid #F0F0F0"
                 : "1px solid #F5F5F5",
-          backgroundColor: focusedPanel === "receive" ? "#FBFBFB" : "#FFF",
+          backgroundColor: focusedPanel === "receive" ? "#F9F9F9" : "#FFF",
           boxShadow:
             focusedPanel !== "receive" && hoveredPanel === "receive"
               ? ASSET_DROPDOWN_SHADOW
