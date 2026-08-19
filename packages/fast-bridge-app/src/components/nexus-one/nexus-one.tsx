@@ -3324,15 +3324,6 @@ function NexusOneInner({
     }
   }, [ownerAddress]);
 
-  const fromTokensQuoteKey = useMemo(
-    () =>
-      getSourceTokensQuoteKey(
-        activeMode === "swap" && swapType === "exactIn"
-          ? getReadyExactInSourceTokens(fromTokens)
-          : fromTokens
-      ),
-    [activeMode, swapType, fromTokens]
-  );
   const toTokenQuoteKey = getTokenQuoteKey(toToken);
   const appliedTokenPrefillRef = useRef<string | null>(null);
 
@@ -4895,7 +4886,9 @@ function NexusOneInner({
 
       if (requestedReceiveUsd.gt(0)) {
         if (!isMultiAssetMode) {
-          const explicitToken = sourceTokens[0] ?? fromTokens[0];
+          const explicitToken =
+            sourceTokens[0] ??
+            (sourceSelectionTouched ? fromTokens[0] : undefined);
           let singleToken = explicitToken;
           if (!singleToken) {
             const pool = excludeSwapExactOutDestinationTokens(
@@ -5575,7 +5568,7 @@ function NexusOneInner({
     const destinationKey = getTokenSelectionKey(toToken);
     const singleAssetToken = (() => {
       if (isMultiAssetMode) return undefined;
-      if (fromTokens.length > 0) return fromTokens[0];
+      if (sourceSelectionTouched && fromTokens.length > 0) return fromTokens[0];
       const rawPool = getExactOutSourceTokens(
         exactOutQuoteSourceModeRef.current,
         requiredSourceUsd
@@ -5601,8 +5594,7 @@ function NexusOneInner({
       return capable ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
-      singleAssetToken ||
-        (fromTokens && fromTokens.length > 0 && sourceSelectionTouched)
+      sourceSelectionTouched && fromTokens.length > 0
     );
     const sourcePool = !isMultiAssetMode
       ? singleAssetToken
@@ -7171,6 +7163,15 @@ function NexusOneInner({
       : activeMode === "send"
         ? recipientAddress
         : "";
+  const fromTokensQuoteKey = useMemo(
+    () =>
+      getSourceTokensQuoteKey(
+        activeMode === "swap" && swapType === "exactIn"
+          ? getReadyExactInSourceTokens(fromTokens)
+          : fromTokens
+      ),
+    [activeMode, swapType, fromTokens]
+  );
   const activeQuoteInputKey = [
     activeMode,
     swapType,
@@ -7373,10 +7374,11 @@ function NexusOneInner({
         : getSyntheticDisconnectedSourceTokens(disconnectedAvailableTokens);
     const singleAssetToken = (() => {
       if (isMultiAssetMode) return undefined;
-      const explicit =
-        (sourceTokens && sourceTokens.length > 0
-          ? sourceTokens[0]
-          : undefined) ?? fromTokens[0];
+      const explicit = sourceSelectionTouched
+        ? ((sourceTokens && sourceTokens.length > 0
+            ? sourceTokens[0]
+            : undefined) ?? fromTokens[0])
+        : undefined;
       if (explicit) return explicit;
       const rawPool = getExpandedSourceTokens(
         excludeSwapExactOutDestinationTokens(allAvailableTokens)
@@ -7402,7 +7404,8 @@ function NexusOneInner({
       return capable ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
-      singleAssetToken || (sourceTokens && sourceTokens.length > 0)
+      sourceSelectionTouched &&
+        ((sourceTokens && sourceTokens.length > 0) || fromTokens.length > 0)
     );
     const sourcePool = !isMultiAssetMode
       ? singleAssetToken
@@ -10929,7 +10932,10 @@ function NexusOneInner({
         (shouldUseCurrentExactOutIntentSources
           ? currentExactOutIntentSourceTokens
           : []);
-      const primaryToken = fromTokens[0] ?? calculatedSources[0];
+      const primaryToken =
+        (sourceSelectionTouched ? fromTokens[0] : undefined) ??
+        calculatedSources[0] ??
+        fromTokens[0];
       if (primaryToken) {
         const match = calculatedSources.find(
           (s) =>
@@ -10980,6 +10986,51 @@ function NexusOneInner({
         (shouldUseCurrentExactOutIntentSources
           ? currentExactOutIntentSourceTokens
           : []);
+
+      if (fromTokens.length > 0) {
+        const calculatedMap = new Map<string, SwapTokenOption>();
+        for (const s of calculatedSources) {
+          calculatedMap.set(getTokenSelectionKey(s), s);
+        }
+
+        const mappedFromTokens = fromTokens.map((token) => {
+          const match =
+            calculatedMap.get(getTokenSelectionKey(token)) ??
+            calculatedSources.find(
+              (s) =>
+                isSameTokenChainPair(s, token) ||
+                (s.symbol &&
+                  token.symbol &&
+                  s.symbol.toUpperCase() === token.symbol.toUpperCase() &&
+                  (s.chainId === token.chainId || !s.chainId || !token.chainId))
+            );
+
+          if (match) {
+            return {
+              ...token,
+              userAmount: match.userAmount || token.userAmount || "",
+              userAmountMode:
+                match.userAmountMode || token.userAmountMode || "token",
+              userAmountUsd: match.userAmountUsd || token.userAmountUsd || "",
+            };
+          }
+
+          return {
+            ...token,
+            userAmount: token.userAmount || "",
+            userAmountMode: token.userAmountMode || "token",
+            userAmountUsd: token.userAmountUsd || "",
+          };
+        });
+
+        const existingKeys = new Set(fromTokens.map(getTokenSelectionKey));
+        const extraCalculated = calculatedSources.filter(
+          (s) => !existingKeys.has(getTokenSelectionKey(s))
+        );
+
+        return [...mappedFromTokens, ...extraCalculated];
+      }
+
       if (calculatedSources.length > 0) {
         return calculatedSources;
       }
@@ -10996,7 +11047,9 @@ function NexusOneInner({
   const displayFromTokens = (() => {
     if (!destinationBalanceDisplayToken || !isExactOutPaymentFlow) {
       return mergeDisplaySourceTokens(
-        sortDisplaySourcesByBalanceUsdDesc(baseDisplayFromTokens)
+        sourceSelectionTouched
+          ? baseDisplayFromTokens
+          : sortDisplaySourcesByBalanceUsdDesc(baseDisplayFromTokens)
       );
     }
 
@@ -11019,7 +11072,9 @@ function NexusOneInner({
       ? tokens
       : [...tokens, destinationBalanceDisplayToken];
     return mergeDisplaySourceTokens(
-      sortDisplaySourcesByBalanceUsdDesc(displayTokens)
+      sourceSelectionTouched
+        ? displayTokens
+        : sortDisplaySourcesByBalanceUsdDesc(displayTokens)
     );
   })();
   const currentTokenVisualSources = useMemo<TokenVisualSources>(
