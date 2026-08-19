@@ -8100,8 +8100,10 @@ function NexusOneInner({
         )
       );
 
-      const isManualSelection =
-        normalizedTokens.length > 0 || sourcePickerDraftTouchedRef.current;
+      const isManualSelection = Boolean(
+        sourcePickerDraftTouchedRef.current ||
+          (sourceSelectionTouched && normalizedTokens.length > 0)
+      );
       setSourceSelectionTouched(isManualSelection);
       sourcePickerDraftTouchedRef.current = isManualSelection;
       setSourcePickerDraftTouched(isManualSelection);
@@ -9406,6 +9408,13 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
+      const isIntentDenied =
+        err?.code === "USER_DENIED_INTENT" ||
+        err?.message?.includes("User denied") ||
+        err?.message?.includes("denied swap intent");
+      if (isIntentDenied) {
+        return;
+      }
       const caughtTimeout = isTimeoutLikeError(err);
       if (caughtTimeout) {
         console.warn("Timeout in handleEnterPreview:", err);
@@ -10163,14 +10172,15 @@ function NexusOneInner({
         return;
       }
 
-      const hasSelectedSourceToken = fromTokens.some(
-        (token) => token.chainId && token.contractAddress
-      );
-      if (hasSelectedSourceToken) {
-        setSourceSelectionTouched(true);
+      const hasManualSourceSelection =
+        sourceSelectionTouched &&
+        fromTokens.some((token) => token.chainId && token.contractAddress);
+      if (hasManualSourceSelection) {
         setExactOutQuoteSourceModeValue("selected");
         sourcePickerDraftModeRef.current = "selected";
-        sourcePickerDraftTouchedRef.current = true;
+      } else {
+        setExactOutQuoteSourceModeValue("all");
+        sourcePickerDraftModeRef.current = "all";
       }
 
       const immediatePrediction = buildImmediatePredictiveExactOutQuote(
@@ -10215,7 +10225,7 @@ function NexusOneInner({
         nexusSDK &&
           nextAmount?.gt(0) &&
           toToken &&
-          (hasSelectedSourceToken ||
+          (hasManualSourceSelection ||
             (!isMultiAssetMode &&
               immediatePrediction?.sources &&
               immediatePrediction.sources.length > 0 &&

@@ -139,14 +139,7 @@ const STATUS_ORDER: ProgressStatusId[] = [
   "action",
 ];
 
-const SWAP_APPROVAL_TYPES = [
-  "SOURCE_SWAP",
-  "CREATE_PERMIT_EOA_TO_EPHEMERAL",
-  "CREATE_PERMIT_FOR_SOURCE_SWAP",
-  "EOA_TO_EPHEMERAL_TRANSFER",
-  "EOA_EXECUTE_CALL",
-  // "BRIDGE_DEPOSIT",
-];
+const SWAP_APPROVAL_TYPES = ["ALLOWANCE", "ALLOWANCE_APPROVAL"];
 
 const REFUND_ELIGIBLE_SWAP_TYPES = [
   "BRIDGE_INTENT_SUBMISSION",
@@ -167,6 +160,10 @@ const getStatusForStep = (
 ): ProgressStatusId | null => {
   const type = getStepType(step);
 
+  if (SWAP_APPROVAL_TYPES.some((token) => type.includes(token))) {
+    return "approveTokens";
+  }
+
   if (
     type === "APPROVAL" ||
     type === "TRANSACTION_SENT" ||
@@ -177,10 +174,6 @@ const getStatusForStep = (
 
   if (type.includes("SWAP_START")) {
     return "swapTokens";
-  }
-
-  if (SWAP_APPROVAL_TYPES.some((token) => type.includes(token))) {
-    return "approveTokens";
   }
 
   if (
@@ -285,18 +278,18 @@ const getApprovalUnitsForStep = (step?: ProgressSdkStep): ApprovalUnit[] => {
     }));
   }
 
-  const assetSymbol = (step as any)?.asset?.symbol;
+  const amountSymbol = (step as any)?.amount?.symbol;
   const tokenSymbol = (step as any)?.token?.symbol;
-  return [
-    {
-      symbol:
-        typeof assetSymbol === "string"
-          ? assetSymbol
-          : typeof tokenSymbol === "string"
-            ? tokenSymbol
-            : undefined,
-    },
-  ];
+  const assetSymbol = (step as any)?.asset?.symbol;
+  const directSymbol = (step as any)?.symbol;
+  const symbol =
+    (typeof amountSymbol === "string" && amountSymbol) ||
+    (typeof tokenSymbol === "string" && tokenSymbol) ||
+    (typeof assetSymbol === "string" && assetSymbol) ||
+    (typeof directSymbol === "string" && directSymbol) ||
+    undefined;
+
+  return [{ symbol }];
 };
 
 const countApprovalUnits = (steps: ProgressSdkStep[]) =>
@@ -304,23 +297,54 @@ const countApprovalUnits = (steps: ProgressSdkStep[]) =>
 
 const countCompletedApprovalUnitsFromEvents = (
   events: NexusOneProgressEvent[]
-) =>
-  events.reduce((sum, event) => {
+) => {
+  const completedIds = new Set<string>();
+  let count = 0;
+
+  for (const event of events) {
     if (
       event.name !== PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS ||
       !event.completed
     ) {
-      return sum;
+      continue;
     }
-    return sum + getApprovalUnitsForStep(event.step).length;
-  }, 0);
+    const stepId = String(
+      (event.step as any)?.id ??
+        (event.step as any)?.stepId ??
+        (event.step as any)?.typeID ??
+        ""
+    );
+    if (stepId) {
+      if (completedIds.has(stepId)) continue;
+      completedIds.add(stepId);
+    }
+    count += getApprovalUnitsForStep(event.step).length;
+  }
 
-const countCompletedApprovalUnitsFromSteps = (steps: ProgressStep[]) =>
-  steps.reduce(
-    (sum, item) =>
-      item.completed ? sum + getApprovalUnitsForStep(item.step).length : sum,
-    0
-  );
+  return count;
+};
+
+const countCompletedApprovalUnitsFromSteps = (steps: ProgressStep[]) => {
+  const completedIds = new Set<string>();
+  let count = 0;
+
+  for (const item of steps) {
+    if (!item.completed) continue;
+    const stepId = String(
+      (item.step as any)?.id ??
+        (item.step as any)?.stepId ??
+        (item.step as any)?.typeID ??
+        ""
+    );
+    if (stepId) {
+      if (completedIds.has(stepId)) continue;
+      completedIds.add(stepId);
+    }
+    count += getApprovalUnitsForStep(item.step).length;
+  }
+
+  return count;
+};
 
 const getApprovalUnitSymbols = (steps: ProgressSdkStep[]) =>
   steps
@@ -512,16 +536,37 @@ const buildStatusRows = ({
   };
 
   if (immutableApprovalTotal > 0) {
+    const approvalSteps = (
+      swapListSteps.length > 0 ? swapListSteps : fallbackSteps
+    ).filter((s) => stepMatches(s, SWAP_APPROVAL_TYPES));
+    const activeApprovalEvent = getActiveApprovalProgressEvent(events);
+    const activeStepId = String(
+      (activeApprovalEvent?.step as any)?.id ??
+        (activeApprovalEvent?.step as any)?.stepId ??
+        (activeApprovalEvent?.step as any)?.typeID ??
+        ""
+    );
+    const activeIndex = activeStepId
+      ? approvalSteps.findIndex(
+          (s) =>
+            String(
+              (s as any)?.id ?? (s as any)?.stepId ?? (s as any)?.typeID ?? ""
+            ) === activeStepId
+        )
+      : -1;
+
     const approvalCurrent = Math.min(
       immutableApprovalTotal,
-      Math.max(1, approvalCompletedCount + 1)
+      activeIndex >= 0
+        ? activeIndex + 1
+        : Math.max(1, approvalCompletedCount + 1)
     );
     const currentApprovalIndex = Math.min(
-      approvalCompletedCount,
+      activeIndex >= 0 ? activeIndex : approvalCompletedCount,
       Math.max(0, approvalSymbols.length - 1)
     );
     const approvalSymbol =
-      approvalSymbols[currentApprovalIndex] ?? activeApprovalSymbol;
+      activeApprovalSymbol ?? approvalSymbols[currentApprovalIndex];
     const approvalDescription = approvalSymbol
       ? `Approve ${approvalSymbol} in wallet`
       : "Approve in wallet";

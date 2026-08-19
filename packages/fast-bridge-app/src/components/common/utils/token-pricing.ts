@@ -12,6 +12,10 @@ export const DEFAULT_COINBASE_PRICE_REQUEST_TIMEOUT_MS = 4000;
 export const USD_PEGGED_FALLBACK_RATE = 1;
 export const DEFAULT_USD_PEGGED_TOKEN_SYMBOLS = [
   "USDT",
+  "USDTO",
+  "USDT0",
+  "USD0",
+  "USD₮",
   "USDC",
   "USDC.E",
   "USDT.E",
@@ -84,6 +88,10 @@ const USD_RATE_PEG_SYMBOLS: Record<string, string> = {
   SYBTC: "BTC",
   "USDC.E": "USDC",
   "USDT.E": "USDT",
+  USDTO: "USDT",
+  USDT0: "USDT",
+  USD0: "USDT",
+  "USD₮": "USDT",
   "WBTC.E": "BTC",
   WCBTC: "BTC",
 };
