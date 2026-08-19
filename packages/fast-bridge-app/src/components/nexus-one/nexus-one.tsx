@@ -539,6 +539,33 @@ const writeSwapHistoryToStorage = (
   }
 };
 
+const MULTI_ASSET_MODE_STORAGE_KEY = "nexus_swap_asset_mode";
+
+const readMultiAssetModeFromStorage = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const stored = window.localStorage.getItem(MULTI_ASSET_MODE_STORAGE_KEY);
+    if (stored === "multi") return true;
+    if (stored === "single") return false;
+    window.localStorage.setItem(MULTI_ASSET_MODE_STORAGE_KEY, "single");
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const writeMultiAssetModeToStorage = (isMulti: boolean) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      MULTI_ASSET_MODE_STORAGE_KEY,
+      isMulti ? "multi" : "single"
+    );
+  } catch {
+    // ignore
+  }
+};
+
 function QuoteRefreshCountdown({
   progress,
   isRefreshing,
@@ -3226,7 +3253,13 @@ function NexusOneInner({
   const rootHeightTransitionTimerRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
-  const [isMultiAssetMode, setIsMultiAssetMode] = useState(false);
+  const [isMultiAssetMode, setIsMultiAssetMode] = useState<boolean>(
+    readMultiAssetModeFromStorage
+  );
+
+  useEffect(() => {
+    writeMultiAssetModeToStorage(isMultiAssetMode);
+  }, [isMultiAssetMode]);
   const [fromTokens, setFromTokens] = useState<SwapTokenOption[]>([]);
   const [sourceSelectionTouched, setSourceSelectionTouched] = useState(false);
   const [sourceSelectionRevision, setSourceSelectionRevision] = useState(0);
