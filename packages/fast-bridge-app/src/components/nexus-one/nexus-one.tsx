@@ -10900,35 +10900,24 @@ function NexusOneInner({
       }
       return [];
     }
-    if (fromTokens.length > 0 && sourceSelectionTouched) {
+    if (isExactOutPaymentFlow) {
       const calculatedSources =
         predictiveExactOutQuote?.sources ??
         (shouldUseCurrentExactOutIntentSources
           ? currentExactOutIntentSourceTokens
           : []);
-      const calculatedMap = new Map<string, SwapTokenOption>();
-      for (const s of calculatedSources) {
-        const k = getTokenSelectionKey(s);
-        if (k) calculatedMap.set(k, s);
+      if (calculatedSources.length > 0) {
+        return calculatedSources;
       }
-      return fromTokens.map((t) => {
-        const k = getTokenSelectionKey(t);
-        const match = k ? calculatedMap.get(k) : undefined;
-        return {
-          ...t,
-          userAmount: match?.userAmount || t.userAmount || "",
-          userAmountMode: match?.userAmountMode || t.userAmountMode || "token",
-          userAmountUsd: match?.userAmountUsd || t.userAmountUsd || "",
-        };
-      });
+      return excludeSwapExactOutDestinationTokens(
+        shouldUseCurrentExactOutIntentSources
+          ? currentExactOutIntentSourceTokens
+          : shouldShowPredictiveExactOutDisplay
+            ? (predictiveExactOutQuote?.sources ?? fromTokens)
+            : fromTokens
+      );
     }
-    return excludeSwapExactOutDestinationTokens(
-      shouldUseCurrentExactOutIntentSources
-        ? currentExactOutIntentSourceTokens
-        : shouldShowPredictiveExactOutDisplay
-          ? (predictiveExactOutQuote?.sources ?? fromTokens)
-          : fromTokens
-    );
+    return fromTokens;
   })();
   const displayFromTokens = (() => {
     if (!destinationBalanceDisplayToken || !isExactOutPaymentFlow) {
