@@ -801,32 +801,12 @@ export function SwapIdleForm({
     if (fromTokens.length > previousSourceCount && previousSourceCount > 0) {
       const addedCount = fromTokens.length - previousSourceCount;
       setExtraSlots((prev) => Math.max(0, prev - addedCount));
-      const newIndex = fromTokens.length - 1;
       requestAnimationFrame(() => {
-        const input = sourceInputRefs.current[newIndex];
-        if (input) {
-          input.focus();
-          input.select();
-        }
-
         const container = sourceListRef.current;
-        const row = sourceRowRefs.current[newIndex];
-        if (
-          !container ||
-          !row ||
-          container.scrollHeight <= container.clientHeight
-        ) {
-          return;
-        }
-
-        const containerRect = container.getBoundingClientRect();
-        const rowRect = row.getBoundingClientRect();
-        const nextTop =
-          rowRect.top - containerRect.top + container.scrollTop - 8;
-
+        if (!container) return;
         container.scrollTo({
           behavior: "smooth",
-          top: Math.max(0, nextTop),
+          top: container.scrollHeight,
         });
       });
     }
