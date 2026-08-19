@@ -1,8 +1,9 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
+
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
-import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
+import { ChevronDown, Globe, Search, X } from "lucide-react";
 import React, {
   useCallback,
   useDeferredValue,
@@ -1680,9 +1681,6 @@ export function ReceiveAssetSelector({
                 {sortedFiltered.slice(0, visibleCount).map((t) => {
                   const hash = `${t.chainId}-${t.contractAddress}`;
                   const isSelected = selectedTokenHash === hash;
-                  const isHovered = hoveredHash === hash;
-                  const isInfoOpen = tooltipState?.hash === hash;
-                  const isDetailActive = isHovered || isInfoOpen;
                   const numericBalance = Number.parseFloat(
                     String(t.balance ?? "0").replace(/[^0-9.]/g, "")
                   );
@@ -1695,8 +1693,6 @@ export function ReceiveAssetSelector({
                         setSelectedTokenHash(hash);
                         setSelectedTokenFull(t);
                       }}
-                      onMouseEnter={() => setHoveredHash(hash)}
-                      onMouseLeave={() => setHoveredHash(null)}
                       style={{
                         alignItems: "center",
                         backgroundColor: isSelected ? "#F4F7FE" : "transparent",
@@ -1707,9 +1703,7 @@ export function ReceiveAssetSelector({
                         display: "flex",
                         justifyContent: "space-between",
                         padding: "10px 14px",
-                        position: isDetailActive ? "relative" : "static",
                         width: "100%",
-                        zIndex: isDetailActive ? 50 : 1,
                       }}
                       type="button"
                     >
@@ -1773,23 +1767,24 @@ export function ReceiveAssetSelector({
                           >
                             <span
                               style={{
-                                color: "#848483",
+                                color: "#1F1F1F",
                                 fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: 13,
+                                fontSize: "14px",
+                                fontStyle: "normal",
+                                fontWeight: 400,
+                                lineHeight: "20px",
                               }}
                             >
-                              {isDetailActive
-                                ? `${t.contractAddress.slice(0, 6)}...${t.contractAddress.slice(-4)}`
-                                : t.chainName || "Unknown chain"}
+                              {t.chainName || "Unknown chain"}
                             </span>
-                            {!isDetailActive && t.contractAddress && (
+                            {t.contractAddress && (
                               <span
                                 onClick={(e) =>
                                   handleCopyTokenAddress(e, t.contractAddress)
                                 }
                                 style={{
                                   color: "#8E8E89",
-                                  fontFamily: "Geist, system-ui, sans-serif",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
                                   fontSize: "14px",
                                   fontStyle: "normal",
                                   fontWeight: 400,
@@ -1805,72 +1800,6 @@ export function ReceiveAssetSelector({
                                       t.contractAddress
                                     )}
                               </span>
-                            )}
-                            {isDetailActive && (
-                              <div
-                                style={{
-                                  alignItems: "center",
-                                  display: "flex",
-                                  gap: "4px",
-                                }}
-                              >
-                                {copiedHash === hash ? (
-                                  <Check
-                                    style={{
-                                      color: "#006BF4",
-                                      height: 12,
-                                      width: 12,
-                                    }}
-                                  />
-                                ) : (
-                                  <Copy
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(
-                                        t.contractAddress
-                                      );
-                                      setCopiedHash(hash);
-                                      setTimeout(
-                                        () => setCopiedHash(null),
-                                        2000
-                                      );
-                                    }}
-                                    style={{
-                                      color: "#848483",
-                                      cursor: "pointer",
-                                      height: 12,
-                                      width: 12,
-                                    }}
-                                  />
-                                )}
-                                <div
-                                  className="relative"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (tooltipState?.hash === hash) {
-                                      setTooltipState(null);
-                                    } else {
-                                      const rect =
-                                        e.currentTarget.getBoundingClientRect();
-                                      setTooltipState({
-                                        hash,
-                                        t,
-                                        x: rect.left + rect.width / 2,
-                                        y: rect.top,
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Info
-                                    style={{
-                                      color: "#848483",
-                                      cursor: "pointer",
-                                      height: 12,
-                                      width: 12,
-                                    }}
-                                  />
-                                </div>
-                              </div>
                             )}
                           </div>
                         </div>

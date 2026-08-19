@@ -1816,6 +1816,7 @@ export function SwapAssetSelector({
             style={{
               flexShrink: 0,
               height: isDesktop ? 40 : 30,
+              position: "relative",
               width: isDesktop ? 40 : 30,
             }}
           >
@@ -1824,6 +1825,23 @@ export function SwapAssetSelector({
               src={token.logo}
               symbol={token.symbol}
             />
+            {token.chainLogo && (
+              <img
+                alt={token.chainName || ""}
+                src={token.chainLogo}
+                style={{
+                  border: "2px solid #FFFFFE",
+                  borderRadius: "999px",
+                  bottom: isDesktop ? -6 : -4,
+                  height: isDesktop ? 18 : 14,
+                  objectFit: "cover",
+                  position: "absolute",
+                  right: isDesktop ? -6 : -4,
+                  width: isDesktop ? 18 : 14,
+                  zIndex: 2,
+                }}
+              />
+            )}
           </div>
           <div
             style={{
@@ -1844,23 +1862,14 @@ export function SwapAssetSelector({
             </span>
             {token.chainName && (
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                {token.chainLogo && (
-                  <img
-                    alt=""
-                    src={token.chainLogo}
-                    style={{
-                      borderRadius: "999px",
-                      height: isDesktop ? 14 : 12,
-                      objectFit: "cover",
-                      width: isDesktop ? 14 : 12,
-                    }}
-                  />
-                )}
                 <span
                   style={{
+                    color: "#1F1F1F",
                     fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: isDesktop ? 13 : 11,
-                    color: "#848483",
+                    fontSize: "14px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "20px",
                   }}
                 >
                   {token.chainName}
@@ -1872,7 +1881,7 @@ export function SwapAssetSelector({
                     }
                     style={{
                       color: "#8E8E89",
-                      fontFamily: "Geist, system-ui, sans-serif",
+                      fontFamily: '"Geist", system-ui, sans-serif',
                       fontSize: "14px",
                       fontStyle: "normal",
                       fontWeight: 400,
