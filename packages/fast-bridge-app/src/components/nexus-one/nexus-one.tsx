@@ -3324,16 +3324,15 @@ function NexusOneInner({
     }
   }, [ownerAddress]);
 
-  const [fromTokensQuoteKey, setFromTokensQuoteKey] = useState("");
-
-  useEffect(() => {
-    const key = getSourceTokensQuoteKey(
-      activeMode === "swap" && swapType === "exactIn"
-        ? getReadyExactInSourceTokens(fromTokens)
-        : fromTokens
-    );
-    setFromTokensQuoteKey(key);
-  }, [activeMode, swapType, fromTokens]);
+  const fromTokensQuoteKey = useMemo(
+    () =>
+      getSourceTokensQuoteKey(
+        activeMode === "swap" && swapType === "exactIn"
+          ? getReadyExactInSourceTokens(fromTokens)
+          : fromTokens
+      ),
+    [activeMode, swapType, fromTokens]
+  );
   const toTokenQuoteKey = getTokenQuoteKey(toToken);
   const appliedTokenPrefillRef = useRef<string | null>(null);
 
@@ -4593,34 +4592,30 @@ function NexusOneInner({
   };
 
   const getSdkExactOutSourcePriority = (token: SwapTokenOption) => {
+    const usd = getTokenBalanceUsd(token);
+    const isBelowOneDollar = usd.lt(1);
+    const isEthereum = token.chainId === ETHEREUM_MAINNET_CHAIN_ID;
     const isSameChain =
       Boolean(token.chainId && toToken?.chainId) &&
       token.chainId === toToken?.chainId;
-    const isSameToken =
-      Boolean(token.contractAddress && toToken?.contractAddress) &&
-      ((isNativeTokenAddress(token.contractAddress) &&
-        isNativeTokenAddress(toToken?.contractAddress)) ||
-        token.contractAddress.toLowerCase() ===
-          toToken?.contractAddress.toLowerCase());
-    const isStable = isSdkExactOutStableSymbol(token.symbol);
-    const isGas = isNativeTokenAddress(token.contractAddress);
-    const isEthereum = token.chainId === ETHEREUM_MAINNET_CHAIN_ID;
 
-    if (isSameChain) {
-      if (isSameToken) return 1;
-      if (isStable) return 2;
-      if (isGas) return 3;
+    // Tier 4 (Lowest priority): Tokens below $1 in total balance
+    if (isBelowOneDollar) {
       return 4;
     }
-    if (isEthereum) {
-      if (isSameToken) return 8;
-      if (isStable) return 9;
-      if (isGas) return 10;
-      return 11;
+
+    // Tier 1 (Highest priority): Non-Ethereum assets on receiving chain (balance >= $1)
+    if (isSameChain && !isEthereum) {
+      return 1;
     }
-    if (isSameToken) return 5;
-    if (isStable) return 6;
-    return 7;
+
+    // Tier 2: Non-Ethereum assets on other chains (balance >= $1)
+    if (!isEthereum) {
+      return 2;
+    }
+
+    // Tier 3: Ethereum Mainnet assets (balance >= $1)
+    return 3;
   };
 
   const sortExactOutSourcesBySdkPriority = (tokens: SwapTokenOption[]) =>
@@ -5581,11 +5576,12 @@ function NexusOneInner({
     const singleAssetToken = (() => {
       if (isMultiAssetMode) return undefined;
       if (fromTokens.length > 0) return fromTokens[0];
-      const pool = getExactOutSourceTokens(
+      const rawPool = getExactOutSourceTokens(
         exactOutQuoteSourceModeRef.current,
         requiredSourceUsd
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
-      if (pool.length === 0) return undefined;
+      if (rawPool.length === 0) return undefined;
+      const pool = sortExactOutSourcesBySdkPriority(rawPool);
       const capable = pool.find((token) => {
         const isNative =
           token.contractAddress === zeroAddress ||
@@ -5602,12 +5598,7 @@ function NexusOneInner({
         );
         return availableUsd.gte(requiredSourceUsd);
       });
-      return (
-        capable ??
-        [...pool].sort((a, b) =>
-          getTokenBalanceUsd(b).minus(getTokenBalanceUsd(a)).toNumber()
-        )[0]
-      );
+      return capable ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
       singleAssetToken ||
@@ -7387,10 +7378,11 @@ function NexusOneInner({
           ? sourceTokens[0]
           : undefined) ?? fromTokens[0];
       if (explicit) return explicit;
-      const pool = getExpandedSourceTokens(
+      const rawPool = getExpandedSourceTokens(
         excludeSwapExactOutDestinationTokens(allAvailableTokens)
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
-      if (pool.length === 0) return undefined;
+      if (rawPool.length === 0) return undefined;
+      const pool = sortExactOutSourcesBySdkPriority(rawPool);
       const capable = pool.find((token) => {
         const isNative =
           token.contractAddress === zeroAddress ||
@@ -7407,12 +7399,7 @@ function NexusOneInner({
         );
         return availableUsd.gte(requiredSourceUsd);
       });
-      return (
-        capable ??
-        [...pool].sort((a, b) =>
-          getTokenBalanceUsd(b).minus(getTokenBalanceUsd(a)).toNumber()
-        )[0]
-      );
+      return capable ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
       singleAssetToken || (sourceTokens && sourceTokens.length > 0)
@@ -9650,7 +9637,6 @@ function NexusOneInner({
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
     nexusSDK,
-    predictiveQuote,
     recipientAddress,
     sourceSelectionRevision,
     swapStep,
