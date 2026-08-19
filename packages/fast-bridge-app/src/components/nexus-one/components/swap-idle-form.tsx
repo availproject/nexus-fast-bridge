@@ -3218,7 +3218,7 @@ export function SwapIdleForm({
                   ? "nexusZoomFadeOut 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
                   : "nexusZoomFadeIn 0.28s cubic-bezier(0.34, 1.25, 0.64, 1)",
                 background: "#FFF",
-                borderRadius: "38px",
+                borderRadius: "32px",
                 boxShadow: "0 0 10.4px 0 rgba(0, 0, 0, 0.10)",
                 boxSizing: "border-box",
                 display: "flex",

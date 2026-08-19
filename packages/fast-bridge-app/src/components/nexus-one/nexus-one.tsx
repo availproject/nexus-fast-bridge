@@ -11631,7 +11631,7 @@ function NexusOneInner({
                       backgroundColor: effectiveNexusInitError
                         ? "#FCEEED"
                         : isSwapCtaDisabled
-                          ? "#E4E4E4"
+                          ? "#CBCBCB"
                           : "#1F1F1F",
                       border: effectiveNexusInitError
                         ? "1px solid #F7C4C1"
@@ -11802,7 +11802,7 @@ function NexusOneInner({
                             effectiveNexusInitError || blockingQuoteIssue
                               ? "#FCEEED"
                               : isDepositCtaDisabled
-                                ? theme.colors.surfaceCool
+                                ? "#CBCBCB"
                                 : theme.colors.text,
                           border:
                             effectiveNexusInitError || blockingQuoteIssue
@@ -11981,7 +11981,7 @@ function NexusOneInner({
                         effectiveNexusInitError || blockingQuoteIssue
                           ? "#FCEEED"
                           : isSendCtaDisabled
-                            ? theme.colors.surfaceCool
+                            ? "#CBCBCB"
                             : theme.colors.text,
                       border:
                         effectiveNexusInitError || blockingQuoteIssue

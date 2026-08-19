@@ -3422,7 +3422,7 @@ export function SwapAssetSelector({
           style={{
             alignItems: "center",
             alignSelf: "flex-end",
-            backgroundColor: hasSelectionShortfall ? "#EAEAEA" : "#1F1F1F",
+            backgroundColor: hasSelectionShortfall ? "#CBCBCB" : "#1F1F1F",
             border: "none",
             borderRadius: "999px",
             boxSizing: "border-box",

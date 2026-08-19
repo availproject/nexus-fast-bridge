@@ -340,7 +340,7 @@ button,
   [data-nexus-one-root] {
     gap: 6px !important;
     padding: 9px !important;
-    border-radius: 11px !important;
+    border-radius: 32px !important;
   }
 
   [data-nexus-one-root] div[style*="border-top"] {
