@@ -29,6 +29,7 @@ interface SwapIdleFormProps {
   isExpanded?: boolean;
   isLoadingBalances?: boolean;
   isMultiAssetMode?: boolean;
+  isQuoteLoading?: boolean;
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
   isSourcePickerDisabled?: boolean;
@@ -658,6 +659,7 @@ export function SwapIdleForm({
   receiveQuoteAmount,
   receiveQuoteUsd,
   receiveAmountIssue,
+  isQuoteLoading = false,
   isReceiveAmountLoading = false,
   isReceiveUsdLoading = false,
   sourceRouteStatus,
@@ -714,12 +716,22 @@ export function SwapIdleForm({
   const [tooltipTriggerRect, setTooltipTriggerRect] = useState<DOMRect | null>(
     null
   );
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const multiScrollRef = useRef<HTMLDivElement | null>(null);
   const sourceListRef = useRef<HTMLDivElement | null>(null);
   const sourceRowRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const sourceInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const isFirstMountRef = useRef(true);
   const prevMultiAssetModeRef = useRef(isMultiAssetMode);
   const previousSourceCountRef = useRef(fromTokens.length);
+
+  const handleMultiScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setShowBackToTop(e.currentTarget.scrollTop > 30);
+  };
+
+  const handleScrollToTop = () => {
+    multiScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     if (isFirstMountRef.current) {
@@ -1190,7 +1202,7 @@ export function SwapIdleForm({
   const feeAmountValue = React.useMemo(() => {
     if (totalFeeUsd && parseDecimal(totalFeeUsd)?.gt(0)) {
       const dec = parseDecimal(totalFeeUsd);
-      return dec && dec.lt(0.01) ? "0" : (dec?.toFixed(2) ?? "0");
+      return dec && dec.lt(0.01) ? "0.00" : (dec?.toFixed(2) ?? "0.00");
     }
     const rawBridge = intentData?.feesAndBuffer?.bridge;
     const bridgeTotal =
@@ -1198,9 +1210,9 @@ export function SwapIdleForm({
         ? parseDecimal(rawBridge)
         : parseDecimal(rawBridge?.total);
     if (bridgeTotal && bridgeTotal.gt(0)) {
-      return bridgeTotal.lt(0.01) ? "0" : bridgeTotal.toFixed(2);
+      return bridgeTotal.lt(0.01) ? "0.00" : bridgeTotal.toFixed(2);
     }
-    return "0";
+    return "0.00";
   }, [intentData, totalFeeUsd]);
 
   // Fees breakdown for fees tooltip
@@ -1227,7 +1239,7 @@ export function SwapIdleForm({
     const protocolFee = parseDecimal(bridgeFeeData?.protocol);
 
     const formatFeeStr = (dec: Decimal | undefined) => {
-      if (!dec || dec.lte(0)) return "$0";
+      if (!dec || dec.lte(0)) return "$0.00";
       if (dec.lt(0.01)) return "<$0.01";
       return `$${dec.toFixed(2)}`;
     };
@@ -1348,6 +1360,14 @@ export function SwapIdleForm({
     (hasSendAmount && hasSendToken && hasReceiveToken) ||
     (hasReceiveAmount && hasReceiveToken && hasSendToken && hasSendAmount);
 
+  const isFeesLoading = Boolean(
+    isQuoteLoading ||
+      isReceiveAmountLoading ||
+      isReceiveUsdLoading ||
+      sourceRouteStatus === "loading" ||
+      (isIntentActive && !intentData && !totalFeeUsd)
+  );
+
   const warningMessage = React.useMemo(() => {
     if (receiveAmountIssue?.message) {
       return receiveAmountIssue.message;
@@ -1379,6 +1399,10 @@ export function SwapIdleForm({
   ) => {
     const isRemoving = removingRowIndex === index;
     const showRowHover = isMultiAssetMode;
+    const isRowFocused = focusedRow === index;
+    const isRowHovered = hoveredRow === index;
+    const hasMoreThanThreeAssets = isMultiAssetMode && totalAssetCount > 3;
+
     return (
       <div
         className={showRowHover ? "nexus-asset-row" : undefined}
@@ -1401,17 +1425,25 @@ export function SwapIdleForm({
           }
         }}
         style={{
-          backgroundColor:
-            showRowHover && hoveredRow === index ? "#EAECEF" : "transparent",
-          borderRadius: showRowHover ? "14px" : "0px",
+          backgroundColor: isMultiAssetMode
+            ? isRowFocused
+              ? hasMoreThanThreeAssets && !inModal
+                ? "#FFFFFF"
+                : "#FBFBFB"
+              : isRowHovered
+                ? "#F5F5F4"
+                : "transparent"
+            : "transparent",
+          borderRadius: isMultiAssetMode ? "14px" : "0px",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
           gap: "2px",
-          padding: showRowHover ? "6px 8px" : "0px",
+          padding: isMultiAssetMode ? "6px 8px" : "0px",
+          margin: isMultiAssetMode ? "0 -8px" : "0px",
+          width: isMultiAssetMode ? "calc(100% + 16px)" : "100%",
           transition:
             "background-color 0.15s ease, all 0.28s cubic-bezier(0.2, 0, 0, 1)",
-          width: "100%",
           animation: isRemoving
             ? "nexusRowCollapse 0.22s cubic-bezier(0.2, 0, 0, 1) forwards"
             : "nexusRowExpand 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -1914,7 +1946,7 @@ export function SwapIdleForm({
               : hoveredPanel === "send"
                 ? "1px solid #F0F0F0"
                 : "1px solid #F5F5F5",
-          backgroundColor: focusedPanel === "send" ? "#F7F8FA" : "#FFF",
+          backgroundColor: focusedPanel === "send" ? "#FBFBFB" : "#FFF",
           boxShadow:
             focusedPanel !== "send" && hoveredPanel === "send"
               ? ASSET_DROPDOWN_SHADOW
@@ -2095,6 +2127,81 @@ export function SwapIdleForm({
               </div>
             ))}
           </div>
+        ) : isMultiAssetMode && totalAssetCount > 3 ? (
+          <div
+            style={{
+              borderRadius: "19px",
+              border: "1px solid #F5F5F5",
+              background: "#FBFBFB",
+              position: "relative",
+              width: "100%",
+              boxSizing: "border-box",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              className="nexus-source-token-scroll"
+              onScroll={handleMultiScroll}
+              ref={multiScrollRef}
+              style={{
+                display: "flex",
+                padding: "12px 12px 0 12px",
+                flexDirection: "column",
+                gap: "12px",
+                alignSelf: "stretch",
+                maxHeight: "260px",
+                overflowY: "auto",
+                boxSizing: "border-box",
+                width: "100%",
+                paddingBottom: "12px",
+              }}
+            >
+              {sourceRowsToRender.map(({ token, index }) =>
+                renderSourceRow(token, index, false)
+              )}
+            </div>
+            {showBackToTop && (
+              <button
+                onClick={handleScrollToTop}
+                style={{
+                  alignItems: "center",
+                  background: "#34383E",
+                  border: "none",
+                  borderRadius: "999px",
+                  bottom: "12px",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  color: "#FFFFFF",
+                  cursor: "pointer",
+                  display: "flex",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  gap: "4px",
+                  left: "50%",
+                  padding: "6px 12px",
+                  position: "absolute",
+                  transform: "translateX(-50%)",
+                  zIndex: 10,
+                  transition: "opacity 0.2s ease, transform 0.2s ease",
+                }}
+                type="button"
+              >
+                <svg
+                  fill="none"
+                  height="12"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                  width="12"
+                >
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                Back to top
+              </button>
+            )}
+          </div>
         ) : (
           <div
             style={{
@@ -2102,12 +2209,7 @@ export function SwapIdleForm({
               display: "flex",
               flexDirection: "column",
               gap: "12px",
-              maxHeight: isMultiAssetMode ? "310px" : undefined,
-              overflowY: isMultiAssetMode ? "auto" : "visible",
-              padding: isMultiAssetMode ? "8px 4px 8px 2px" : undefined,
               width: "100%",
-              transition:
-                "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1), padding 0.3s ease",
             }}
           >
             {sourceRowsToRender.map(({ token, index }) =>
@@ -2401,7 +2503,7 @@ export function SwapIdleForm({
               : hoveredPanel === "receive"
                 ? "1px solid #F0F0F0"
                 : "1px solid #F5F5F5",
-          backgroundColor: focusedPanel === "receive" ? "#F7F8FA" : "#FFF",
+          backgroundColor: focusedPanel === "receive" ? "#FBFBFB" : "#FFF",
           boxShadow:
             focusedPanel !== "receive" && hoveredPanel === "receive"
               ? ASSET_DROPDOWN_SHADOW
@@ -2785,160 +2887,166 @@ export function SwapIdleForm({
             >
               Fees (Est)
             </span>
-            <span
-              style={{
-                color: "#111827",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "15px",
-                fontStyle: "normal",
-                fontWeight: 500,
-                lineHeight: "normal",
-              }}
-            >
-              ${feeAmountValue}
-            </span>
-            <div
-              onMouseEnter={() => setTooltip("fees-info")}
-              onMouseLeave={() => setTooltip(null)}
-              style={{
-                alignItems: "center",
-                cursor: "pointer",
-                display: "flex",
-                position: "relative",
-              }}
-            >
-              <svg
-                fill="none"
-                height="14"
-                stroke="#8E8E89"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.8"
-                style={{ height: "14px", width: "14px" }}
-                viewBox="0 0 24 24"
-                width="14"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" x2="12" y1="16" y2="12" />
-                <line x1="12" x2="12.01" y1="8" y2="8" />
-              </svg>
-              {tooltip === "fees-info" && (
-                <div
+            {isFeesLoading ? (
+              <SkeletonBar borderRadius="4px" height="15px" width="42px" />
+            ) : (
+              <>
+                <span
                   style={{
-                    backgroundColor: "#FFFFFF",
-                    border: "1px solid #F0F0EF",
-                    borderRadius: "12px",
-                    bottom: "calc(100% + 10px)",
-                    boxShadow:
-                      "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
-                    left: 0,
-                    padding: "10px 14px",
-                    pointerEvents: "none",
-                    position: "absolute",
-                    whiteSpace: "nowrap",
-                    zIndex: 1000,
+                    color: "#111827",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "15px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "normal",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "6px",
-                    }}
+                  ${feeAmountValue}
+                </span>
+                <div
+                  onMouseEnter={() => setTooltip("fees-info")}
+                  onMouseLeave={() => setTooltip(null)}
+                  style={{
+                    alignItems: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    position: "relative",
+                  }}
+                >
+                  <svg
+                    fill="none"
+                    height="14"
+                    stroke="#8E8E89"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    style={{ height: "14px", width: "14px" }}
+                    viewBox="0 0 24 24"
+                    width="14"
                   >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" x2="12" y1="16" y2="12" />
+                    <line x1="12" x2="12.01" y1="8" y2="8" />
+                  </svg>
+                  {tooltip === "fees-info" && (
                     <div
                       style={{
-                        alignItems: "center",
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "space-between",
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #F0F0EF",
+                        borderRadius: "12px",
+                        bottom: "calc(100% + 10px)",
+                        boxShadow:
+                          "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
+                        left: 0,
+                        padding: "10px 14px",
+                        pointerEvents: "none",
+                        position: "absolute",
+                        whiteSpace: "nowrap",
+                        zIndex: 1000,
                       }}
                     >
-                      <span
-                        style={{
-                          color: "#6B7280",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Network fees:
-                      </span>
-                      <span
-                        style={{
-                          color: "#1F1F1F",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {feeBreakdown.networkFees}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        alignItems: "center",
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: "#6B7280",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Solver fees:
-                      </span>
-                      <span
-                        style={{
-                          color: "#1F1F1F",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {feeBreakdown.solverFees}
-                      </span>
-                    </div>
-                    {feeBreakdown.hasProtocolFees && (
                       <div
                         style={{
-                          alignItems: "center",
                           display: "flex",
-                          gap: "12px",
-                          justifyContent: "space-between",
+                          flexDirection: "column",
+                          gap: "6px",
                         }}
                       >
-                        <span
+                        <div
                           style={{
-                            color: "#6B7280",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "13px",
-                            fontWeight: 500,
+                            alignItems: "center",
+                            display: "flex",
+                            gap: "12px",
+                            justifyContent: "space-between",
                           }}
                         >
-                          Protocol fees:
-                        </span>
-                        <span
+                          <span
+                            style={{
+                              color: "#6B7280",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Network fees:
+                          </span>
+                          <span
+                            style={{
+                              color: "#1F1F1F",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {feeBreakdown.networkFees}
+                          </span>
+                        </div>
+                        <div
                           style={{
-                            color: "#1F1F1F",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "13px",
-                            fontWeight: 600,
+                            alignItems: "center",
+                            display: "flex",
+                            gap: "12px",
+                            justifyContent: "space-between",
                           }}
                         >
-                          {feeBreakdown.protocolFees}
-                        </span>
+                          <span
+                            style={{
+                              color: "#6B7280",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Solver fees:
+                          </span>
+                          <span
+                            style={{
+                              color: "#1F1F1F",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {feeBreakdown.solverFees}
+                          </span>
+                        </div>
+                        {feeBreakdown.hasProtocolFees && (
+                          <div
+                            style={{
+                              alignItems: "center",
+                              display: "flex",
+                              gap: "12px",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#6B7280",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "13px",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Protocol fees:
+                            </span>
+                            <span
+                              style={{
+                                color: "#1F1F1F",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "13px",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {feeBreakdown.protocolFees}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
 
           {/* Right: Max Slippage [Auto] 0.2% (i) */}
@@ -2962,146 +3070,152 @@ export function SwapIdleForm({
             >
               Max Slippage
             </span>
-            <span
-              style={{
-                alignItems: "center",
-                background: "#EEF2FF",
-                borderRadius: "999px",
-                color: "#4F46E5",
-                display: "flex",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
-                fontStyle: "normal",
-                fontWeight: 600,
-                lineHeight: "normal",
-                padding: "3px 8px",
-              }}
-            >
-              Auto
-            </span>
-            <span
-              style={{
-                color: "#111827",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "15px",
-                fontStyle: "normal",
-                fontWeight: 500,
-                lineHeight: "normal",
-              }}
-            >
-              0.2%
-            </span>
-            <div
-              onMouseEnter={() => setTooltip("slippage-info")}
-              onMouseLeave={() => setTooltip(null)}
-              style={{
-                alignItems: "center",
-                cursor: "pointer",
-                display: "flex",
-                position: "relative",
-              }}
-            >
-              <svg
-                fill="none"
-                height="14"
-                stroke="#8E8E89"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.8"
-                style={{ height: "14px", width: "14px" }}
-                viewBox="0 0 24 24"
-                width="14"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" x2="12" y1="16" y2="12" />
-                <line x1="12" x2="12.01" y1="8" y2="8" />
-              </svg>
-              {tooltip === "slippage-info" && (
-                <div
+            {isFeesLoading ? (
+              <SkeletonBar borderRadius="4px" height="15px" width="58px" />
+            ) : (
+              <>
+                <span
                   style={{
-                    backgroundColor: "#FFFFFF",
-                    border: "1px solid #F0F0EF",
-                    borderRadius: "12px",
-                    bottom: "calc(100% + 10px)",
-                    boxShadow:
-                      "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
-                    padding: "10px 14px",
-                    pointerEvents: "none",
-                    position: "absolute",
-                    right: 0,
-                    whiteSpace: "nowrap",
-                    zIndex: 1000,
+                    alignItems: "center",
+                    background: "#EEF2FF",
+                    borderRadius: "999px",
+                    color: "#4F46E5",
+                    display: "flex",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "12px",
+                    fontStyle: "normal",
+                    fontWeight: 600,
+                    lineHeight: "normal",
+                    padding: "3px 8px",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "6px",
-                    }}
+                  Auto
+                </span>
+                <span
+                  style={{
+                    color: "#111827",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "15px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "normal",
+                  }}
+                >
+                  0.2%
+                </span>
+                <div
+                  onMouseEnter={() => setTooltip("slippage-info")}
+                  onMouseLeave={() => setTooltip(null)}
+                  style={{
+                    alignItems: "center",
+                    cursor: "pointer",
+                    display: "flex",
+                    position: "relative",
+                  }}
+                >
+                  <svg
+                    fill="none"
+                    height="14"
+                    stroke="#8E8E89"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                    style={{ height: "14px", width: "14px" }}
+                    viewBox="0 0 24 24"
+                    width="14"
                   >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" x2="12" y1="16" y2="12" />
+                    <line x1="12" x2="12.01" y1="8" y2="8" />
+                  </svg>
+                  {tooltip === "slippage-info" && (
                     <div
                       style={{
-                        alignItems: "center",
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "space-between",
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #F0F0EF",
+                        borderRadius: "12px",
+                        bottom: "calc(100% + 10px)",
+                        boxShadow:
+                          "0 4px 16px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1)",
+                        padding: "10px 14px",
+                        pointerEvents: "none",
+                        position: "absolute",
+                        right: 0,
+                        whiteSpace: "nowrap",
+                        zIndex: 1000,
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          color: "#6B7280",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 500,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px",
                         }}
                       >
-                        Min. received:
-                      </span>
-                      <span
-                        style={{
-                          color: "#1F1F1F",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {minReceivedDisplay}
-                      </span>
+                        <div
+                          style={{
+                            alignItems: "center",
+                            display: "flex",
+                            gap: "12px",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: "#6B7280",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Min. received:
+                          </span>
+                          <span
+                            style={{
+                              color: "#1F1F1F",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {minReceivedDisplay}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            alignItems: "center",
+                            display: "flex",
+                            gap: "12px",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: "#6B7280",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Price Impact:
+                          </span>
+                          <span
+                            style={{
+                              color: "#1F1F1F",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: "13px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {priceImpactDisplay}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        alignItems: "center",
-                        display: "flex",
-                        gap: "12px",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: "#6B7280",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Price Impact:
-                      </span>
-                      <span
-                        style={{
-                          color: "#1F1F1F",
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: "13px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {priceImpactDisplay}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -2316,7 +2316,11 @@ function SwapReceiptPanel({
     >
       <div
         style={{
-          background: "linear-gradient(0deg, #FFFFFE 0%, #F0FFF3 100%)",
+          background: isFailed
+            ? "linear-gradient(0deg, #FFFFFE 0%, #FFF0F2 100%)"
+            : isTimeout
+              ? "linear-gradient(0deg, #FFFFFE 0%, #FFFBF0 100%)"
+              : "linear-gradient(0deg, #FFFFFE 0%, #F0FFF3 100%)",
           border: "1px solid #F5F5F5",
           borderRadius: "24px 24px 12px 12px",
           padding: "20px 16px",
@@ -11599,6 +11603,7 @@ function NexusOneInner({
                   intentData={intentData}
                   isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
+                  isQuoteLoading={isIdleSwapQuoteLoading}
                   isReceiveAmountLoading={isReceiveAmountLoading}
                   isReceiveUsdLoading={isReceiveUsdLoading}
                   missingUsd={insufficientSourceIssue?.missingUsd}
@@ -11745,27 +11750,6 @@ function NexusOneInner({
                           isSwapExactOut ? "Pay & Swap" : "Approve & Swap"
                         )}
                       </span>
-                      {!isSwapCtaDisabled && !needsWalletConnection && (
-                        <span
-                          className="nexus-cta-est-time"
-                          style={{
-                            color: "#8E8E89",
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: "12px",
-                            fontWeight: 400,
-                            left: "calc(100% + 8px)",
-                            letterSpacing: "-0.06px",
-                            lineHeight: "20px",
-                            pointerEvents: "none",
-                            position: "absolute",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          (Est. Time: ~10 Sec)
-                        </span>
-                      )}
                     </span>
                   </button>
                 </div>
@@ -12814,7 +12798,6 @@ function NexusOneInner({
                     ? getAutoExactOutSourceTokensForPicker()
                     : undefined
                 }
-                selectedTokens={sourcePickerSelectedTokens}
                 selectedTokens={sourcePickerSelectedTokens}
                 showBelowMinimumInline={true}
                 showRestoreAuto={sourcePickerDraftTouched}

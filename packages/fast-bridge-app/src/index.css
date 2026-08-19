@@ -552,6 +552,15 @@ button,
   }
 }
 
+@keyframes nexusSwapSkeletonShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .nexus-balance-skeleton {
   background: linear-gradient(90deg, #f0f0ef 0%, #e6eeff 48%, #f0f0ef 100%);
   background-size: 200% 100%;
@@ -637,5 +646,5 @@ button,
 }
 
 .nexus-asset-row:hover {
-  background-color: #eaecef !important;
+  background-color: #f5f5f4 !important;
 }
