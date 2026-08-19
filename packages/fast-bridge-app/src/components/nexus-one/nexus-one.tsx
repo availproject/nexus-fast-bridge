@@ -4544,8 +4544,16 @@ function NexusOneInner({
   const getTokenBalanceAmount = (token: SwapTokenOption) =>
     parseFiatNumber(token.balance) ?? new Decimal(0);
 
-  const getTokenBalanceUsd = (token: SwapTokenOption) =>
-    parseFiatNumber(token.balanceInFiat) ?? new Decimal(0);
+  const getTokenBalanceUsd = (token: SwapTokenOption) => {
+    const fromFiat = parseFiatNumber(token.balanceInFiat);
+    if (fromFiat && fromFiat.gt(0)) return fromFiat;
+    const balance = parseFiatNumber(token.balance);
+    const rate = getTokenUsdRate(token);
+    if (balance && balance.gt(0) && rate.gt(0)) {
+      return balance.mul(rate);
+    }
+    return fromFiat ?? new Decimal(0);
+  };
 
   const getSdkExactOutSourcePriority = (token: SwapTokenOption) => {
     const isSameChain =
@@ -4726,15 +4734,17 @@ function NexusOneInner({
   ) => {
     const destinationKey = getPredictiveDestinationKey(destination);
     if (!destinationKey) return "";
-    if (mode !== "swap" || type !== "exactIn") {
-      return `exactOut:${destinationKey}`;
-    }
-
     const sourceKey = getExpandedSourceTokens(sources)
       .map(getPredictiveSourceKey)
       .sort()
       .join("+");
-    return sourceKey ? `exactIn:${sourceKey}->${destinationKey}` : "";
+    if (mode === "swap" && type === "exactIn") {
+      return sourceKey ? `exactIn:${sourceKey}->${destinationKey}` : "";
+    }
+    const modeKey = isMultiAssetMode ? "multi" : "single";
+    return sourceKey
+      ? `exactOut:${modeKey}:${sourceKey}->${destinationKey}`
+      : `exactOut:${modeKey}:auto->${destinationKey}`;
   };
 
   const getPredictiveDisplayAmount = (
@@ -5604,12 +5614,19 @@ function NexusOneInner({
         0,
         fullAvailableUsd.minus(gasReserveUsd)
       );
-      if (availableUsd.lte(0)) continue;
+      if (availableUsd.lte(0) && (isMultiAssetMode || !isExplicitUserSelection))
+        continue;
 
       const rate = await resolveUsdRateForToken(token);
       if (rate.lte(0)) continue;
 
-      const targetUsd = Decimal.min(remainingUsd, availableUsd);
+      const targetUsd =
+        !isMultiAssetMode && isExplicitUserSelection
+          ? remainingUsd
+          : Decimal.min(
+              remainingUsd,
+              availableUsd.gt(0) ? availableUsd : remainingUsd
+            );
       const tokenAmount = targetUsd
         .div(rate)
         .toDecimalPlaces(Math.max(0, token.decimals || 18), Decimal.ROUND_DOWN);
@@ -7132,7 +7149,7 @@ function NexusOneInner({
     normalizedQuoteAmountKey,
     toTokenQuoteKey,
     quoteRecipientKey.toLowerCase(),
-    activeMode === "swap" && swapType === "exactIn" ? fromTokensQuoteKey : "",
+    fromTokensQuoteKey,
     activeMode === "deposit"
       ? [
           depositAmountMode,
@@ -7401,9 +7418,17 @@ function NexusOneInner({
         fullAvailableUsd.minus(gasReserveUsd)
       );
       const sourceRate = getTokenUsdRate(token);
-      if (availableUsd.lte(0) || sourceRate.lte(0)) continue;
+      if (sourceRate.lte(0)) continue;
+      if (availableUsd.lte(0) && (isMultiAssetMode || !isExplicitUserSelection))
+        continue;
 
-      const targetUsd = Decimal.min(remainingUsd, availableUsd);
+      const targetUsd =
+        !isMultiAssetMode && isExplicitUserSelection
+          ? remainingUsd
+          : Decimal.min(
+              remainingUsd,
+              availableUsd.gt(0) ? availableUsd : remainingUsd
+            );
       const tokenAmount = targetUsd
         .div(sourceRate)
         .toDecimalPlaces(Math.max(0, token.decimals || 18), Decimal.ROUND_DOWN);
@@ -9181,10 +9206,36 @@ function NexusOneInner({
             return;
           }
           const exactOutSources = !isMultiAssetMode
-            ? immediatePredictiveOut?.sources &&
-              immediatePredictiveOut.sources.length > 0
-              ? [immediatePredictiveOut.sources[0]]
-              : fromTokens.slice(0, 1)
+            ? (() => {
+                if (
+                  immediatePredictiveOut?.sources &&
+                  immediatePredictiveOut.sources.length > 0
+                ) {
+                  return [immediatePredictiveOut.sources[0]];
+                }
+                const sourceToken = fromTokens[0];
+                if (!sourceToken) return [];
+                const rate = getTokenUsdRate(sourceToken);
+                const destRate = getTokenUsdRate(toToken);
+                const destAmount = parseFiatNumber(amount) ?? new Decimal(0);
+                const destUsd = destAmount.mul(destRate.gt(0) ? destRate : 1);
+                const sourceAmount = rate.gt(0)
+                  ? destUsd.div(rate)
+                  : destAmount;
+                return [
+                  {
+                    ...sourceToken,
+                    userAmount: sourceAmount
+                      .toDecimalPlaces(
+                        sourceToken.decimals || 18,
+                        Decimal.ROUND_DOWN
+                      )
+                      .toFixed(),
+                    userAmountMode: "token" as const,
+                    userAmountUsd: destUsd.toFixed(2),
+                  },
+                ];
+              })()
             : fromTokens.length > 0
               ? immediatePredictiveOut?.sources &&
                 immediatePredictiveOut.sources.length > 0
@@ -9497,21 +9548,11 @@ function NexusOneInner({
 
     const hasEnoughForQuote =
       swapType === "exactOut"
-        ? Boolean(
-            parseFiatNumber(amount)?.gt(0) &&
-              toToken &&
-              predictiveQuote?.mode === "exactOut" &&
-              predictiveQuote.key ===
-                getPredictiveQuoteCacheKey(activeMode, "exactOut") &&
-              (predictiveQuote.sources?.length ?? 0) > 0
-          )
+        ? Boolean(parseFiatNumber(amount)?.gt(0) && toToken)
         : hasReadyExactInSwapInput(fromTokens, toToken);
 
     if (!hasEnoughForQuote) {
       clearPendingSwapIntent();
-      if (swapType === "exactOut" && !predictiveQuote) {
-        clearSelectedSources();
-      }
       setSwapQuoteIssue(null);
       setTxError(null);
       return;
@@ -9596,7 +9637,6 @@ function NexusOneInner({
 
     if (!hasEnoughForQuote) {
       clearPendingSwapIntent();
-      clearSelectedSources();
       return;
     }
 
@@ -9672,7 +9712,6 @@ function NexusOneInner({
 
     if (!hasEnoughForQuote) {
       clearPendingSwapIntent();
-      clearSelectedSources();
       return;
     }
 
@@ -10269,8 +10308,6 @@ function NexusOneInner({
     }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
-    } else {
-      clearSelectedSources();
     }
     setAmount(val);
   };
@@ -10297,8 +10334,6 @@ function NexusOneInner({
     }
     if (shouldLoadQuote) {
       setQuoteRefreshing(true);
-    } else {
-      clearSelectedSources();
     }
     setAmount(val);
   };
@@ -10819,16 +10854,43 @@ function NexusOneInner({
       const primaryToken = fromTokens[0] ?? calculatedSources[0];
       if (primaryToken) {
         const match = calculatedSources.find(
-          (s) => getTokenSelectionKey(s) === getTokenSelectionKey(primaryToken)
+          (s) =>
+            getTokenSelectionKey(s) === getTokenSelectionKey(primaryToken) ||
+            isSameTokenChainPair(s, primaryToken) ||
+            (s.symbol &&
+              primaryToken.symbol &&
+              s.symbol.toUpperCase() === primaryToken.symbol.toUpperCase() &&
+              (s.chainId === primaryToken.chainId ||
+                !s.chainId ||
+                !primaryToken.chainId))
         );
+        let userAmount = match?.userAmount || primaryToken.userAmount || "";
+        let userAmountUsd =
+          match?.userAmountUsd || primaryToken.userAmountUsd || "";
+        if (!userAmount && hasPositiveDecimalInput(amount)) {
+          const destRate = getTokenUsdRate(toToken);
+          const sourceRate = getTokenUsdRate(primaryToken);
+          const destAmt = parseFiatNumber(amount) ?? new Decimal(0);
+          const destUsd = destAmt.mul(destRate.gt(0) ? destRate : 1);
+          const targetSourceUsd = getPredictiveExactOutSourceTargetUsd(destUsd);
+          if (sourceRate.gt(0)) {
+            userAmount = targetSourceUsd
+              .div(sourceRate)
+              .toDecimalPlaces(
+                Math.max(0, primaryToken.decimals || 18),
+                Decimal.ROUND_DOWN
+              )
+              .toFixed();
+            userAmountUsd = targetSourceUsd.toFixed(2);
+          }
+        }
         return [
           {
             ...primaryToken,
-            userAmount: match?.userAmount || primaryToken.userAmount || "",
+            userAmount,
             userAmountMode:
               match?.userAmountMode || primaryToken.userAmountMode || "token",
-            userAmountUsd:
-              match?.userAmountUsd || primaryToken.userAmountUsd || "",
+            userAmountUsd,
           },
         ];
       }
@@ -11529,11 +11591,9 @@ function NexusOneInner({
                   defaultRecipientAddress={defaultRecipientAddress}
                   destinationGasFeeUsd={previewDestinationGasFeeUsd}
                   fromTokens={
-                    swapType === "exactOut" && fromTokens.length > 0
-                      ? fromTokens
-                      : swapType === "exactOut"
-                        ? exactOutIdleSourceTokens
-                        : fromTokens
+                    swapType === "exactOut"
+                      ? exactOutIdleSourceTokens
+                      : fromTokens
                   }
                   getTokenUsdRate={(t) => getTokenUsdRate(t).toNumber()}
                   intentData={intentData}
@@ -12754,6 +12814,7 @@ function NexusOneInner({
                     ? getAutoExactOutSourceTokensForPicker()
                     : undefined
                 }
+                selectedTokens={sourcePickerSelectedTokens}
                 selectedTokens={sourcePickerSelectedTokens}
                 showBelowMinimumInline={true}
                 showRestoreAuto={sourcePickerDraftTouched}

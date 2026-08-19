@@ -2306,7 +2306,8 @@ export function SwapAssetSelector({
       ? requiredUsdAmount.minus(selectedUsdAmount)
       : new Decimal(0);
   const hasSelectionShortfall = Boolean(
-    requiredUsdAmount &&
+    isMulti &&
+      requiredUsdAmount &&
       requiredUsdAmount.gt(0) &&
       selectionDeficitUsdAmount.gt(0)
   );
