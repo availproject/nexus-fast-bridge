@@ -216,7 +216,7 @@ const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
 
 const SCIENTIFIC_DECIMAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)e[+-]?\d+$/i;
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
-const EXACT_OUT_INPUT_DEBOUNCE_MS = 1300;
+const EXACT_OUT_INPUT_DEBOUNCE_MS = 500;
 const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
 const MODAL_HEIGHT_TRANSITION_MS = 280;
@@ -7288,9 +7288,11 @@ function NexusOneInner({
       getSourceTokensQuoteKey(
         activeMode === "swap" && swapType === "exactIn"
           ? getReadyExactInSourceTokens(fromTokens)
-          : fromTokens
+          : swapType === "exactOut" && !sourceSelectionTouched
+            ? []
+            : fromTokens
       ),
-    [activeMode, swapType, fromTokens]
+    [activeMode, swapType, fromTokens, sourceSelectionTouched]
   );
   const activeQuoteInputKey = [
     activeMode,
@@ -10311,12 +10313,21 @@ function NexusOneInner({
       const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
 
       if (isZeroOrEmpty) {
+        setAmount("");
         setPredictiveQuote(null);
         setReceiveAmountIssue(null);
         setSwapQuoteIssue(null);
         setTxError(null);
         setQuoteRefreshing(false);
         clearPendingSwapIntent();
+        setFromTokens((current) =>
+          current.map((token) => ({
+            ...token,
+            userAmount: "",
+            userAmountUsd: "",
+            selectedPct: null,
+          }))
+        );
         return;
       }
 
@@ -10392,6 +10403,27 @@ function NexusOneInner({
       }
       setSwapQuoteIssue(null);
       const nextAmount = parseFiatNumber(sanitizedVal);
+      const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
+
+      if (isZeroOrEmpty) {
+        setAmount("");
+        setPredictiveQuote(null);
+        setReceiveAmountIssue(null);
+        setSwapQuoteIssue(null);
+        setTxError(null);
+        setQuoteRefreshing(false);
+        clearPendingSwapIntent();
+        setFromTokens((current) =>
+          current.map((token) => ({
+            ...token,
+            userAmount: "",
+            userAmountUsd: "",
+            selectedPct: null,
+          }))
+        );
+        return;
+      }
+
       const hasSelectedSourceToken = fromTokens.some(
         (token) => token.chainId && token.contractAddress
       );
