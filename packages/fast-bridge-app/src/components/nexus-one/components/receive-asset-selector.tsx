@@ -1692,6 +1692,8 @@ export function ReceiveAssetSelector({
                       onClick={() => {
                         setSelectedTokenHash(hash);
                         setSelectedTokenFull(t);
+                        onSelect(t);
+                        onBack();
                       }}
                       style={{
                         alignItems: "center",
@@ -1877,58 +1879,6 @@ export function ReceiveAssetSelector({
             )}
           </div>
         </div>
-      </div>
-
-      {/* Bottom Footer: Done Button */}
-      <div
-        style={{
-          alignItems: "center",
-          borderTop: "1px solid #F5F5F5",
-          boxSizing: "border-box",
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "16px 24px",
-          width: "100%",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={() => {
-            onBack();
-            if (selectedTokenFull) {
-              onSelect(selectedTokenFull);
-            }
-          }}
-          style={{
-            alignItems: "center",
-            alignSelf: "flex-end",
-            backgroundColor: "#1F1F1F",
-            border: "none",
-            borderRadius: "999px",
-            boxSizing: "border-box",
-            color: "#FFFFFE",
-            cursor: "pointer",
-            display: "flex",
-            flexShrink: 0,
-            fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "15px",
-            fontWeight: 500,
-            height: "44px",
-            justifyContent: "center",
-            lineHeight: "20px",
-            minWidth: "130px",
-            opacity: 1,
-            padding: "10px 28px",
-            textAlign: "center",
-            transition: "opacity 0.15s ease",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            width: "auto",
-          }}
-          type="button"
-        >
-          Done
-        </button>
       </div>
 
       {/* Chain Selector Modal */}

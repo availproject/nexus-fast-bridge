@@ -1703,6 +1703,8 @@ export function SwapAssetSelector({
         onToggle(token);
       } else {
         setDraftSelectedTokens([token]);
+        onSelect(token);
+        onBack();
       }
     };
 
@@ -2104,6 +2106,8 @@ export function SwapAssetSelector({
                   handleMultiTokenToggle(groupState.unifiedToken);
                 } else if (groupState.unifiedToken) {
                   setDraftSelectedTokens([groupState.unifiedToken]);
+                  onSelect(groupState.unifiedToken);
+                  onBack();
                 }
               }}
               style={{ cursor: "pointer" }}
@@ -3356,163 +3360,165 @@ export function SwapAssetSelector({
         </div>
       </div>
 
-      {/* Footer */}
-      <div
-        style={{
-          alignItems: "center",
-          backgroundColor: "#FFF",
-          borderTop: "1px solid #F5F5F5",
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          gap: "12px",
-          justifyContent: "center",
-          padding: isDesktop ? "16px 24px" : "12px 16px",
-          width: "100%",
-        }}
-      >
-        {/* Left: Progress loader & Restore Auto on ExactOut / Shortfall */}
-        {shouldShowSelectionProgress &&
-          requiredUsdAmount &&
-          requiredUsdAmount > 0 && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                width: "100%",
-              }}
-            >
+      {/* Footer (Multi-mode only) */}
+      {isMulti && (
+        <div
+          style={{
+            alignItems: "center",
+            backgroundColor: "#FFF",
+            borderTop: "1px solid #F5F5F5",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            flexShrink: 0,
+            gap: "12px",
+            justifyContent: "center",
+            padding: isDesktop ? "16px 24px" : "12px 16px",
+            width: "100%",
+          }}
+        >
+          {/* Left: Progress loader & Restore Auto on ExactOut / Shortfall */}
+          {shouldShowSelectionProgress &&
+            requiredUsdAmount &&
+            requiredUsdAmount > 0 && (
               <div
                 style={{
-                  alignItems: "center",
                   display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#1F1F1F",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
-                    fontWeight: 500,
-                  }}
-                >
-                  Selected
-                  <span style={{ color: "#8E8E89", fontWeight: 400 }}>
-                    /Required
-                  </span>
-                </span>
-                <span
-                  style={{
-                    color: "#1F1F1F",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "13px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {formatUsdBalanceLabel(selectedUsdAmount)}{" "}
-                  <span style={{ color: "#8E8E89", fontWeight: 400 }}>
-                    / {formatUsdBalanceLabel(requiredUsdAmount)}
-                  </span>
-                </span>
-              </div>
-              <div
-                style={{
-                  alignItems: "center",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#8E8E89",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "12px",
-                    fontWeight: 400,
-                  }}
-                >
-                  Manually-selected · covers{" "}
-                  {formatUsdBalanceLabel(selectedUsdAmount)}
-                </span>
-                {showRestoreAuto && onRestoreAuto && (
-                  <button
-                    onClick={handleRestoreAuto}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#006BF4",
-                      cursor: "pointer",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      padding: 0,
-                      textDecoration: "none",
-                    }}
-                    type="button"
-                  >
-                    Restore Auto
-                  </button>
-                )}
-              </div>
-              <div
-                style={{
-                  backgroundColor: "#E5E7EB",
-                  borderRadius: "999px",
-                  height: "4px",
-                  overflow: "hidden",
+                  flexDirection: "column",
+                  gap: "6px",
                   width: "100%",
                 }}
               >
                 <div
                   style={{
-                    backgroundColor: "#006BF4",
-                    borderRadius: "999px",
-                    height: "100%",
-                    transition: "width 0.2s ease",
-                    width: `${Math.min(100, Math.max(0, (selectedUsdAmount / requiredUsdAmount) * 100))}%`,
+                    alignItems: "center",
+                    display: "flex",
+                    justifyContent: "space-between",
                   }}
-                />
+                >
+                  <span
+                    style={{
+                      color: "#1F1F1F",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "13px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Selected
+                    <span style={{ color: "#8E8E89", fontWeight: 400 }}>
+                      /Required
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      color: "#1F1F1F",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "13px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {formatUsdBalanceLabel(selectedUsdAmount)}{" "}
+                    <span style={{ color: "#8E8E89", fontWeight: 400 }}>
+                      / {formatUsdBalanceLabel(requiredUsdAmount)}
+                    </span>
+                  </span>
+                </div>
+                <div
+                  style={{
+                    alignItems: "center",
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#8E8E89",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: "12px",
+                      fontWeight: 400,
+                    }}
+                  >
+                    Manually-selected · covers{" "}
+                    {formatUsdBalanceLabel(selectedUsdAmount)}
+                  </span>
+                  {showRestoreAuto && onRestoreAuto && (
+                    <button
+                      onClick={handleRestoreAuto}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#006BF4",
+                        cursor: "pointer",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        padding: 0,
+                        textDecoration: "none",
+                      }}
+                      type="button"
+                    >
+                      Restore Auto
+                    </button>
+                  )}
+                </div>
+                <div
+                  style={{
+                    backgroundColor: "#E5E7EB",
+                    borderRadius: "999px",
+                    height: "4px",
+                    overflow: "hidden",
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: "#006BF4",
+                      borderRadius: "999px",
+                      height: "100%",
+                      transition: "width 0.2s ease",
+                      width: `${Math.min(100, Math.max(0, (selectedUsdAmount / requiredUsdAmount) * 100))}%`,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-        {/* Done button */}
-        <button
-          disabled={hasSelectionShortfall}
-          onClick={handleDone}
-          style={{
-            alignItems: "center",
-            alignSelf: "flex-end",
-            backgroundColor: hasSelectionShortfall ? "#CBCBCB" : "#1F1F1F",
-            border: "none",
-            borderRadius: "999px",
-            boxSizing: "border-box",
-            color: hasSelectionShortfall ? "#8E8E89" : "#FFFFFE",
-            cursor: hasSelectionShortfall ? "not-allowed" : "pointer",
-            display: "flex",
-            flexShrink: 0,
-            fontFamily: '"Geist", system-ui, sans-serif',
-            fontSize: "15px",
-            fontWeight: 500,
-            height: "44px",
-            justifyContent: "center",
-            lineHeight: "20px",
-            minWidth: "130px",
-            opacity: hasSelectionShortfall ? 0.6 : 1,
-            padding: "10px 28px",
-            textAlign: "center",
-            transition: "all 0.15s ease",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            width: "auto",
-          }}
-          type="button"
-        >
-          Done
-        </button>
-      </div>
+          {/* Done button */}
+          <button
+            disabled={hasSelectionShortfall}
+            onClick={handleDone}
+            style={{
+              alignItems: "center",
+              alignSelf: "flex-end",
+              backgroundColor: hasSelectionShortfall ? "#CBCBCB" : "#1F1F1F",
+              border: "none",
+              borderRadius: "999px",
+              boxSizing: "border-box",
+              color: hasSelectionShortfall ? "#8E8E89" : "#FFFFFE",
+              cursor: hasSelectionShortfall ? "not-allowed" : "pointer",
+              display: "flex",
+              flexShrink: 0,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "15px",
+              fontWeight: 500,
+              height: "44px",
+              justifyContent: "center",
+              lineHeight: "20px",
+              minWidth: "130px",
+              opacity: hasSelectionShortfall ? 0.6 : 1,
+              padding: "10px 28px",
+              textAlign: "center",
+              transition: "all 0.15s ease",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              width: "auto",
+            }}
+            type="button"
+          >
+            Done
+          </button>
+        </div>
+      )}
 
       {/* Chain Selector Modal */}
       {showChainSelector &&
