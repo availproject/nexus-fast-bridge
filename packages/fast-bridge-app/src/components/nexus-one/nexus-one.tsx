@@ -225,7 +225,7 @@ const ASSET_SELECTOR_DRAWER_HEIGHT = "calc(100% - 72px)";
 const NEXUS_ONE_LIST_MIN_HEIGHT = "min(560px, 90dvh)";
 const BASIS_POINTS = 10000;
 const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
-const PREDICTIVE_EXACT_OUT_FEE_BPS = 50;
+const PREDICTIVE_EXACT_OUT_SLIPPAGE_BPS = 20; // 0.2% slippage
 const PREDICTIVE_QUOTE_DISPLAY_DECIMALS = 8;
 const ETHEREUM_MAINNET_CHAIN_ID = 1;
 const SDK_EXACT_OUT_STABLE_SYMBOLS = new Set([
@@ -298,7 +298,7 @@ const getPredictiveExactOutSourceTargetUsd = (
   }
 
   return destinationUsdNeedingSources
-    .mul(BASIS_POINTS + PREDICTIVE_EXACT_OUT_FEE_BPS)
+    .mul(BASIS_POINTS + PREDICTIVE_EXACT_OUT_SLIPPAGE_BPS)
     .div(BASIS_POINTS);
 };
 const modalHeightTransitionStyle = {
@@ -4601,115 +4601,68 @@ function NexusOneInner({
 
   const getSdkExactOutSourcePriority = (
     token: SwapTokenOption,
-    targetUsd?: Decimal,
-    sameChainCanCover?: boolean
+    dstChainId?: number,
+    dstTokenAddress?: string
   ) => {
     const usd = getTokenBalanceUsd(token);
     if (usd.lte(0)) return 99;
 
+    const isSameChain = Boolean(dstChainId && token.chainId === dstChainId);
+    const isSameTokenAddress = Boolean(
+      dstTokenAddress &&
+        token.contractAddress &&
+        token.contractAddress.toLowerCase() === dstTokenAddress.toLowerCase()
+    );
+    const isStable = isSdkExactOutStableSymbol(token.symbol);
     const isNative =
       token.contractAddress === zeroAddress ||
+      token.contractAddress?.toLowerCase() ===
+        "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
       isNativeTokenAddress(token.contractAddress);
-    const gasReserveUsd = isNative
-      ? token.chainId === 1
-        ? new Decimal(0.5)
-        : new Decimal(0.1)
-      : new Decimal(0);
-    const availableUsd = Decimal.max(0, usd.minus(gasReserveUsd));
-    const isBelowOneDollar = usd.lt(1);
     const isEthereum = token.chainId === ETHEREUM_MAINNET_CHAIN_ID;
-    const isSameChain =
-      Boolean(token.chainId && toToken?.chainId) &&
-      token.chainId === toToken?.chainId;
-    const isStable = isSdkExactOutStableSymbol(token.symbol);
-    const isCapable = Boolean(
-      targetUsd && targetUsd.gt(0) && availableUsd.gte(targetUsd)
-    );
 
-    // Below $1 in total balance is lowest priority
-    if (isBelowOneDollar) {
-      return 90;
-    }
-
-    // 1. If same-chain tokens combined can fulfill the entire swap, prioritize same-chain tokens first!
-    if (sameChainCanCover && isSameChain && !isEthereum) {
-      return 1;
-    }
-
-    // 2. Same-chain single asset capable
-    if (isSameChain && isCapable && !isEthereum) {
-      return 2;
-    }
-
-    // 3. Other-chain stablecoin capable single-handedly (e.g. USDC on Arbitrum with $65.80 >= $23)
-    if (!isSameChain && isCapable && isStable && !isEthereum) {
-      return 3;
-    }
-
-    // 4. Other-chain non-Ethereum asset capable single-handedly (e.g. WHYPE on HyperEVM with $100 >= $70)
-    if (!isSameChain && isCapable && !isEthereum) {
+    // Destination chain (Tier 1-4)
+    if (isSameChain) {
+      if (isSameTokenAddress) return 1;
+      if (isStable) return 2;
+      if (isNative) return 3;
       return 4;
     }
 
-    // 5. Other-chain Ethereum Mainnet asset capable single-handedly
-    if (!isSameChain && isCapable && isEthereum) {
-      return 5;
+    // Ethereum Mainnet (Tier 8-11)
+    if (isEthereum) {
+      if (isSameTokenAddress) return 8;
+      if (isStable) return 9;
+      if (isNative) return 10;
+      return 11;
     }
 
-    // 6. Other-chain stablecoins with high balance (e.g. USDC on Arbitrum when combined with other tokens)
-    if (!isSameChain && isStable && !isEthereum) {
-      return 6;
-    }
-
-    // 7. Same-chain assets (partial balance when same-chain cannot cover)
-    if (isSameChain && !isEthereum) {
-      return 7;
-    }
-
-    // 8. Other-chain non-Ethereum assets (WHYPE, AVAX, WBTC, etc.)
-    if (!isEthereum) {
-      return 8;
-    }
-
-    // 9. Ethereum Mainnet assets
-    return 9;
+    // Non-Ethereum other chains (Tier 5-7)
+    if (isSameTokenAddress) return 5;
+    if (isStable) return 6;
+    if (isNative) return 7;
+    return 7;
   };
 
   const sortExactOutSourcesBySdkPriority = (
     tokens: SwapTokenOption[],
-    targetUsd?: Decimal
+    dstChainId?: number,
+    dstTokenAddress?: string
   ) => {
-    const sameChainTokens = tokens.filter(
-      (t) =>
-        Boolean(t.chainId && toToken?.chainId) && t.chainId === toToken?.chainId
-    );
-    const sameChainTotalUsd = sameChainTokens.reduce((sum, t) => {
-      const usd = getTokenBalanceUsd(t);
-      const isNative =
-        t.contractAddress === zeroAddress ||
-        isNativeTokenAddress(t.contractAddress);
-      const gasReserveUsd = isNative
-        ? t.chainId === 1
-          ? new Decimal(0.5)
-          : new Decimal(0.1)
-        : new Decimal(0);
-      return sum.plus(Decimal.max(0, usd.minus(gasReserveUsd)));
-    }, new Decimal(0));
-
-    const sameChainCanCover = Boolean(
-      targetUsd && targetUsd.gt(0) && sameChainTotalUsd.gte(targetUsd)
-    );
+    const targetChainId = dstChainId ?? toToken?.chainId;
+    const targetAddress = dstTokenAddress ?? toToken?.contractAddress;
 
     return [...tokens].sort((left, right) => {
       const priorityDifference =
-        getSdkExactOutSourcePriority(left, targetUsd, sameChainCanCover) -
-        getSdkExactOutSourcePriority(right, targetUsd, sameChainCanCover);
+        getSdkExactOutSourcePriority(left, targetChainId, targetAddress) -
+        getSdkExactOutSourcePriority(right, targetChainId, targetAddress);
       if (priorityDifference !== 0) return priorityDifference;
 
       const usdDifference = getTokenBalanceUsd(right).cmp(
         getTokenBalanceUsd(left)
       );
       if (usdDifference !== 0) return usdDifference;
+
       return `${left.symbol} ${left.chainName ?? ""}`.localeCompare(
         `${right.symbol} ${right.chainName ?? ""}`
       );
@@ -4998,45 +4951,22 @@ function NexusOneInner({
             );
             const pool = sortExactOutSourcesBySdkPriority(
               rawPool,
-              requestedReceiveUsd
+              destinationToken?.chainId,
+              destinationToken?.contractAddress
             );
             const capable = pool.find((token) => {
-              const isNative =
-                token.contractAddress === zeroAddress ||
-                isNativeTokenAddress(token.contractAddress);
-              const gasReserveUsd = isNative
-                ? token.chainId === 1
-                  ? new Decimal(0.5)
-                  : new Decimal(0.1)
-                : new Decimal(0);
               const fullAvailableUsd = getTokenBalanceUsd(token);
               const rate = getTokenUsdRate(token);
               if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
-              const availableUsd = Decimal.max(
-                0,
-                fullAvailableUsd.minus(gasReserveUsd)
-              );
-              return availableUsd.gte(requestedReceiveUsd);
+              return fullAvailableUsd.gte(requestedReceiveUsd);
             });
             singleToken =
               capable ?? pool.find((token) => getTokenBalanceUsd(token).gt(0));
           }
           if (singleToken) {
-            const isNative =
-              singleToken.contractAddress === zeroAddress ||
-              isNativeTokenAddress(singleToken.contractAddress);
-            const gasReserveUsd = isNative
-              ? singleToken.chainId === 1
-                ? new Decimal(0.5)
-                : new Decimal(0.1)
-              : new Decimal(0);
             const fullAvailableUsd = getTokenBalanceUsd(singleToken);
-            const availableUsd = Decimal.max(
-              0,
-              fullAvailableUsd.minus(gasReserveUsd)
-            );
-            if (availableUsd.lt(requestedReceiveUsd)) {
-              const shortfall = requestedReceiveUsd.minus(availableUsd);
+            if (fullAvailableUsd.lt(requestedReceiveUsd)) {
+              const shortfall = requestedReceiveUsd.minus(fullAvailableUsd);
               const missingUsd = shortfall.toDecimalPlaces(2).toFixed();
               return {
                 ctaLabel: "Insufficient balance",
@@ -5684,24 +5614,16 @@ function NexusOneInner({
         requiredSourceUsd
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
       if (rawPool.length === 0) return undefined;
-      const pool = sortExactOutSourcesBySdkPriority(rawPool, requiredSourceUsd);
+      const pool = sortExactOutSourcesBySdkPriority(
+        rawPool,
+        toToken?.chainId,
+        toToken?.contractAddress
+      );
       const capable = pool.find((token) => {
         const fullAvailableUsd = getTokenBalanceUsd(token);
         const rate = getTokenUsdRate(token);
         if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
-        const isNative =
-          token.contractAddress === zeroAddress ||
-          isNativeTokenAddress(token.contractAddress);
-        const gasReserveUsd = isNative
-          ? token.chainId === 1
-            ? new Decimal(0.5)
-            : new Decimal(0.1)
-          : new Decimal(0);
-        const availableUsd = Decimal.max(
-          0,
-          fullAvailableUsd.minus(gasReserveUsd)
-        );
-        return availableUsd.gte(requiredSourceUsd);
+        return fullAvailableUsd.gte(requiredSourceUsd);
       });
       if (capable) return capable;
       const bestPositive = pool.find(
@@ -5733,7 +5655,8 @@ function NexusOneInner({
           getExpandedSourceTokens(
             excludeSwapExactOutDestinationTokens(sourcePool)
           ).filter((token) => getTokenSelectionKey(token) !== destinationKey),
-          requiredSourceUsd
+          toToken?.chainId,
+          toToken?.contractAddress
         );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
@@ -5741,19 +5664,7 @@ function NexusOneInner({
     for (const token of candidates) {
       if (remainingUsd.lte(0)) break;
 
-      const isNative =
-        token.contractAddress === zeroAddress ||
-        isNativeTokenAddress(token.contractAddress);
-      const gasReserveUsd = isNative
-        ? token.chainId === 1
-          ? new Decimal(0.5)
-          : new Decimal(0.1)
-        : new Decimal(0);
-      const fullAvailableUsd = getTokenBalanceUsd(token);
-      const availableUsd = Decimal.max(
-        0,
-        fullAvailableUsd.minus(gasReserveUsd)
-      );
+      const availableUsd = getTokenBalanceUsd(token);
       if (availableUsd.lte(0) && (isMultiAssetMode || !isExplicitUserSelection))
         continue;
 
@@ -7506,24 +7417,16 @@ function NexusOneInner({
         excludeSwapExactOutDestinationTokens(allAvailableTokens)
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
       if (rawPool.length === 0) return undefined;
-      const pool = sortExactOutSourcesBySdkPriority(rawPool, requiredSourceUsd);
+      const pool = sortExactOutSourcesBySdkPriority(
+        rawPool,
+        toToken?.chainId,
+        toToken?.contractAddress
+      );
       const capable = pool.find((token) => {
         const fullAvailableUsd = getTokenBalanceUsd(token);
         const rate = getTokenUsdRate(token);
         if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
-        const isNative =
-          token.contractAddress === zeroAddress ||
-          isNativeTokenAddress(token.contractAddress);
-        const gasReserveUsd = isNative
-          ? token.chainId === 1
-            ? new Decimal(0.5)
-            : new Decimal(0.1)
-          : new Decimal(0);
-        const availableUsd = Decimal.max(
-          0,
-          fullAvailableUsd.minus(gasReserveUsd)
-        );
-        return availableUsd.gte(requiredSourceUsd);
+        return fullAvailableUsd.gte(requiredSourceUsd);
       });
       if (capable) return capable;
       const bestPositive = pool.find(
@@ -7554,7 +7457,8 @@ function NexusOneInner({
           getExpandedSourceTokens(
             excludeSwapExactOutDestinationTokens(sourcePool)
           ).filter((token) => getTokenSelectionKey(token) !== destinationKey),
-          requiredSourceUsd
+          toToken?.chainId,
+          toToken?.contractAddress
         );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
@@ -7562,19 +7466,7 @@ function NexusOneInner({
     for (const token of candidates) {
       if (remainingUsd.lte(0)) break;
 
-      const isNative =
-        token.contractAddress === zeroAddress ||
-        isNativeTokenAddress(token.contractAddress);
-      const gasReserveUsd = isNative
-        ? token.chainId === 1
-          ? new Decimal(0.5)
-          : new Decimal(0.1)
-        : new Decimal(0);
-      const fullAvailableUsd = getTokenBalanceUsd(token);
-      const availableUsd = Decimal.max(
-        0,
-        fullAvailableUsd.minus(gasReserveUsd)
-      );
+      const availableUsd = getTokenBalanceUsd(token);
       const sourceRate = getTokenUsdRate(token);
       if (sourceRate.lte(0)) continue;
       if (availableUsd.lte(0) && (isMultiAssetMode || !isExplicitUserSelection))
