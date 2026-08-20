@@ -231,7 +231,15 @@ const ETHEREUM_MAINNET_CHAIN_ID = 1;
 const SDK_EXACT_OUT_STABLE_SYMBOLS = new Set([
   "USDC",
   "USDT",
+  "USDM",
+  "USDE",
+  "USD0",
+  "USDT0",
   "DAI",
+  "GHO",
+  "PYUSD",
+  "FDUSD",
+  "CTUSD",
   "BUSD",
   "TUSD",
   "FRAX",
@@ -4591,38 +4599,111 @@ function NexusOneInner({
     return new Decimal(0);
   };
 
-  const getSdkExactOutSourcePriority = (token: SwapTokenOption) => {
+  const getSdkExactOutSourcePriority = (
+    token: SwapTokenOption,
+    targetUsd?: Decimal,
+    sameChainCanCover?: boolean
+  ) => {
     const usd = getTokenBalanceUsd(token);
+    if (usd.lte(0)) return 99;
+
+    const isNative =
+      token.contractAddress === zeroAddress ||
+      isNativeTokenAddress(token.contractAddress);
+    const gasReserveUsd = isNative
+      ? token.chainId === 1
+        ? new Decimal(0.5)
+        : new Decimal(0.1)
+      : new Decimal(0);
+    const availableUsd = Decimal.max(0, usd.minus(gasReserveUsd));
     const isBelowOneDollar = usd.lt(1);
     const isEthereum = token.chainId === ETHEREUM_MAINNET_CHAIN_ID;
     const isSameChain =
       Boolean(token.chainId && toToken?.chainId) &&
       token.chainId === toToken?.chainId;
+    const isStable = isSdkExactOutStableSymbol(token.symbol);
+    const isCapable = Boolean(
+      targetUsd && targetUsd.gt(0) && availableUsd.gte(targetUsd)
+    );
 
-    // Tier 4 (Lowest priority): Tokens below $1 in total balance
+    // Below $1 in total balance is lowest priority
     if (isBelowOneDollar) {
-      return 4;
+      return 90;
     }
 
-    // Tier 1 (Highest priority): Non-Ethereum assets on receiving chain (balance >= $1)
-    if (isSameChain && !isEthereum) {
+    // 1. If same-chain tokens combined can fulfill the entire swap, prioritize same-chain tokens first!
+    if (sameChainCanCover && isSameChain && !isEthereum) {
       return 1;
     }
 
-    // Tier 2: Non-Ethereum assets on other chains (balance >= $1)
-    if (!isEthereum) {
+    // 2. Same-chain single asset capable
+    if (isSameChain && isCapable && !isEthereum) {
       return 2;
     }
 
-    // Tier 3: Ethereum Mainnet assets (balance >= $1)
-    return 3;
+    // 3. Other-chain stablecoin capable single-handedly (e.g. USDC on Arbitrum with $65.80 >= $23)
+    if (!isSameChain && isCapable && isStable && !isEthereum) {
+      return 3;
+    }
+
+    // 4. Other-chain non-Ethereum asset capable single-handedly (e.g. WHYPE on HyperEVM with $100 >= $70)
+    if (!isSameChain && isCapable && !isEthereum) {
+      return 4;
+    }
+
+    // 5. Other-chain Ethereum Mainnet asset capable single-handedly
+    if (!isSameChain && isCapable && isEthereum) {
+      return 5;
+    }
+
+    // 6. Other-chain stablecoins with high balance (e.g. USDC on Arbitrum when combined with other tokens)
+    if (!isSameChain && isStable && !isEthereum) {
+      return 6;
+    }
+
+    // 7. Same-chain assets (partial balance when same-chain cannot cover)
+    if (isSameChain && !isEthereum) {
+      return 7;
+    }
+
+    // 8. Other-chain non-Ethereum assets (WHYPE, AVAX, WBTC, etc.)
+    if (!isEthereum) {
+      return 8;
+    }
+
+    // 9. Ethereum Mainnet assets
+    return 9;
   };
 
-  const sortExactOutSourcesBySdkPriority = (tokens: SwapTokenOption[]) =>
-    [...tokens].sort((left, right) => {
+  const sortExactOutSourcesBySdkPriority = (
+    tokens: SwapTokenOption[],
+    targetUsd?: Decimal
+  ) => {
+    const sameChainTokens = tokens.filter(
+      (t) =>
+        Boolean(t.chainId && toToken?.chainId) && t.chainId === toToken?.chainId
+    );
+    const sameChainTotalUsd = sameChainTokens.reduce((sum, t) => {
+      const usd = getTokenBalanceUsd(t);
+      const isNative =
+        t.contractAddress === zeroAddress ||
+        isNativeTokenAddress(t.contractAddress);
+      const gasReserveUsd = isNative
+        ? t.chainId === 1
+          ? new Decimal(0.5)
+          : new Decimal(0.1)
+        : new Decimal(0);
+      return sum.plus(Decimal.max(0, usd.minus(gasReserveUsd)));
+    }, new Decimal(0));
+
+    const sameChainCanCover = Boolean(
+      targetUsd && targetUsd.gt(0) && sameChainTotalUsd.gte(targetUsd)
+    );
+
+    return [...tokens].sort((left, right) => {
       const priorityDifference =
-        getSdkExactOutSourcePriority(left) -
-        getSdkExactOutSourcePriority(right);
+        getSdkExactOutSourcePriority(left, targetUsd, sameChainCanCover) -
+        getSdkExactOutSourcePriority(right, targetUsd, sameChainCanCover);
       if (priorityDifference !== 0) return priorityDifference;
 
       const usdDifference = getTokenBalanceUsd(right).cmp(
@@ -4633,6 +4714,7 @@ function NexusOneInner({
         `${right.symbol} ${right.chainName ?? ""}`
       );
     });
+  };
 
   const getTokenAmountForUsd = (token: SwapTokenOption, usdAmount: Decimal) => {
     const rate = getTokenUsdRate(token);
@@ -4900,8 +4982,23 @@ function NexusOneInner({
             (sourceSelectionTouched ? fromTokens[0] : undefined);
           let singleToken = explicitToken;
           if (!singleToken) {
-            const pool = excludeSwapExactOutDestinationTokens(
-              getGasCapableBalanceSourceTokens()
+            const rawPool = getExpandedSourceTokens(
+              excludeSwapExactOutDestinationTokens(
+                swapBalance && swapSupportedChainsAndTokens
+                  ? deriveTokenOptions(
+                      swapBalance,
+                      swapSupportedChainsAndTokens
+                    )
+                  : []
+              )
+            ).filter(
+              (t) =>
+                getTokenSelectionKey(t) !==
+                getTokenSelectionKey(destinationToken)
+            );
+            const pool = sortExactOutSourcesBySdkPriority(
+              rawPool,
+              requestedReceiveUsd
             );
             const capable = pool.find((token) => {
               const isNative =
@@ -4913,6 +5010,8 @@ function NexusOneInner({
                   : new Decimal(0.1)
                 : new Decimal(0);
               const fullAvailableUsd = getTokenBalanceUsd(token);
+              const rate = getTokenUsdRate(token);
+              if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
               const availableUsd = Decimal.max(
                 0,
                 fullAvailableUsd.minus(gasReserveUsd)
@@ -4920,10 +5019,7 @@ function NexusOneInner({
               return availableUsd.gte(requestedReceiveUsd);
             });
             singleToken =
-              capable ??
-              [...pool].sort((a, b) =>
-                getTokenBalanceUsd(b).minus(getTokenBalanceUsd(a)).toNumber()
-              )[0];
+              capable ?? pool.find((token) => getTokenBalanceUsd(token).gt(0));
           }
           if (singleToken) {
             const isNative =
@@ -4953,8 +5049,15 @@ function NexusOneInner({
           return null;
         }
 
-        const availableTokens = excludeSwapExactOutDestinationTokens(
-          getGasCapableBalanceSourceTokens()
+        const availableTokens = getExpandedSourceTokens(
+          excludeSwapExactOutDestinationTokens(
+            swapBalance && swapSupportedChainsAndTokens
+              ? deriveTokenOptions(swapBalance, swapSupportedChainsAndTokens)
+              : []
+          )
+        ).filter(
+          (t) =>
+            getTokenSelectionKey(t) !== getTokenSelectionKey(destinationToken)
         );
         let totalWalletUsd = new Decimal(0);
         for (const token of availableTokens) {
@@ -5301,9 +5404,7 @@ function NexusOneInner({
       }
     }
 
-    return sortExactOutSourcesBySdkPriority(
-      getExpandedSourceTokens(tokens).filter(hasGasForSource)
-    );
+    return sortExactOutSourcesBySdkPriority(getExpandedSourceTokens(tokens));
   };
 
   const getMinimumBalanceSourceTokens = () =>
@@ -5583,7 +5684,7 @@ function NexusOneInner({
         requiredSourceUsd
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
       if (rawPool.length === 0) return undefined;
-      const pool = sortExactOutSourcesBySdkPriority(rawPool);
+      const pool = sortExactOutSourcesBySdkPriority(rawPool, requiredSourceUsd);
       const capable = pool.find((token) => {
         const fullAvailableUsd = getTokenBalanceUsd(token);
         const rate = getTokenUsdRate(token);
@@ -5610,7 +5711,9 @@ function NexusOneInner({
       return bestPositive ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
-      sourceSelectionTouched && fromTokens.length > 0
+      sourceSelectionTouched &&
+        exactOutQuoteSourceModeRef.current !== "all" &&
+        fromTokens.length > 0
     );
     const sourcePool = !isMultiAssetMode
       ? singleAssetToken
@@ -5629,7 +5732,8 @@ function NexusOneInner({
       : sortExactOutSourcesBySdkPriority(
           getExpandedSourceTokens(
             excludeSwapExactOutDestinationTokens(sourcePool)
-          ).filter((token) => getTokenSelectionKey(token) !== destinationKey)
+          ).filter((token) => getTokenSelectionKey(token) !== destinationKey),
+          requiredSourceUsd
         );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
@@ -7400,7 +7504,7 @@ function NexusOneInner({
         excludeSwapExactOutDestinationTokens(allAvailableTokens)
       ).filter((t) => getTokenSelectionKey(t) !== destinationKey);
       if (rawPool.length === 0) return undefined;
-      const pool = sortExactOutSourcesBySdkPriority(rawPool);
+      const pool = sortExactOutSourcesBySdkPriority(rawPool, requiredSourceUsd);
       const capable = pool.find((token) => {
         const fullAvailableUsd = getTokenBalanceUsd(token);
         const rate = getTokenUsdRate(token);
@@ -7428,6 +7532,7 @@ function NexusOneInner({
     })();
     const isExplicitUserSelection = Boolean(
       sourceSelectionTouched &&
+        exactOutQuoteSourceModeRef.current !== "all" &&
         ((sourceTokens && sourceTokens.length > 0) || fromTokens.length > 0)
     );
     const sourcePool = !isMultiAssetMode
@@ -7435,7 +7540,9 @@ function NexusOneInner({
         ? [singleAssetToken]
         : []
       : isExplicitUserSelection
-        ? sourceTokens
+        ? sourceTokens && sourceTokens.length > 0
+          ? sourceTokens
+          : fromTokens
         : allAvailableTokens;
     const candidates = isExplicitUserSelection
       ? getExpandedSourceTokens(
@@ -7444,9 +7551,8 @@ function NexusOneInner({
       : sortExactOutSourcesBySdkPriority(
           getExpandedSourceTokens(
             excludeSwapExactOutDestinationTokens(sourcePool)
-          )
-            .filter((token) => getTokenSelectionKey(token) !== destinationKey)
-            .filter(hasGasForSource)
+          ).filter((token) => getTokenSelectionKey(token) !== destinationKey),
+          requiredSourceUsd
         );
     const sources: SwapTokenOption[] = [];
     let remainingUsd = requiredSourceUsd;
@@ -8093,14 +8199,28 @@ function NexusOneInner({
 
     setFromTokens([]);
     setSwapQuoteIssue(null);
+    setReceiveAmountIssue(null);
     setTxError(null);
     setSourceSelectionRevision((current) => current + 1);
 
     clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
     setQuoteRefreshing(true);
+
+    const immediatePrediction = buildImmediatePredictiveExactOutQuote(
+      [],
+      false
+    );
+    if (immediatePrediction) {
+      setPredictiveQuote(immediatePrediction);
+      if (immediatePrediction.sources?.length > 0) {
+        setFromTokens(immediatePrediction.sources);
+      }
+    }
+
     invalidateExactOutQuoteForRefresh();
   }, [
     activeMode,
+    buildImmediatePredictiveExactOutQuote,
     clearPendingSwapIntent,
     invalidateExactOutQuoteForRefresh,
     setExactOutQuoteSourceModeValue,
@@ -9249,8 +9369,13 @@ function NexusOneInner({
         } else {
           const activePredictiveOut =
             predictiveQuote?.mode === "exactOut" ? predictiveQuote : null;
+          const isExplicit = Boolean(
+            sourceSelectionTouched &&
+              exactOutQuoteSourceModeRef.current !== "all" &&
+              fromTokens.length > 0
+          );
           const immediatePredictiveOut = buildImmediatePredictiveExactOutQuote(
-            fromTokens,
+            isExplicit ? fromTokens : [],
             true
           );
           if (
@@ -9310,17 +9435,17 @@ function NexusOneInner({
                   },
                 ];
               })()
-            : fromTokens.length > 0
+            : isExplicit
               ? immediatePredictiveOut?.sources &&
                 immediatePredictiveOut.sources.length > 0
                 ? immediatePredictiveOut.sources
                 : fromTokens
-              : activePredictiveOut?.sources &&
-                  activePredictiveOut.sources.length > 0
-                ? activePredictiveOut.sources
-                : immediatePredictiveOut?.sources &&
-                    immediatePredictiveOut.sources.length > 0
-                  ? immediatePredictiveOut.sources
+              : immediatePredictiveOut?.sources &&
+                  immediatePredictiveOut.sources.length > 0
+                ? immediatePredictiveOut.sources
+                : activePredictiveOut?.sources &&
+                    activePredictiveOut.sources.length > 0
+                  ? activePredictiveOut.sources
                   : fromTokens;
           const exactOutFromPayload: {
             chainId: number;
@@ -10197,6 +10322,7 @@ function NexusOneInner({
 
       const hasManualSourceSelection =
         sourceSelectionTouched &&
+        exactOutQuoteSourceModeRef.current !== "all" &&
         fromTokens.some((token) => token.chainId && token.contractAddress);
       if (hasManualSourceSelection) {
         setExactOutQuoteSourceModeValue("selected");
@@ -10207,7 +10333,7 @@ function NexusOneInner({
       }
 
       const immediatePrediction = buildImmediatePredictiveExactOutQuote(
-        fromTokens,
+        hasManualSourceSelection ? fromTokens : [],
         true
       );
       if (immediatePrediction) {
@@ -10249,10 +10375,9 @@ function NexusOneInner({
           nextAmount?.gt(0) &&
           toToken &&
           (hasManualSourceSelection ||
-            (!isMultiAssetMode &&
-              immediatePrediction?.sources &&
+            (immediatePrediction?.sources &&
               immediatePrediction.sources.length > 0 &&
-              !immediatePrediction.hasUncoveredSourceAmount))
+              !immediatePrediction.missingUsd))
       );
       clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
       if (shouldLoadQuote) {
@@ -10330,14 +10455,29 @@ function NexusOneInner({
       handleSwapAmountChange("", "send");
       clearPendingSwapIntent();
     } else if (swapType === "exactOut" && amount && toToken) {
+      sourcePickerDraftDepositFilterRef.current = "all";
+      sourcePickerDraftTouchedRef.current = false;
+      sourcePickerDraftModeRef.current = "all";
+      setSourcePickerDraftTouched(false);
+      setSourceSelectionTouched(false);
       setExactOutQuoteSourceModeValue("all");
       setFromTokens([]);
+      setSwapQuoteIssue(null);
+      setReceiveAmountIssue(null);
+      setTxError(null);
+      setSourceSelectionRevision((current) => current + 1);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: true });
+      setQuoteRefreshing(true);
+
       const immediatePrediction = buildImmediatePredictiveExactOutQuote(
         [],
-        true
+        false
       );
       if (immediatePrediction) {
         setPredictiveQuote(immediatePrediction);
+        if (immediatePrediction.sources?.length > 0) {
+          setFromTokens(immediatePrediction.sources);
+        }
       }
     }
     if (swapType === "exactOut") {
@@ -10617,11 +10757,11 @@ function NexusOneInner({
 
       if (token.userAmountMode === "usd") {
         const fiatBal = parseFiatNumber(token.balanceInFiat);
-        return fiatBal !== null && requested.gt(fiatBal);
+        return Boolean(fiatBal && requested.gt(fiatBal));
       }
 
       const tokenBal = parseFiatNumber(token.balance);
-      return tokenBal !== null && requested.gt(tokenBal);
+      return Boolean(tokenBal && requested.gt(tokenBal));
     });
   }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
 

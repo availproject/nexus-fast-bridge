@@ -1440,11 +1440,11 @@ export function SwapIdleForm({
 
     if (actualToken.userAmountMode === "usd") {
       const fiatBal = parseDecimal(actualToken.balanceInFiat);
-      return fiatBal !== null && requested.gt(fiatBal);
+      return Boolean(fiatBal && requested.gt(fiatBal));
     }
 
     const tokenBal = parseDecimal(actualToken.balance);
-    return tokenBal !== null && requested.gt(tokenBal);
+    return Boolean(tokenBal && requested.gt(tokenBal));
   };
 
   const warningMessage = React.useMemo(() => {
