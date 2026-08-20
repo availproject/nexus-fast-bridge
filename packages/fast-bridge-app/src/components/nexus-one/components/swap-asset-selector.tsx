@@ -107,6 +107,12 @@ export function deriveTokenOptions(
       }
       if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
+      const balanceNum = Number.parseFloat(bd.balance ?? "0");
+      const fiatNum = Number(bd.balanceInFiat ?? (bd as any).value ?? 0);
+      const priceUsd =
+        (bd as any).priceUSD ??
+        (bd as any).priceUsd ??
+        (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
       tokens.push({
         contractAddress: bd.contractAddress,
         symbol: bd.symbol ?? asset.symbol,
@@ -118,6 +124,7 @@ export function deriveTokenOptions(
           bd.balanceInFiat != null
             ? `$${Number(bd.balanceInFiat).toFixed(2)}`
             : "$0.00",
+        priceUSD: priceUsd > 0 ? priceUsd : 0,
         chainId: bd.chain?.id,
         chainName: getShortChainName(
           bd.chain?.id,

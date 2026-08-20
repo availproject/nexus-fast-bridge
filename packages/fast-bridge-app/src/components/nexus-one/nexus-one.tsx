@@ -4267,24 +4267,31 @@ function NexusOneInner({
   };
 
   const getTokenUsdRate = (token: SwapTokenOption) => {
-    if (needsWalletConnection) {
-      return getDisconnectedUsdRate(token);
+    const directPrice = parseFiatNumber(token.priceUSD);
+    if (directPrice && directPrice.gt(0)) {
+      return directPrice;
     }
     const tokenBalance = parseFiatNumber(token.balance) ?? new Decimal(0);
     const fiatBalance = parseFiatNumber(token.balanceInFiat) ?? new Decimal(0);
     if (tokenBalance.gt(0) && fiatBalance.gt(0)) {
       return fiatBalance.div(tokenBalance);
     }
-
-    const fallbackRate = getFiatValue(1, token.symbol);
-    if (Number.isFinite(fallbackRate) && fallbackRate > 0) {
-      return new Decimal(fallbackRate);
+    if (tokenBalance.gt(0) && fiatBalance.lte(0)) {
+      return new Decimal(0);
     }
 
     const cached = getCachedIntentUsdRate(token);
     if (cached && cached.gt(0)) return cached;
 
-    return getDisconnectedUsdRate(token);
+    const supportedRate = getTokenUsdRateFromSupportedChains(
+      swapSupportedChainsAndTokens,
+      token.chainId,
+      token.contractAddress,
+      token.symbol
+    );
+    if (supportedRate && supportedRate.gt(0)) return supportedRate;
+
+    return new Decimal(0);
   };
   const getUsdRateForSymbol = (symbol?: string) => {
     if (!symbol) return new Decimal(0);
@@ -4573,13 +4580,15 @@ function NexusOneInner({
 
   const getTokenBalanceUsd = (token: SwapTokenOption) => {
     const fromFiat = parseFiatNumber(token.balanceInFiat);
-    if (fromFiat && fromFiat.gt(0)) return fromFiat;
-    const balance = parseFiatNumber(token.balance);
-    const rate = getTokenUsdRate(token);
-    if (balance && balance.gt(0) && rate.gt(0)) {
-      return balance.mul(rate);
+    if (fromFiat !== undefined && fromFiat.gte(0)) {
+      return fromFiat;
     }
-    return fromFiat ?? new Decimal(0);
+    const balance = parseFiatNumber(token.balance);
+    const priceUsd = parseFiatNumber(token.priceUSD);
+    if (balance && balance.gt(0) && priceUsd && priceUsd.gt(0)) {
+      return balance.mul(priceUsd);
+    }
+    return new Decimal(0);
   };
 
   const getSdkExactOutSourcePriority = (token: SwapTokenOption) => {
@@ -5576,6 +5585,9 @@ function NexusOneInner({
       if (rawPool.length === 0) return undefined;
       const pool = sortExactOutSourcesBySdkPriority(rawPool);
       const capable = pool.find((token) => {
+        const fullAvailableUsd = getTokenBalanceUsd(token);
+        const rate = getTokenUsdRate(token);
+        if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
         const isNative =
           token.contractAddress === zeroAddress ||
           isNativeTokenAddress(token.contractAddress);
@@ -5584,14 +5596,18 @@ function NexusOneInner({
             ? new Decimal(0.5)
             : new Decimal(0.1)
           : new Decimal(0);
-        const fullAvailableUsd = getTokenBalanceUsd(token);
         const availableUsd = Decimal.max(
           0,
           fullAvailableUsd.minus(gasReserveUsd)
         );
         return availableUsd.gte(requiredSourceUsd);
       });
-      return capable ?? pool[0];
+      if (capable) return capable;
+      const bestPositive = pool.find(
+        (token) =>
+          getTokenBalanceUsd(token).gt(0) && getTokenUsdRate(token).gt(0)
+      );
+      return bestPositive ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
       sourceSelectionTouched && fromTokens.length > 0
@@ -7386,6 +7402,9 @@ function NexusOneInner({
       if (rawPool.length === 0) return undefined;
       const pool = sortExactOutSourcesBySdkPriority(rawPool);
       const capable = pool.find((token) => {
+        const fullAvailableUsd = getTokenBalanceUsd(token);
+        const rate = getTokenUsdRate(token);
+        if (fullAvailableUsd.lte(0) || rate.lte(0)) return false;
         const isNative =
           token.contractAddress === zeroAddress ||
           isNativeTokenAddress(token.contractAddress);
@@ -7394,14 +7413,18 @@ function NexusOneInner({
             ? new Decimal(0.5)
             : new Decimal(0.1)
           : new Decimal(0);
-        const fullAvailableUsd = getTokenBalanceUsd(token);
         const availableUsd = Decimal.max(
           0,
           fullAvailableUsd.minus(gasReserveUsd)
         );
         return availableUsd.gte(requiredSourceUsd);
       });
-      return capable ?? pool[0];
+      if (capable) return capable;
+      const bestPositive = pool.find(
+        (token) =>
+          getTokenBalanceUsd(token).gt(0) && getTokenUsdRate(token).gt(0)
+      );
+      return bestPositive ?? pool[0];
     })();
     const isExplicitUserSelection = Boolean(
       sourceSelectionTouched &&

@@ -374,35 +374,19 @@ const NexusProvider = ({
           assetWithSources.chainBalances ?? assetWithSources.breakdown ?? [];
 
         const breakdown = sourceBalances.map((entry) => {
-          const balance = Number.parseFloat(String(entry.balance ?? "0"));
-          const safeBalance =
-            Number.isFinite(balance) && balance > 0 ? balance : 0;
           const existingUsd = Number.parseFloat(
             String(entry.value ?? entry.balanceInFiat ?? "0")
           );
           const safeExistingUsd =
             Number.isFinite(existingUsd) && existingUsd >= 0 ? existingUsd : 0;
 
-          let normalizedUsd = safeExistingUsd;
-          if (safeBalance > 0 && normalizedUsd <= 0) {
-            const rate = getUsdRateFromLocalSources(
-              entry.symbol ?? asset.symbol
-            );
-            if (rate > 0) {
-              normalizedUsd = safeBalance * rate;
-            }
-          }
-
-          computedAssetUsd += normalizedUsd;
+          computedAssetUsd += safeExistingUsd;
           return {
             ...entry,
-            balanceInFiat: normalizedUsd,
+            balanceInFiat: safeExistingUsd,
           };
         });
 
-        const assetBalance = Number.parseFloat(String(asset.balance ?? "0"));
-        const safeAssetBalance =
-          Number.isFinite(assetBalance) && assetBalance > 0 ? assetBalance : 0;
         const rawAssetUsd = Number.parseFloat(
           String(
             assetWithSources.value ?? assetWithSources.balanceInFiat ?? "0"
@@ -411,17 +395,8 @@ const NexusProvider = ({
         const safeAssetUsd =
           Number.isFinite(rawAssetUsd) && rawAssetUsd >= 0 ? rawAssetUsd : 0;
 
-        let normalizedAssetUsd = safeAssetUsd;
-        if (normalizedAssetUsd <= 0) {
-          if (computedAssetUsd > 0) {
-            normalizedAssetUsd = computedAssetUsd;
-          } else if (safeAssetBalance > 0) {
-            const rate = getUsdRateFromLocalSources(asset.symbol);
-            if (rate > 0) {
-              normalizedAssetUsd = safeAssetBalance * rate;
-            }
-          }
-        }
+        const normalizedAssetUsd =
+          safeAssetUsd > 0 ? safeAssetUsd : computedAssetUsd;
 
         return {
           ...asset,
@@ -430,7 +405,7 @@ const NexusProvider = ({
         } as UserAsset;
       });
     },
-    [getUsdRateFromLocalSources]
+    []
   );
 
   const resolveTokenUsdRate = useCallback(
