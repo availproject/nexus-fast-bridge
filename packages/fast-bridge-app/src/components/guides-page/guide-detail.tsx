@@ -5,7 +5,14 @@ import { type CMSBlogPost, fetchBlogPostBySlug } from "@/lib/cms";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
-const STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
+const STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/seo-page.css",
+  "/landing-new/button-hovers.css",
+];
 
 interface GuideDetailPageProps {
   initialPost?: CMSBlogPost | null;

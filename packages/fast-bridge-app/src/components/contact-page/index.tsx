@@ -4,7 +4,14 @@ import { prefetchBridgeApp } from "@/bootstrap";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
-const STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
+const STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/contact.css",
+  "/landing-new/button-hovers.css",
+];
 
 const GOOGLE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwtdbHQH6JWv-Ne81Deh72VuKeDQOu9d8FQy48d0k6lDif0wCdHPw8dfE0Ad3dJxo_M/exec";

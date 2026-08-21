@@ -7,7 +7,15 @@ import { prefetchBridgeApp } from "@/bootstrap";
 const WEBKIT_REGEX = /AppleWebKit/;
 const CHROME_REGEX = /Chrome|Chromium|Android|Edg|OPR|SamsungBrowser/;
 
-const STYLESHEETS = ["/landing-new/landing-page.bundle.css"];
+const STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/hiw.css",
+  "/landing-new/blog.css",
+  "/landing-new/animations.css",
+  "/landing-new/button-hovers.css",
+];
 
 const BLOG_ITEMS = [
   {

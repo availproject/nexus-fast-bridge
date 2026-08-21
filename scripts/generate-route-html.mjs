@@ -24,59 +24,41 @@ const indexPath = path.join(distDir, "index.html");
 const LANDING_META_IMAGE_URL =
   "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
 
-const LANDING_PAGE_STYLESHEETS = ["/landing-new/landing-page.bundle.css"];
-const SEO_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
-const FAQ_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
-const CONTACT_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
+const LANDING_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/hiw.css",
+  "/landing-new/blog.css",
+  "/landing-new/animations.css",
+  "/landing-new/button-hovers.css",
+];
 
-function bundleStaticStylesheets() {
-  const landingDir = path.join(distDir, "landing-new");
-  if (!fs.existsSync(landingDir)) {
-    return;
-  }
+const SEO_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/seo-page.css",
+  "/landing-new/button-hovers.css",
+];
 
-  try {
-    const landingFiles = [
-      "base.css",
-      "hero.css",
-      "sections.css",
-      "hiw.css",
-      "blog.css",
-      "animations.css",
-      "button-hovers.css",
-    ];
-    const landingContent = landingFiles
-      .filter((f) => fs.existsSync(path.join(landingDir, f)))
-      .map((f) => fs.readFileSync(path.join(landingDir, f), "utf8"))
-      .join("\n");
-    fs.writeFileSync(
-      path.join(landingDir, "landing-page.bundle.css"),
-      landingContent,
-      "utf8"
-    );
+const FAQ_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/button-hovers.css",
+];
 
-    const seoFiles = [
-      "base.css",
-      "hero.css",
-      "sections.css",
-      "faq.css",
-      "seo-page.css",
-      "contact.css",
-      "button-hovers.css",
-    ];
-    const seoContent = seoFiles
-      .filter((f) => fs.existsSync(path.join(landingDir, f)))
-      .map((f) => fs.readFileSync(path.join(landingDir, f), "utf8"))
-      .join("\n");
-    fs.writeFileSync(
-      path.join(landingDir, "seo-pages.bundle.css"),
-      seoContent,
-      "utf8"
-    );
-  } catch (err) {
-    console.warn("Could not bundle static stylesheets:", err);
-  }
-}
+const CONTACT_PAGE_STYLESHEETS = [
+  "/landing-new/base.css",
+  "/landing-new/hero.css",
+  "/landing-new/sections.css",
+  "/landing-new/faq.css",
+  "/landing-new/contact.css",
+  "/landing-new/button-hovers.css",
+];
 
 const STATIC_PAGES = [
   {
@@ -587,7 +569,6 @@ async function main() {
     process.exit(1);
   }
 
-  bundleStaticStylesheets();
   const baseHtml = fs.readFileSync(indexPath, "utf-8");
   let generated = 0;
 
