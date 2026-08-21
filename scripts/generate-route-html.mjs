@@ -24,41 +24,59 @@ const indexPath = path.join(distDir, "index.html");
 const LANDING_META_IMAGE_URL =
   "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
 
-const LANDING_PAGE_STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/hiw.css",
-  "/landing-new/blog.css",
-  "/landing-new/animations.css",
-  "/landing-new/button-hovers.css",
-];
+const LANDING_PAGE_STYLESHEETS = ["/landing-new/landing-page.bundle.css"];
+const SEO_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
+const FAQ_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
+const CONTACT_PAGE_STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
 
-const SEO_PAGE_STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/faq.css",
-  "/landing-new/seo-page.css",
-  "/landing-new/button-hovers.css",
-];
+function bundleStaticStylesheets() {
+  const landingDir = path.join(distDir, "landing-new");
+  if (!fs.existsSync(landingDir)) {
+    return;
+  }
 
-const FAQ_PAGE_STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/faq.css",
-  "/landing-new/button-hovers.css",
-];
+  try {
+    const landingFiles = [
+      "base.css",
+      "hero.css",
+      "sections.css",
+      "hiw.css",
+      "blog.css",
+      "animations.css",
+      "button-hovers.css",
+    ];
+    const landingContent = landingFiles
+      .filter((f) => fs.existsSync(path.join(landingDir, f)))
+      .map((f) => fs.readFileSync(path.join(landingDir, f), "utf8"))
+      .join("\n");
+    fs.writeFileSync(
+      path.join(landingDir, "landing-page.bundle.css"),
+      landingContent,
+      "utf8"
+    );
 
-const CONTACT_PAGE_STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/faq.css",
-  "/landing-new/contact.css",
-  "/landing-new/button-hovers.css",
-];
+    const seoFiles = [
+      "base.css",
+      "hero.css",
+      "sections.css",
+      "faq.css",
+      "seo-page.css",
+      "contact.css",
+      "button-hovers.css",
+    ];
+    const seoContent = seoFiles
+      .filter((f) => fs.existsSync(path.join(landingDir, f)))
+      .map((f) => fs.readFileSync(path.join(landingDir, f), "utf8"))
+      .join("\n");
+    fs.writeFileSync(
+      path.join(landingDir, "seo-pages.bundle.css"),
+      seoContent,
+      "utf8"
+    );
+  } catch (err) {
+    console.warn("Could not bundle static stylesheets:", err);
+  }
+}
 
 const STATIC_PAGES = [
   {
@@ -67,6 +85,7 @@ const STATIC_PAGES = [
     description:
       "Bridge USDC, USDT, ETH, and other tokens across major EVM chains in one transaction. FastBridge is a fast, secure cross-chain bridge powered by Avail Nexus.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/figma-export/hero-gradient-v2.jpg?v=2",
     canonicalUrl: "https://fastbridge.availproject.org/",
     themeColor: "#19191A",
     stylesheets: LANDING_PAGE_STYLESHEETS,
@@ -81,6 +100,7 @@ const STATIC_PAGES = [
     description:
       "FastBridge is a non-custodial cross-chain bridge by Avail. Move & swap tokens across all major EVM chains in one transaction, no gas tokens needed.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/branding/gradients/seo-hero-bg.png",
     canonicalUrl: "https://fastbridge.availproject.org/about",
     themeColor: "#19191A",
     stylesheets: SEO_PAGE_STYLESHEETS,
@@ -95,6 +115,7 @@ const STATIC_PAGES = [
     description:
       "Explore practical cross-chain bridge guides, crypto tutorials, and bridge comparisons. Learn how to move stablecoins and tokens across Ethereum, Arbitrum, Base, and more.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/figma-export/faq-header.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/guides",
     themeColor: "#19191A",
     stylesheets: SEO_PAGE_STYLESHEETS,
@@ -109,6 +130,7 @@ const STATIC_PAGES = [
     description:
       "Compare the best cross-chain bridges in 2026: FastBridge, Across, Stargate and deBridge. Fees, settlement speed, chain coverage and multi-source support.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/branding/gradients/seo-hero-bg.png",
     canonicalUrl:
       "https://fastbridge.availproject.org/guides/top-cross-chain-bridges",
     themeColor: "#19191A",
@@ -126,6 +148,7 @@ const STATIC_PAGES = [
     description:
       "Find answers to common questions about bridging assets, gas fees, transaction speeds, supported chains, and security on FastBridge by Avail.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/figma-export/faq-header.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/faqs",
     themeColor: "#19191A",
     stylesheets: FAQ_PAGE_STYLESHEETS,
@@ -140,6 +163,7 @@ const STATIC_PAGES = [
     description:
       "Get in touch with the FastBridge team. Get help with cross-chain transfers, report issues, or connect with our developer community.",
     imageUrl: LANDING_META_IMAGE_URL,
+    preloadImage: "/landing-new/assets/figma-export/faq-header.jpg",
     canonicalUrl: "https://fastbridge.availproject.org/contact",
     themeColor: "#19191A",
     stylesheets: CONTACT_PAGE_STYLESHEETS,
@@ -369,6 +393,17 @@ function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
       `<meta name="twitter:site" content="${canonicalUrl}">`
     );
 
+  if (pageMeta.preloadImage) {
+    const preloadTag = `    <link rel="preload" as="image" href="${pageMeta.preloadImage}" fetchpriority="high">`;
+    html = html.replace("</head>", `${preloadTag}\n  </head>`);
+  }
+
+  // Remove heavy web3 & nexus modulepreloads from marketing pages so mobile devices don't download 5MB in the background
+  html = html.replace(
+    /<link\s+rel="modulepreload"[^>]+(?:vendor-web3|vendor-nexus)[^>]*>/gi,
+    ""
+  );
+
   if (Array.isArray(pageMeta.stylesheets) && pageMeta.stylesheets.length > 0) {
     const linkTags = pageMeta.stylesheets
       .map((href) => `    <link rel="stylesheet" href="${href}">`)
@@ -552,6 +587,7 @@ async function main() {
     process.exit(1);
   }
 
+  bundleStaticStylesheets();
   const baseHtml = fs.readFileSync(indexPath, "utf-8");
   let generated = 0;
 

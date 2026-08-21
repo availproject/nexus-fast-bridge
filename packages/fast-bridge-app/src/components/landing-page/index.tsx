@@ -7,15 +7,7 @@ import { prefetchBridgeApp } from "@/bootstrap";
 const WEBKIT_REGEX = /AppleWebKit/;
 const CHROME_REGEX = /Chrome|Chromium|Android|Edg|OPR|SamsungBrowser/;
 
-const STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/hiw.css",
-  "/landing-new/blog.css",
-  "/landing-new/animations.css",
-  "/landing-new/button-hovers.css",
-];
+const STYLESHEETS = ["/landing-new/landing-page.bundle.css"];
 
 const BLOG_ITEMS = [
   {
@@ -527,7 +519,7 @@ export default function LandingPage() {
               muted
               playsInline
               poster="/landing-new/assets/figma-export/hero-gradient-v2.jpg?v=2"
-              preload="metadata"
+              preload="none"
             >
               <source
                 src="/landing-new/assets/hero-bg-video-v2.mp4?v=5"
@@ -555,6 +547,7 @@ export default function LandingPage() {
               onClick={handleBridgeClick}
               onFocus={prefetchBridgeApp}
               onMouseEnter={prefetchBridgeApp}
+              onTouchStart={prefetchBridgeApp}
               type="button"
             >
               Bridge Now
@@ -592,6 +585,7 @@ export default function LandingPage() {
                 onClick={handleBridgeClick}
                 onFocus={prefetchBridgeApp}
                 onMouseEnter={prefetchBridgeApp}
+                onTouchStart={prefetchBridgeApp}
                 type="button"
               >
                 Bridge Now

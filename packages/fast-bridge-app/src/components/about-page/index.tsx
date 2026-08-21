@@ -4,14 +4,7 @@ import { prefetchBridgeApp } from "@/bootstrap";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
-const STYLESHEETS = [
-  "/landing-new/base.css",
-  "/landing-new/hero.css",
-  "/landing-new/sections.css",
-  "/landing-new/faq.css",
-  "/landing-new/seo-page.css",
-  "/landing-new/button-hovers.css",
-];
+const STYLESHEETS = ["/landing-new/seo-pages.bundle.css"];
 
 export default function AboutPage() {
   const navigate = useNavigate();

@@ -1,0 +1,2659 @@
+/* Fonts + minimal reset for Figma hero site */
+
+@font-face {
+  font-family: "Google Sans Flex";
+  src: url("assets/google-sans-flex/GoogleSansFlex-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Google Sans Flex";
+  src: url("assets/google-sans-flex/GoogleSansFlex-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("assets/geist-font-1.8.0/fonts/Geist/webfonts/Geist-Regular.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("assets/geist-font-1.8.0/fonts/Geist/webfonts/Geist-Medium.woff2")
+    format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  overflow-x: clip;
+  background: #fffffe;
+}
+
+:root {
+  --fg-primary: #161615;
+  --fg-secondary: #848483;
+  --fg-muted: #737373;
+  --fg-body: #525252;
+  --title-muted: rgba(22, 22, 21, 0.43);
+  --brand-white: #fffffe;
+  --surface: #fffffe;
+  --surface-muted: #f8f8f7;
+  --border: #e8e8e7;
+  --border-faq: #f1f1f0;
+  --brand-blue: #0065ff;
+  --step-num-active: #c9dffe;
+  --footer-text: #f0f0f0;
+  --footer-muted: #b5b5b5;
+  --section-pad-x: 100px;
+  --section-max: 1440px;
+}
+
+body {
+  min-height: 100vh;
+  font-family: "Geist", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--fg-primary);
+  background: var(--surface);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
+.page {
+  width: 100%;
+  margin: 0 auto;
+  background: var(--surface);
+}
+
+@media (max-width: 768px) {
+  :root {
+    --section-pad-x: 48px;
+  }
+}
+
+@media (max-width: 460px) {
+  :root {
+    --section-pad-x: 32px;
+  }
+}
+
+/* FastBridge hero — Figma "Desktop · Fastbridge Hero" (226:2690) */
+
+.hero {
+  --hero-pad-x: 100px;
+  --hero-pad-top: 50px;
+  --hero-height: 809px;
+  --hero-title-size: 75px;
+  --hero-title-lh: 89.842px;
+  --hero-title-tracking: 1.4974px;
+  --hero-title-max: 913px;
+  --hero-title-gap: 96px;
+  --hero-panel-max: 667px;
+  --hero-panel-bottom: 298px;
+  --hero-panel-top: 35px;
+  --hero-panel-gap: 24px;
+
+  position: relative;
+  width: 100%;
+  height: max(var(--hero-height), 100svh);
+  min-height: max(var(--hero-height), 100svh);
+  overflow: hidden;
+  background: #0a0a12;
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero__gradient-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero__gradient-wrap::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    132.24deg,
+    rgba(0, 0, 0, 0.2) 26.76%,
+    rgba(0, 0, 0, 0) 39.94%
+  );
+}
+
+.hero__gradient {
+  position: absolute;
+  top: -23.28%;
+  left: 50%;
+  width: 100.02%;
+  max-width: none;
+  height: 147.93%;
+  object-fit: cover;
+  object-position: center top;
+  transform: translateX(-50%);
+}
+
+.hero__video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transform: translate(-50%, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__video {
+    display: none;
+  }
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1440px;
+  height: 100%;
+  padding: var(--hero-pad-top) var(--hero-pad-x) 0;
+  margin: 0 auto;
+}
+
+.hero__header {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero__logo {
+  display: inline-flex;
+  gap: 5.374px;
+  align-items: center;
+  color: #fffffe;
+  text-decoration: none;
+}
+
+.hero__logo-icon {
+  flex-shrink: 0;
+  width: 39.97px;
+  height: 39.97px;
+}
+
+.hero__logo-text {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 30.731px;
+  font-weight: 400;
+  line-height: 1;
+  color: #fffffe;
+}
+
+.hero__nav-btn {
+  width: 165px;
+  min-width: 165px;
+  max-width: 165px;
+  padding: 0;
+}
+
+.hero__title {
+  max-width: var(--hero-title-max);
+  margin: var(--hero-title-gap) auto 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: var(--hero-title-size);
+  font-weight: 400;
+  line-height: var(--hero-title-lh);
+  color: #fffffe;
+  text-align: center;
+  text-transform: capitalize;
+  letter-spacing: var(--hero-title-tracking);
+}
+
+.hero__title-tablet,
+.hero__title-mobile {
+  display: none;
+}
+
+.hero__title-desktop {
+  display: block;
+}
+
+.hero__title-desktop .hero__title-line {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hero-panel-gap);
+  align-items: center;
+  width: var(--hero-panel-max);
+  max-width: calc(100% - 2 * var(--hero-pad-x));
+  margin: var(--hero-panel-top) auto 0;
+  text-align: center;
+}
+
+.hero__desc {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #fffffe;
+  text-shadow:
+    0 1px 16px rgba(0, 0, 0, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.35);
+}
+
+.hero__actions {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero .btn {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 24px;
+  overflow: hidden;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.hero .btn:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Add FastBridge — translucent glass-dark button (Figma 342:2399) */
+.hero .btn--primary {
+  width: 160px;
+  min-width: 160px;
+  color: #fffffe;
+  background-color: rgba(22, 22, 21, 0.61);
+  background-image: linear-gradient(
+    rgba(255, 255, 254, 0.14),
+    rgba(255, 255, 254, 0.14)
+  );
+  background-size: 100% 0%;
+  border: 1px solid rgba(255, 255, 254, 0.19);
+  box-shadow: 0 1px 4px rgba(85, 85, 85, 0.05);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.hero .btn--primary:hover {
+  background-size: 100% 100%;
+  border-color: rgba(255, 255, 254, 0.45);
+}
+
+/* Bridge Now — solid white button (Figma 342:2401) */
+.hero .btn--secondary {
+  width: 160px;
+  min-width: 160px;
+  color: #161615;
+  background-color: #fffffe;
+  background-image: linear-gradient(#161615, #161615);
+  background-size: 100% 0%;
+  border: 1px solid #e8e8e7;
+}
+
+.hero .btn--secondary:hover {
+  color: #fffffe;
+  background-size: 100% 100%;
+  border-color: #161615;
+}
+
+/* Scale down on narrower desktop viewports */
+@media (max-width: 1440px) {
+  .hero {
+    --hero-title-size: clamp(2.75rem, 5.2vw, 75px);
+    --hero-title-lh: 1.198;
+  }
+}
+
+/* Tablet — Figma "Tablet Section / Hero" (226:2714) */
+@media (max-width: 768px) {
+  .hero {
+    --hero-pad-x: 48px;
+    --hero-pad-top: 40px;
+    --hero-height: 924px;
+    --hero-panel-bottom: 184px;
+    --hero-title-size: 61.328px;
+    --hero-title-lh: 73.464px;
+    --hero-title-tracking: 1.2244px;
+    --hero-title-max: 628px;
+    --hero-title-gap: 43px;
+    --hero-panel-gap: 30px;
+    --hero-desc-max: 539px;
+
+    height: var(--hero-height);
+    min-height: var(--hero-height);
+    background: #0a0a12;
+  }
+
+  /* Dark streak background fills the whole hero (Figma 226:2716) */
+  .hero__gradient-wrap {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero__gradient-wrap::after {
+    display: none;
+  }
+
+  .hero__gradient {
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .hero .hero__nav-btn {
+    display: none;
+  }
+
+  .hero__inner {
+    position: relative;
+    max-width: none;
+    height: 100%;
+    padding: var(--hero-pad-top) var(--hero-pad-x) 0;
+    margin: 0;
+  }
+
+  .hero__header {
+    justify-content: center;
+  }
+
+  .hero__title {
+    max-width: var(--hero-title-max);
+    margin: var(--hero-title-gap) auto 0;
+    text-align: center;
+    text-transform: none;
+  }
+
+  .hero__title-desktop {
+    display: none;
+  }
+
+  .hero__title-tablet {
+    display: block;
+  }
+
+  .hero__title-mobile {
+    display: none;
+  }
+
+  .hero__panel {
+    position: absolute;
+    right: auto;
+    bottom: var(--hero-panel-bottom);
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--hero-panel-gap);
+    align-items: center;
+    width: var(--hero-desc-max);
+    max-width: calc(100% - 2 * var(--hero-pad-x));
+    text-align: center;
+    isolation: auto;
+    transform: translateX(-50%);
+  }
+
+  .hero__panel::before {
+    display: none;
+  }
+
+  .hero__desc {
+    max-width: var(--hero-desc-max);
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.5;
+    color: #fffffe;
+    text-align: center;
+  }
+
+  .hero__actions {
+    position: static;
+    gap: 24px;
+    justify-content: center;
+  }
+}
+
+/* Mobile — Figma "Mobile Section / Hero" (226:2731) */
+@media (max-width: 460px) {
+  .hero {
+    --hero-pad-x: 24px;
+    --hero-pad-top: 37px;
+    --hero-pad-bottom: 55px;
+    --hero-height: 780px;
+    --hero-title-size: 42px;
+    --hero-title-lh: 55.967px;
+    --hero-title-tracking: 0.9328px;
+    --hero-title-max: 314px;
+    --hero-title-gap: 42px;
+    --hero-panel-top: 32px;
+  }
+
+  .hero__gradient {
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .hero__header {
+    justify-content: center;
+  }
+
+  .hero .hero__nav-btn {
+    display: none;
+  }
+
+  .hero__logo {
+    gap: 4.031px;
+  }
+
+  .hero__logo-icon {
+    width: 29.977px;
+    height: 29.977px;
+  }
+
+  .hero__logo-text {
+    font-size: 23.048px;
+  }
+
+  .hero__title-tablet {
+    display: none;
+  }
+
+  .hero__title-mobile {
+    display: block;
+  }
+
+  .hero__title-line {
+    display: block;
+  }
+
+  .hero__title {
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+  }
+
+  .hero__panel {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: center;
+    width: 100%;
+    max-width: calc(100% - 2 * var(--hero-pad-x));
+    margin: var(--hero-panel-top) auto 0;
+    text-align: center;
+    transform: none;
+  }
+
+  .hero__desc {
+    width: 326px;
+    max-width: 100%;
+    margin: 0;
+    font-size: 16px;
+    color: #fffffe;
+    text-align: center;
+  }
+
+  .hero__actions {
+    gap: 16px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Compact CTAs over the dark image (Figma 343:52) */
+  .hero .btn {
+    height: 48px;
+    font-size: 14px;
+  }
+
+  .hero .btn--primary,
+  .hero .btn--secondary {
+    width: 152px;
+    min-width: 152px;
+  }
+}
+
+@media (max-height: 860px) and (min-width: 769px) {
+  .hero {
+    --hero-pad-top: 40px;
+    --hero-title-size: clamp(2.25rem, 4.2vw, 75px);
+    --hero-title-lh: 1.198;
+    --hero-title-gap: 72px;
+    --hero-panel-top: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .btn {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .hero .btn--secondary:hover,
+  .hero .btn--primary:hover {
+    background-size: 100% 100%;
+  }
+
+  .hero .btn--secondary:hover {
+    color: #fffffe;
+  }
+
+  .hero .btn:active {
+    transform: none;
+  }
+}
+
+/* Below-hero sections — Figma desktop (1440) + tablet/mobile */
+
+.section-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 0 24px;
+  overflow: hidden;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--brand-white);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  background-color: var(--fg-primary);
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% 0%;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.section-btn:hover {
+  color: var(--fg-primary);
+  background-size: 100% 100%;
+}
+
+.section-btn:active {
+  transform: scale(0.98);
+}
+
+.section-btn--full {
+  width: 100%;
+}
+
+/* ========== CHAINS STRIP ========== */
+.chains-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: center;
+  min-height: 232px;
+  padding: 40px
+    max(
+      var(--section-pad-x),
+      calc((100% - var(--section-max)) / 2 + var(--section-pad-x))
+    );
+  margin: 0;
+  background: var(--surface-muted);
+}
+
+.chains-strip__desc {
+  max-width: 772px;
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #3d3d3d;
+  text-align: center;
+}
+
+.chains-strip__logos {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+}
+
+.chains-strip__track {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+  width: max-content;
+  animation: chains-scroll 40s linear infinite;
+}
+
+@keyframes chains-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--scroll-width, -50%));
+  }
+}
+
+.chains-strip__logo {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  opacity: 0.5;
+}
+
+.chains-strip__logo img {
+  width: auto;
+  object-fit: contain;
+  filter: grayscale(100%);
+}
+
+.chains-strip__logo img[alt="Ethereum"] {
+  height: 34px;
+}
+.chains-strip__logo img[alt="Arbitrum"] {
+  height: 95px;
+}
+.chains-strip__logo img[alt="Optimism"] {
+  height: 17px;
+}
+.chains-strip__logo img[alt="Avalanche"] {
+  height: 34px;
+}
+.chains-strip__logo img[alt="Polygon"] {
+  height: 109px;
+}
+.chains-strip__logo img[alt="Hyperliquid"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Base"] {
+  height: 48px;
+}
+.chains-strip__logo img[alt="Scroll"] {
+  height: 61px;
+}
+.chains-strip__logo img[alt="Kaia"] {
+  height: 46px;
+}
+.chains-strip__logo img[alt="MegaETH"] {
+  height: 29px;
+}
+.chains-strip__logo img[alt="Monad"] {
+  height: 85px;
+}
+.chains-strip__logo img[alt="BNB Chain"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Citrea"] {
+  height: 26px;
+}
+
+/* How it works + product card — see hiw.css (loaded on index.html and hiw.html) */
+
+/* ========== FAQ ========== */
+.faq {
+  /* Top gap matches the blog section's top padding (124px) so the
+     blog→FAQ spacing equals the steps→blog spacing. */
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 159px;
+  align-items: start;
+  max-width: var(--section-max);
+  min-height: 809px;
+  /* Top gap matches the blog section's top padding (124px) so the
+     blog→FAQ spacing equals the steps→blog spacing. */
+  padding: 124px var(--section-pad-x) 150px;
+  margin: 0 auto;
+}
+
+.faq__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.faq__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq__title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--fg-primary);
+}
+
+.faq__title em {
+  display: block;
+  font-style: normal;
+  color: var(--title-muted);
+}
+
+.faq__subtitle {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: normal;
+  color: var(--fg-muted);
+}
+
+.faq__subtitle--mobile {
+  display: none;
+}
+
+/* Subtitle removed from the FAQ section on all viewports. */
+.faq__subtitle--desktop {
+  display: none;
+}
+
+.faq__header-btn {
+  width: 160px;
+}
+
+/* "View More" relocates below the questions on mobile (see ≤768) */
+.faq__footer {
+  display: none;
+}
+
+.faq__list {
+  display: flex;
+  flex-direction: column;
+  max-width: 701px;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border-faq);
+}
+
+.faq-item__question {
+  display: flex;
+  gap: 60px;
+  align-items: center;
+  width: 100%;
+  min-height: 78px;
+  padding: 24px 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 30px;
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.faq-item__chevron {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  transform: rotate(-90deg);
+  transition: transform 0.3s ease;
+}
+
+.faq-item--open .faq-item__chevron {
+  transform: rotate(180deg);
+}
+
+.faq-item__answer {
+  max-height: 0;
+  padding: 0 0 0 84px;
+  overflow: hidden;
+  transition:
+    max-height 0.35s ease,
+    padding 0.35s ease;
+}
+
+.faq-item--open .faq-item__answer {
+  max-height: 400px;
+  padding: 0 36px 24px 84px;
+}
+
+.faq-item__answer p {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  line-height: 30px;
+  color: var(--fg-secondary);
+}
+
+/* ========== FOOTER ========== */
+.site-footer {
+  --footer-pad-x: 100px;
+  position: relative;
+  min-height: 505px;
+  overflow: hidden;
+  color: var(--footer-text);
+  background: linear-gradient(132.22deg, #f8f8f7 36.93%, #929291 120.64%);
+  isolation: isolate;
+}
+
+.site-footer__glow-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Figma 337:2129 — glow fills entire footer, clipped at section edge */
+.site-footer__glow-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Desktop — user-provided panoramic background */
+.site-footer__glow-img--desktop {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__glow-img--tablet {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__glow-img--mobile {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: cover;
+  object-position: center;
+}
+
+.site-footer__inner {
+  position: relative;
+  z-index: 2;
+  max-width: var(--section-max);
+  padding: 56px var(--footer-pad-x) 0;
+  margin: 0 auto;
+}
+
+.site-footer__top {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.site-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 376px;
+}
+
+.site-footer__logo {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--footer-text);
+  text-decoration: none;
+}
+
+.site-footer__logo-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+.site-footer__logo-text {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 30.731px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.site-footer__desc {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--footer-muted);
+}
+
+.site-footer__desc--compact {
+  display: none;
+}
+
+.site-footer__cta {
+  display: inline-block;
+  width: fit-content;
+  padding-bottom: 6px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  color: var(--footer-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--footer-text);
+}
+
+.site-footer__cta strong {
+  font-weight: 700;
+}
+
+.site-footer__cta:hover {
+  opacity: 0.8;
+}
+
+.site-footer__legal--inline {
+  display: none;
+}
+
+.site-footer__legal--desktop {
+  display: block;
+}
+
+.site-footer__links {
+  display: flex;
+  flex-shrink: 0;
+  gap: 48px;
+  justify-content: space-between;
+  min-width: 402px;
+  padding-top: 8px;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.site-footer__col--socials {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.site-footer__col-title {
+  margin: 0 0 4px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--footer-text);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.site-footer__col a {
+  position: relative;
+  z-index: 1;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--footer-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.site-footer__col a:visited {
+  color: var(--footer-muted);
+}
+
+.site-footer__col a:hover {
+  color: var(--footer-text);
+}
+
+.site-footer__legal {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--footer-muted);
+}
+
+/* Figma 226:2818 — watermark (icon + wordmark), locked aspect ratio */
+.site-footer__watermark {
+  --watermark-ratio: 1240 / 163;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 1;
+  width: min(1240px, calc(100% - (var(--footer-pad-x) * 2)));
+  height: auto;
+  aspect-ratio: var(--watermark-ratio);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  transform: translateX(-50%);
+}
+
+.site-footer__watermark picture {
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--watermark-ratio);
+}
+
+.site-footer__watermark-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--watermark-ratio);
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+/* Scroll reveal — legacy fallback only (enhanced uses animations.css) */
+.chains-strip:not([data-reveal-stagger]),
+.blog:not([data-reveal]),
+.faq:not([data-reveal]),
+.site-footer:not([data-reveal]) {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.chains-strip.is-visible:not([data-reveal-stagger]),
+.blog.is-visible:not([data-reveal]),
+.faq.is-visible:not([data-reveal]),
+.site-footer.is-visible:not([data-reveal]) {
+  opacity: 1;
+  transform: none;
+}
+
+/* ========== TABLET ≤768px ========== */
+@media (max-width: 768px) {
+  .chains-strip {
+    gap: 40px;
+    min-height: 232px;
+    padding: 40px var(--section-pad-x);
+  }
+
+  .faq {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    min-height: auto;
+    padding: 80px var(--section-pad-x);
+  }
+
+  .faq__title em {
+    color: #9b9b9a;
+  }
+
+  .faq-item__question {
+    gap: 48px;
+  }
+
+  .faq-item__answer,
+  .faq-item--open .faq-item__answer {
+    padding-left: 72px;
+  }
+
+  .faq__list {
+    max-width: none;
+  }
+
+  /* Move "View More" below the questions on mobile/tablet.
+     Scoped under .faq__intro to beat blog.css's later .section-btn rule. */
+  .faq__intro .faq__header-btn {
+    display: none;
+  }
+
+  .faq__footer {
+    display: block;
+  }
+
+  .faq__footer-btn {
+    width: 100%;
+  }
+
+  .site-footer {
+    --footer-pad-x: 80px;
+    min-height: 682px;
+  }
+
+  .site-footer__glow-img--desktop {
+    display: none;
+  }
+
+  .site-footer__glow-img--tablet {
+    display: block;
+  }
+
+  .site-footer__inner {
+    padding-top: 80px;
+    padding-bottom: 0;
+  }
+
+  .site-footer__top {
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .site-footer__brand {
+    gap: 24px;
+    max-width: 603px;
+  }
+
+  .site-footer__desc--desktop {
+    display: none;
+  }
+
+  .site-footer__desc--compact {
+    display: block;
+  }
+
+  .site-footer__legal--desktop {
+    display: none;
+  }
+
+  .site-footer__links {
+    gap: 48px;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    max-width: 608px;
+    padding-top: 0;
+  }
+
+  .site-footer__watermark {
+    --watermark-ratio: 615 / 82;
+    width: min(615px, calc(100% - (var(--footer-pad-x) * 2)));
+  }
+}
+
+/* ========== MOBILE ≤460px ========== */
+@media (max-width: 460px) {
+  .chains-strip {
+    gap: 12px;
+    padding: 32px 32px 40px;
+  }
+
+  .chains-strip__desc {
+    max-width: none;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .faq {
+    padding: 80px 32px 48px;
+  }
+
+  .faq__intro {
+    align-items: center;
+    text-align: center;
+  }
+
+  .faq__title {
+    font-size: 32px;
+    line-height: normal;
+  }
+
+  .faq__title em {
+    color: #9b9b9a;
+  }
+
+  .faq__subtitle--desktop {
+    display: none;
+  }
+
+  .faq__subtitle--mobile {
+    display: none;
+  }
+
+  .faq-item__question {
+    gap: 24px;
+    align-items: flex-start;
+    min-height: auto;
+    padding: 18px 0;
+    font-size: 16px;
+  }
+
+  .faq-item--open .faq-item__question {
+    padding-bottom: 12px;
+  }
+
+  .faq-item__answer,
+  .faq-item--open .faq-item__answer {
+    padding: 0 0 0 48px;
+  }
+
+  .faq-item--open .faq-item__answer {
+    max-height: 360px;
+    padding-bottom: 16px;
+  }
+
+  .faq-item__answer p {
+    font-size: 14px;
+    line-height: 30px;
+  }
+
+  .site-footer {
+    --footer-pad-x: 32px;
+    min-height: 611px;
+  }
+
+  .site-footer__glow-img--tablet {
+    display: none;
+  }
+
+  .site-footer__glow-img--mobile {
+    display: block;
+  }
+
+  .site-footer__inner {
+    padding: 32px var(--footer-pad-x) 0;
+  }
+
+  .site-footer__brand {
+    gap: 16px;
+    max-width: none;
+  }
+
+  .site-footer__desc,
+  .site-footer__col a {
+    font-size: 14px;
+  }
+
+  .site-footer__legal--desktop {
+    display: none;
+  }
+
+  .site-footer__legal--inline {
+    display: block;
+  }
+
+  .site-footer__links {
+    flex-direction: row;
+    gap: 32px;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    max-width: 327px;
+  }
+
+  .site-footer__watermark {
+    width: min(327px, calc(100% - (var(--footer-pad-x) * 2)));
+    height: 42px;
+    aspect-ratio: auto;
+  }
+
+  .site-footer__watermark picture {
+    position: absolute;
+    top: 0;
+    bottom: auto;
+    left: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 332.53 / 71.3088;
+  }
+
+  .site-footer__watermark-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 332.53 / 71.3088;
+    object-fit: contain;
+    object-position: left top;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-btn {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .section-btn:hover {
+    color: var(--fg-primary);
+    background-size: 100% 100%;
+  }
+
+  .section-btn:active {
+    transform: none;
+  }
+}
+
+/* How FastBridge Works — Figma Section / HowItWorks / desktop (1440 × 809) */
+
+.hiw {
+  overflow-x: clip;
+  background: transparent;
+  opacity: 1;
+  transform: none;
+}
+
+.hiw__stage {
+  position: relative;
+  width: 100%;
+  max-width: var(--section-max);
+  height: 809px;
+  margin: 0 auto;
+  background: transparent;
+  isolation: isolate;
+}
+
+/* ========== Background layers (match Figma node order) ========== */
+
+.hiw__gradient-wrap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 0;
+  width: 100vw;
+  height: 688px;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.hiw__gradient {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.hiw__curve-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 227px;
+  pointer-events: none;
+}
+
+.hiw__curve-fill svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hiw__curve-wave {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 227px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hiw__curve-wave img {
+  position: absolute;
+  top: -0.17%;
+  left: -0.28%;
+  width: 100.28%;
+  max-width: none;
+  height: 100.34%;
+  object-fit: fill;
+}
+
+/* ========== Title + product card ========== */
+
+.hiw__title {
+  position: absolute;
+  top: 80px;
+  left: var(--section-pad-x);
+  z-index: 3;
+  max-width: 459px;
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--brand-white);
+}
+
+/* Desktop: each word on its own line (How / FastBridge / Works) */
+.hiw__title-word {
+  display: block;
+}
+
+.hiw__product-wrap {
+  --hiw-widget-height: 460px;
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  width: 632px;
+  max-width: calc(100% - 2 * var(--section-pad-x));
+  transform: translateX(-50%);
+}
+
+/* ========== Steps — absolute on white section bg, no extra band ========== */
+
+.hiw__steps {
+  position: absolute;
+  top: 564px;
+  right: var(--section-pad-x);
+  left: var(--section-pad-x);
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hiw__steps > li {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+}
+
+.hiw-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-height: 243px;
+  padding: 0 0 28px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: opacity 0.35s ease;
+}
+
+/* Loader / timer bar — shown on the active step only */
+.hiw-step--active::before,
+.hiw-step--active::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  content: "";
+  border-radius: 2px;
+}
+
+.hiw-step--active::before {
+  width: 100%;
+  background: rgba(0, 101, 255, 0.16);
+}
+
+.hiw-step--active::after {
+  width: 0;
+  background: var(--brand-blue);
+  animation: hiw-loader 6s linear forwards;
+}
+
+@keyframes hiw-loader {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-step--active::after {
+    width: 100%;
+    animation: none;
+  }
+
+  .hiw-step:not(.hiw-step--active):hover .hiw-step__num {
+    font-size: 40px;
+    color: var(--step-num-active);
+  }
+}
+
+.hiw-step:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.hiw-step:not(.hiw-step--active) {
+  gap: 12px;
+  justify-content: flex-end;
+  opacity: 0.6;
+}
+
+.hiw-step:not(.hiw-step--active):hover {
+  opacity: 0.9;
+}
+
+.hiw-step__num {
+  display: block;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 84px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--step-num-active);
+  transition:
+    font-size 0.35s ease,
+    color 0.25s ease;
+}
+
+.hiw-step:not(.hiw-step--active) .hiw-step__num {
+  font-size: 40px;
+}
+
+.hiw-step:not(.hiw-step--active):hover .hiw-step__num {
+  font-size: 56px;
+  color: #a8c8f8;
+}
+
+.hiw-step__label {
+  display: block;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--brand-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.66px;
+}
+
+.hiw-step__heading {
+  max-width: 340px;
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--fg-primary);
+}
+
+.hiw-step__desc {
+  max-width: 380px;
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fg-body);
+  text-wrap: balance;
+}
+
+/* ========== Product card ========== */
+
+/* Cinematic per-step widget video — transparent card animation composited
+   over the section gradient. Requires Remotion exports with true alpha
+   (yuva420p WebM + HEVC hvc1 derived via tools/encode-hiw-hevc.sh). */
+.hiw__widget {
+  position: relative;
+  width: auto;
+  max-width: 100%;
+  height: 600px;
+  aspect-ratio: 1256 / 1660;
+  overflow: visible;
+  background: transparent;
+}
+
+/* One <video> per step, stacked and crossfaded. All are preloaded so
+   advancing never shows an empty (black) reload gap. */
+.hiw__widget-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  background: transparent;
+  opacity: 0;
+  /* Elevation is applied here, not baked into the video — drop-shadow hugs
+     the card's alpha silhouette and stays vector-crisp (a baked alpha shadow
+     posterizes/bands over a contrasting background). */
+  filter: drop-shadow(0 2px 4px rgba(12, 24, 56, 0.1))
+    drop-shadow(0 18px 36px rgba(12, 24, 56, 0.2));
+  transition: opacity 0.4s ease;
+}
+
+.hiw__widget-video--active {
+  z-index: 1;
+  opacity: 1;
+}
+
+/* When the cinematic video is present, the hand-built card is the
+   reduced-motion / no-JS fallback only. */
+.hiw__product-wrap .product-card {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw__widget {
+    display: none;
+  }
+  .hiw__product-wrap .product-card {
+    display: block;
+  }
+}
+
+.product-card {
+  width: min(100%, 459px);
+  overflow: hidden;
+  background: var(--brand-white);
+  border-radius: 22px;
+  box-shadow:
+    0 -5.93px 58.764px rgba(69, 103, 255, 0.15),
+    0 11.018px 22.037px rgba(69, 202, 255, 0.16),
+    0 1.836px 3.673px rgba(85, 176, 255, 0.04),
+    0 0 0 12.855px rgba(242, 246, 255, 0.55),
+    inset 0 0.918px 0 rgba(255, 255, 255, 0.9);
+}
+
+.product-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 39px;
+  padding: 9px 18px 0;
+}
+
+.product-card__title {
+  font-family: "Geist", sans-serif;
+  font-size: 15.6px;
+  font-weight: 600;
+  color: #1f1f1f;
+  letter-spacing: -0.234px;
+}
+
+.product-card__actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.product-card__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  padding: 0;
+  background: var(--brand-white);
+  border: 0.918px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  box-shadow:
+    0 1.836px 1.836px rgba(60, 40, 100, 0.04),
+    0 0.918px 0.918px rgba(60, 40, 100, 0.06);
+}
+
+.product-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  justify-content: center;
+  min-height: var(--hiw-widget-height, 460px);
+  padding: 0 9px 6px;
+}
+
+.product-card__field {
+  padding: 18px;
+  background: var(--brand-white);
+  border-radius: 11px;
+  box-shadow: 0 0 0.918px rgba(60, 40, 100, 0.15);
+}
+
+.product-card__field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+
+.product-card__field-label {
+  display: block;
+  font-size: 10.1px;
+  font-weight: 600;
+  color: #8e8e89;
+  text-transform: uppercase;
+  letter-spacing: 1.01px;
+}
+
+.product-card__add-asset {
+  font-family: "Geist", sans-serif;
+  font-size: 12.9px;
+  font-weight: 500;
+  color: #9e9e9c;
+}
+
+.product-card__field-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.product-card__amount {
+  font-family: "Geist", sans-serif;
+  font-size: 40.4px;
+  font-weight: 500;
+  line-height: 1;
+  color: #c8c8c8;
+  letter-spacing: -1.414px;
+}
+
+.product-card__fiat {
+  margin-top: 11px;
+  font-family: "Geist", sans-serif;
+  font-size: 11.9px;
+  color: #8e8e89;
+}
+
+.product-card__pill {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  padding: 5.5px 13px 5.5px 5.5px;
+  font-size: 13.8px;
+  font-weight: 600;
+  color: #1f1f1f;
+  background: var(--brand-white);
+  border: 0.918px solid rgba(0, 0, 0, 0.04);
+  border-radius: 999px;
+  box-shadow:
+    0 1.836px 3.673px rgba(60, 40, 100, 0.04),
+    0 0.918px 0.918px rgba(60, 40, 100, 0.06);
+}
+
+.product-card__pill::before {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  content: "";
+  border: 1.377px dashed #c8c8c7;
+  border-radius: 50%;
+}
+
+.product-card__field--receive .product-card__field-label {
+  margin-bottom: 11px;
+}
+
+.product-card__divider {
+  height: 1px;
+  margin: 11px 0;
+  background: #f6f6f6;
+}
+
+.product-card__recipient-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.product-card__address {
+  font-family: "Geist", sans-serif;
+  font-size: 13.8px;
+  font-weight: 500;
+  color: var(--brand-blue);
+  letter-spacing: -0.069px;
+}
+
+.product-card__edit {
+  padding: 5.5px 13px;
+  font-family: "Geist", sans-serif;
+  font-size: 11.9px;
+  font-weight: 500;
+  color: #1f1f1f;
+  border: 0.918px solid rgba(0, 0, 0, 0.04);
+  border-radius: 999px;
+  box-shadow: 0 0.918px 0.918px rgba(60, 40, 100, 0.06);
+}
+
+.product-card__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 18px);
+  height: 48px;
+  margin: 0 auto 6px;
+  font-family: "Geist", sans-serif;
+  font-size: 14.7px;
+  font-weight: 500;
+  color: #9e9e9c;
+  background: #eff0f3;
+  border-radius: 13px;
+}
+
+/* ========== TABLET ≤768px ========== */
+
+@media (max-width: 768px) {
+  .hiw__stage {
+    height: auto;
+    padding-bottom: 0;
+  }
+
+  .hiw__gradient-wrap {
+    height: clamp(480px, 72vw, 564px);
+  }
+
+  .hiw__curve-fill {
+    top: auto;
+    bottom: 0;
+    height: clamp(80px, 14vw, 120px);
+  }
+
+  .hiw__curve-wave {
+    top: auto;
+    bottom: 0;
+    height: clamp(80px, 14vw, 120px);
+  }
+
+  .hiw__title {
+    position: relative;
+    top: auto;
+    left: auto;
+    max-width: none;
+    padding: 48px var(--section-pad-x) 0;
+    font-size: 48px;
+    text-align: center;
+  }
+
+  /* Flow words inline again on tablet/mobile (centered, natural wrap) */
+  .hiw__title-word {
+    display: inline;
+  }
+
+  .hiw__product-wrap {
+    position: relative;
+    top: auto;
+    left: auto;
+    z-index: 2;
+    width: min(96%, 560px);
+    margin: 10px auto 0;
+    isolation: isolate;
+    transform: none;
+  }
+
+  .hiw__widget {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1256 / 1660;
+  }
+
+  .hiw__widget-video {
+    object-position: center top;
+  }
+
+  .product-card__body {
+    justify-content: flex-start;
+    min-height: auto;
+  }
+
+  .product-card {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .hiw__steps {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: 1;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 0 var(--section-pad-x) 64px;
+    /* Pull the steps up into the transparent shadow-padding at the bottom of
+       the widget video (which otherwise reads as dead space). Sized to stay
+       within that transparent zone so it never overlaps the card. */
+    margin-top: -7vw;
+  }
+
+  .hiw__steps > li {
+    order: var(--step-order, 0);
+  }
+
+  .hiw-step {
+    min-height: auto;
+  }
+
+  /* Mobile is single-column, so the desktop 340px desc cap is needlessly
+     narrow and forces the copy into 4 lines. Widen it and balance the wrap so
+     it settles into ~3 even lines. */
+  .hiw-step__desc {
+    max-width: 32em;
+    text-wrap: balance;
+  }
+
+  .hiw-step:not(.hiw-step--active) {
+    justify-content: flex-start;
+  }
+}
+
+/* ========== MOBILE ≤460px ========== */
+
+@media (max-width: 460px) {
+  .hiw__title {
+    padding-top: 40px;
+    font-size: 32px;
+  }
+
+  .hiw__product-wrap {
+    width: calc(100% - 24px);
+    max-width: none;
+  }
+
+  .hiw__steps {
+    padding-bottom: 48px;
+  }
+
+  .hiw-step__num {
+    font-size: 56px;
+  }
+
+  .hiw-step:not(.hiw-step--active) .hiw-step__num {
+    font-size: 32px;
+  }
+
+  .hiw-step:not(.hiw-step--active):hover .hiw-step__num {
+    font-size: 44px;
+  }
+
+  .hiw-step__heading {
+    font-size: 18px;
+  }
+}
+
+/* Blog — Stripe-style squeezy carousel (canvas + sliding details) */
+
+.blog {
+  --blog-pad-x: 100px;
+  --blog-inner: 1240px;
+  --blog-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --blog-meta-duration: 1s;
+  --blog-canvas-height: 460px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1440px;
+  padding: 124px var(--blog-pad-x) 0;
+  margin: 0 auto;
+}
+
+.blog__container {
+  width: min(100%, var(--blog-inner));
+  margin: 0 auto;
+}
+
+.blog__header {
+  display: flex;
+  gap: 64px;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.blog__header-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.blog__title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: normal;
+  color: var(--fg-primary);
+}
+
+.blog__title em {
+  display: block;
+  font-style: normal;
+  color: var(--title-muted);
+}
+
+/* Mobile-only forced line break inside the subtitle (shown via @media). */
+.blog__title-br {
+  display: none;
+}
+
+.blog__header-btn {
+  flex-shrink: 0;
+  width: 160px;
+  margin-top: 8px;
+}
+
+.blog__body {
+  width: 100%;
+}
+
+.squeezy-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+.squeezy-carousel__canvas {
+  display: block;
+  width: 100%;
+  height: var(--blog-canvas-height);
+  overflow: clip;
+  touch-action: pan-y;
+  cursor: default;
+}
+
+.squeezy-carousel__items-details-container {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+.squeezy-carousel__meta-track {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.squeezy-carousel__item-details {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 100%;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  transition:
+    transform var(--blog-meta-duration) var(--blog-ease),
+    opacity var(--blog-meta-duration) var(--blog-ease);
+  will-change: transform, opacity;
+}
+
+.squeezy-carousel__item-copy {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Carousel prev/next chevrons — pinned to the far right of the meta row */
+.blog__nav {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+.blog__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--fg-primary);
+  cursor: pointer;
+  background: #fffffe;
+  border: 1px solid #e8e8e7;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(85, 85, 85, 0.05);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.blog__nav-btn:hover {
+  background: #f2f2f0;
+  border-color: #d8d8d6;
+}
+
+.blog__nav-btn svg {
+  display: block;
+}
+
+.blog__meta-title {
+  margin: 0;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 29px;
+  color: var(--fg-primary);
+}
+
+.blog__read {
+  flex-shrink: 0;
+  padding: 0;
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+  color: var(--brand-blue);
+  white-space: nowrap;
+  text-decoration: none;
+  background: none;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.blog__read:hover {
+  opacity: 0.75;
+}
+
+/* Mobile/tablet scroll list — replaces the canvas carousel ≤768 */
+.blog__scroller {
+  display: none;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Mobile carousel dots + footer button (hidden on desktop) */
+.blog__footer {
+  display: none;
+}
+
+.blog__dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.blog__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  cursor: pointer;
+  background: #d4d4d2;
+  border: none;
+  border-radius: 999px;
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.blog__dot--active {
+  width: 22px;
+  background: var(--fg-primary);
+}
+
+.blog-card {
+  flex: 0 0 auto;
+  width: calc(95vw - var(--blog-pad-x) - 16px);
+  scroll-snap-align: start;
+}
+
+.blog-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.blog-card__media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--surface-muted);
+  border-radius: 12px;
+}
+
+.blog-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blog-card__title {
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--fg-primary);
+}
+
+.blog-card__read {
+  font-family: "Geist", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--brand-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squeezy-carousel__item-details {
+    transition-duration: 0.2s;
+  }
+}
+
+@media (max-width: 768px) {
+  .blog__header {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Mobile: drop the "What's happening" lead and show the rest in black.
+     Force the break after "latest" so it reads:
+     "Check out the latest" / "from us." */
+  .blog__title-lead {
+    display: none;
+  }
+
+  .blog__title em {
+    color: var(--fg-primary);
+  }
+
+  .blog__title-br {
+    display: block;
+  }
+
+  /* Button moves below the cards into .blog__footer on mobile */
+  .blog__header-btn {
+    display: none;
+  }
+
+  .blog__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    margin-top: 24px;
+  }
+
+  .blog__footer-btn {
+    width: 100%;
+  }
+
+  .blog {
+    --blog-pad-x: 48px;
+    padding-top: 16px;
+  }
+
+  .squeezy-carousel {
+    display: none;
+  }
+
+  .blog__scroller {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: var(--blog-pad-x);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--blog-pad-x));
+    padding: 4px var(--blog-pad-x);
+  }
+
+  .blog__scroller::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .blog {
+    --blog-pad-x: 32px;
+  }
+
+  .blog__title {
+    font-size: 32px;
+  }
+}
+
+/* FastBridge — scroll animations (preview / opt-in) */
+
+:root {
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-duration: 0.75s;
+  --motion-stagger: 0.08s;
+}
+
+/* ========== 3. SECTION REVEALS ========== */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity var(--motion-duration) var(--motion-ease-out),
+    transform var(--motion-duration) var(--motion-ease-out),
+    filter var(--motion-duration) var(--motion-ease-out);
+  will-change: opacity, transform;
+}
+
+[data-reveal].is-revealed {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+[data-reveal="fade"] {
+  transform: none;
+}
+
+[data-reveal="slide-left"] {
+  transform: translateX(48px);
+}
+
+[data-reveal="slide-right"] {
+  transform: translateX(-48px);
+}
+
+[data-reveal="scale"] {
+  transform: scale(0.94);
+}
+
+/* ========== 4. STAGGERED LISTS ========== */
+
+[data-reveal-stagger] > [data-reveal-child] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity var(--motion-duration) var(--motion-ease-out),
+    transform var(--motion-duration) var(--motion-ease-out);
+}
+
+[data-reveal-stagger].is-revealed > [data-reveal-child] {
+  opacity: 1;
+  transform: none;
+}
+
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(1) {
+  transition-delay: calc(var(--motion-stagger) * 0);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(2) {
+  transition-delay: calc(var(--motion-stagger) * 1);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(3) {
+  transition-delay: calc(var(--motion-stagger) * 2);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(4) {
+  transition-delay: calc(var(--motion-stagger) * 3);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(5) {
+  transition-delay: calc(var(--motion-stagger) * 4);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(6) {
+  transition-delay: calc(var(--motion-stagger) * 5);
+}
+[data-reveal-stagger].is-revealed > [data-reveal-child]:nth-child(n + 7) {
+  transition-delay: calc(var(--motion-stagger) * 6);
+}
+
+/* ========== 1. HERO ENTRANCE ========== */
+
+html.has-enhanced-animations [data-hero-animate] .hero__header,
+html.has-enhanced-animations [data-hero-animate] .hero__title-line,
+html.has-enhanced-animations [data-hero-animate] .hero__desc,
+html.has-enhanced-animations [data-hero-animate] .hero__actions {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: hero-enter 0.9s var(--motion-ease-out) forwards;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__header {
+  animation-delay: 0.15s;
+}
+
+html.has-enhanced-animations
+  [data-hero-animate]
+  .hero__title-line:nth-child(1) {
+  animation-delay: 0.35s;
+}
+
+html.has-enhanced-animations
+  [data-hero-animate]
+  .hero__title-line:nth-child(2) {
+  animation-delay: 0.48s;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__title-tablet,
+html.has-enhanced-animations [data-hero-animate] .hero__title-mobile {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: hero-enter 0.9s var(--motion-ease-out) 0.35s forwards;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__desc {
+  animation-delay: 0.62s;
+}
+
+html.has-enhanced-animations [data-hero-animate] .hero__actions {
+  animation-delay: 0.78s;
+}
+
+@keyframes hero-enter {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ========== 2. HERO PARALLAX ========== */
+
+html.has-enhanced-animations [data-hero-animate] .hero__gradient-wrap {
+  transition: transform 0.1s linear;
+  will-change: transform;
+}
+
+/* ========== REDUCED MOTION ========== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-stagger] > [data-reveal-child],
+  html.has-enhanced-animations [data-hero-animate] .hero__header,
+  html.has-enhanced-animations [data-hero-animate] .hero__title-line,
+  html.has-enhanced-animations [data-hero-animate] .hero__desc,
+  html.has-enhanced-animations [data-hero-animate] .hero__actions {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Fill-rise button hovers — load last on every page */
+
+.page-hero__cta,
+.hero .btn,
+.section-btn,
+.faq-filter {
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.1s ease;
+}
+
+.page-hero__cta:active,
+.hero .btn:active,
+.section-btn:active,
+.faq-filter:active {
+  transform: scale(0.98);
+}
+
+/* Bridge Now — white CTA (hero + FAQ/Contact banner) */
+.page-hero__cta,
+.hero .btn--secondary {
+  background-color: #fffffe;
+  background-image: linear-gradient(#161615, #161615);
+  background-size: 100% 0%;
+}
+
+.page-hero__cta:hover,
+.hero .btn--secondary:hover {
+  color: #fffffe;
+  background-size: 100% 100%;
+  border-color: #161615;
+}
+
+/* Add FastBridge — glass CTA */
+.hero .btn--primary {
+  background-color: rgba(22, 22, 21, 0.61);
+  background-image: linear-gradient(
+    rgba(255, 255, 254, 0.14),
+    rgba(255, 255, 254, 0.14)
+  );
+  background-size: 100% 0%;
+}
+
+.hero .btn--primary:hover {
+  background-size: 100% 100%;
+  border-color: rgba(255, 255, 254, 0.45);
+}
+
+/* Section CTAs — View Blogs, View More, Send message */
+.section-btn {
+  background-color: var(--fg-primary);
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-size: 100% 0%;
+}
+
+.section-btn:hover {
+  color: var(--fg-primary);
+  background-size: 100% 100%;
+}
+
+/* FAQ filter pills */
+.faq-filter:not(.faq-filter--active) {
+  background-color: #fffffe;
+  background-image: linear-gradient(#e8e8e7, #e8e8e7);
+  background-size: 100% 0%;
+}
+
+.faq-filter:not(.faq-filter--active):hover {
+  color: var(--fg-primary, #161615);
+  background-size: 100% 100%;
+  border-color: #c9c9c6;
+}
+
+.faq-filter--active {
+  background-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-hero__cta,
+  .hero .btn,
+  .section-btn,
+  .faq-filter {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .page-hero__cta:hover,
+  .hero .btn--secondary:hover,
+  .hero .btn--primary:hover,
+  .section-btn:hover,
+  .faq-filter:not(.faq-filter--active):hover {
+    background-size: 100% 100%;
+  }
+
+  .page-hero__cta:active,
+  .hero .btn:active,
+  .section-btn:active,
+  .faq-filter:active {
+    transform: none;
+  }
+}

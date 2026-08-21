@@ -35,23 +35,6 @@ export function prefetchBridgeApp(): void {
 export function bootstrapApp() {
   initPostHog();
 
-  // Prefetch bridge app on idle so transitions are instant without blocking initial paint
-  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-    (
-      window as Window & {
-        requestIdleCallback: (
-          cb: () => void,
-          opts?: { timeout: number }
-        ) => void;
-      }
-    ).requestIdleCallback(
-      () => {
-        prefetchBridgeApp();
-      },
-      { timeout: 3000 }
-    );
-  }
-
   const rootElement = document.getElementById("root");
   if (!rootElement) {
     throw new Error("Root element with id 'root' was not found.");
