@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { prefetchBridgeApp } from "@/bootstrap";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
@@ -513,6 +514,7 @@ export default function LandingPage() {
             <img
               alt=""
               className="hero__gradient"
+              decoding="async"
               fetchPriority="high"
               height="808"
               src="/landing-new/assets/figma-export/hero-gradient-v2.jpg?v=2"
@@ -541,6 +543,7 @@ export default function LandingPage() {
               <img
                 alt=""
                 className="hero__logo-icon"
+                decoding="async"
                 height="40"
                 src="/landing-new/assets/figma-hero/logo-icon-white.svg"
                 width="40"
@@ -550,6 +553,8 @@ export default function LandingPage() {
             <button
               className="btn btn--secondary hero__nav-btn"
               onClick={handleBridgeClick}
+              onFocus={prefetchBridgeApp}
+              onMouseEnter={prefetchBridgeApp}
               type="button"
             >
               Bridge Now
@@ -585,6 +590,8 @@ export default function LandingPage() {
               <button
                 className="btn btn--secondary"
                 onClick={handleBridgeClick}
+                onFocus={prefetchBridgeApp}
+                onMouseEnter={prefetchBridgeApp}
                 type="button"
               >
                 Bridge Now
@@ -657,7 +664,9 @@ export default function LandingPage() {
                 >
                   <img
                     alt={logo.name}
+                    decoding="async"
                     height={logo.h}
+                    loading="lazy"
                     src={`/landing-new/assets/figma-export/chains/${logo.file}`}
                     width={logo.w}
                   />
@@ -679,7 +688,9 @@ export default function LandingPage() {
             <img
               alt=""
               className="hiw__gradient"
+              decoding="async"
               height="683"
+              loading="lazy"
               src="/landing-new/assets/figma-export/hiw-hero-bg.png"
               width="1440"
             />
@@ -700,7 +711,9 @@ export default function LandingPage() {
             <div className="hiw__curve-wave">
               <img
                 alt=""
+                decoding="async"
                 height="227"
+                loading="lazy"
                 src="/landing-new/assets/figma-export/hiw-curve-wave.png"
                 width="1440"
               />
@@ -736,7 +749,7 @@ export default function LandingPage() {
                       }
                     }}
                     playsInline
-                    preload={i === 0 || isWebKit() ? "auto" : "metadata"}
+                    preload={active ? "auto" : "none"}
                     ref={(el) => {
                       videoRefs.current[i] = el;
                     }}
@@ -1206,21 +1219,27 @@ export default function LandingPage() {
             <img
               alt=""
               className="site-footer__glow-img site-footer__glow-img--desktop"
+              decoding="async"
               height="359"
+              loading="lazy"
               src="/landing-new/assets/figma-export/footer-bg-desktop.png"
               width="1024"
             />
             <img
               alt=""
               className="site-footer__glow-img site-footer__glow-img--tablet"
+              decoding="async"
               height="909"
+              loading="lazy"
               src="/landing-new/assets/figma-export/footer-bg-tablet.png"
               width="1024"
             />
             <img
               alt=""
               className="site-footer__glow-img site-footer__glow-img--mobile"
+              decoding="async"
               height="1024"
+              loading="lazy"
               src="/landing-new/assets/figma-export/footer-bg-mobile.png"
               width="653"
             />
@@ -1234,7 +1253,9 @@ export default function LandingPage() {
                 <img
                   alt=""
                   className="site-footer__logo-icon"
+                  decoding="async"
                   height="40"
+                  loading="lazy"
                   src="/landing-new/assets/figma-hero/logo-icon-white.svg"
                   width="40"
                 />
@@ -1370,7 +1391,9 @@ export default function LandingPage() {
             <img
               alt=""
               className="site-footer__watermark-img"
+              decoding="async"
               height="163"
+              loading="lazy"
               src="/landing-new/assets/figma-export/footer-watermark-desktop.svg"
               width="1240"
             />

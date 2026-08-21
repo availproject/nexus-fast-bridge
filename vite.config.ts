@@ -11,6 +11,9 @@ const bufferShimPath = path.resolve(
   "./packages/fast-bridge-app/src/shims/buffer.cjs"
 );
 
+const RE_REACT_PACKAGES =
+  /\/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//;
+
 export default defineConfig({
   base: "/",
   plugins: [
@@ -46,6 +49,35 @@ export default defineConfig({
     outDir: "apps/root/dist",
     emptyOutDir: true,
     target: "esnext",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("@avail-project/nexus-core")) {
+              return "vendor-nexus";
+            }
+            if (
+              id.includes("@reown") ||
+              id.includes("@rainbow-me") ||
+              id.includes("connectkit") ||
+              id.includes("wagmi") ||
+              id.includes("viem")
+            ) {
+              return "vendor-web3";
+            }
+            if (RE_REACT_PACKAGES.test(id)) {
+              return "vendor-react";
+            }
+            if (id.includes("@radix-ui") || id.includes("lucide-react")) {
+              return "vendor-ui";
+            }
+            if (id.includes("posthog-js")) {
+              return "vendor-posthog";
+            }
+          }
+        },
+      },
+    },
   },
   optimizeDeps: {
     esbuildOptions: {

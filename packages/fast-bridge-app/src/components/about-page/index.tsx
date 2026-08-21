@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { prefetchBridgeApp } from "@/bootstrap";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
@@ -54,6 +55,8 @@ export default function AboutPage() {
           alt=""
           aria-hidden="true"
           className="page-hero__media"
+          decoding="async"
+          fetchPriority="high"
           height="289"
           src="/landing-new/assets/branding/gradients/seo-hero-bg.png"
           width="1024"
@@ -64,6 +67,7 @@ export default function AboutPage() {
             <img
               alt=""
               className="hero__logo-icon"
+              decoding="async"
               height="40"
               src="/landing-new/assets/branding/logos/logo-icon-white.svg"
               width="40"
@@ -73,6 +77,8 @@ export default function AboutPage() {
           <button
             className="page-hero__cta"
             onClick={handleBridgeClick}
+            onFocus={prefetchBridgeApp}
+            onMouseEnter={prefetchBridgeApp}
             type="button"
           >
             Bridge Now
@@ -136,19 +142,17 @@ export default function AboutPage() {
             </p>
           </aside>
 
-          <div className="seo-banner">
-            <div className="seo-banner__copy">
-              <p className="seo-banner__eyebrow">Try FastBridge</p>
-              <p className="seo-banner__title">
-                Skip the multi-step bridging workflow.
-              </p>
-              <p className="seo-banner__body">
-                Consolidate assets from any chain in one transaction.
-              </p>
-            </div>
+          <div className="seo-cta-banner">
+            <h2>Ready to bridge seamlessly?</h2>
+            <p>
+              Experience unified cross-chain swaps and transfers with zero
+              slippage on stablecoins.
+            </p>
             <button
-              className="seo-banner__btn"
+              className="btn btn--secondary"
               onClick={handleBridgeClick}
+              onFocus={prefetchBridgeApp}
+              onMouseEnter={prefetchBridgeApp}
               type="button"
             >
               Bridge Now
@@ -632,7 +636,9 @@ export default function AboutPage() {
                 <img
                   alt=""
                   className="site-footer__logo-icon"
+                  decoding="async"
                   height="40"
+                  loading="lazy"
                   src="/landing-new/assets/branding/logos/logo-icon-white.svg"
                   width="40"
                 />

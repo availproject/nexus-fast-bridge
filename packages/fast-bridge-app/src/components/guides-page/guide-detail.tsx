@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { prefetchBridgeApp } from "@/bootstrap";
 import { type CMSBlogPost, fetchBlogPostBySlug } from "@/lib/cms";
 
 // import { loadLastChain } from "@/providers/runtime-context";
@@ -269,6 +270,8 @@ export default function GuideDetailPage({
           alt=""
           aria-hidden="true"
           className="page-hero__media"
+          decoding="async"
+          fetchPriority="high"
           height="289"
           src="/landing-new/assets/branding/gradients/seo-hero-bg.png"
           width="1024"
@@ -279,6 +282,7 @@ export default function GuideDetailPage({
             <img
               alt=""
               className="hero__logo-icon"
+              decoding="async"
               height="40"
               src="/landing-new/assets/branding/logos/logo-icon-white.svg"
               width="40"
@@ -288,6 +292,8 @@ export default function GuideDetailPage({
           <button
             className="page-hero__cta"
             onClick={handleBridgeClick}
+            onFocus={prefetchBridgeApp}
+            onMouseEnter={prefetchBridgeApp}
             type="button"
           >
             Bridge Now
@@ -400,6 +406,8 @@ export default function GuideDetailPage({
             <button
               className="seo-banner__btn"
               onClick={handleBridgeClick}
+              onFocus={prefetchBridgeApp}
+              onMouseEnter={prefetchBridgeApp}
               type="button"
             >
               Launch FastBridge

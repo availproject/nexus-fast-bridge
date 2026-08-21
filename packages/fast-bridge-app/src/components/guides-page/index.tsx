@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { prefetchBridgeApp } from "@/bootstrap";
 import { type CMSBlogPost, fetchBlogPosts } from "@/lib/cms";
 
 // import { loadLastChain } from "@/providers/runtime-context";
@@ -102,6 +103,8 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
           alt=""
           aria-hidden="true"
           className="page-hero__media"
+          decoding="async"
+          fetchPriority="high"
           height="646"
           src="/landing-new/assets/figma-export/faq-header.jpg"
           width="1920"
@@ -112,6 +115,7 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
             <img
               alt=""
               className="hero__logo-icon"
+              decoding="async"
               height="40"
               src="/landing-new/assets/figma-hero/logo-icon-white.svg"
               width="40"
@@ -121,6 +125,8 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
           <button
             className="page-hero__cta"
             onClick={handleBridgeClick}
+            onFocus={prefetchBridgeApp}
+            onMouseEnter={prefetchBridgeApp}
             type="button"
           >
             Bridge Now
@@ -345,7 +351,9 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
             <img
               alt=""
               className="site-footer__watermark-img"
+              decoding="async"
               height="163"
+              loading="lazy"
               src="/landing-new/assets/figma-export/footer-watermark-desktop.svg"
               width="1240"
             />

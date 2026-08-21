@@ -4,9 +4,35 @@ import { Link } from "react-router-dom";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
+import { preloadReceiveTokens } from "@/components/nexus-one/components/receive-asset-selector";
 import { Toaster } from "@/components/ui/sonner";
 import { useRuntime } from "@/providers/runtime-context";
-import Web3Provider from "@/providers/web3-provider";
+import Web3Provider, { initGlobalAppKit } from "@/providers/web3-provider";
+
+const cleanupWalletConnectSubscription = () => {
+  try {
+    const dbName = "WALLET_CONNECT_V2_INDEXED_DB";
+    const deleteRequest = indexedDB.deleteDatabase(dbName);
+
+    deleteRequest.onsuccess = () => {
+      console.log(
+        "[WalletConnect] Database deleted successfully, will be recreated fresh"
+      );
+    };
+
+    deleteRequest.onerror = () => {
+      console.debug(
+        "[WalletConnect] Database deletion failed or DB doesn't exist"
+      );
+    };
+
+    deleteRequest.onblocked = () => {
+      console.debug("[WalletConnect] Database deletion blocked, may be in use");
+    };
+  } catch (error) {
+    console.debug("[WalletConnect] Cleanup skipped:", error);
+  }
+};
 
 const NEXUS_PROVIDER_CONFIG = {
   debug: true,
@@ -164,8 +190,12 @@ export default function App() {
   const [bg2, setBg2] = useState("");
   const [showBg1, setShowBg1] = useState(true);
 
-  // Preload all gradients in background on mount
+  // Preload all gradients in background on mount and initialize web3/tokens for the app
   useEffect(() => {
+    preloadReceiveTokens();
+    initGlobalAppKit();
+    cleanupWalletConnectSubscription();
+
     for (const url of GRADIENT_ASSETS) {
       const img = new Image();
       img.src = url;
