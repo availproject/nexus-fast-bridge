@@ -3443,6 +3443,8 @@ function NexusOneInner({
     []
   );
   const progressEventsRef = useRef<NexusOneProgressEvent[]>([]);
+  const [rawPlanSteps, setRawPlanSteps] = useState<unknown[]>([]);
+  const rawPlanStepsRef = useRef<unknown[]>([]);
   const swapStepsListRef = useRef<SwapStepType[]>([]);
   const [failedProgressStep, setFailedProgressStep] = useState<
     SwapStepType | BridgeStepType | null
@@ -6221,6 +6223,8 @@ function NexusOneInner({
     progressEventsRef.current = [];
     setProgressEvents((current) => (current.length === 0 ? current : []));
     setFailedProgressStep((current) => (current === null ? current : null));
+    rawPlanStepsRef.current = [];
+    setRawPlanSteps([]);
   };
 
   const appendProgressEvent = (
@@ -6253,7 +6257,9 @@ function NexusOneInner({
 
   const appendProgressListEvent = (
     name: string,
-    stepList: Array<SwapStepType | BridgeStepType>
+    stepList: Array<SwapStepType | BridgeStepType>,
+    rawSteps?: unknown[],
+    planType?: "plan_preview" | "plan_confirmed"
   ) => {
     if (stepList.length === 0) return;
 
@@ -6266,6 +6272,8 @@ function NexusOneInner({
           completed: false,
           step: stepList[0],
           steps: stepList,
+          rawSteps: rawSteps ?? (stepList as any),
+          planType,
         },
       ];
       progressEventsRef.current = next;
@@ -8765,19 +8773,34 @@ function NexusOneInner({
               normalizePlanStep(step, step?.type, undefined, false)
             )
           : [];
-        logSwapPlanSteps(event.type, stepList, event.plan?.steps);
+        const rawSteps = Array.isArray(event.plan?.steps)
+          ? event.plan.steps
+          : [];
+        logSwapPlanSteps(event.type, stepList, rawSteps);
         if (stepList.length === 0) return;
+
+        if (
+          event.type === "plan_confirmed" ||
+          rawPlanStepsRef.current.length === 0
+        ) {
+          rawPlanStepsRef.current = rawSteps;
+          setRawPlanSteps(rawSteps);
+        }
 
         if (hasSwapPlanSteps(stepList)) {
           swapStepsListRef.current = stepList as SwapStepType[];
           appendProgressListEvent(
             PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST,
-            stepList
+            stepList,
+            rawSteps,
+            event.type
           );
         } else {
           appendProgressListEvent(
             PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST,
-            stepList
+            stepList,
+            rawSteps,
+            event.type
           );
         }
         onStepsList(stepList as SwapStepType[]);
@@ -11747,6 +11770,7 @@ function NexusOneInner({
                     mode={activeMode}
                     opportunity={selectedOpportunity}
                     progressEvents={progressEvents}
+                    rawSteps={rawPlanSteps}
                     recipientAddress={transferRecipientAddress}
                     steps={steps}
                     swapBalances={swapBalance}

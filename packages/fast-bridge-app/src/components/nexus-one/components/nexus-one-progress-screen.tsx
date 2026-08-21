@@ -34,6 +34,8 @@ export type NexusOneProgressEvent = {
   event?: unknown;
   step?: ProgressSdkStep;
   steps?: ProgressSdkStep[];
+  rawSteps?: unknown[];
+  planType?: "plan_preview" | "plan_confirmed";
 };
 
 interface NexusOneProgressScreenProps {
@@ -44,6 +46,7 @@ interface NexusOneProgressScreenProps {
   mode: NexusOneMode;
   opportunity?: NexusOneDepositMetadata;
   progressEvents?: NexusOneProgressEvent[];
+  rawSteps?: unknown[];
   recipientAddress?: string;
   steps?: ProgressStep[];
   swapBalances?: unknown[] | null;
@@ -350,15 +353,8 @@ const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
     (event as any)?.rawEvent?.state ??
       (event.step as any)?.state ??
       (event.event as any)?.state ??
+      (event as any)?.state ??
       ""
-  ).toLowerCase();
-  return APPROVAL_FINAL_STATES.has(rawState);
-};
-
-const isApprovalStepItemCompleted = (item: ProgressStep) => {
-  if (item.completed) return true;
-  const rawState = String(
-    (item.step as any)?.state ?? (item.step as any)?.rawEvent?.state ?? ""
   ).toLowerCase();
   return APPROVAL_FINAL_STATES.has(rawState);
 };
@@ -392,67 +388,146 @@ const countCompletedApprovalUnitsFromEvents = (
   return count;
 };
 
-const countCompletedApprovalUnitsFromSteps = (steps: ProgressStep[]) => {
-  const completedIds = new Set<string>();
-  let count = 0;
-
-  for (const item of steps) {
-    if (!isApprovalStepItemCompleted(item)) continue;
-    const stepId = String(
-      (item.step as any)?.id ??
-        (item.step as any)?.stepId ??
-        (item.step as any)?.typeID ??
-        ""
-    );
-    if (stepId) {
-      if (completedIds.has(stepId)) continue;
-      completedIds.add(stepId);
-    }
-    count += getApprovalUnitsForStep(item.step).length;
-  }
-
-  return count;
+const isRawApprovalStep = (step: any) => {
+  if (!step) return false;
+  const type = String(
+    step.type ?? step.rawType ?? step.stepType ?? ""
+  ).toLowerCase();
+  const id = String(step.id ?? step.stepId ?? "").toLowerCase();
+  return (
+    type === "allowance" ||
+    type === "allowance_approval" ||
+    type === "approval" ||
+    id.startsWith("allowance") ||
+    id.startsWith("approval")
+  );
 };
 
-const getApprovalUnitSymbols = (steps: ProgressSdkStep[]) =>
-  steps
-    .flatMap((step) => getApprovalUnitsForStep(step))
-    .map((unit) => unit.symbol)
-    .filter(Boolean) as string[];
+const isExecutionEventCompleted = (event: NexusOneProgressEvent) => {
+  if (event.completed) return true;
+  const rawState = String(
+    (event as any)?.rawEvent?.state ??
+      (event.step as any)?.state ??
+      (event.event as any)?.state ??
+      (event as any)?.state ??
+      ""
+  ).toLowerCase();
+  return (
+    rawState === "confirmed" ||
+    rawState === "completed" ||
+    rawState === "success"
+  );
+};
 
-const getNumericEventIndex = (...values: unknown[]) => {
-  for (const value of values) {
-    if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-      return value;
+const isEventMatchingRawStep = (
+  event: NexusOneProgressEvent,
+  rawStep: any,
+  _rawStepIndex?: number
+) => {
+  if (!rawStep) return false;
+  const rawEvent = event.event as any;
+  const eventStep = event.step as any;
+
+  const eventStepId = String(
+    eventStep?.id ??
+      eventStep?.stepId ??
+      eventStep?.typeID ??
+      rawEvent?.id ??
+      rawEvent?.step?.id ??
+      ""
+  ).toLowerCase();
+  const rawStepId = String(
+    rawStep?.id ?? rawStep?.stepId ?? rawStep?.typeID ?? ""
+  ).toLowerCase();
+
+  if (rawStepId && eventStepId) {
+    if (
+      rawStepId === eventStepId ||
+      eventStepId.includes(rawStepId) ||
+      rawStepId.includes(eventStepId)
+    ) {
+      return true;
     }
-    if (typeof value === "string" && /^\d+$/.test(value)) {
-      return Number(value);
-    }
+  }
+
+  const rawType = String(rawStep?.type ?? rawStep?.rawType ?? "").toLowerCase();
+  const eventType = String(
+    rawEvent?.stepType ?? eventStep?.rawType ?? eventStep?.type ?? ""
+  ).toLowerCase();
+
+  const normalizeType = (t: string) =>
+    t
+      .replace(/^allowance_approval$/, "allowance")
+      .replace(/^approval$/, "allowance")
+      .replace(/_/g, "");
+
+  if (normalizeType(rawType) !== normalizeType(eventType)) {
+    return false;
+  }
+
+  const rawChainId = rawStep?.chain?.id ?? rawStep?.chainId;
+  const eventChainId =
+    eventStep?.chain?.id ?? eventStep?.chainId ?? rawEvent?.chainId;
+
+  if (
+    rawChainId &&
+    eventChainId &&
+    Number(rawChainId) !== Number(eventChainId)
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+const getRawStepsFromEvents = (events: NexusOneProgressEvent[]): any[] => {
+  const confirmedEvent = [...events]
+    .reverse()
+    .find(
+      (e) =>
+        (e.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST ||
+          e.name === PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST) &&
+        e.planType === "plan_confirmed" &&
+        Array.isArray(e.rawSteps) &&
+        e.rawSteps.length > 0
+    );
+  if (confirmedEvent?.rawSteps) return confirmedEvent.rawSteps;
+
+  const anyListEvent = [...events]
+    .reverse()
+    .find(
+      (e) =>
+        (e.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST ||
+          e.name === PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST) &&
+        Array.isArray(e.rawSteps) &&
+        e.rawSteps.length > 0
+    );
+  if (anyListEvent?.rawSteps) return anyListEvent.rawSteps;
+
+  const listWithSteps = [...events]
+    .reverse()
+    .find(
+      (e) =>
+        (e.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST ||
+          e.name === PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST) &&
+        Array.isArray(e.steps) &&
+        e.steps.length > 0
+    );
+  return listWithSteps?.steps ?? [];
+};
+
+const getRawStepSymbol = (step: any) => {
+  const symbol =
+    step?.token?.symbol ??
+    step?.asset?.symbol ??
+    step?.amount?.symbol ??
+    step?.symbol;
+  if (typeof symbol === "string" && symbol) return symbol;
+  const swaps = Array.isArray(step?.swaps) ? step.swaps : [];
+  if (swaps.length > 0 && typeof swaps[0]?.input?.symbol === "string") {
+    return swaps[0].input.symbol;
   }
   return undefined;
-};
-
-const getApprovalIndexFromEvent = (event?: NexusOneProgressEvent) => {
-  const rawEvent = event?.event as any;
-  const rawStep = event?.step as any;
-  return getNumericEventIndex(
-    rawEvent?.approvalIndex,
-    rawEvent?.swapIndex,
-    rawEvent?.currentIndex,
-    rawEvent?.index,
-    rawEvent?.data?.approvalIndex,
-    rawEvent?.data?.swapIndex,
-    rawEvent?.data?.currentIndex,
-    rawEvent?.data?.index,
-    rawStep?.approvalIndex,
-    rawStep?.swapIndex,
-    rawStep?.currentIndex,
-    rawStep?.index,
-    rawStep?.data?.approvalIndex,
-    rawStep?.data?.swapIndex,
-    rawStep?.data?.currentIndex,
-    rawStep?.data?.index
-  );
 };
 
 const getActiveApprovalProgressEvent = (events: NexusOneProgressEvent[]) =>
@@ -468,33 +543,14 @@ const getActiveApprovalProgressEvent = (events: NexusOneProgressEvent[]) =>
 const getApprovalSymbolFromProgressEvent = (event?: NexusOneProgressEvent) => {
   const units = getApprovalUnitsForStep(event?.step);
   if (units.length === 0) return undefined;
-  if (units.length === 1) return units[0]?.symbol;
-
-  const index = getApprovalIndexFromEvent(event);
-  if (index === undefined || index >= units.length) return undefined;
-  return units[index]?.symbol;
+  return units[0]?.symbol;
 };
-
-const getApprovalTotalFromSwapStepsList = (events: NexusOneProgressEvent[]) =>
-  countApprovalUnits(
-    getListedSteps(events, PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST)
-  );
-
-const hasStartedStatus = (
-  events: NexusOneProgressEvent[],
-  id: ProgressStatusId,
-  mode: NexusOneMode,
-  hasTransferAction = false
-) =>
-  events.some(
-    (event) => getStatusForStep(event.step, mode, hasTransferAction) === id
-  );
 
 const buildStatusRows = ({
   events,
   failedStep,
-  isExactOut,
   mode,
+  rawSteps: rawStepsProp,
   steps,
   approvalTotalCount,
   context,
@@ -503,6 +559,7 @@ const buildStatusRows = ({
   failedStep?: ProgressSdkStep | null;
   isExactOut?: boolean;
   mode: NexusOneMode;
+  rawSteps?: unknown[];
   steps: ProgressStep[];
   approvalTotalCount?: number | null;
   context: {
@@ -512,300 +569,243 @@ const buildStatusRows = ({
     recipientAddress?: string;
   };
 }): ProgressStatusRow[] => {
-  const hasTransferAction =
-    mode === "send" || (mode === "swap" && Boolean(context.recipientAddress));
-  const failedStatus = failedStep
-    ? getStatusForStep(failedStep, mode, hasTransferAction)
-    : null;
-  const swapListSteps = getListedSteps(
-    events,
-    PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST
-  );
-  const fallbackSteps = steps.map((item) => item.step);
   const destinationSymbol = context.destinationSymbol || "token";
   const destinationChain = context.destinationChain || "destination";
   const opportunityName = context.opportunityName || "app";
-  const immutableApprovalTotal =
+
+  const effectiveRawSteps: any[] =
+    (Array.isArray(rawStepsProp) && rawStepsProp.length > 0
+      ? rawStepsProp
+      : undefined) ?? getRawStepsFromEvents(events);
+
+  const fallbackSteps = steps.map((item) => item.step);
+  const rawApprovalSteps = effectiveRawSteps.filter(isRawApprovalStep);
+
+  const totalApprovals =
     approvalTotalCount ??
-    Math.max(
-      countApprovalUnits(swapListSteps),
-      countApprovalUnits(fallbackSteps),
-      countCompletedApprovalUnitsFromEvents(events)
-    );
+    (rawApprovalSteps.length > 0
+      ? rawApprovalSteps.length
+      : Math.max(
+          countApprovalUnits(fallbackSteps),
+          countCompletedApprovalUnitsFromEvents(events)
+        ));
+
   const refundEligibleFailure =
     failedStep !== null &&
     failedStep !== undefined &&
     stepMatches(failedStep, REFUND_ELIGIBLE_SWAP_TYPES);
-  const approvalCompletedCount = Math.min(
-    immutableApprovalTotal || Number.MAX_SAFE_INTEGER,
-    Math.max(
-      countCompletedApprovalUnitsFromEvents(events),
-      countCompletedApprovalUnitsFromSteps(steps)
-    )
+
+  const failedStatus = failedStep
+    ? getStatusForStep(failedStep, mode, false)
+    : null;
+
+  // Track completed approvals
+  let completedApprovalsCount = 0;
+  if (rawApprovalSteps.length > 0) {
+    for (let i = 0; i < rawApprovalSteps.length; i++) {
+      const isDone = events.some((event) => {
+        if (
+          event.name !== PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
+          event.name !== PROGRESS_EVENT_NAMES.BRIDGE_PLAN_PROGRESS
+        ) {
+          return false;
+        }
+        if (!isApprovalEventCompleted(event)) return false;
+        return isEventMatchingRawStep(event, rawApprovalSteps[i], i);
+      });
+      if (isDone) completedApprovalsCount++;
+    }
+  }
+  const eventApprovalCount = countCompletedApprovalUnitsFromEvents(events);
+  completedApprovalsCount = Math.max(
+    completedApprovalsCount,
+    eventApprovalCount
   );
-  const approvalSymbols = getApprovalUnitSymbols(
-    swapListSteps.length > 0 ? swapListSteps : fallbackSteps
-  );
-  const activeApprovalSymbol = getApprovalSymbolFromProgressEvent(
-    getActiveApprovalProgressEvent(events)
-  );
-  const hasSwapList =
-    swapListSteps.length > 0 ||
-    hasStepType(events, steps, [
-      "SWAP_START",
-      "DETERMINING_SWAP",
-      "SOURCE_SWAP",
-      "DESTINATION_SWAP",
-      "BRIDGE_DEPOSIT",
-      "BRIDGE_FILL",
-      "BRIDGE_INTENT_SUBMISSION",
-      "SWAP_COMPLETE",
-      "SWAP_SKIPPED",
-    ]);
-  const hasDestinationReceiveStep =
-    countListedSteps(swapListSteps, DESTINATION_SWAP_TYPES) > 0 ||
-    countListedSteps(fallbackSteps, DESTINATION_SWAP_TYPES) > 0 ||
-    hasProgressEventType(events, DESTINATION_SWAP_TYPES);
-  const receiveTokenTypes = hasDestinationReceiveStep
-    ? DESTINATION_SWAP_TYPES
-    : BRIDGE_FILL_RECEIVE_TYPES;
-  const hasReceiveTokenStep =
-    hasDestinationReceiveStep ||
-    countListedSteps(swapListSteps, receiveTokenTypes) > 0 ||
-    countListedSteps(fallbackSteps, receiveTokenTypes) > 0 ||
-    hasProgressEventType(events, receiveTokenTypes);
-  const receiveTokenStarted = hasProgressEventType(events, receiveTokenTypes);
-  const receiveTokenComplete =
-    hasReceiveTokenStep && hasCompletedType(events, steps, receiveTokenTypes);
-  const swapComplete = hasCompletedType(events, steps, [
+  if (totalApprovals > 0) {
+    completedApprovalsCount = Math.min(totalApprovals, completedApprovalsCount);
+  }
+
+  const allApprovalsDone =
+    totalApprovals === 0 || completedApprovalsCount >= totalApprovals;
+
+  // Track 2nd-to-last step and last step in rawSteps
+  const totalRawSteps = effectiveRawSteps.length;
+  const secondLastStepIndex = totalRawSteps >= 2 ? totalRawSteps - 2 : 0;
+  const lastStepIndex = totalRawSteps >= 1 ? totalRawSteps - 1 : 0;
+  const secondLastStep =
+    totalRawSteps > 0 ? effectiveRawSteps[secondLastStepIndex] : null;
+  const lastStep = totalRawSteps > 0 ? effectiveRawSteps[lastStepIndex] : null;
+
+  const isStepDone = (step: any, index: number) => {
+    if (!step) return false;
+    return events.some((event) => {
+      if (
+        event.name !== PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
+        event.name !== PROGRESS_EVENT_NAMES.BRIDGE_PLAN_PROGRESS
+      ) {
+        return false;
+      }
+      if (!isExecutionEventCompleted(event)) return false;
+      return isEventMatchingRawStep(event, step, index);
+    });
+  };
+
+  const swapCompleteEvent = hasCompletedType(events, steps, [
     "SWAP_COMPLETE",
     "SWAP_SKIPPED",
   ]);
-  const swapSkipped = hasCompletedType(events, steps, ["SWAP_SKIPPED"]);
-  const shouldShowSwapRows =
-    hasSwapList &&
-    !(swapSkipped && (mode === "deposit" || mode === "send" || isExactOut));
-  const swapTokensComplete = hasReceiveTokenStep
-    ? receiveTokenStarted
-    : swapComplete;
-  const transactionSent = hasCompletedType(events, steps, ["TRANSACTION_SENT"]);
-  const transactionConfirmed = hasCompletedType(events, steps, [
-    "TRANSACTION_CONFIRMED",
-  ]);
+
+  const isLastStepCompleted =
+    swapCompleteEvent ||
+    (lastStep ? isStepDone(lastStep, lastStepIndex) : false);
+
+  const isSecondLastStepCompleted =
+    isLastStepCompleted ||
+    (secondLastStep
+      ? isStepDone(secondLastStep, secondLastStepIndex)
+      : false) ||
+    (totalRawSteps === 0 &&
+      hasCompletedType(events, steps, [
+        "DESTINATION_SWAP",
+        "BRIDGE_FILL",
+        "SWAP_COMPLETE",
+      ]));
+
   const rows: ProgressStatusRow[] = [];
 
-  const pushRow = (row: ProgressStatusRow) => {
-    if (failedStatus) {
-      const failedIndex = STATUS_ORDER.indexOf(failedStatus);
-      const currentIndex = STATUS_ORDER.indexOf(row.id);
-      if (failedIndex >= 0 && currentIndex > failedIndex) return;
-    }
-    rows.push(row);
-  };
-
-  if (immutableApprovalTotal > 0) {
-    const approvalSteps = (
-      swapListSteps.length > 0 ? swapListSteps : fallbackSteps
-    ).filter(isApprovalStep);
-    const activeApprovalEvent = getActiveApprovalProgressEvent(events);
-    const activeStepId = String(
-      (activeApprovalEvent?.step as any)?.id ??
-        (activeApprovalEvent?.step as any)?.stepId ??
-        (activeApprovalEvent?.step as any)?.typeID ??
-        ""
-    );
-    const activeIndex = activeStepId
-      ? approvalSteps.findIndex(
-          (s) =>
-            String(
-              (s as any)?.id ?? (s as any)?.stepId ?? (s as any)?.typeID ?? ""
-            ) === activeStepId
-        )
-      : -1;
-
-    const approvalCurrent = Math.min(
-      immutableApprovalTotal,
-      activeIndex >= 0
-        ? activeIndex + 1
-        : Math.max(1, approvalCompletedCount + 1)
-    );
-    const currentApprovalIndex = Math.min(
-      activeIndex >= 0 ? activeIndex : approvalCompletedCount,
-      Math.max(0, approvalSymbols.length - 1)
-    );
-    const approvalSymbol =
-      activeApprovalSymbol ?? approvalSymbols[currentApprovalIndex];
-    const approvalDescription = approvalSymbol
-      ? `Approve ${approvalSymbol} in wallet`
-      : "Approve in wallet";
-    let state: ProgressStatusState = "default";
+  // --- 1. APPROVAL STEP ---
+  if (totalApprovals > 0) {
+    let approveState: ProgressStatusState = "default";
     if (failedStatus === "approveTokens") {
-      state = "error";
-    } else if (approvalCompletedCount >= immutableApprovalTotal) {
-      state = "completed";
-    } else if (
-      hasStartedStatus(events, "approveTokens", mode, hasTransferAction) ||
-      events.length === 0
-    ) {
-      state = "preapproval";
+      approveState = "error";
+    } else if (allApprovalsDone) {
+      approveState = "completed";
+    } else {
+      approveState = "preapproval";
     }
 
-    pushRow({
+    const currentApprovalStep =
+      rawApprovalSteps[
+        Math.min(
+          completedApprovalsCount,
+          Math.max(0, rawApprovalSteps.length - 1)
+        )
+      ];
+    const currentApprovalSymbol =
+      getApprovalSymbolFromProgressEvent(
+        getActiveApprovalProgressEvent(events)
+      ) ?? getRawStepSymbol(currentApprovalStep);
+
+    rows.push({
       id: "approveTokens",
-      state,
-      description: state === "preapproval" ? approvalDescription : undefined,
-      label:
-        state === "completed"
-          ? `Approved Swaps (${immutableApprovalTotal} of ${immutableApprovalTotal})`
-          : state === "error"
-            ? "Collection failed"
-            : `Approve Swaps (${approvalCurrent} of ${immutableApprovalTotal})`,
-    });
-  }
-
-  if (shouldShowSwapRows) {
-    const approvalsSatisfied =
-      immutableApprovalTotal === 0 ||
-      approvalCompletedCount >= immutableApprovalTotal;
-    let state: ProgressStatusState = "default";
-    if (failedStatus === "swapTokens") {
-      state = "error";
-    } else if (swapTokensComplete) {
-      state = "completed";
-    } else if (
-      approvalsSatisfied &&
-      (hasStartedStatus(events, "swapTokens", mode, hasTransferAction) ||
-        hasEventType(events, [
-          "DESTINATION_SWAP_BATCH_TX",
-          "BRIDGE_DEPOSIT",
-          "SOURCE_SWAP_BATCH_TX",
-          "SOURCE_SWAP_HASH",
-          "SWAP_START",
-        ]))
-    ) {
-      state = "inProgress";
-    }
-
-    pushRow({
-      id: "swapTokens",
-      state,
-      label:
-        state === "completed"
-          ? "Swaps completed"
-          : state === "error"
-            ? refundEligibleFailure
-              ? "Swap failed. Refund initiated"
-              : "Swap failed"
-            : state === "inProgress"
-              ? "Swaps in progress"
-              : "Swap tokens",
-    });
-
-    if (hasReceiveTokenStep) {
-      pushRow({
-        id: "receiveToken",
-        state:
-          failedStatus === "receiveToken"
-            ? "error"
-            : receiveTokenComplete
-              ? "completed"
-              : receiveTokenStarted
-                ? "inProgress"
-                : "default",
-        label:
-          failedStatus === "receiveToken"
-            ? refundEligibleFailure
-              ? "Destination swap failed. Refund initiated."
-              : "Destination swap failed."
-            : receiveTokenComplete
-              ? `Received ${destinationSymbol} on ${destinationChain}`
-              : receiveTokenStarted
-                ? `Receiving ${destinationSymbol} on ${destinationChain}`
-                : `Receive ${destinationSymbol} on ${destinationChain}`,
-      });
-    }
-  }
-
-  if (mode === "deposit" || hasTransferAction) {
-    const receiveComplete =
-      swapSkipped ||
-      !shouldShowSwapRows ||
-      (hasReceiveTokenStep ? receiveTokenComplete : swapTokensComplete);
-    const isDeposit = mode === "deposit";
-    let state: ProgressStatusState = "default";
-    if (failedStatus === "action") {
-      state = "error";
-    } else if (transactionConfirmed) {
-      state = "completed";
-    } else if (transactionSent) {
-      state = "inProgress";
-    } else if (receiveComplete) {
-      state = "preapproval";
-    }
-
-    pushRow({
-      id: "action",
-      state,
-      description: state === "preapproval" ? "Approve in wallet" : undefined,
-      label: isDeposit
-        ? state === "completed"
-          ? `${destinationSymbol} deposited to ${opportunityName}`
-          : state === "inProgress"
-            ? `Depositing ${destinationSymbol} to ${opportunityName}`
-            : state === "error"
-              ? "Deposit failed. Funds are in your wallet."
-              : state === "preapproval"
-                ? `Approve Deposit of ${destinationSymbol} to ${opportunityName}`
-                : `Deposit ${destinationSymbol} to ${opportunityName}`
-        : state === "completed"
-          ? `${destinationSymbol} sent`
-          : state === "inProgress"
-            ? `Sending ${destinationSymbol}`
-            : state === "error"
-              ? "Send failed. Funds are in your wallet."
-              : state === "preapproval"
-                ? `Approve ${destinationSymbol} transfer`
-                : `Send ${destinationSymbol}`,
-    });
-  }
-
-  const orderedRows = rows.sort(
-    (a, b) => STATUS_ORDER.indexOf(a.id) - STATUS_ORDER.indexOf(b.id)
-  );
-
-  if (
-    orderedRows.some(
-      (row) => row.state === "preapproval" || row.state === "inProgress"
-    ) ||
-    orderedRows.some((row) => row.state === "error")
-  ) {
-    return orderedRows;
-  }
-
-  const nextActiveIndex = orderedRows.findIndex(
-    (row) => row.state === "default"
-  );
-  if (nextActiveIndex === -1) return orderedRows;
-
-  return orderedRows.map((row, index) => {
-    if (index !== nextActiveIndex) return row;
-    const nextState =
-      row.id === "approveTokens" || row.id === "action"
-        ? "preapproval"
-        : "inProgress";
-    return {
-      ...row,
+      state: approveState,
       description:
-        nextState === "preapproval" ? "Approve in wallet" : undefined,
+        approveState === "preapproval"
+          ? currentApprovalSymbol
+            ? `Approve ${currentApprovalSymbol} in wallet`
+            : "Approve in wallet"
+          : undefined,
       label:
-        row.id === "swapTokens"
-          ? "Swaps in progress"
-          : row.id === "receiveToken"
-            ? `Receiving ${destinationSymbol} on ${destinationChain}`
-            : row.label,
-      state: nextState,
-    };
+        approveState === "completed"
+          ? `Approved Swaps (${totalApprovals} of ${totalApprovals})`
+          : approveState === "error"
+            ? "Approval failed"
+            : `Approve Swaps (${completedApprovalsCount + 1} of ${totalApprovals})`,
+    });
+  }
+
+  // --- 2. SWAPS IN PROGRESS STEP ---
+  let swapState: ProgressStatusState = "default";
+  if (failedStatus === "swapTokens") {
+    swapState = "error";
+  } else if (isSecondLastStepCompleted) {
+    swapState = "completed";
+  } else if (allApprovalsDone) {
+    swapState = "inProgress";
+  } else {
+    swapState = "default";
+  }
+
+  rows.push({
+    id: "swapTokens",
+    state: swapState,
+    label:
+      swapState === "completed"
+        ? "Swaps completed"
+        : swapState === "error"
+          ? refundEligibleFailure
+            ? "Swap failed. Refund initiated"
+            : "Swap failed"
+          : swapState === "inProgress"
+            ? "Swaps in progress"
+            : "Swap tokens",
   });
+
+  // --- 3. RECEIVING TOKEN STEP ---
+  let receiveState: ProgressStatusState = "default";
+  if (failedStatus === "receiveToken") {
+    receiveState = "error";
+  } else if (isLastStepCompleted) {
+    receiveState = "completed";
+  } else if (isSecondLastStepCompleted) {
+    receiveState = "inProgress";
+  } else {
+    receiveState = "default";
+  }
+
+  rows.push({
+    id: "receiveToken",
+    state: receiveState,
+    label:
+      receiveState === "completed"
+        ? `Received ${destinationSymbol} on ${destinationChain}`
+        : receiveState === "error"
+          ? refundEligibleFailure
+            ? "Destination swap failed. Refund initiated."
+            : "Destination swap failed."
+          : receiveState === "inProgress"
+            ? `Receiving ${destinationSymbol} on ${destinationChain}`
+            : `Receive ${destinationSymbol} on ${destinationChain}`,
+  });
+
+  // If mode === "deposit", show deposit action step ONLY after receive is completed
+  if (mode === "deposit") {
+    const transactionSent = hasCompletedType(events, steps, [
+      "TRANSACTION_SENT",
+    ]);
+    const transactionConfirmed = hasCompletedType(events, steps, [
+      "TRANSACTION_CONFIRMED",
+    ]);
+    let depositState: ProgressStatusState = "default";
+    if (failedStatus === "action") {
+      depositState = "error";
+    } else if (transactionConfirmed) {
+      depositState = "completed";
+    } else if (transactionSent) {
+      depositState = "inProgress";
+    } else if (isLastStepCompleted) {
+      depositState = "preapproval";
+    }
+
+    rows.push({
+      id: "action",
+      state: depositState,
+      description:
+        depositState === "preapproval" ? "Approve in wallet" : undefined,
+      label:
+        depositState === "completed"
+          ? `${destinationSymbol} deposited to ${opportunityName}`
+          : depositState === "inProgress"
+            ? `Depositing ${destinationSymbol} to ${opportunityName}`
+            : depositState === "error"
+              ? "Deposit failed. Funds are in your wallet."
+              : depositState === "preapproval"
+                ? `Approve Deposit of ${destinationSymbol} to ${opportunityName}`
+                : `Deposit ${destinationSymbol} to ${opportunityName}`,
+    });
+  }
+
+  return rows;
 };
 
 function MiniLogo({
@@ -917,6 +917,7 @@ export function NexusOneProgressScreen({
   steps,
   progressEvents = [],
   failedStep,
+  rawSteps,
   recipientAddress,
   swapBalances,
   swapType,
@@ -1114,16 +1115,19 @@ export function NexusOneProgressScreen({
     mode === "deposit"
       ? opportunity?.title || opportunity?.protocol || destinationChainName
       : destinationChainName;
+  const effectiveRawSteps =
+    (Array.isArray(rawSteps) && rawSteps.length > 0 ? rawSteps : undefined) ??
+    getRawStepsFromEvents(progressEvents);
+  const rawApprovalSteps = effectiveRawSteps.filter(isRawApprovalStep);
   const seededApprovalTotal = countApprovalUnits(
     (steps ?? []).map((item) => item.step)
   );
   const completedApprovalEventTotal =
     countCompletedApprovalUnitsFromEvents(progressEvents);
-  const computedApprovalTotal = Math.max(
-    getApprovalTotalFromSwapStepsList(progressEvents),
-    seededApprovalTotal,
-    completedApprovalEventTotal
-  );
+  const computedApprovalTotal =
+    rawApprovalSteps.length > 0
+      ? rawApprovalSteps.length
+      : Math.max(seededApprovalTotal, completedApprovalEventTotal);
   const [lockedApprovalTotal, setLockedApprovalTotal] = useState<number | null>(
     null
   );
@@ -1145,6 +1149,7 @@ export function NexusOneProgressScreen({
     failedStep,
     isExactOut: swapType === "exactOut",
     mode,
+    rawSteps,
     steps: steps ?? [],
     approvalTotalCount,
     context: {
