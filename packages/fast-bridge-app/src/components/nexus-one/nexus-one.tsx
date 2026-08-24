@@ -5134,12 +5134,12 @@ function NexusOneInner({
       }
     } else {
       // Exact-Out flows
-      if (swapIntent?.sources && swapIntent.sources.length > 0) {
+      if (intentData?.sources && intentData.sources.length > 0) {
         const chainUsdTotals = new Map<
           number,
           { chainName: string; totalUsd: Decimal }
         >();
-        for (const source of swapIntent.sources) {
+        for (const source of intentData.sources) {
           const chainId = source.chain?.id;
           if (!chainId) continue;
           const limit = getSourceSendLimitUsd(chainId);
