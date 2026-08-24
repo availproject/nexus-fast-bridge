@@ -4,6 +4,7 @@ import type {
   IntentEvent,
   IntentHookData,
   IntentQuote,
+  IntentRouteConstraints,
   IntentSource,
   NexusClient,
 } from "@avail-project/nexus-core";
@@ -170,6 +171,27 @@ export const normalizeSupportedChains = (
       contractAddress: token.address,
     })),
   }));
+
+export const isTokenSupportedForRole = (
+  chains: SupportedChainsAndTokensResult | null | undefined,
+  role: "source" | "destination",
+  chainId: number | undefined,
+  tokenAddress: string
+): boolean => {
+  if (!chains || chainId === undefined) {
+    return true;
+  }
+  const token = tokenByAddress(chains, chainId, tokenAddress);
+  if (!token) {
+    return false;
+  }
+  const directional = role === "source" ? token.asSource : token.asDestination;
+  return (directional ?? token.providers).length > 0;
+};
+
+export type GetRouteSupportedChains = (
+  constraints: IntentRouteConstraints
+) => Promise<SupportedChainsAndTokensResult>;
 
 export const normalizeIntentBalances = (
   balances: IntentBalance[],
