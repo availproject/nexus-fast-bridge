@@ -878,6 +878,9 @@ export function SwapIdleForm({
     "token"
   );
   const [receiveUsdInput, setReceiveUsdInput] = useState("");
+  const [emptyRowAmounts, setEmptyRowAmounts] = useState<
+    Record<number, string>
+  >({});
 
   const handleReceiveInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (receiveAmountMode === "usd") {
@@ -945,6 +948,62 @@ export function SwapIdleForm({
     }
     onAmountChange(sanitized, "send");
   };
+
+  const handleSourceInputChange = (
+    index: number,
+    token: SwapTokenOption | null,
+    val: string
+  ) => {
+    if (token) {
+      handleTokenAmountChange(index, val);
+      return;
+    }
+
+    const sanitized = sanitizeInput(val, 18);
+    setEmptyRowAmounts((prev) => ({ ...prev, [index]: sanitized }));
+
+    if (!isMultiAssetMode) {
+      if (fromTokens.length > 0 && onUpdateTokens) {
+        const next = [...fromTokens];
+        next[0] = { ...next[0], userAmount: sanitized, selectedPct: null };
+        onUpdateTokens(next);
+      }
+      onAmountChange(sanitized, "send");
+    } else {
+      const tokenTotal = fromTokens.reduce(
+        (sum, t) => sum + Number(t.userAmount || 0),
+        0
+      );
+      const otherEmptyTotal = Object.entries(emptyRowAmounts).reduce(
+        (sum, [k, v]) => (Number(k) !== index ? sum + Number(v || 0) : sum),
+        0
+      );
+      const total = tokenTotal + otherEmptyTotal + Number(sanitized || 0);
+      onAmountChange(total > 0 ? String(total) : sanitized, "send");
+    }
+  };
+
+  useEffect(() => {
+    if (!onUpdateTokens || Object.keys(emptyRowAmounts).length === 0) return;
+    let hasUpdates = false;
+    const next = fromTokens.map((token, i) => {
+      if (token && !token.userAmount && emptyRowAmounts[i]) {
+        hasUpdates = true;
+        return { ...token, userAmount: emptyRowAmounts[i] };
+      }
+      return token;
+    });
+    if (hasUpdates) {
+      setEmptyRowAmounts((prev) => {
+        const updated = { ...prev };
+        fromTokens.forEach((token, i) => {
+          if (token && emptyRowAmounts[i]) delete updated[i];
+        });
+        return updated;
+      });
+      onUpdateTokens(next);
+    }
+  }, [fromTokens, emptyRowAmounts, onUpdateTokens]);
 
   const handleTokenAmountChange = (index: number, val: string) => {
     if (!onUpdateTokens) return;
@@ -1095,6 +1154,7 @@ export function SwapIdleForm({
       onUpdateTokens([]);
     }
     onAmountChange("", "send");
+    setEmptyRowAmounts({});
     setExtraSlots(isMultiAssetMode ? 1 : 0);
   };
 
@@ -1107,6 +1167,19 @@ export function SwapIdleForm({
   };
 
   const executeRemoveRow = (index: number) => {
+    setEmptyRowAmounts((prev) => {
+      const next: Record<number, string> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const num = Number(k);
+        if (num < index) {
+          next[num] = v;
+        } else if (num > index) {
+          next[num - 1] = v;
+        }
+      }
+      return next;
+    });
+
     if (!isMultiAssetMode) {
       if (onUpdateTokens) {
         onUpdateTokens([]);
@@ -1576,11 +1649,7 @@ export function SwapIdleForm({
                 setFocusedPanel(null);
               }}
               onChange={(e) => {
-                if (token) {
-                  handleTokenAmountChange(index, e.target.value);
-                } else if (!isMultiAssetMode) {
-                  handleSendInput(e);
-                }
+                handleSourceInputChange(index, token, e.target.value);
               }}
               onFocus={() => {
                 setFocusedRow(index);
@@ -1615,11 +1684,13 @@ export function SwapIdleForm({
                   ? focusedRow === index
                     ? token.userAmount || ""
                     : formatAmountInputDisplay(token.userAmount || "")
-                  : !isMultiAssetMode && isExactIn
-                    ? focusedRow === index
-                      ? amount
-                      : formatAmountInputDisplay(amount)
-                    : ""
+                  : focusedRow === index
+                    ? (emptyRowAmounts[index] ??
+                      (!isMultiAssetMode ? amount : ""))
+                    : formatAmountInputDisplay(
+                        emptyRowAmounts[index] ??
+                          (!isMultiAssetMode ? amount : "")
+                      )
               }
             />
           </div>

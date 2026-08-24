@@ -12937,10 +12937,10 @@ function NexusOneInner({
                     targetIndex !== null && targetIndex < next.length
                       ? next[targetIndex]
                       : undefined;
-                  const tokenChanged = !isSameTokenSelection(
-                    existingToken,
-                    token
-                  );
+                  const tokenChanged =
+                    Boolean(
+                      existingToken?.symbol || existingToken?.contractAddress
+                    ) && !isSameTokenSelection(existingToken, token);
                   const preservedAmount = tokenChanged
                     ? ""
                     : existingToken?.userAmount ||
@@ -13021,13 +13021,14 @@ function NexusOneInner({
                     const targetIndex = editingAssetIndex;
                     const existingToken =
                       targetIndex < next.length ? next[targetIndex] : undefined;
-                    const tokenChanged = !isSameTokenSelection(
-                      existingToken,
-                      token
-                    );
+                    const tokenChanged =
+                      Boolean(
+                        existingToken?.symbol || existingToken?.contractAddress
+                      ) && !isSameTokenSelection(existingToken, token);
                     const preservedAmount = tokenChanged
                       ? ""
-                      : existingToken?.userAmount || "";
+                      : existingToken?.userAmount ||
+                        (targetIndex === 0 ? amount : "");
                     const newToken = {
                       ...token,
                       userAmount: preservedAmount,
