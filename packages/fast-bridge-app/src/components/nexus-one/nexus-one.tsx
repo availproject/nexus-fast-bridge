@@ -1,7 +1,11 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 "use client";
 
-import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
+import {
+  ERROR_CODES,
+  type EthereumProvider,
+  getIntentQuoteFailure,
+} from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {
@@ -52,6 +56,7 @@ import {
   adaptIntentEvent,
   adaptIntentHook,
   addIntentUsdValues,
+  type SupportedChainsAndTokensResult,
 } from "../nexus/better-intent-compat";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
@@ -3210,6 +3215,7 @@ function NexusOneInner({
     bridgableBalance,
     swapBalance,
     getFiatValue,
+    getRouteSupportedChains,
     resolveTokenUsdRate,
     swapSupportedChainsAndTokens,
     supportedChainsAndTokens,
@@ -3354,6 +3360,107 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
+  const [sourceOptionCatalog, setSourceOptionCatalog] =
+    useState<SupportedChainsAndTokensResult | null>(null);
+  const [destinationOptionCatalog, setDestinationOptionCatalog] =
+    useState<SupportedChainsAndTokensResult | null>(null);
+
+  useEffect(() => {
+    if (!(nexusSDK && toToken?.chainId && toToken.contractAddress)) {
+      setSourceOptionCatalog(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      const readableAmount = isSwapExactOut ? amount.trim() : "";
+      let amountRaw: bigint | undefined;
+      try {
+        amountRaw = readableAmount
+          ? parseUnits(readableAmount, toToken.decimals)
+          : undefined;
+      } catch {
+        amountRaw = undefined;
+      }
+      void getRouteSupportedChains({
+        destinations: [
+          {
+            chainId: toToken.chainId,
+            tokenAddress: toToken.contractAddress as `0x${string}`,
+            amountRaw,
+          },
+        ],
+      })
+        .then((catalog) => {
+          if (active) setSourceOptionCatalog(catalog);
+        })
+        .catch((error) => {
+          console.error("Failed to load constrained source catalog", error);
+          if (active) setSourceOptionCatalog(null);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [amount, getRouteSupportedChains, isSwapExactOut, nexusSDK, toToken]);
+
+  useEffect(() => {
+    const concreteSources = fromTokens.filter(
+      (token) => token.chainId && token.contractAddress
+    );
+    if (!(nexusSDK && concreteSources.length > 0)) {
+      setDestinationOptionCatalog(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      const readableAmounts = concreteSources.map(
+        (token) =>
+          token.userAmount ||
+          (concreteSources.length === 1 && !isSwapExactOut ? amount : "")
+      );
+      const includeAmounts = readableAmounts.every(
+        (value) => Number(value) > 0
+      );
+      const sources = concreteSources.map((token, index) => {
+        let amountRaw: bigint | undefined;
+        try {
+          amountRaw = includeAmounts
+            ? parseUnits(readableAmounts[index]!, token.decimals)
+            : undefined;
+        } catch {
+          amountRaw = undefined;
+        }
+        return {
+          chainId: token.chainId,
+          tokenAddress: token.contractAddress as `0x${string}`,
+          amountRaw,
+        };
+      });
+      const hasPartialAmounts = sources.some(
+        (source) => source.amountRaw === undefined
+      );
+      void getRouteSupportedChains({
+        sources: hasPartialAmounts
+          ? sources.map(({ amountRaw: _amountRaw, ...source }) => source)
+          : sources,
+      })
+        .then((catalog) => {
+          if (active) setDestinationOptionCatalog(catalog);
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to load constrained destination catalog",
+            error
+          );
+          if (active) setDestinationOptionCatalog(null);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [amount, fromTokens, getRouteSupportedChains, isSwapExactOut, nexusSDK]);
   const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
     useState<SwapTokenOption[]>([]);
   useEffect(() => {
@@ -5945,6 +6052,22 @@ function NexusOneInner({
   };
 
   const getMiddlewareErrorDiagnostic = (error: unknown) => {
+    const quoteFailure = getIntentQuoteFailure(error);
+    if (quoteFailure) {
+      const labels = [
+        quoteFailure.code ? `code: ${quoteFailure.code}` : undefined,
+        `subcode: ${quoteFailure.subcode}`,
+        quoteFailure.errorId ? `error ID: ${quoteFailure.errorId}` : undefined,
+      ].filter(Boolean);
+      return [
+        `Middleware ${labels.join(" · ")}`,
+        Object.keys(quoteFailure.details).length > 0
+          ? `Details:\n${JSON.stringify(quoteFailure.details, null, 2)}`
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
     const details = (error as any)?.details;
     if (!details || typeof details !== "object") return "";
 
@@ -13401,7 +13524,9 @@ function NexusOneInner({
                     : undefined
                 }
                 swapBalance={swapBalance}
-                swapSupportedChains={swapSupportedChainsAndTokens}
+                swapSupportedChains={
+                  sourceOptionCatalog ?? swapSupportedChainsAndTokens
+                }
                 title={
                   isSwapExactOut
                     ? "Choose assets to send"
@@ -13532,6 +13657,7 @@ function NexusOneInner({
                   setToToken(token);
                   closeDrawerToIdle();
                 }}
+                routeSupportedChains={destinationOptionCatalog}
                 selectedToken={toToken}
               />
             </div>

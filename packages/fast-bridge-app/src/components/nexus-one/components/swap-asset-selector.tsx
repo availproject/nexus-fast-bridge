@@ -29,6 +29,7 @@ import {
   isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
 import type { SupportedChainsAndTokensResult } from "../../nexus/better-intent-compat";
+import { isTokenSupportedForRole } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 export const formatMiddleTruncatedAddress = (address?: string) => {
@@ -50,6 +51,7 @@ export interface SwapTokenOption {
   chainName?: string;
   contractAddress: string;
   decimals: number;
+  disabledReason?: string;
   isUnified?: boolean;
   logo?: string;
   name: string;
@@ -1207,7 +1209,19 @@ export function SwapAssetSelector({
         : swapBalance
           ? deriveTokenOptions(swapBalance, swapSupportedChains)
           : []
-    ).filter((token) => !isExcludedToken(token));
+    )
+      .filter((token) => !isExcludedToken(token))
+      .map((token) => ({
+        ...token,
+        disabledReason: isTokenSupportedForRole(
+          swapSupportedChains,
+          "source",
+          token.chainId,
+          token.contractAddress
+        )
+          ? undefined
+          : "Unavailable for this destination",
+      }));
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return sortTokensByUsdBalance(baseTokens);
@@ -1701,7 +1715,8 @@ export function SwapAssetSelector({
 
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
-    const disabled = isDisabledByUnified || locked;
+    const disabled =
+      isDisabledByUnified || locked || Boolean(token.disabledReason);
     const handleTokenSelection = () => {
       if (disabled) return;
       if (isMulti) {
@@ -1730,7 +1745,7 @@ export function SwapAssetSelector({
             display: "flex",
             justifyContent: "space-between",
             minHeight: "42px",
-            opacity: isDisabledByUnified ? 0.5 : 1,
+            opacity: disabled ? 0.5 : 1,
             padding: "8px 0",
             width: "100%",
           }}
@@ -1807,7 +1822,7 @@ export function SwapAssetSelector({
           cursor: disabled ? "not-allowed" : "pointer",
           borderBottom: "1px solid #F0F0EF",
           boxSizing: "border-box",
-          opacity: isDisabledByUnified ? 0.5 : 1,
+          opacity: disabled ? 0.5 : 1,
         }}
       >
         <div
