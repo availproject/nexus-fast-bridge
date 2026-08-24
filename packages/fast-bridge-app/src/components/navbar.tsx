@@ -46,15 +46,55 @@ export default function Navbar() {
               <button
                 className="fastbridge-wallet-button"
                 onClick={() => open()}
+                style={{
+                  display: "flex",
+                  height: "56px",
+                  padding: "14.4px 26.4px 16px 24.8px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: "12px",
+                  border: "1px solid #E8E8E7",
+                  background: "#FFFFFE",
+                  boxShadow: "0 1px 4px 0 rgba(85, 85, 85, 0.05)",
+                  color: "#161615",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "16px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "18px",
+                  gap: "8px",
+                  boxSizing: "border-box",
+                  cursor: "pointer",
+                }}
                 type="button"
               >
-                {address && <AddressIdenticon address={address} size={16} />}
+                {address && <AddressIdenticon address={address} size={20} />}
                 <span>{shortAddress}</span>
               </button>
             ) : (
               <button
                 className="fastbridge-wallet-button"
                 onClick={handleConnectWalletClick}
+                style={{
+                  display: "flex",
+                  height: "56px",
+                  padding: "14.4px 26.4px 16px 24.8px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: "12px",
+                  border: "1px solid #E8E8E7",
+                  background: "#FFFFFE",
+                  boxShadow: "0 1px 4px 0 rgba(85, 85, 85, 0.05)",
+                  color: "#161615",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "16px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "18px",
+                  gap: "8px",
+                  boxSizing: "border-box",
+                  cursor: "pointer",
+                }}
                 type="button"
               >
                 Connect Wallet

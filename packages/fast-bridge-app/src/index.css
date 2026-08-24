@@ -123,24 +123,33 @@ body,
   object-fit: contain;
 }
 
+button,
+[role="button"],
 .fastbridge-wallet-button {
-  display: inline-flex;
-  gap: 6px;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+.fastbridge-wallet-button {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 146px;
-  height: 45px;
-  padding: 0 12px;
+  height: 56px;
+  padding: 14.4px 26.4px 16px 24.8px;
   font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 17px;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
   color: #161615;
   white-space: nowrap;
   cursor: pointer;
   background: #fffffe;
   border: 1px solid #e8e8e7;
-  border-radius: 10px;
-  box-shadow: #5555550d 0 1px 4px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px 0 rgba(85, 85, 85, 0.05);
   transition:
     box-shadow 160ms ease,
     transform 160ms ease;
@@ -278,15 +287,6 @@ body,
     padding: 32px 0 0;
   }
 
-  .fastbridge-wallet-button {
-    width: 120px;
-    height: 38px;
-    padding: 7px 12px;
-    font-size: 13px;
-    line-height: 16px;
-    border-radius: 10px;
-  }
-
   .fastbridge-app-logo-image {
     width: 130px;
     height: auto;
@@ -307,6 +307,12 @@ body,
   }
 }
 
+@media (max-width: 520px) {
+  .nexus-cta-est-time {
+    display: none !important;
+  }
+}
+
 @media (max-width: 480px) {
   .fastbridge-app-main {
     width: 100% !important;
@@ -322,13 +328,6 @@ body,
     width: 108px !important;
   }
 
-  .fastbridge-wallet-button {
-    width: 112px !important;
-    height: 34px !important;
-    padding: 0 9px !important;
-    font-size: 12px !important;
-  }
-
   .fastbridge-app-footer {
     gap: 12px !important;
     width: calc(100% - 24px) !important;
@@ -341,7 +340,7 @@ body,
   [data-nexus-one-root] {
     gap: 6px !important;
     padding: 9px !important;
-    border-radius: 11px !important;
+    border-radius: 32px !important;
   }
 
   [data-nexus-one-root] div[style*="border-top"] {
@@ -553,6 +552,15 @@ body,
   }
 }
 
+@keyframes nexusSwapSkeletonShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .nexus-balance-skeleton {
   background: linear-gradient(90deg, #f0f0ef 0%, #e6eeff 48%, #f0f0ef 100%);
   background-size: 200% 100%;
@@ -563,4 +571,91 @@ body,
   .nexus-balance-skeleton {
     animation: none;
   }
+}
+
+@keyframes nexusZoomFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexusZoomFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes nexusPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes nexusBackdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes nexusBackdropFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes nexusRowCollapse {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    max-height: 100px;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92) translateY(-10px);
+    max-height: 0px;
+    margin-top: -12px;
+  }
+}
+
+.nexus-asset-row {
+  border-radius: 12px !important;
+  transition:
+    background-color 0.15s ease,
+    transform 0.12s ease !important;
+}
+
+.nexus-asset-row:hover {
+  background-color: #f0f0f0 !important;
+}
+
+.nexus-no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.nexus-no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

@@ -1979,7 +1979,10 @@ export function SwapIntentPreview({
         disabled={isLoading || isRefreshing || isExecuting || quoteUnavailable}
         onClick={onAccept}
         style={{
-          background: "#1F1F1F",
+          background:
+            isLoading || isRefreshing || isExecuting || quoteUnavailable
+              ? "#CBCBCB"
+              : "#1F1F1F",
           borderRadius: "10px",
           boxShadow:
             "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 7px 18px",
@@ -1990,6 +1993,8 @@ export function SwapIntentPreview({
           height: "42px",
           lineHeight: "19px",
           paddingInline: "16px",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           width: "100%",
         }}
       >

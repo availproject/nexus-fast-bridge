@@ -14,7 +14,8 @@ allowBuilds:
   msw: true
   sharp: true
   unrs-resolver: true
-  "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/186e1ba010d45cebd06516be71116c21e35d202f": true
+  "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/6346ba5bb86a521f5a6adbe46e504592467b5652": true
+  "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/d5b17014a08ac52f25d94ee1691747cead9ecbd7": true
 
 blockExoticSubdeps: false
 

@@ -16,7 +16,7 @@ interface SendIdleFormProps {
   fromTokens: SwapTokenOption[];
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
-  isSourcePickerDisabled?: boolean;
+  needsWalletConnection?: boolean;
   onAmountChange: (val: string) => void;
   onOpenAssetPicker: () => void;
   onOpenRecipientPicker: () => void;
@@ -84,12 +84,17 @@ const formatAmountInputDisplay = (value: string) => {
 const sanitizeAmountInput = (raw: string, maxDecimals: number) => {
   let next = raw.replaceAll(/[^0-9.]/g, "");
   const parts = next.split(".");
-  if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
+  if (parts.length > 2) next = `${parts[0]}.${parts.slice(1).join("")}`;
   const [integerPart, decimalPart] = next.split(".");
   if (decimalPart !== undefined) {
     next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
   }
-  if (next === ".") next = "0.";
+  if (next.startsWith(".")) next = `0${next}`;
+  if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
+    next = next.replace(/^0+/, "");
+    if (next === "") next = "0";
+    if (next.startsWith(".")) next = `0${next}`;
+  }
   return next;
 };
 
@@ -177,12 +182,20 @@ function PercentButtons({
   visible,
   onSelect,
   maxLabel = "Max",
+  selectedPct,
 }: {
   visible: boolean;
   onSelect: (pct: number) => void;
   maxLabel?: string;
+  selectedPct?: number | null;
 }) {
   const [hoveredPct, setHoveredPct] = React.useState<number | null>(null);
+  const [internalSelectedPct, setInternalSelectedPct] = React.useState<
+    number | null
+  >(null);
+
+  const activePct =
+    selectedPct !== undefined ? selectedPct : internalSelectedPct;
 
   return (
     <div
@@ -206,12 +219,14 @@ function PercentButtons({
       {[20, 50, 100].map((pct) => {
         const label = pct === 100 ? maxLabel : `${pct}%`;
         const isHovered = hoveredPct === pct;
+        const isSelected = activePct === pct;
 
         return (
           <button
             key={pct}
             onClick={(e) => {
               e.stopPropagation();
+              setInternalSelectedPct(pct);
               onSelect(pct);
             }}
             onMouseDown={(e) => {
@@ -221,16 +236,24 @@ function PercentButtons({
             onMouseLeave={() => setHoveredPct(null)}
             style={{
               alignItems: "center",
-              backgroundColor: isHovered ? "#FFFFFF" : "transparent",
+              backgroundColor: isSelected
+                ? "#FFFFFF"
+                : isHovered
+                  ? "#FFFFFF"
+                  : "transparent",
               borderRadius: "4px",
-              boxShadow: isHovered ? "#3C286414 0px 1px 2px" : "none",
+              boxShadow: isSelected
+                ? "#3C286424 0px 1px 3px, #2A388B0F 0px 1px 2px"
+                : isHovered
+                  ? "#3C286414 0px 1px 2px"
+                  : "none",
               boxSizing: "border-box",
-              color: isHovered ? "#1F1F1F" : "#8E8E89",
+              color: isSelected ? "#006BF4" : isHovered ? "#1F1F1F" : "#8E8E89",
               cursor: "pointer",
               display: "flex",
               fontFamily: '"Geist", system-ui, sans-serif',
               fontSize: "10.5px",
-              fontWeight: 500,
+              fontWeight: isSelected ? 600 : 500,
               height: "20px",
               justifyContent: "center",
               flex: "1 1 0%",
@@ -580,6 +603,7 @@ export function SendIdleForm({
   isQuoteRefreshing,
   showAutoBadge = true,
   isSourcePickerDisabled = false,
+  needsWalletConnection = false,
   reserveSourceRows = false,
 }: SendIdleFormProps) {
   const [pendingPercent, setPendingPercent] = useState<number | null>(null);
@@ -971,7 +995,11 @@ export function SendIdleForm({
               {toToken && (
                 <PercentButtons
                   onSelect={handlePercentSelect}
-                  visible={Boolean(toToken) && isAmountFocused}
+                  visible={
+                    !needsWalletConnection &&
+                    Boolean(toToken) &&
+                    isAmountFocused
+                  }
                 />
               )}
             </div>
@@ -985,7 +1013,7 @@ export function SendIdleForm({
                 flex: 1,
               }}
             >
-              {toToken && (
+              {toToken && !needsWalletConnection && (
                 <>
                   <span
                     style={{

@@ -1,8 +1,9 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
+
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
-import { Check, ChevronDown, Copy, Globe, Info, Search, X } from "lucide-react";
+import { ChevronDown, Globe, Search, X } from "lucide-react";
 import React, {
   useCallback,
   useDeferredValue,
@@ -27,16 +28,21 @@ import {
   getCitreaReceiveTokenOptions,
 } from "../utils/citrea-tokens";
 import {
+  formatMiddleTruncatedAddress,
   getTokenSearchRank,
   RadioDot,
+  SelectionControl,
   SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
   sortChainIdsBySwapDisplayOrder,
 } from "./swap-asset-selector";
 
 interface ReceiveAssetSelectorProps {
+  excludedTokens?: SwapTokenOption[];
+  needsWalletConnection?: boolean;
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
+  selectedToken?: SwapTokenOption;
 }
 
 const SUPPORTED_RECEIVE_CHAIN_IDS = new Set<number>(SWAP_CHAIN_DISPLAY_ORDER);
@@ -530,9 +536,72 @@ export const preloadReceiveTokens = () => {
   return rawTokensPromise;
 };
 
+export const getAllReceiveTokenOptions = async (
+  swapSupportedChains?: any
+): Promise<SwapTokenOption[]> => {
+  const data = await preloadReceiveTokens();
+  if (!data?.tokens) return [];
+  const sdkSwapSupportedChainIds =
+    getSdkSwapSupportedChainIds(swapSupportedChains);
+  const allParsed: SwapTokenOption[] = [];
+  const chains = data.tokens || {};
+  for (const chainIdStr of Object.keys(chains)) {
+    const chainId = parseInt(chainIdStr, 10);
+    if (
+      sdkSwapSupportedChainIds
+        ? !sdkSwapSupportedChainIds.has(chainId)
+        : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
+    ) {
+      continue;
+    }
+    if (!isSwapSupportedBySdkChainList(chainId, swapSupportedChains)) {
+      continue;
+    }
+    const chainMeta = CHAIN_METADATA[chainId] || {
+      name: getShortChainName(chainId, `Chain ${chainId}`),
+      logo: "",
+    };
+    for (const t of chains[chainIdStr]) {
+      if (!t.address || !t.symbol) continue;
+      allParsed.push({
+        contractAddress: t.address,
+        symbol: t.symbol,
+        name: t.name || t.symbol,
+        logo: t.logoURI || "",
+        decimals: t.decimals ?? 18,
+        priceUSD: t.priceUSD,
+        chainId,
+        chainName: chainMeta.name,
+        chainLogo: chainMeta.logo,
+        balance: "0",
+        balanceInFiat: "$0.00",
+      });
+    }
+  }
+  const tokensByKey = new Map<string, SwapTokenOption>();
+  for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
+    const address =
+      token.contractAddress.toLowerCase() ===
+      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        ? "0x0000000000000000000000000000000000000000"
+        : token.contractAddress.toLowerCase();
+    const key = `${token.chainId ?? 0}-${address}`;
+    const existing = tokensByKey.get(key);
+    tokensByKey.set(key, {
+      ...existing,
+      ...token,
+      priceUSD: token.priceUSD ?? existing?.priceUSD,
+    });
+  }
+  return Array.from(tokensByKey.values());
+};
+
 export function ReceiveAssetSelector({
   onSelect,
   onBack,
+  selectedToken,
+  excludedTokens = [],
+  needsWalletConnection = false,
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -543,6 +612,9 @@ export function ReceiveAssetSelector({
     swapBalance,
     swapSupportedChainsAndTokens,
   } = useNexus();
+  const isBalanceLoading =
+    !needsWalletConnection &&
+    (swapBalance === null || swapBalance === undefined);
   const sdkSwapSupportedChainIds = useMemo(
     () => getSdkSwapSupportedChainIds(swapSupportedChainsAndTokens),
     [swapSupportedChainsAndTokens]
@@ -559,12 +631,33 @@ export function ReceiveAssetSelector({
   const [chainQuery, setChainQuery] = useState("");
   const [isChainSearchFocused, setIsChainSearchFocused] = useState(false);
   const [selectedTokenHash, setSelectedTokenHash] = useState<string | null>(
-    null
+    () =>
+      selectedToken
+        ? `${selectedToken.chainId}-${selectedToken.contractAddress}`
+        : null
   );
   const [selectedTokenFull, setSelectedTokenFull] =
-    useState<SwapTokenOption | null>(null);
+    useState<SwapTokenOption | null>(() => selectedToken ?? null);
   const [hoveredHash, setHoveredHash] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [copiedTokenAddress, setCopiedTokenAddress] = useState<string | null>(
+    null
+  );
+
+  const handleCopyTokenAddress = useCallback(
+    (e: React.MouseEvent, addr: string) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (navigator?.clipboard?.writeText) {
+        void navigator.clipboard.writeText(addr);
+        setCopiedTokenAddress(addr);
+        setTimeout(() => {
+          setCopiedTokenAddress((curr) => (curr === addr ? null : curr));
+        }, 1500);
+      }
+    },
+    []
+  );
   const [visibleCount, setVisibleCount] = useState(30);
   const [tooltipState, setTooltipState] = useState<{
     hash: string;
@@ -572,6 +665,15 @@ export function ReceiveAssetSelector({
     y: number;
     t: SwapTokenOption;
   } | null>(null);
+
+  useEffect(() => {
+    if (selectedToken) {
+      setSelectedTokenHash(
+        `${selectedToken.chainId}-${selectedToken.contractAddress}`
+      );
+      setSelectedTokenFull(selectedToken);
+    }
+  }, [selectedToken]);
 
   const [apiTokens, setApiTokens] = useState<ReceiveTokenOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -678,14 +780,6 @@ export function ReceiveAssetSelector({
       window.removeEventListener("click", handleGlobalClick);
     };
   }, [tooltipState]);
-
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(30);
-    if (listRef.current) {
-      listRef.current.scrollTop = 0;
-    }
-  }, [deferredQuery, activeTab, selectedChainFilter]);
 
   // Cross-reference map for chain names & logos, and balances
   const chainMetaMap = useMemo(() => {
@@ -836,6 +930,22 @@ export function ReceiveAssetSelector({
     t.contractAddress.toLowerCase() ===
       "0x0000000000000000000000000000000000000000";
 
+  const excludedTokensMap = useMemo(() => {
+    const set = new Set<string>();
+    for (const ex of excludedTokens) {
+      if (!ex.chainId || !ex.contractAddress) continue;
+      // Unified assets on Send do not exclude individual tokens on Receive!
+      if (ex.isUnifiedCandidate || (ex as any).isUnified) continue;
+      const addr =
+        ex.contractAddress.toLowerCase() ===
+        "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ? "0x0000000000000000000000000000000000000000"
+          : ex.contractAddress.toLowerCase();
+      set.add(`${ex.chainId}-${addr}`);
+    }
+    return set;
+  }, [excludedTokens]);
+
   const filtered = useMemo(() => {
     let result = tokensWithBalances.filter(
       (token) =>
@@ -843,6 +953,16 @@ export function ReceiveAssetSelector({
         token.hasBalance ||
         isNativeToken(token)
     );
+    if (excludedTokensMap.size > 0) {
+      result = result.filter((token) => {
+        const addr =
+          token.contractAddress.toLowerCase() ===
+          "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            ? "0x0000000000000000000000000000000000000000"
+            : token.contractAddress.toLowerCase();
+        return !excludedTokensMap.has(`${token.chainId}-${addr}`);
+      });
+    }
     if (selectedChainFilter)
       result = result.filter((t) => t.chainId === selectedChainFilter);
     if (deferredQuery.trim()) {
@@ -862,6 +982,7 @@ export function ReceiveAssetSelector({
     return result;
   }, [
     tokensWithBalances,
+    excludedTokensMap,
     selectedChainFilter,
     deferredQuery,
     activeTab,
@@ -902,6 +1023,83 @@ export function ReceiveAssetSelector({
     });
   }, [filtered, deferredQuery]);
 
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(40);
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [deferredQuery, activeTab, selectedChainFilter]);
+
+  // Progressive background batch rendering without blocking the UI
+  useEffect(() => {
+    if (visibleCount >= sortedFiltered.length) return;
+
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const scheduleNextBatch = () => {
+      setVisibleCount((prev) => Math.min(sortedFiltered.length, prev + 40));
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = (
+        window as unknown as {
+          requestIdleCallback: (
+            cb: () => void,
+            opts?: { timeout: number }
+          ) => number;
+        }
+      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
+    } else {
+      timerId = setTimeout(scheduleNextBatch, 50);
+    }
+
+    return () => {
+      if (
+        idleId !== null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (
+          window as unknown as { cancelIdleCallback: (id: number) => void }
+        ).cancelIdleCallback(idleId);
+      }
+      if (timerId !== null) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [visibleCount, sortedFiltered.length]);
+
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 768 : true
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const chainOptions = useMemo(() => {
+    return chainFilterIds.map((chainId) => {
+      const meta = chainMetaMap.get(chainId);
+      return {
+        chainId,
+        chainName: meta?.name || `Chain ${chainId}`,
+        chainLogo: meta?.logo || "",
+      };
+    });
+  }, [chainFilterIds, chainMetaMap]);
+
+  const filteredChainOptions = useMemo(() => {
+    if (!chainQuery.trim()) return chainOptions;
+    const q = chainQuery.toLowerCase().trim();
+    return chainOptions.filter((c) => c.chainName.toLowerCase().includes(q));
+  }, [chainOptions, chainQuery]);
+
   const selectedChainMeta =
     selectedChainFilter === null
       ? undefined
@@ -920,497 +1118,767 @@ export function ReceiveAssetSelector({
         flex: "1 1 auto",
         flexDirection: "column",
         height: "100%",
-        maxHeight: "100%",
+        maxHeight: "90vh",
         minHeight: 0,
         overflow: "hidden",
-        padding: "16px",
-        position: "relative",
         width: "100%",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          display: "flex",
           alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-          minHeight: 32,
+          boxSizing: "border-box",
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "20px 24px 16px 24px",
+          width: "100%",
+          flexShrink: 0,
         }}
       >
-        <button
-          onClick={onBack}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 99,
-            border: "1px solid #0000000A",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#FFFFFF",
-            boxShadow: "#3C28640F 0px 1px 2px, #3C28640A 0px 2px 6px",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          <ChevronDown
-            style={{
-              color: "#5B5B5A",
-              height: 14,
-              transform: "rotate(90deg)",
-              width: 14,
-            }}
-          />
-        </button>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "2px",
-            justifyContent: "center",
-            minHeight: 32,
+            minWidth: 0,
           }}
         >
           <span
             style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: "22px",
               color: "#1F1F1F",
+              fontFamily: '"Delight", "Geist", system-ui, sans-serif',
+              fontSize: "20px",
+              fontStyle: "normal",
+              fontWeight: 500,
+              lineHeight: "24px",
             }}
           >
-            Choose assets to receive
+            Select tokens
           </span>
           <span
             style={{
               color: "#8E8E89",
               fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 13,
+              fontSize: "13px",
+              fontStyle: "normal",
+              fontWeight: 400,
               lineHeight: "18px",
             }}
           >
             Select token and chain
           </span>
         </div>
+        <button
+          aria-label="Close"
+          onClick={onBack}
+          style={{
+            alignItems: "center",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            flexShrink: 0,
+            height: "32px",
+            justifyContent: "center",
+            padding: 0,
+            width: "32px",
+          }}
+          type="button"
+        >
+          <X style={{ color: "#1F1F1F", height: 20, width: 20 }} />
+        </button>
       </div>
 
+      {/* Main Body (Chains panel + Tokens panel) */}
       <div
         style={{
-          padding: "0 0 16px",
           display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          position: "relative",
-          zIndex: 10,
+          flexDirection: "row",
+          flex: "1 1 auto",
+          minHeight: 0,
+          overflow: "hidden",
+          width: "100%",
         }}
       >
-        {/* Search */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: 56,
-            gap: 10,
-            borderRadius: 14,
-            border: "none",
-            boxShadow: isSearchFocused
-              ? "0 0 0 1px #A8C9FF, #3C28640F 0px 1px 2px inset"
-              : "#3C28640F 0px 1px 2px inset",
-            padding: "0 8px 0 14px",
-            backgroundColor: "#FAFAFC",
-          }}
-        >
-          <Search
-            style={{ width: 18, height: 18, color: "#848483", flexShrink: 0 }}
-          />
-          <input
-            onBlur={() => setIsSearchFocused(false)}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            placeholder="Search token, chain or address"
+        {/* Left Column: Chains Panel (desktop) */}
+        {isDesktop && (
+          <div
             style={{
-              flex: 1,
-              backgroundColor: "transparent",
-              border: "none",
-              outline: "none",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: 14,
-              lineHeight: "20px",
-              color: "#161615",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-            value={query}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <X style={{ width: 16, height: 16, color: "#848483" }} />
-            </button>
-          )}
-          <button
-            onClick={openChainSelector}
-            style={{
+              alignItems: "flex-start",
+              borderRight: "1px solid #F5F5F5",
+              boxSizing: "border-box",
               display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "6px 10px",
-              borderRadius: 999,
-              backgroundColor: "#FFFFFE",
-              border: "1px solid #0000000A",
-              cursor: "pointer",
-              height: 32,
+              flexDirection: "column",
+              gap: "12px",
+              maxWidth: "100%",
+              overflowY: "auto",
+              padding: "0 16px 16px 16px",
+              width: "280px",
               flexShrink: 0,
-              boxShadow: "#3C28640F 0px 1px 2px",
             }}
           >
-            {selectedChainFilter === null ? (
-              <Globe
-                style={{
-                  width: 14,
-                  height: 14,
-                  color: "#161615",
-                  flexShrink: 0,
-                }}
-              />
-            ) : (
-              <img
-                alt={selectedChainLabel}
-                src={selectedChainMeta?.logo}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                  flexShrink: 0,
-                }}
-              />
-            )}
-            <span
+            {/* Search Chains */}
+            <div
               style={{
-                color: "#161615",
+                alignItems: "center",
+                alignSelf: "stretch",
+                background: "#FBFBFB",
+                border: "1px solid #F5F5F5",
+                borderRadius: "12px",
+                boxSizing: "border-box",
+                color: "#9E9E9C",
+                display: "flex",
+                flexShrink: 0,
                 fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                gap: "8px",
+                height: "40px",
+                maxHeight: "40px",
+                minHeight: "40px",
+                padding: "0 12px",
+                width: "100%",
+              }}
+            >
+              <Search
+                style={{
+                  color: "#9E9E9C",
+                  flexShrink: 0,
+                  height: 16,
+                  width: 16,
+                }}
+              />
+              <input
+                onChange={(e) => setChainQuery(e.target.value)}
+                placeholder="Search Chains"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#1F1F1F",
+                  flex: 1,
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "13px",
+                  minWidth: 0,
+                  outline: "none",
+                }}
+                value={chainQuery}
+              />
+              {chainQuery && (
+                <button
+                  onClick={() => setChainQuery("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  type="button"
+                >
+                  <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
+                </button>
+              )}
+            </div>
+
+            {/* "All" Chain Option */}
+            <button
+              onClick={() => setSelectedChainFilter(null)}
+              style={{
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                gap: "10px",
+                padding: "6px 0",
+                textAlign: "left",
+                width: "100%",
+              }}
+              type="button"
+            >
+              <RadioDot selected={selectedChainFilter === null} />
+              <div
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#161615",
+                  borderRadius: "999px",
+                  display: "flex",
+                  flexShrink: 0,
+                  height: 24,
+                  justifyContent: "center",
+                  width: 24,
+                }}
+              >
+                <Globe style={{ color: "#FFF", height: 14, width: 14 }} />
+              </div>
+              <span
+                style={{
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontWeight: selectedChainFilter === null ? 600 : 500,
+                }}
+              >
+                All
+              </span>
+            </button>
+
+            {/* Section Header */}
+            <div
+              style={{
+                color: "#8E8E89",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "12px",
                 fontWeight: 500,
+                marginTop: "4px",
+              }}
+            >
+              Popular Chains
+            </div>
+
+            {/* Chains List */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                width: "100%",
+              }}
+            >
+              {filteredChainOptions.map((chain) => {
+                const isSelected = selectedChainFilter === chain.chainId;
+                return (
+                  <button
+                    key={chain.chainId}
+                    onClick={() =>
+                      setSelectedChainFilter(
+                        isSelected ? null : (chain.chainId ?? null)
+                      )
+                    }
+                    style={{
+                      alignItems: "center",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: "10px",
+                      padding: "6px 0",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                    type="button"
+                  >
+                    <RadioDot selected={isSelected} />
+                    {chain.chainLogo ? (
+                      <img
+                        alt={chain.chainName}
+                        src={chain.chainLogo}
+                        style={{
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          objectFit: "cover",
+                          width: 24,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          backgroundColor: "#E5E5EB",
+                          borderRadius: "999px",
+                          flexShrink: 0,
+                          height: 24,
+                          width: 24,
+                        }}
+                      />
+                    )}
+                    <span
+                      style={{
+                        color: "#1F1F1F",
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontWeight: isSelected ? 600 : 500,
+                      }}
+                    >
+                      {chain.chainName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Right Column: Tokens panel */}
+        <div
+          style={{
+            alignItems: "stretch",
+            boxSizing: "border-box",
+            display: "flex",
+            flex: "1 1 auto",
+            flexDirection: "column",
+            gap: "18px",
+            minWidth: 0,
+            overflowY: "auto",
+            padding: "0 24px 16px 24px",
+            width: isDesktop ? "auto" : "100%",
+          }}
+        >
+          {/* Search bar */}
+          <div
+            style={{
+              alignItems: "center",
+              alignSelf: "stretch",
+              background: "#FBFBFB",
+              border: "1px solid #F5F5F5",
+              borderRadius: "12px",
+              boxSizing: "border-box",
+              color: "#9E9E9C",
+              display: "flex",
+              flexShrink: 0,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "13px",
+              fontStyle: "normal",
+              fontWeight: 400,
+              gap: "8px",
+              height: "40px",
+              maxHeight: "40px",
+              minHeight: "40px",
+              padding: "0 12px",
+              width: "100%",
+            }}
+          >
+            <Search
+              style={{ color: "#9E9E9C", flexShrink: 0, height: 16, width: 16 }}
+            />
+            <input
+              onBlur={() => setIsSearchFocused(false)}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              placeholder="Search Tokens"
+              style={{
+                backgroundColor: "transparent",
+                border: "none",
+                color: "#1F1F1F",
+                flex: 1,
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: 13,
                 lineHeight: "20px",
-                maxWidth: "86px",
+                minWidth: 0,
+                outline: "none",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
               }}
-            >
-              {selectedChainLabel}
-            </span>
-            <ChevronDown style={{ width: 12, height: 12, color: "#848483" }} />
-          </button>
-        </div>
-
-        {/* Filter tabs */}
-        <div
-          style={{
-            alignItems: "center",
-            display: "flex",
-            gap: 0,
-            backgroundColor: "#F5F6F8",
-            borderRadius: 12,
-            boxShadow: "#2A388B0F 0px 1px 2px inset",
-            padding: 4,
-          }}
-        >
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                alignItems: "center",
-                display: "flex",
-                flex: 1,
-                height: activeTab === tab.key ? 40 : 32,
-                justifyContent: "center",
-                padding: 0,
-                backgroundColor:
-                  activeTab === tab.key ? "#FFFFFF" : "transparent",
-                border: "none",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: 14,
-                fontWeight: activeTab === tab.key ? 600 : 500,
-                color: activeTab === tab.key ? "#1F1F1F" : "#8E8E89",
-                boxShadow:
-                  activeTab === tab.key
-                    ? "#FFFFFFE6 0px 1px 0px inset, #3C286414 0px 1px 2px, #3C28640F 0px 2px 6px"
-                    : "none",
-                transition:
-                  "background-color 150ms ease, box-shadow 150ms ease, color 150ms ease",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Token list */}
-      <div
-        onScroll={(e) => {
-          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-          if (scrollHeight - scrollTop - clientHeight < 200) {
-            setVisibleCount((prev) => prev + 30);
-          }
-        }}
-        ref={listRef}
-        style={{
-          flex: "1 1 auto",
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #E8E8E7",
-          borderRadius: 12,
-          boxShadow: "#3C286426 0px 0px 2px, #3C28640A 0px 1px 4px",
-          minHeight: 0,
-          overflowX: "hidden",
-          overflowY: "auto",
-          position: "relative",
-          zIndex: hoveredHash || tooltipState ? 20 : 1,
-        }}
-      >
-        {isLoading ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "40px",
-              color: "#848483",
-              fontFamily: '"Geist", system-ui, sans-serif',
-            }}
-          >
-            Loading...
-          </div>
-        ) : sortedFiltered.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "40px",
-              color: "#848483",
-              fontFamily: '"Geist", system-ui, sans-serif',
-            }}
-          >
-            No tokens found
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {sortedFiltered.slice(0, visibleCount).map((t) => {
-              const hash = `${t.chainId}-${t.contractAddress}`;
-              const isSelected = selectedTokenHash === hash;
-              const isHovered = hoveredHash === hash;
-              const isInfoOpen = tooltipState?.hash === hash;
-              const isDetailActive = isHovered || isInfoOpen;
-              const numericBalance = Number.parseFloat(
-                String(t.balance ?? "0").replace(/[^0-9.]/g, "")
-              );
-              const hasBalance =
-                Number.isFinite(numericBalance) && numericBalance > 0;
-              return (
-                <button
-                  key={hash}
-                  onClick={() => {
-                    setSelectedTokenHash(hash);
-                    setSelectedTokenFull(t);
-                    onSelect(t);
-                  }}
-                  onMouseEnter={() => setHoveredHash(hash)}
-                  onMouseLeave={() => setHoveredHash(null)}
+              value={query}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+                type="button"
+              >
+                <X style={{ color: "#9E9E9C", height: 14, width: 14 }} />
+              </button>
+            )}
+            {!isDesktop && (
+              <button
+                onClick={openChainSelector}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #E8E8E7",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  display: "flex",
+                  flexShrink: 0,
+                  gap: 6,
+                  height: 28,
+                  padding: "4px 8px",
+                }}
+                type="button"
+              >
+                {selectedChainFilter === null ? (
+                  <Globe
+                    style={{
+                      color: "#161615",
+                      flexShrink: 0,
+                      height: 14,
+                      width: 14,
+                    }}
+                  />
+                ) : (
+                  <img
+                    alt={selectedChainLabel}
+                    src={selectedChainMeta?.logo}
+                    style={{
+                      borderRadius: "999px",
+                      flexShrink: 0,
+                      height: 16,
+                      objectFit: "cover",
+                      width: 16,
+                    }}
+                  />
+                )}
+                <span
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 14px",
-                    backgroundColor: isSelected ? "#F4F7FE" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #F0F0EF",
-                    boxSizing: "border-box",
-                    position: isDetailActive ? "relative" : "static",
-                    zIndex: isDetailActive ? 50 : 1,
+                    color: "#161615",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    lineHeight: "20px",
+                    maxWidth: "70px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 12 }}
-                  >
-                    <RadioDot selected={isSelected} />
-                    <div
+                  {selectedChainLabel}
+                </span>
+                <ChevronDown
+                  style={{ color: "#848483", height: 10, width: 10 }}
+                />
+              </button>
+            )}
+          </div>
+
+          {/* Filter tabs */}
+          {(() => {
+            const activeIndex = Math.max(
+              0,
+              FILTER_TABS.findIndex((t) => t.key === activeTab)
+            );
+            const tabCount = FILTER_TABS.length || 1;
+
+            return (
+              <div
+                style={{
+                  alignItems: "center",
+                  alignSelf: "stretch",
+                  background: "#FBFBFB",
+                  border: "1px solid #F5F5F5",
+                  borderRadius: "12px",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexShrink: 0,
+                  gap: "4px",
+                  height: "40px",
+                  maxHeight: "40px",
+                  minHeight: "40px",
+                  padding: "4px",
+                  position: "relative",
+                  width: "100%",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "8px",
+                    bottom: 4,
+                    boxShadow:
+                      "0 2px 6px 0 rgba(60, 40, 100, 0.06), 0 1px 2px 0 rgba(60, 40, 100, 0.08), 0 1px 0 0 rgba(255, 255, 255, 0.90) inset",
+                    left: 4,
+                    pointerEvents: "none",
+                    position: "absolute",
+                    top: 4,
+                    transform: `translateX(calc(${activeIndex} * (100% + 4px)))`,
+                    transition:
+                      "transform 240ms cubic-bezier(0.2, 0, 0, 1), width 240ms ease",
+                    width: `calc((100% - 8px - ${(tabCount - 1) * 4}px) / ${tabCount})`,
+                    zIndex: 1,
+                  }}
+                />
+
+                {FILTER_TABS.map((tab) => {
+                  const isSelected = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
                       style={{
-                        position: "relative",
-                        flexShrink: 0,
-                        width: 40,
-                        height: 40,
-                      }}
-                    >
-                      <TokenLogo fontSize={16} size={40} token={t} />
-                      {t.chainLogo && (
-                        <img
-                          alt={t.chainName}
-                          src={t.chainLogo}
-                          style={{
-                            position: "absolute",
-                            bottom: -8,
-                            right: -8,
-                            width: 22,
-                            height: 22,
-                            borderRadius: "999px",
-                            border: "2px solid #FFFFFE",
-                            zIndex: 2,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div
-                      style={{
+                        alignItems: "center",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: isSelected ? "#1F1F1F" : "#8E8E89",
+                        cursor: "pointer",
                         display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start",
+                        flex: 1,
+                        fontFamily: '"Geist", system-ui, sans-serif',
+                        fontSize: "14px",
+                        fontStyle: "normal",
+                        fontWeight: isSelected ? 600 : 500,
+                        height: "32px",
+                        justifyContent: "center",
+                        lineHeight: "20px",
+                        padding: "6px 0",
+                        position: "relative",
+                        transition: "color 180ms ease, font-weight 180ms ease",
+                        zIndex: 2,
                       }}
+                      type="button"
                     >
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontWeight: 500,
-                          fontSize: 15,
-                          color: "#161615",
-                        }}
-                      >
-                        {t.symbol}
-                      </span>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Tokens List */}
+          <div
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+              if (scrollHeight - scrollTop - clientHeight < 300) {
+                setVisibleCount((prev) =>
+                  Math.min(sortedFiltered.length, prev + 40)
+                );
+              }
+            }}
+            ref={listRef}
+            style={{
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflowX: "hidden",
+              overflowY: "auto",
+              paddingBottom: 6,
+              position: "relative",
+              width: "100%",
+              zIndex: hoveredHash || tooltipState ? 20 : 1,
+            }}
+          >
+            {isLoading ? (
+              <div
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  padding: "40px",
+                  textAlign: "center",
+                }}
+              >
+                Loading...
+              </div>
+            ) : sortedFiltered.length === 0 ? (
+              <div
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  padding: "40px",
+                  textAlign: "center",
+                }}
+              >
+                No tokens found
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {sortedFiltered.slice(0, visibleCount).map((t) => {
+                  const hash = `${t.chainId}-${t.contractAddress}`;
+                  const isSelected = selectedTokenHash === hash;
+                  const numericBalance = Number.parseFloat(
+                    String(t.balance ?? "0").replace(/[^0-9.]/g, "")
+                  );
+                  const hasBalance =
+                    Number.isFinite(numericBalance) && numericBalance > 0;
+                  return (
+                    <button
+                      key={hash}
+                      onClick={() => {
+                        setSelectedTokenHash(hash);
+                        setSelectedTokenFull(t);
+                        onSelect(t);
+                        onBack();
+                      }}
+                      style={{
+                        alignItems: "center",
+                        backgroundColor: isSelected ? "#F4F7FE" : "transparent",
+                        border: "none",
+                        borderBottom: "1px solid #F0F0EF",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        padding: "10px 14px",
+                        width: "100%",
+                      }}
+                      type="button"
+                    >
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 4,
+                          gap: 12,
                         }}
                       >
-                        <span
+                        <SelectionControl selected={isSelected} />
+                        <div
                           style={{
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: 13,
-                            color: "#848483",
+                            flexShrink: 0,
+                            height: 40,
+                            position: "relative",
+                            width: 40,
                           }}
                         >
-                          {isDetailActive
-                            ? `${t.contractAddress.slice(0, 6)}...${t.contractAddress.slice(-4)}`
-                            : `on ${t.chainName || "Unknown chain"}`}
-                        </span>
-                        {isDetailActive && (
-                          <div
+                          <TokenLogo fontSize={16} size={40} token={t} />
+                          {t.chainLogo && (
+                            <img
+                              alt={t.chainName}
+                              src={t.chainLogo}
+                              style={{
+                                border: "2px solid #FFFFFE",
+                                borderRadius: "999px",
+                                bottom: -8,
+                                height: 22,
+                                position: "absolute",
+                                right: -8,
+                                width: 22,
+                                zIndex: 2,
+                              }}
+                            />
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            alignItems: "flex-start",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <span
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
+                              color: "#161615",
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: 15,
+                              fontWeight: 500,
                             }}
                           >
-                            {copiedHash === hash ? (
-                              <Check
-                                style={{
-                                  width: 12,
-                                  height: 12,
-                                  color: "#006BF4",
-                                }}
-                              />
-                            ) : (
-                              <Copy
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigator.clipboard.writeText(
-                                    t.contractAddress
-                                  );
-                                  setCopiedHash(hash);
-                                  setTimeout(() => setCopiedHash(null), 2000);
-                                }}
-                                style={{
-                                  width: 12,
-                                  height: 12,
-                                  color: "#848483",
-                                  cursor: "pointer",
-                                }}
-                              />
-                            )}
-                            <div
-                              className="relative"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (tooltipState?.hash === hash) {
-                                  setTooltipState(null);
-                                } else {
-                                  const rect =
-                                    e.currentTarget.getBoundingClientRect();
-                                  setTooltipState({
-                                    hash,
-                                    x: rect.left + rect.width / 2,
-                                    y: rect.top,
-                                    t,
-                                  });
-                                }
+                            {t.symbol}
+                          </span>
+                          <div
+                            style={{
+                              alignItems: "center",
+                              display: "flex",
+                              gap: 4,
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#1F1F1F",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: "14px",
+                                fontStyle: "normal",
+                                fontWeight: 400,
+                                lineHeight: "20px",
                               }}
                             >
-                              <Info
+                              {t.chainName || "Unknown chain"}
+                            </span>
+                            {t.contractAddress && (
+                              <span
+                                onClick={(e) =>
+                                  handleCopyTokenAddress(e, t.contractAddress)
+                                }
                                 style={{
-                                  width: 12,
-                                  height: 12,
-                                  color: "#848483",
+                                  color: "#8E8E89",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                  fontSize: "14px",
+                                  fontStyle: "normal",
+                                  fontWeight: 400,
+                                  lineHeight: "20px",
                                   cursor: "pointer",
+                                  userSelect: "none",
                                 }}
-                              />
-                            </div>
+                                title="Click to copy token address"
+                              >
+                                {copiedTokenAddress === t.contractAddress
+                                  ? "Copied!"
+                                  : formatMiddleTruncatedAddress(
+                                      t.contractAddress
+                                    )}
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  {hasBalance && (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontWeight: 500,
-                          fontSize: 14,
-                          color: "#161615",
-                        }}
-                      >
-                        {formatTokenBalance(t.balance, {
-                          symbol: t.symbol,
-                          decimals: t.decimals,
-                        }) ?? `${t.balance} ${t.symbol}`}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: '"Geist", system-ui, sans-serif',
-                          fontSize: 13,
-                          color: "#848483",
-                        }}
-                      >
-                        {t.balanceInFiat}
-                      </span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                      {needsWalletConnection ? null : isBalanceLoading ? (
+                        <div
+                          style={{
+                            alignItems: "flex-end",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 4,
+                          }}
+                        >
+                          <div
+                            className="nexus-balance-skeleton"
+                            style={{
+                              animation:
+                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                              backgroundColor: "#E8E8E7",
+                              borderRadius: 4,
+                              height: 14,
+                              width: 55,
+                            }}
+                          />
+                          <div
+                            className="nexus-balance-skeleton"
+                            style={{
+                              animation:
+                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                              backgroundColor: "#F0F0EF",
+                              borderRadius: 4,
+                              height: 12,
+                              width: 35,
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        hasBalance && (
+                          <div
+                            style={{
+                              alignItems: "flex-end",
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "#161615",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                              }}
+                            >
+                              {formatTokenBalance(t.balance, {
+                                decimals: t.decimals,
+                                symbol: t.symbol,
+                              }) ?? `${t.balance} ${t.symbol}`}
+                            </span>
+                            <span
+                              style={{
+                                color: "#848483",
+                                fontFamily: '"Geist", system-ui, sans-serif',
+                                fontSize: 13,
+                              }}
+                            >
+                              {t.balanceInFiat}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Chain Selector Modal */}
