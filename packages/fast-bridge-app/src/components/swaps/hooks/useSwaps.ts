@@ -660,6 +660,9 @@ const useSwaps = ({
 
     await nexusSDK.swapWithExactIn(swapInput, {
       onEvent: (event) => {
+        if ("state" in event && event.state === "wallet_prompted") {
+          console.log("[NEXUS WALLET PROMPTED]", event);
+        }
         if (swapRunIdRef.current !== runId) {
           return;
         }
@@ -744,6 +747,9 @@ const useSwaps = ({
 
     await nexusSDK.swapWithExactOut(swapInput, {
       onEvent: (event) => {
+        if ("state" in event && event.state === "wallet_prompted") {
+          console.log("[NEXUS WALLET PROMPTED]", event);
+        }
         if (swapRunIdRef.current !== runId) {
           return;
         }

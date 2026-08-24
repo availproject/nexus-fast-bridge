@@ -84,12 +84,17 @@ const formatAmountInputDisplay = (value: string) => {
 const sanitizeAmountInput = (raw: string, maxDecimals: number) => {
   let next = raw.replaceAll(/[^0-9.]/g, "");
   const parts = next.split(".");
-  if (parts.length > 2) next = parts[0] + "." + parts.slice(1).join("");
+  if (parts.length > 2) next = `${parts[0]}.${parts.slice(1).join("")}`;
   const [integerPart, decimalPart] = next.split(".");
   if (decimalPart !== undefined) {
     next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
   }
-  if (next === ".") next = "0.";
+  if (next.startsWith(".")) next = `0${next}`;
+  if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
+    next = next.replace(/^0+/, "");
+    if (next === "") next = "0";
+    if (next.startsWith(".")) next = `0${next}`;
+  }
   return next;
 };
 

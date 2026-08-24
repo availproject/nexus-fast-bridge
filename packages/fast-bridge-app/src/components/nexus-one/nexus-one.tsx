@@ -1882,6 +1882,9 @@ const logSdkSwapEvent = (
   event: any,
   meta?: Record<string, unknown>
 ) => {
+  if (label === "onEvent" && event?.state === "wallet_prompted") {
+    console.log("[NEXUS WALLET PROMPTED]", event);
+  }
   console.log(`[NexusOne SDK][swap] ${label}`, {
     event,
     eventType: getSdkEventType(event),
@@ -10203,6 +10206,12 @@ function NexusOneInner({
     let next = raw.replaceAll(/[^0-9.]/g, "");
     const parts = next.split(".");
     if (parts.length > 2) next = `${parts[0]}.${parts.slice(1).join("")}`;
+    if (next.startsWith(".")) next = `0${next}`;
+    if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
+      next = next.replace(/^0+/, "");
+      if (next === "") next = "0";
+      if (next.startsWith(".")) next = `0${next}`;
+    }
     return next;
   };
 
@@ -10220,21 +10229,23 @@ function NexusOneInner({
       const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
 
       if (isZeroOrEmpty) {
-        setAmount("");
+        setAmount(sanitizedVal);
         setPredictiveQuote(null);
         setReceiveAmountIssue(null);
         setSwapQuoteIssue(null);
         setTxError(null);
         setQuoteRefreshing(false);
         clearPendingSwapIntent();
-        setFromTokens((current) =>
-          current.map((token) => ({
-            ...token,
-            userAmount: "",
-            userAmountUsd: "",
-            selectedPct: null,
-          }))
-        );
+        if (!sanitizedVal) {
+          setFromTokens((current) =>
+            current.map((token) => ({
+              ...token,
+              userAmount: "",
+              userAmountUsd: "",
+              selectedPct: null,
+            }))
+          );
+        }
         return;
       }
 
@@ -10313,21 +10324,23 @@ function NexusOneInner({
       const isZeroOrEmpty = !nextAmount || nextAmount.lte(0);
 
       if (isZeroOrEmpty) {
-        setAmount("");
+        setAmount(sanitizedVal);
         setPredictiveQuote(null);
         setReceiveAmountIssue(null);
         setSwapQuoteIssue(null);
         setTxError(null);
         setQuoteRefreshing(false);
         clearPendingSwapIntent();
-        setFromTokens((current) =>
-          current.map((token) => ({
-            ...token,
-            userAmount: "",
-            userAmountUsd: "",
-            selectedPct: null,
-          }))
-        );
+        if (!sanitizedVal) {
+          setFromTokens((current) =>
+            current.map((token) => ({
+              ...token,
+              userAmount: "",
+              userAmountUsd: "",
+              selectedPct: null,
+            }))
+          );
+        }
         return;
       }
 

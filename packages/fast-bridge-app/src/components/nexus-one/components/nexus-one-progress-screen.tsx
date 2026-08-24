@@ -194,6 +194,16 @@ const isNativeSourceSwapStep = (step?: ProgressSdkStep) => {
 const isApprovalStep = (step?: ProgressSdkStep) => {
   if (!step) return false;
   if (stepMatches(step, SWAP_APPROVAL_TYPES)) return true;
+  const rawType = String(
+    (step as any)?.rawType ??
+      (step as any)?.type ??
+      (step as any)?.stepType ??
+      ""
+  ).toLowerCase();
+  const type = getStepType(step);
+  if (type.includes("SOURCE_SWAP") || rawType === "source_swap") {
+    return true;
+  }
   return isNativeSourceSwapStep(step);
 };
 
@@ -376,13 +386,15 @@ const countCompletedApprovalUnitsFromEvents = (
       (event.step as any)?.id ??
         (event.step as any)?.stepId ??
         (event.step as any)?.typeID ??
+        (event as any)?.rawEvent?.step?.id ??
         ""
     );
     if (stepId) {
       if (completedIds.has(stepId)) continue;
       completedIds.add(stepId);
     }
-    count += getApprovalUnitsForStep(event.step).length;
+    const units = getApprovalUnitsForStep(event.step);
+    count += units.length > 0 ? units.length : 1;
   }
 
   return count;
@@ -398,8 +410,10 @@ const isRawApprovalStep = (step: any) => {
     type === "allowance" ||
     type === "allowance_approval" ||
     type === "approval" ||
+    type === "source_swap" ||
     id.startsWith("allowance") ||
-    id.startsWith("approval")
+    id.startsWith("approval") ||
+    id.startsWith("source_swap")
   );
 };
 

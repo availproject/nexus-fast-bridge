@@ -864,7 +864,7 @@ export function SwapIdleForm({
     if (decimalPart !== undefined) {
       next = `${integerPart}.${decimalPart.slice(0, Math.max(0, maxDecimals))}`;
     }
-    if (next === ".") next = "0.";
+    if (next.startsWith(".")) next = `0${next}`;
     // Strip leading zeros
     if (next.length > 1 && next.startsWith("0") && next[1] !== ".") {
       next = next.replace(/^0+/, "");
@@ -894,7 +894,7 @@ export function SwapIdleForm({
           .toFixed();
         onAmountChange(tokenVal, "receive");
       } else {
-        onAmountChange(sanitized ? "0" : "", "receive");
+        onAmountChange(sanitized, "receive");
       }
     } else {
       const sanitized = sanitizeInput(e.target.value, toToken?.decimals ?? 18);
@@ -963,8 +963,19 @@ export function SwapIdleForm({
     onUpdateTokens(next);
 
     // Also update total amount for backwards compatibility if needed
-    const total = next.reduce((sum, t) => sum + Number(t.userAmount || 0), 0);
-    onAmountChange(total > 0 ? String(total) : "", "send");
+    if (next.length === 1) {
+      onAmountChange(sanitized, "send");
+    } else {
+      const total = next.reduce((sum, t) => sum + Number(t.userAmount || 0), 0);
+      onAmountChange(
+        total > 0
+          ? String(total)
+          : next.some((t) => t.userAmount)
+            ? sanitized
+            : "",
+        "send"
+      );
+    }
   };
 
   const handleToggleMode = (index: number) => {

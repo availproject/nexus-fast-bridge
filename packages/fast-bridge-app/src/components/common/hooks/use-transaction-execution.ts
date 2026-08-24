@@ -258,6 +258,9 @@ export function useTransactionExecution({
       setAppliedSourceSelectionKey(sourceSelectionKey);
 
       const onEvent = (event: TransactionFlowEvent) => {
+        if ("state" in event && event.state === "wallet_prompted") {
+          console.log("[NEXUS WALLET PROMPTED]", event);
+        }
         if (currentRunId !== runIdRef.current) {
           return;
         }
