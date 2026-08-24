@@ -9,6 +9,7 @@ import { getCoinbaseRates } from "@avail-project/nexus-core/utils";
 import { type NormalizedUserAsset, normalizeUserAssets } from "./balance-utils";
 import {
   type ChainBalance,
+  type GetRouteSupportedChains,
   type LegacyAllowanceHookData,
   type LegacyIntentHookData,
   normalizeIntentBalances,
@@ -68,6 +69,7 @@ interface NexusContextType {
   fetchBridgableBalance: () => Promise<void>;
   fetchSwapBalance: () => Promise<UserAsset[] | null>;
   getFiatValue: (amount: number, token: string) => number;
+  getRouteSupportedChains: GetRouteSupportedChains;
   handleInit: (provider: EthereumProvider) => Promise<void>;
   initializeNexus: (provider: EthereumProvider) => Promise<void>;
   intent: RefObject<LegacyIntentHookData | null>;
@@ -184,7 +186,6 @@ const NexusProvider = ({
     const nextSdk = createNexusClient({
       network: stableConfig.network,
       debug: stableConfig.debug,
-      forceMayan: true,
     });
 
     withTimeout(nextSdk.initialize(), 15_000)
@@ -520,7 +521,6 @@ const NexusProvider = ({
         const nextSdk = createNexusClient({
           network: stableConfig.network,
           debug: stableConfig.debug,
-          forceMayan: true,
         });
 
         await withTimeout(nextSdk.initialize(), 15_000);
@@ -676,6 +676,19 @@ const NexusProvider = ({
     }
   }, [normalizeUserAssetFiatValues]);
 
+  const getRouteSupportedChains = useCallback<GetRouteSupportedChains>(
+    async (constraints) => {
+      const activeSdk = sdkRef.current;
+      if (!activeSdk) {
+        throw new Error("Nexus SDK is not initialized");
+      }
+      return normalizeSupportedChains(
+        await activeSdk.getSupportedChainsForRoute(constraints)
+      );
+    },
+    []
+  );
+
   const getFiatValue = useCallback(
     (amount: number, token: string) => {
       const rate = getUsdRateFromLocalSources(token);
@@ -723,6 +736,7 @@ const NexusProvider = ({
       swapIntent,
       exchangeRate: exchangeRateState,
       getFiatValue,
+      getRouteSupportedChains,
       resolveTokenUsdRate,
     }),
     [
@@ -742,6 +756,7 @@ const NexusProvider = ({
       setIntent,
       exchangeRateState,
       getFiatValue,
+      getRouteSupportedChains,
       resolveTokenUsdRate,
       supportedChainsAndTokensState,
       swapSupportedChainsAndTokensState,

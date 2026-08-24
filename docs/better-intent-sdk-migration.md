@@ -14,9 +14,10 @@ FastBridge configures the SDK with `network: "canary"`. The Better Intent rollou
 mainnet deployment; canary still operates against mainnet chains and therefore requires real assets
 and native gas for live execution tests.
 
-FastBridge also sets `forceMayan: true`. The SDK requests Mayan-filtered chains and balances,
-derives cross-chain fungibility from the chains response using `coingeckoId`, and prefers Mayan for
-quotes. This prevents selectors from advertising assets that Mayan cannot quote.
+FastBridge does not force a single provider. Nexus and Mayan remain available, and middleware owns
+provider selection for each quote. The UI reads directional `asSource` and `asDestination` support
+from constrained `/chains` responses instead of assuming that every catalog token works in both
+roles.
 
 ## Endpoint wiring
 
@@ -28,7 +29,8 @@ The SDK resolves the canary configuration to
 | FastBridge use | SDK method | Better Intent endpoint | Expected result |
 | --- | --- | --- | --- |
 | Initialize chains | `initialize`, `getSupportedChains` | `/api/v1/better-intent/chains` | Intent-capable chains and their tokens |
-| Token catalog | SDK initialization | Derived from `/api/v1/better-intent/chains?provider=mayan` | Mayan-supported assets grouped across chains |
+| Token catalog | SDK initialization | Derived from `/api/v1/better-intent/chains` | Provider-backed assets grouped across chains |
+| Constrained selectors | `getSupportedChainsForRoute` | `/api/v1/better-intent/chains` with source/destination constraints | Directional provider availability for each chain and token |
 | Wallet balances | `getBalancesForBridge`, `getBalancesForSwap` | `/api/v1/better-intent/balances/:address` | Flat, usable wallet balances with token and chain identity |
 | Quote | `swapWithExactIn`, `swapWithExactOut`, bridge methods | `/api/v1/better-intent/quote` | Quote, fees, allowances, execution plan, and expiry |
 | Submit | SDK execution after approval and signature | `/api/v1/better-intent/submit` | Accepted intent ID and initial status |
@@ -43,6 +45,8 @@ The application adapter is
 It performs display compatibility only:
 
 - Maps catalog token `address` to FastBridge's existing `contractAddress` field.
+- Keeps unavailable route options visible but disables them when the relevant directional provider
+  list is empty.
 - Groups flat `IntentBalance[]` entries for existing asset selectors while retaining each source
   chain and token address.
 - Maps `IntentQuote` into the current confirmation-screen model.
@@ -67,6 +71,9 @@ and Better Intent backend.
 - Sponsored gas is out of scope. ERC-20 approvals require the native gas token on the source chain.
 - Diagnostic SDK events and detailed middleware/RPC errors are intentionally retained during the
   regression pass.
+- Catalog-compatible does not guarantee amount-level quote success. Provider minimums, balance,
+  approval gas, and price checks remain quote-time errors and are displayed using
+  `getIntentQuoteFailure`.
 - The canary Nexus Explorer does not currently index Better Intent Mayan records. For fulfilled
   Mayan intents, FastBridge resolves the source transaction from the Better Intent detail endpoint
   and links to the chain explorer instead of showing the broken Nexus Explorer URL.
