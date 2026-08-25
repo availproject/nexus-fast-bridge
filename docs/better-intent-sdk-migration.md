@@ -71,6 +71,8 @@ and Better Intent backend.
 - Sponsored gas is out of scope. ERC-20 approvals require the native gas token on the source chain.
 - Diagnostic SDK events and detailed middleware/RPC errors are intentionally retained during the
   regression pass.
+- FastBridge maps typed SDK and middleware failures to user-facing messages as documented in
+  [Intent error classification](./intent-error-classification.md).
 - Catalog-compatible does not guarantee amount-level quote success. Provider minimums, balance,
   approval gas, and price checks remain quote-time errors and are displayed using
   `getIntentQuoteFailure`.
