@@ -144,7 +144,33 @@ const STATUS_ORDER: ProgressStatusId[] = [
   "action",
 ];
 
-const SWAP_APPROVAL_TYPES = ["ALLOWANCE", "ALLOWANCE_APPROVAL"];
+const SWAP_APPROVAL_TYPES = [
+  "ALLOWANCE",
+  "ALLOWANCE_APPROVAL",
+  "ERC20_APPROVAL",
+];
+
+const BETTER_INTENT_PROCESSING_TYPES = [
+  "NATIVE_TRANSACTION",
+  "INTENT_SIGNATURE",
+  "INTENT_SUBMISSION",
+];
+
+const BETTER_INTENT_RECEIVE_TYPES = ["INTENT_FULFILLMENT"];
+
+const getBetterIntentFailureLabel = (step?: ProgressSdkStep | null) => {
+  const type = getStepType(step ?? undefined);
+  if (type.includes("ERC20_APPROVAL")) return "Token approval failed";
+  if (type.includes("NATIVE_TRANSACTION")) {
+    return "Source transaction failed";
+  }
+  if (type.includes("INTENT_SIGNATURE")) return "Intent signature failed";
+  if (type.includes("INTENT_SUBMISSION")) return "Intent submission failed";
+  if (type.includes("INTENT_FULFILLMENT")) {
+    return "Intent fulfillment failed";
+  }
+  return undefined;
+};
 
 const DESTINATION_SWAP_TYPES = [
   "DESTINATION_SWAP",
@@ -225,6 +251,14 @@ const getStatusForStep = (
 
   if (type.includes("SWAP_START")) {
     return "swapTokens";
+  }
+
+  if (BETTER_INTENT_PROCESSING_TYPES.some((token) => type.includes(token))) {
+    return "swapTokens";
+  }
+
+  if (BETTER_INTENT_RECEIVE_TYPES.some((token) => type.includes(token))) {
+    return "receiveToken";
   }
 
   if (
@@ -406,6 +440,7 @@ const isRawApprovalStep = (step: any) => {
   return (
     type === "allowance" ||
     type === "allowance_approval" ||
+    type === "erc20_approval" ||
     type === "approval" ||
     type === "source_swap" ||
     id.startsWith("allowance") ||
@@ -604,6 +639,7 @@ export const buildStatusRows = ({
   const failedStatus = failedStep
     ? getStatusForStep(failedStep, mode, false)
     : null;
+  const betterIntentFailureLabel = getBetterIntentFailureLabel(failedStep);
 
   // Track completed approvals
   let completedApprovalsCount = 0;
@@ -660,12 +696,21 @@ export const buildStatusRows = ({
     "SWAP_COMPLETE",
     "SWAP_SKIPPED",
   ]);
+  const betterIntentSubmissionCompleted = hasCompletedType(events, steps, [
+    "INTENT_SUBMISSION",
+  ]);
+  const betterIntentFulfillmentCompleted = hasCompletedType(events, steps, [
+    "INTENT_FULFILLMENT",
+  ]);
 
   const isLastStepCompleted =
+    betterIntentFulfillmentCompleted ||
     swapCompleteEvent ||
     (lastStep ? isStepDone(lastStep, lastStepIndex) : false);
 
   const isSecondLastStepCompleted =
+    betterIntentSubmissionCompleted ||
+    betterIntentFulfillmentCompleted ||
     isLastStepCompleted ||
     (secondLastStep
       ? isStepDone(secondLastStep, secondLastStepIndex)
@@ -739,7 +784,10 @@ export const buildStatusRows = ({
       swapState === "completed"
         ? "Swaps completed"
         : swapState === "error"
-          ? "Swap failed"
+          ? (betterIntentFailureLabel ??
+            (refundEligibleFailure
+              ? "Swap failed. Refund initiated"
+              : "Swap failed"))
           : swapState === "inProgress"
             ? "Swaps in progress"
             : "Swap tokens",
@@ -764,7 +812,10 @@ export const buildStatusRows = ({
       receiveState === "completed"
         ? `Received ${destinationSymbol} on ${destinationChain}`
         : receiveState === "error"
-          ? "Destination swap failed."
+          ? (betterIntentFailureLabel ??
+            (refundEligibleFailure
+              ? "Destination swap failed. Refund initiated."
+              : "Destination swap failed."))
           : receiveState === "inProgress"
             ? `Receiving ${destinationSymbol} on ${destinationChain}`
             : `Receive ${destinationSymbol} on ${destinationChain}`,

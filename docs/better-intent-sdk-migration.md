@@ -73,6 +73,8 @@ and Better Intent backend.
   regression pass.
 - FastBridge maps typed SDK and middleware failures to user-facing messages as documented in
   [Intent error classification](./intent-error-classification.md).
+- Better Intent plan events are mapped to the existing progress UI as documented in
+  [Better Intent status mapping](./better-intent-status-mapping.md).
 - Catalog-compatible does not guarantee amount-level quote success. Provider minimums, balance,
   approval gas, and price checks remain quote-time errors and are displayed using
   `getIntentQuoteFailure`.
