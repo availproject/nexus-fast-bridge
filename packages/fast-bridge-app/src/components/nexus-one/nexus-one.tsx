@@ -1756,7 +1756,12 @@ const normalizePlanStepType = (stepType: unknown, state?: unknown) => {
     bridge_intent_submission: "BRIDGE_INTENT_SUBMISSION",
     destination_swap: "DESTINATION_SWAP",
     eoa_to_ephemeral_transfer: "EOA_TO_EPHEMERAL_TRANSFER",
+    erc20_approval: "ERC20_APPROVAL",
     execute_approval: "APPROVAL",
+    intent_fulfillment: "INTENT_FULFILLMENT",
+    intent_signature: "INTENT_SIGNATURE",
+    intent_submission: "INTENT_SUBMISSION",
+    native_transaction: "NATIVE_TRANSACTION",
     request_signing: "REQUEST_SIGNING",
     request_submission: "REQUEST_SUBMISSION",
     source_swap: "SOURCE_SWAP",
@@ -2026,6 +2031,21 @@ const getFailureMessageForProgressStep = (
   }
 
   const type = getProgressStepType(step);
+  if (type.includes("ERC20_APPROVAL")) {
+    return "Token Approval Failed";
+  }
+  if (type.includes("NATIVE_TRANSACTION")) {
+    return "Source Transaction Failed";
+  }
+  if (type.includes("INTENT_SIGNATURE")) {
+    return "Intent Signature Failed";
+  }
+  if (type.includes("INTENT_SUBMISSION")) {
+    return "Intent Submission Failed";
+  }
+  if (type.includes("INTENT_FULFILLMENT")) {
+    return "Intent Fulfillment Failed";
+  }
   if (
     type.includes("CREATE_PERMIT_FOR_SOURCE_SWAP") ||
     type.includes("CREATE_PERMIT_EOA_TO_EPHEMERAL") ||
@@ -2035,7 +2055,7 @@ const getFailureMessageForProgressStep = (
   ) {
     return "Collection Failed";
   }
-  if (type.includes("DESTINATION_SWAP") || type.includes("FULFIL")) {
+  if (type.includes("DESTINATION_SWAP")) {
     return "Destination Swap Failed";
   }
   if (
