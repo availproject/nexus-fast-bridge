@@ -1,11 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 "use client";
 
-import {
-  ERROR_CODES,
-  type EthereumProvider,
-  getIntentQuoteFailure,
-} from "@avail-project/nexus-core";
+import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {
@@ -58,6 +54,11 @@ import {
   addIntentUsdValues,
   type SupportedChainsAndTokensResult,
 } from "../nexus/better-intent-compat";
+import {
+  classifyIntentError,
+  formatClassifiedIntentError,
+  isUserRejectedIntentError,
+} from "../nexus/intent-error-classifier";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
@@ -6051,60 +6052,6 @@ function NexusOneInner({
     return parts.filter(Boolean).join(" ");
   };
 
-  const getMiddlewareErrorDiagnostic = (error: unknown) => {
-    const quoteFailure = getIntentQuoteFailure(error);
-    if (quoteFailure) {
-      const labels = [
-        quoteFailure.code ? `code: ${quoteFailure.code}` : undefined,
-        `subcode: ${quoteFailure.subcode}`,
-        quoteFailure.errorId ? `error ID: ${quoteFailure.errorId}` : undefined,
-      ].filter(Boolean);
-      return [
-        `Middleware ${labels.join(" · ")}`,
-        Object.keys(quoteFailure.details).length > 0
-          ? `Details:\n${JSON.stringify(quoteFailure.details, null, 2)}`
-          : undefined,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    }
-    const details = (error as any)?.details;
-    if (!details || typeof details !== "object") return "";
-
-    const labels = [
-      details.middlewareCode
-        ? `code: ${String(details.middlewareCode)}`
-        : undefined,
-      details.middlewareSubcode
-        ? `subcode: ${String(details.middlewareSubcode)}`
-        : undefined,
-      details.errorId ? `error ID: ${String(details.errorId)}` : undefined,
-    ].filter(Boolean);
-
-    let structuredDetails = "";
-    if (details.middlewareDetails !== undefined) {
-      try {
-        structuredDetails = JSON.stringify(
-          details.middlewareDetails,
-          (_key, value) =>
-            typeof value === "bigint" ? value.toString() : value,
-          2
-        );
-      } catch {
-        structuredDetails = String(details.middlewareDetails);
-      }
-    }
-
-    if (labels.length === 0 && !structuredDetails) return "";
-
-    return [
-      labels.length > 0 ? `Middleware ${labels.join(" · ")}` : undefined,
-      structuredDetails ? `Details:\n${structuredDetails}` : undefined,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  };
-
   const isInsufficientSourcesError = (error: unknown) => {
     const err = error as any;
     const message = getErrorText(error).toLowerCase();
@@ -9922,10 +9869,7 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
-      const isIntentDenied =
-        err?.code === "USER_DENIED_INTENT" ||
-        err?.message?.includes("User denied") ||
-        err?.message?.includes("denied swap intent");
+      const isIntentDenied = isUserRejectedIntentError(err);
       if (isIntentDenied) {
         return;
       }
@@ -9938,7 +9882,7 @@ function NexusOneInner({
       if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
         return;
       }
-      if (activeMode === "deposit" && err?.code !== "USER_DENIED_INTENT") {
+      if (activeMode === "deposit" && !isUserRejectedIntentError(err)) {
         const hasActiveExecution =
           swapStepRef.current === "progress" &&
           Boolean(currentSwapIdRef.current);
@@ -10048,7 +9992,7 @@ function NexusOneInner({
           }
         }, 700);
       };
-      if (err?.code === "USER_DENIED_INTENT") {
+      if (isUserRejectedIntentError(err)) {
         if (hasActiveExecution) {
           showFailedProgressThenReceipt("Transaction cancelled by user");
         } else if (!background && swapStepRef.current === "preview-intent") {
@@ -10066,33 +10010,8 @@ function NexusOneInner({
         onError?.(issue.message);
         return;
       }
-      const middlewareDetails = err?.details?.middlewareDetails;
-      const middlewareMessage =
-        (typeof middlewareDetails?.message === "string"
-          ? middlewareDetails.message
-          : undefined) ??
-        (typeof middlewareDetails?.error === "string"
-          ? middlewareDetails.error
-          : undefined) ??
-        (typeof err?.details?.error === "string"
-          ? err.details.error
-          : undefined);
-      const rawErrorMessage =
-        middlewareMessage ||
-        err?.message ||
-        (typeof err === "string"
-          ? err
-          : "Transaction failed. Please try again or check console.");
-      const friendlyErrorMessage =
-        /gas required exceeds allowance|insufficient funds for gas/i.test(
-          rawErrorMessage
-        )
-          ? "This Better Intent transaction requires native gas on the source chain for token approval. Sponsored gas is not supported in this POC, so fund the source wallet with the chain's native token and try again."
-          : rawErrorMessage;
-      const middlewareDiagnostic = getMiddlewareErrorDiagnostic(err);
-      const errorMessage = middlewareDiagnostic
-        ? `${friendlyErrorMessage}\n\n${middlewareDiagnostic}`
-        : friendlyErrorMessage;
+      const classifiedError = classifyIntentError(err);
+      const errorMessage = formatClassifiedIntentError(classifiedError);
       if (isTimeout && hasActiveExecution) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);
