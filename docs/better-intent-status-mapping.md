@@ -106,9 +106,9 @@ a bridge, a swap, or both:
 | Previous label | Better Intent label |
 | --- | --- |
 | Approve Swaps | Approve tokens |
-| Swap tokens | Process transfer |
-| Swaps in progress | Processing transfer |
-| Swaps completed | Transfer submitted |
+| Swap tokens | Deposit source / Deposit sources |
+| Swaps in progress | Deposit in progress / Deposits in progress |
+| Swaps completed | Deposit completed / Deposits completed |
 
 The old labels remain for legacy SDK events.
 
@@ -139,8 +139,14 @@ uses:
 This keeps the compact FastBridge UI while preventing submission from being mistaken for successful
 source deposits or fulfillment.
 
-## Remaining product choice
+## Per-leg dropdown
 
-The implementation keeps the existing compact rows. If product wants every source to appear as a
-separate row, FastBridge can render the same `legs` array individually without another API or SDK
-change.
+The unified progress rows use the least-advanced leg. An expandable section below them shows every
+source leg separately. Each entry displays:
+
+- the source token and chain;
+- the leg's current status;
+- its transaction link, when available;
+- its provider error, when present.
+
+This provides detail for multi-source intents without making the default progress screen longer.
