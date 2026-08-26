@@ -3738,6 +3738,8 @@ function NexusOneInner({
   const [swapQuoteIssue, setSwapQuoteIssue] = useState<SwapQuoteIssue | null>(
     null
   );
+  const [hasBlockingProviderQuoteError, setHasBlockingProviderQuoteError] =
+    useState(false);
   const [receiveAmountIssue, setReceiveAmountIssue] =
     useState<ReceiveAmountIssue | null>(null);
   const receiveAmountIssueRef = useRef<ReceiveAmountIssue | null>(null);
@@ -7018,15 +7020,14 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
-        const errorMsg =
-          "We couldn't prepare this quote. Try again or choose a different token or chain.";
-        setTxError(errorMsg);
+        setTxError("Quote unavailable");
+        setHasBlockingProviderQuoteError(true);
         const timeTakenMs = quoteFetchStartTimeRef.current
           ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
           : undefined;
         trackFastBridgeFail({
           failure_type: "quote_fetch",
-          reason: errorMsg,
+          reason: "Quote unavailable",
           error_code: "UNSUPPORTED_INTENT_SHAPE",
           wallet_address: ownerAddress,
           quote_id: quoteIdRef.current,
@@ -7083,6 +7084,7 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
+        setHasBlockingProviderQuoteError(false);
       });
       const quoteTimeTakenMs = quoteFetchStartTimeRef.current
         ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
@@ -7752,6 +7754,7 @@ function NexusOneInner({
   useEffect(() => {
     activeQuoteInputKeyRef.current = activeQuoteInputKey;
     setTxError(null);
+    setHasBlockingProviderQuoteError(false);
   }, [activeQuoteInputKey]);
   const hasCurrentQuoteIntent = Boolean(
     intentData &&
@@ -10425,6 +10428,11 @@ function NexusOneInner({
       } else if (!background || swapStepRef.current === "preview-intent") {
         setSwapStep("idle");
       }
+      setHasBlockingProviderQuoteError(
+        !hasActiveExecution &&
+          classifiedError.bucket === "quote_provider" &&
+          !classifiedError.retryable
+      );
       setTxError(errorMessage);
       onError?.(errorMessage);
     }
@@ -11747,7 +11755,8 @@ function NexusOneInner({
         : !hasReadySwapQuoteInput ||
           receiveMaxCalculating ||
           quoteRefreshing ||
-          Boolean(blockingQuoteIssue));
+          Boolean(blockingQuoteIssue)) ||
+      hasBlockingProviderQuoteError;
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
     : isBalancesLoading ||
@@ -11758,6 +11767,8 @@ function NexusOneInner({
       (!hasCurrentExactOutPaymentIntent &&
         isQuoteUnavailableForAutoSourceFlow) ||
       Boolean(blockingQuoteIssue);
+  const isDepositCtaBlocked =
+    isDepositCtaDisabled || hasBlockingProviderQuoteError;
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -11774,10 +11785,12 @@ function NexusOneInner({
   const isQuotePending =
     isExactOutPaymentQuotePending ||
     (!hasCurrentExactOutPaymentIntent && (quoteRefreshing || intentLoading));
+  const isSendCtaBlocked = isSendCtaDisabled || hasBlockingProviderQuoteError;
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
     if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
+    if (hasBlockingProviderQuoteError) return "Quote unavailable";
     if (receiveMaxCalculating) return "Calculating...";
     if (isQuotePending) {
       return "Fetching quotes...";
@@ -12999,7 +13012,7 @@ function NexusOneInner({
                       }}
                     >
                       <button
-                        disabled={isDepositCtaDisabled}
+                        disabled={isDepositCtaBlocked}
                         onClick={() => {
                           if (needsWalletConnection) {
                             void handleConnectWallet({
@@ -13014,7 +13027,7 @@ function NexusOneInner({
                           backgroundColor:
                             effectiveNexusInitError || blockingQuoteIssue
                               ? "#FCEEED"
-                              : isDepositCtaDisabled
+                              : isDepositCtaBlocked
                                 ? "#CBCBCB"
                                 : theme.colors.text,
                           border:
@@ -13027,7 +13040,7 @@ function NexusOneInner({
                               : theme.radius.primaryButton,
                           boxShadow:
                             blockingQuoteIssue ||
-                            isDepositCtaDisabled ||
+                            isDepositCtaBlocked ||
                             effectiveNexusInitError
                               ? "none"
                               : theme.shadows.primaryButton,
@@ -13038,7 +13051,7 @@ function NexusOneInner({
                           height: "40px",
                           justifyContent: "center",
                           paddingInline: "16px",
-                          cursor: isDepositCtaDisabled
+                          cursor: isDepositCtaBlocked
                             ? "not-allowed"
                             : "pointer",
                           userSelect: "none",
@@ -13062,7 +13075,7 @@ function NexusOneInner({
                           <Loader2
                             className="animate-spin"
                             style={{
-                              color: isDepositCtaDisabled
+                              color: isDepositCtaBlocked
                                 ? theme.colors.muted
                                 : theme.colors.surface,
                               height: "14px",
@@ -13076,7 +13089,7 @@ function NexusOneInner({
                             color:
                               effectiveNexusInitError || blockingQuoteIssue
                                 ? "#D32F2F"
-                                : isDepositCtaDisabled
+                                : isDepositCtaBlocked
                                   ? theme.colors.muted
                                   : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
@@ -13177,7 +13190,7 @@ function NexusOneInner({
                   }}
                 >
                   <button
-                    disabled={isSendCtaDisabled}
+                    disabled={isSendCtaBlocked}
                     onClick={() => {
                       if (needsWalletConnection) {
                         void handleConnectWallet({ reportConversion: true });
@@ -13194,7 +13207,7 @@ function NexusOneInner({
                       backgroundColor:
                         effectiveNexusInitError || blockingQuoteIssue
                           ? "#FCEEED"
-                          : isSendCtaDisabled
+                          : isSendCtaBlocked
                             ? "#CBCBCB"
                             : theme.colors.text,
                       border:
@@ -13207,7 +13220,7 @@ function NexusOneInner({
                           : theme.radius.primaryButton,
                       boxShadow:
                         blockingQuoteIssue ||
-                        isSendCtaDisabled ||
+                        isSendCtaBlocked ||
                         effectiveNexusInitError
                           ? "none"
                           : theme.shadows.primaryButton,
@@ -13218,7 +13231,7 @@ function NexusOneInner({
                       height: "40px",
                       justifyContent: "center",
                       paddingInline: "16px",
-                      cursor: isSendCtaDisabled ? "not-allowed" : "pointer",
+                      cursor: isSendCtaBlocked ? "not-allowed" : "pointer",
                       width: "100%",
                     }}
                   >
@@ -13239,7 +13252,7 @@ function NexusOneInner({
                       <Loader2
                         className="animate-spin"
                         style={{
-                          color: isSendCtaDisabled
+                          color: isSendCtaBlocked
                             ? theme.colors.muted
                             : theme.colors.surface,
                           height: "14px",
@@ -13253,7 +13266,7 @@ function NexusOneInner({
                         color:
                           effectiveNexusInitError || blockingQuoteIssue
                             ? "#D32F2F"
-                            : isSendCtaDisabled
+                            : isSendCtaBlocked
                               ? theme.colors.muted
                               : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
