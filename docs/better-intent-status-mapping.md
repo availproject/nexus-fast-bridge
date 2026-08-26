@@ -1,117 +1,146 @@
 # Better Intent status mapping
 
-FastBridge keeps its existing progress screen for this migration. Better Intent steps are now mapped
-explicitly to those existing stages instead of relying only on their position in the plan.
+This document explains how FastBridge showed progress with the old SDK, what Better Intent exposes,
+and the mapping used after the migration.
 
-## What the old SDK emitted
+## The FastBridge progress screen
 
-The old SDK exposed operational steps such as allowance approval, source swap, bridge deposit,
-intent submission, bridge fill, and destination swap.
+FastBridge keeps a compact progress screen instead of displaying every SDK operation as a separate
+row:
 
-FastBridge grouped them into:
+1. Approve tokens, when approval is required
+2. Process the transfer
+3. Receive the destination token
+4. Complete the destination app action, for deposit flows only
 
-1. Approve tokens
-2. Swaps in progress
-3. Receive token
-4. Final app action for deposit flows
+Legacy SDK operations and Better Intent events are mapped into these rows differently.
 
-## What Better Intent emits
+## How the old SDK worked
 
-Better Intent returns these plan steps:
+The old SDK returned a detailed execution plan and emitted progress for named operations:
 
-- `erc20_approval`, when an ERC-20 approval is required
-- `native_transaction`, when a native source deposit is required
+- allowance approval
+- `SOURCE_SWAP`
+- `BRIDGE_DEPOSIT`
+- `BRIDGE_INTENT_SUBMISSION`
+- `BRIDGE_FILL`
+- `DESTINATION_SWAP`
+
+FastBridge grouped those operations like this:
+
+| Old SDK operation | FastBridge row |
+| --- | --- |
+| Allowance or source-swap approval | Approve tokens |
+| Source swap | Swaps in progress |
+| Bridge deposit | Swaps in progress |
+| Bridge intent submission | Swaps in progress |
+| Bridge fill | Receive token |
+| Destination swap | Receive token |
+
+Each old plan operation reported its own progress. FastBridge marked a row as active, complete, or
+failed based on the operations assigned to it. FastBridge did not have a separate per-leg model.
+
+## What Better Intent exposes
+
+Better Intent exposes two different kinds of progress.
+
+### Execution steps
+
+These describe SDK or wallet actions:
+
+- `erc20_approval`
+- `native_transaction`
 - `intent_signature`
 - `intent_submission`
 - `intent_fulfillment`
 
-Approval and native transaction steps are optional, so FastBridge should not infer their meaning
-from their position in the plan.
+Approval and native transaction steps are optional. Signature and submission happen once for the
+whole intent.
 
-There are two levels of progress:
+### Source legs
 
-- **Intent-level steps:** `intent_signature` and `intent_submission` happen once for the complete
-  intent.
-- **Per-source-leg progress:** each source has its own `sourceIndex`, lifecycle status, transaction
-  hash, explorer links, and error. Native source transactions also carry a `sourceIndex`.
+A leg represents one source used to fund an intent. A single-source intent has one leg. A
+multi-source intent can have several legs from different chains or tokens.
 
-This distinction matters for multi-source intents. One leg may be deposited or fulfilled while
-another leg is still waiting or has failed.
+Each leg exposes:
 
-## Mapping used now
+- `sourceIndex`
+- `status`: `created`, `deposited`, `fulfilled`, or `expired`
+- transaction hash
+- transaction and provider explorer links
+- a provider error, when present
 
-| Better Intent step | Existing FastBridge stage | Failure label |
-| --- | --- | --- |
-| `erc20_approval` | Approve tokens | Token approval failed |
-| `native_transaction` | Swaps in progress | Source transaction failed |
-| `intent_signature` | Swaps in progress | Intent signature failed |
-| `intent_submission` | Swaps in progress | Intent submission failed |
-| `intent_fulfillment` | Receive token | Intent fulfillment failed |
+Legs progress independently. For example, one source may be deposited while another source is still
+waiting. The overall intent status is only the combined summary.
 
-The mapping is applied to preview, progress, completion, and failure events. Existing old-SDK step
-handling remains in place for compatibility.
-
-## Per-leg status
-
-Previously, the API had per-leg data but the SDK exposed only the overall intent status. The SDK now
-includes `legs` in every lifecycle status event and in the final result:
-
-```ts
-{
-  type: "status",
-  intentId: "0x...",
-  status: "deposited",
-  substatus: "awaiting_destination_fulfillment",
-  legs: [
-    {
-      sourceIndex: 0,
-      status: "fulfilled",
-      txHash: "0x...",
-      txExplorerUrl: "https://...",
-      protocolExplorerUrl: "https://...",
-      error: undefined,
-    },
-  ],
-}
-```
-
-FastBridge can therefore use:
-
-- the step event for wallet actions such as approval, signature, and submission;
-- the overall status for the main progress stage;
-- `legs` for progress, transaction links, and failures for each source.
+The API already returned this information from `/better-intent/rff/:id`. The SDK now includes the
+normalized `legs` array in every status event and in the final result.
 
 SDK change: https://github.com/availproject/nexus-sdk/commit/23c26f4
 
-## What changed in the implementation
+## Mapping used now
 
-- `erc20_approval` is recognized as an approval, including failed approvals.
-- Every Better Intent step maps to a named FastBridge stage.
-- Better Intent failures mark the correct row as failed.
-- Failure receipts use the actual failed Better Intent step instead of a generic swap failure.
-- Status events expose the latest progress and error for every source leg.
-- The existing UI stages and labels remain unchanged for now.
+FastBridge uses execution steps for wallet actions and leg statuses for backend transfer progress.
 
-## Product decision needed
+| Better Intent information | FastBridge behavior |
+| --- | --- |
+| `erc20_approval` | Show and update Approve tokens |
+| `native_transaction` | Keep Process transfer active; show Source transaction failed on failure |
+| `intent_signature` | Keep Process transfer active; show Intent signature failed on failure |
+| `intent_submission` | Keep Process transfer active; show Intent submission failed on failure |
+| Any leg is still `created` | Keep Process transfer active |
+| Every leg is `deposited` or `fulfilled` | Complete Process transfer and start Receive token |
+| Every leg is `fulfilled` | Complete Receive token |
+| A leg expires or reports an error before deposit | Fail Process transfer |
+| A leg fails during fulfillment | Fail Receive token |
+| Overall intent is `fulfilled` | Complete Receive token as a final safeguard |
 
-The current label **Swaps in progress** is not always accurate. Better Intent uses the same intent
-flow for bridges and swaps, and some routes contain no token swap.
+`intent_submission` no longer completes the processing row by itself. Submission only means the
+middleware accepted the intent. FastBridge waits for the source-leg statuses before advancing.
 
-Recommended simplified stages:
+## UI labels
 
-1. Approve token, only when required
-2. Confirm transaction, for native transaction or intent signature
-3. Processing transfer, for submission and provider processing
-4. Receive token, for fulfillment
+For Better Intent, the generic swap labels are replaced with transfer labels because a route may be
+a bridge, a swap, or both:
 
-Questions to confirm:
+| Previous label | Better Intent label |
+| --- | --- |
+| Approve Swaps | Approve tokens |
+| Swap tokens | Process transfer |
+| Swaps in progress | Processing transfer |
+| Swaps completed | Transfer submitted |
 
-- Should FastBridge keep three compact stages or expose signature and submission separately?
-- Should **Swaps in progress** become **Processing transfer** or **Processing transaction**?
-- Should a user-rejected signature appear as a failed stage or return quietly to the form?
-- For fulfillment failure, should the UI mention refund behavior only when the API explicitly says a
-  refund has started?
+The old labels remain for legacy SDK events.
 
-No API change is required to access per-leg progress. The detail endpoint already returns it, and the
-SDK now exposes it. FastBridge still needs UI logic if we decide to show every leg separately rather
-than using the current compact progress rows.
+## Failure mapping
+
+| Failure | User-facing stage error |
+| --- | --- |
+| ERC-20 approval | Token approval failed |
+| Native source transaction | Source transaction failed |
+| Intent signature | Intent signature failed |
+| Intent submission | Intent submission failed |
+| Source leg before deposit | Source transfer failed |
+| Source leg during fulfillment | Transfer fulfillment failed |
+| Intent fulfillment step | Intent fulfillment failed |
+
+Detailed API and SDK errors remain available for logging and diagnostics. The progress screen uses a
+short stage-specific message.
+
+## Main difference
+
+The old flow advanced using completion events from detailed plan operations. The Better Intent flow
+uses:
+
+- step events for actions performed by the user or SDK;
+- leg statuses for each source's transfer progress;
+- the overall intent status for final completion.
+
+This keeps the compact FastBridge UI while preventing submission from being mistaken for successful
+source deposits or fulfillment.
+
+## Remaining product choice
+
+The implementation keeps the existing compact rows. If product wants every source to appear as a
+separate row, FastBridge can render the same `legs` array individually without another API or SDK
+change.
