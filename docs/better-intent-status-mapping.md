@@ -28,6 +28,16 @@ Better Intent returns these plan steps:
 Approval and native transaction steps are optional, so FastBridge should not infer their meaning
 from their position in the plan.
 
+There are two levels of progress:
+
+- **Intent-level steps:** `intent_signature` and `intent_submission` happen once for the complete
+  intent.
+- **Per-source-leg progress:** each source has its own `sourceIndex`, lifecycle status, transaction
+  hash, explorer links, and error. Native source transactions also carry a `sourceIndex`.
+
+This distinction matters for multi-source intents. One leg may be deposited or fulfilled while
+another leg is still waiting or has failed.
+
 ## Mapping used now
 
 | Better Intent step | Existing FastBridge stage | Failure label |
@@ -41,12 +51,45 @@ from their position in the plan.
 The mapping is applied to preview, progress, completion, and failure events. Existing old-SDK step
 handling remains in place for compatibility.
 
+## Per-leg status
+
+Previously, the API had per-leg data but the SDK exposed only the overall intent status. The SDK now
+includes `legs` in every lifecycle status event and in the final result:
+
+```ts
+{
+  type: "status",
+  intentId: "0x...",
+  status: "deposited",
+  substatus: "awaiting_destination_fulfillment",
+  legs: [
+    {
+      sourceIndex: 0,
+      status: "fulfilled",
+      txHash: "0x...",
+      txExplorerUrl: "https://...",
+      protocolExplorerUrl: "https://...",
+      error: undefined,
+    },
+  ],
+}
+```
+
+FastBridge can therefore use:
+
+- the step event for wallet actions such as approval, signature, and submission;
+- the overall status for the main progress stage;
+- `legs` for progress, transaction links, and failures for each source.
+
+SDK change: https://github.com/availproject/nexus-sdk/commit/23c26f4
+
 ## What changed in the implementation
 
 - `erc20_approval` is recognized as an approval, including failed approvals.
 - Every Better Intent step maps to a named FastBridge stage.
 - Better Intent failures mark the correct row as failed.
 - Failure receipts use the actual failed Better Intent step instead of a generic swap failure.
+- Status events expose the latest progress and error for every source leg.
 - The existing UI stages and labels remain unchanged for now.
 
 ## Product decision needed
@@ -69,6 +112,6 @@ Questions to confirm:
 - For fulfillment failure, should the UI mention refund behavior only when the API explicitly says a
   refund has started?
 
-No API change is required for the current mapping. The SDK already exposes typed plan steps and
-step states. If more detailed fulfillment progress is wanted later, the API/SDK would need richer
-substatus events rather than only `started`, `completed`, and `failed`.
+No API change is required to access per-leg progress. The detail endpoint already returns it, and the
+SDK now exposes it. FastBridge still needs UI logic if we decide to show every leg separately rather
+than using the current compact progress rows.
