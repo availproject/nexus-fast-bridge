@@ -129,7 +129,42 @@ const PROGRESS_EVENT_NAMES = {
   BRIDGE_PLAN_PROGRESS: "bridge_plan_progress",
   SWAP_PLAN_LIST: "swap_plan_list",
   SWAP_PLAN_PROGRESS: "swap_plan_progress",
+  INTENT_STATUS: "intent_status",
 } as const;
+
+type BetterIntentLegStatus = {
+  sourceIndex: number;
+  status: "created" | "deposited" | "fulfilled" | "expired";
+  error?: string;
+};
+
+type BetterIntentStatusEvent = {
+  status: "created" | "deposited" | "fulfilled" | "expired";
+  legs: BetterIntentLegStatus[];
+};
+
+const getLatestIntentStatus = (
+  events: NexusOneProgressEvent[]
+): BetterIntentStatusEvent | undefined => {
+  const event = [...events]
+    .reverse()
+    .find((candidate) => candidate.name === PROGRESS_EVENT_NAMES.INTENT_STATUS)
+    ?.event as BetterIntentStatusEvent | undefined;
+  return event && Array.isArray(event.legs) ? event : undefined;
+};
+
+const didAllIntentLegsReachDeposit = (events: NexusOneProgressEvent[]) =>
+  events.some((candidate) => {
+    if (candidate.name !== PROGRESS_EVENT_NAMES.INTENT_STATUS) return false;
+    const statusEvent = candidate.event as BetterIntentStatusEvent | undefined;
+    return (
+      Array.isArray(statusEvent?.legs) &&
+      statusEvent.legs.length > 0 &&
+      statusEvent.legs.every(
+        (leg) => leg.status === "deposited" || leg.status === "fulfilled"
+      )
+    );
+  });
 
 type ProgressListEventName =
   | typeof PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST
@@ -678,6 +713,32 @@ const buildStatusRows = ({
   const allApprovalsDone =
     totalApprovals === 0 || completedApprovalsCount >= totalApprovals;
 
+  const intentStatus = getLatestIntentStatus(events);
+  const intentLegs = intentStatus?.legs ?? [];
+  const hasIntentLegs = intentLegs.length > 0;
+  const hasFailedIntentLeg = intentLegs.some(
+    (leg) => leg.status === "expired" || Boolean(leg.error)
+  );
+  const allIntentLegsDeposited =
+    hasIntentLegs &&
+    intentLegs.every(
+      (leg) => leg.status === "deposited" || leg.status === "fulfilled"
+    );
+  const intentLegsReachedDeposit =
+    allIntentLegsDeposited || didAllIntentLegsReachDeposit(events);
+  const allIntentLegsFulfilled =
+    (hasIntentLegs && intentLegs.every((leg) => leg.status === "fulfilled")) ||
+    intentStatus?.status === "fulfilled";
+  const isBetterIntentPlan = effectiveRawSteps.some((step) =>
+    [
+      "erc20_approval",
+      "native_transaction",
+      "intent_signature",
+      "intent_submission",
+      "intent_fulfillment",
+    ].includes(String(step?.type ?? step?.rawType ?? "").toLowerCase())
+  );
+
   // Track 2nd-to-last step and last step in rawSteps
   const totalRawSteps = effectiveRawSteps.length;
   const secondLastStepIndex = totalRawSteps >= 2 ? totalRawSteps - 2 : 0;
@@ -766,18 +827,28 @@ const buildStatusRows = ({
           : undefined,
       label:
         approveState === "completed"
-          ? `Approved Swaps (${totalApprovals} of ${totalApprovals})`
+          ? isBetterIntentPlan
+            ? `Approved tokens (${totalApprovals} of ${totalApprovals})`
+            : `Approved Swaps (${totalApprovals} of ${totalApprovals})`
           : approveState === "error"
             ? "Approval failed"
-            : `Approve Swaps (${completedApprovalsCount + 1} of ${totalApprovals})`,
+            : isBetterIntentPlan
+              ? `Approve tokens (${completedApprovalsCount + 1} of ${totalApprovals})`
+              : `Approve Swaps (${completedApprovalsCount + 1} of ${totalApprovals})`,
     });
   }
 
   // --- 2. SWAPS IN PROGRESS STEP ---
   let swapState: ProgressStatusState = "default";
-  if (failedStatus === "swapTokens") {
+  if (
+    failedStatus === "swapTokens" ||
+    (hasFailedIntentLeg && !intentLegsReachedDeposit)
+  ) {
     swapState = "error";
-  } else if (isSecondLastStepCompleted) {
+  } else if (
+    intentLegsReachedDeposit ||
+    (!isBetterIntentPlan && isSecondLastStepCompleted)
+  ) {
     swapState = "completed";
   } else if (allApprovalsDone) {
     swapState = "inProgress";
@@ -790,24 +861,41 @@ const buildStatusRows = ({
     state: swapState,
     label:
       swapState === "completed"
-        ? "Swaps completed"
+        ? isBetterIntentPlan
+          ? "Transfer submitted"
+          : "Swaps completed"
         : swapState === "error"
           ? (betterIntentFailureLabel ??
-            (refundEligibleFailure
-              ? "Swap failed. Refund initiated"
-              : "Swap failed"))
+            (isBetterIntentPlan
+              ? "Source transfer failed"
+              : refundEligibleFailure
+                ? "Swap failed. Refund initiated"
+                : "Swap failed"))
           : swapState === "inProgress"
-            ? "Swaps in progress"
-            : "Swap tokens",
+            ? isBetterIntentPlan
+              ? "Processing transfer"
+              : "Swaps in progress"
+            : isBetterIntentPlan
+              ? "Process transfer"
+              : "Swap tokens",
   });
 
   // --- 3. RECEIVING TOKEN STEP ---
   let receiveState: ProgressStatusState = "default";
-  if (failedStatus === "receiveToken") {
+  if (
+    failedStatus === "receiveToken" ||
+    (hasFailedIntentLeg && intentLegsReachedDeposit)
+  ) {
     receiveState = "error";
-  } else if (isLastStepCompleted) {
+  } else if (
+    allIntentLegsFulfilled ||
+    (!isBetterIntentPlan && isLastStepCompleted)
+  ) {
     receiveState = "completed";
-  } else if (isSecondLastStepCompleted) {
+  } else if (
+    intentLegsReachedDeposit ||
+    (!isBetterIntentPlan && isSecondLastStepCompleted)
+  ) {
     receiveState = "inProgress";
   } else {
     receiveState = "default";
@@ -821,9 +909,11 @@ const buildStatusRows = ({
         ? `Received ${destinationSymbol} on ${destinationChain}`
         : receiveState === "error"
           ? (betterIntentFailureLabel ??
-            (refundEligibleFailure
-              ? "Destination swap failed. Refund initiated."
-              : "Destination swap failed."))
+            (isBetterIntentPlan
+              ? "Transfer fulfillment failed"
+              : refundEligibleFailure
+                ? "Destination swap failed. Refund initiated."
+                : "Destination swap failed."))
           : receiveState === "inProgress"
             ? `Receiving ${destinationSymbol} on ${destinationChain}`
             : `Receive ${destinationSymbol} on ${destinationChain}`,

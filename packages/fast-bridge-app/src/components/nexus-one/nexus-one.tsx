@@ -6645,6 +6645,22 @@ function NexusOneInner({
     });
   };
 
+  const appendIntentStatusEvent = (event: unknown) => {
+    setProgressEvents((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: `${Date.now()}-${prev.length}-intent-status`,
+          name: "intent_status",
+          completed: (event as any)?.status === "fulfilled",
+          event,
+        },
+      ];
+      progressEventsRef.current = next;
+      return next;
+    });
+  };
+
   const startSwapHistoryEntry = () => {
     const id = `${Date.now()}-${swapRunIdRef.current}`;
     const now = Date.now();
@@ -9149,6 +9165,11 @@ function NexusOneInner({
     };
 
     const handlePlanEvent = (event: any) => {
+      if (event.type === "status") {
+        appendIntentStatusEvent(event);
+        return;
+      }
+
       if (event.type === "plan_preview" || event.type === "plan_confirmed") {
         const stepList = Array.isArray(event.plan?.steps)
           ? event.plan.steps.map((step: any) =>
