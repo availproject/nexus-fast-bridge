@@ -135,6 +135,8 @@ const PROGRESS_EVENT_NAMES = {
 type BetterIntentLegStatus = {
   sourceIndex: number;
   status: "created" | "deposited" | "fulfilled" | "expired";
+  txExplorerUrl?: string;
+  protocolExplorerUrl?: string;
   error?: string;
 };
 
@@ -862,7 +864,9 @@ const buildStatusRows = ({
     label:
       swapState === "completed"
         ? isBetterIntentPlan
-          ? "Transfer submitted"
+          ? intentLegs.length === 1
+            ? "Deposit completed"
+            : "Deposits completed"
           : "Swaps completed"
         : swapState === "error"
           ? (betterIntentFailureLabel ??
@@ -873,10 +877,14 @@ const buildStatusRows = ({
                 : "Swap failed"))
           : swapState === "inProgress"
             ? isBetterIntentPlan
-              ? "Processing transfer"
+              ? intentLegs.length === 1
+                ? "Deposit in progress"
+                : "Deposits in progress"
               : "Swaps in progress"
             : isBetterIntentPlan
-              ? "Process transfer"
+              ? intentLegs.length === 1
+                ? "Deposit source"
+                : "Deposit sources"
               : "Swap tokens",
   });
 
@@ -1310,7 +1318,10 @@ export function NexusOneProgressScreen({
       recipientAddress,
     },
   });
+  const latestIntentStatus = getLatestIntentStatus(progressEvents);
+  const intentLegs = latestIntentStatus?.legs ?? [];
   const [stepsExpanded, setStepsExpanded] = useState(true);
+  const [legsExpanded, setLegsExpanded] = useState(false);
   const activeRow =
     statusRows.find(
       (row) => row.state === "preapproval" || row.state === "inProgress"
@@ -1431,6 +1442,141 @@ export function NexusOneProgressScreen({
             </div>
           )}
         </div>
+        {intentLegs.length > 0 && (
+          <div style={{ borderTop: `1px solid ${border}` }}>
+            <button
+              aria-expanded={legsExpanded}
+              onClick={() => setLegsExpanded((current) => !current)}
+              style={{
+                alignItems: "center",
+                appearance: "none",
+                background: "transparent",
+                border: 0,
+                color: primary,
+                cursor: "pointer",
+                display: "flex",
+                fontFamily,
+                fontSize: "13px",
+                justifyContent: "space-between",
+                padding: "12px 16px",
+                width: "100%",
+              }}
+              type="button"
+            >
+              <span>
+                {intentLegs.length === 1
+                  ? "View deposit"
+                  : `View deposits (${intentLegs.length})`}
+              </span>
+              <ChevronDown
+                style={{
+                  color: muted,
+                  height: 14,
+                  transform: legsExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 220ms ease",
+                  width: 14,
+                }}
+              />
+            </button>
+            {legsExpanded && (
+              <div style={{ borderTop: `1px solid ${border}` }}>
+                {intentLegs.map((leg, legIndex) => {
+                  const source = intentData?.sources[leg.sourceIndex];
+                  const sourceToken = eligibleFromTokens[leg.sourceIndex];
+                  const symbol = source?.token.symbol ?? sourceToken?.symbol;
+                  const chainName = getShortChainName(
+                    source?.chain.id ?? sourceToken?.chainId,
+                    source?.chain.name ?? sourceToken?.chainName ?? ""
+                  );
+                  const transactionUrl =
+                    leg.txExplorerUrl ?? leg.protocolExplorerUrl;
+                  const statusLabel = leg.error
+                    ? "Failed"
+                    : leg.status === "created"
+                      ? "Waiting for deposit"
+                      : leg.status === "deposited"
+                        ? "Deposited"
+                        : leg.status === "fulfilled"
+                          ? "Fulfilled"
+                          : "Expired";
+                  const isLegError =
+                    Boolean(leg.error) || leg.status === "expired";
+
+                  return (
+                    <div
+                      key={leg.sourceIndex}
+                      style={{
+                        alignItems: "flex-start",
+                        borderTop:
+                          legIndex > 0 ? `1px solid ${border}` : undefined,
+                        display: "flex",
+                        gap: "10px",
+                        justifyContent: "space-between",
+                        padding: "12px 16px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            color: primary,
+                            fontFamily,
+                            fontSize: "13px",
+                            lineHeight: "18px",
+                          }}
+                        >
+                          {symbol && chainName
+                            ? `${symbol} on ${chainName}`
+                            : `Deposit ${leg.sourceIndex + 1}`}
+                        </div>
+                        {leg.error && (
+                          <div
+                            style={{
+                              color: danger,
+                              fontFamily,
+                              fontSize: "11px",
+                              lineHeight: "15px",
+                              marginTop: "2px",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {leg.error}
+                          </div>
+                        )}
+                        {transactionUrl && (
+                          <a
+                            href={transactionUrl}
+                            rel="noopener noreferrer"
+                            style={{
+                              color: brand,
+                              display: "inline-block",
+                              fontFamily,
+                              fontSize: "11px",
+                              marginTop: "3px",
+                            }}
+                            target="_blank"
+                          >
+                            View transaction
+                          </a>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          color: isLegError ? danger : muted,
+                          flexShrink: 0,
+                          fontFamily,
+                          fontSize: "12px",
+                          lineHeight: "18px",
+                        }}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div
