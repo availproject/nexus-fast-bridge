@@ -139,14 +139,13 @@ uses:
 This keeps the compact FastBridge UI while preventing submission from being mistaken for successful
 source deposits or fulfillment.
 
-## Per-leg dropdown
+## Per-leg details
 
-The unified progress rows use the least-advanced leg. An expandable section below them shows every
-source leg separately. Each entry displays:
+The unified progress rows use the least-advanced leg. The deposit row shows a compact summary such
+as `1 of 2 deposited`. Selecting that summary expands the source legs inline. Each leg displays:
 
 - the source token and chain;
-- the leg's current status;
-- its transaction link, when available;
-- its provider error, when present.
+- its current status, such as waiting, deposited, fulfilled, or failed.
 
-This provides detail for multi-source intents without making the default progress screen longer.
+The leg details and the full progress timeline have independent expand/collapse controls. This keeps
+the default progress screen compact while still exposing multi-source progress.

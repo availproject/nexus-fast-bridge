@@ -1321,7 +1321,7 @@ export function NexusOneProgressScreen({
   const latestIntentStatus = getLatestIntentStatus(progressEvents);
   const intentLegs = latestIntentStatus?.legs ?? [];
   const [stepsExpanded, setStepsExpanded] = useState(true);
-  const [legsExpanded, setLegsExpanded] = useState(false);
+  const [depositDetailsExpanded, setDepositDetailsExpanded] = useState(false);
   const activeRow =
     statusRows.find(
       (row) => row.state === "preapproval" || row.state === "inProgress"
@@ -1331,7 +1331,12 @@ export function NexusOneProgressScreen({
     statusRows[statusRows.length - 1];
   const visibleRows = stepsExpanded ? statusRows : activeRow ? [activeRow] : [];
   const canExpand = statusRows.length > 1;
-  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 64 : 52);
+  const getRowHeight = (row: ProgressStatusRow) => {
+    if (row.id === "swapTokens" && intentLegs.length > 0) {
+      return depositDetailsExpanded ? 68 + intentLegs.length * 18 : 68;
+    }
+    return row.description ? 64 : 52;
+  };
   const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 52;
   const expandedStatusHeight = statusRows.reduce(
     (sum, row) => sum + getRowHeight(row),
@@ -1442,141 +1447,6 @@ export function NexusOneProgressScreen({
             </div>
           )}
         </div>
-        {intentLegs.length > 0 && (
-          <div style={{ borderTop: `1px solid ${border}` }}>
-            <button
-              aria-expanded={legsExpanded}
-              onClick={() => setLegsExpanded((current) => !current)}
-              style={{
-                alignItems: "center",
-                appearance: "none",
-                background: "transparent",
-                border: 0,
-                color: primary,
-                cursor: "pointer",
-                display: "flex",
-                fontFamily,
-                fontSize: "13px",
-                justifyContent: "space-between",
-                padding: "12px 16px",
-                width: "100%",
-              }}
-              type="button"
-            >
-              <span>
-                {intentLegs.length === 1
-                  ? "View deposit"
-                  : `View deposits (${intentLegs.length})`}
-              </span>
-              <ChevronDown
-                style={{
-                  color: muted,
-                  height: 14,
-                  transform: legsExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 220ms ease",
-                  width: 14,
-                }}
-              />
-            </button>
-            {legsExpanded && (
-              <div style={{ borderTop: `1px solid ${border}` }}>
-                {intentLegs.map((leg, legIndex) => {
-                  const source = intentData?.sources[leg.sourceIndex];
-                  const sourceToken = eligibleFromTokens[leg.sourceIndex];
-                  const symbol = source?.token.symbol ?? sourceToken?.symbol;
-                  const chainName = getShortChainName(
-                    source?.chain.id ?? sourceToken?.chainId,
-                    source?.chain.name ?? sourceToken?.chainName ?? ""
-                  );
-                  const transactionUrl =
-                    leg.txExplorerUrl ?? leg.protocolExplorerUrl;
-                  const statusLabel = leg.error
-                    ? "Failed"
-                    : leg.status === "created"
-                      ? "Waiting for deposit"
-                      : leg.status === "deposited"
-                        ? "Deposited"
-                        : leg.status === "fulfilled"
-                          ? "Fulfilled"
-                          : "Expired";
-                  const isLegError =
-                    Boolean(leg.error) || leg.status === "expired";
-
-                  return (
-                    <div
-                      key={leg.sourceIndex}
-                      style={{
-                        alignItems: "flex-start",
-                        borderTop:
-                          legIndex > 0 ? `1px solid ${border}` : undefined,
-                        display: "flex",
-                        gap: "10px",
-                        justifyContent: "space-between",
-                        padding: "12px 16px",
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            color: primary,
-                            fontFamily,
-                            fontSize: "13px",
-                            lineHeight: "18px",
-                          }}
-                        >
-                          {symbol && chainName
-                            ? `${symbol} on ${chainName}`
-                            : `Deposit ${leg.sourceIndex + 1}`}
-                        </div>
-                        {leg.error && (
-                          <div
-                            style={{
-                              color: danger,
-                              fontFamily,
-                              fontSize: "11px",
-                              lineHeight: "15px",
-                              marginTop: "2px",
-                              overflowWrap: "anywhere",
-                            }}
-                          >
-                            {leg.error}
-                          </div>
-                        )}
-                        {transactionUrl && (
-                          <a
-                            href={transactionUrl}
-                            rel="noopener noreferrer"
-                            style={{
-                              color: brand,
-                              display: "inline-block",
-                              fontFamily,
-                              fontSize: "11px",
-                              marginTop: "3px",
-                            }}
-                            target="_blank"
-                          >
-                            View transaction
-                          </a>
-                        )}
-                      </div>
-                      <span
-                        style={{
-                          color: isLegError ? danger : muted,
-                          flexShrink: 0,
-                          fontFamily,
-                          fontSize: "12px",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        {statusLabel}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <div
@@ -1615,14 +1485,18 @@ export function NexusOneProgressScreen({
               const isDefault = row.state === "default";
               const isLoading =
                 row.state === "preapproval" || row.state === "inProgress";
-              const hasDescription = Boolean(row.description);
+              const showIntentLegs =
+                row.id === "swapTokens" && intentLegs.length > 0;
+              const hasDescription = Boolean(row.description) || showIntentLegs;
               const rowColor = isDefault ? muted : isError ? danger : primary;
 
               return (
-                <button
+                <div
                   key={row.id}
                   onClick={() => {
-                    if (canExpand) setStepsExpanded((current) => !current);
+                    if (canExpand) {
+                      setStepsExpanded((current) => !current);
+                    }
                   }}
                   style={{
                     alignItems: hasDescription ? "flex-start" : "center",
@@ -1646,7 +1520,6 @@ export function NexusOneProgressScreen({
                       "color 220ms ease, min-height 220ms ease, opacity 220ms ease",
                     width: "100%",
                   }}
-                  type="button"
                 >
                   {isCompleted || isError ? (
                     <span
@@ -1715,24 +1588,132 @@ export function NexusOneProgressScreen({
                         {row.description}
                       </span>
                     )}
+                    {showIntentLegs && (
+                      <button
+                        aria-expanded={depositDetailsExpanded}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDepositDetailsExpanded((current) => !current);
+                        }}
+                        style={{
+                          alignItems: "center",
+                          appearance: "none",
+                          background: "transparent",
+                          border: 0,
+                          color: brand,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          fontFamily,
+                          fontSize: "12px",
+                          fontWeight: 400,
+                          gap: "3px",
+                          lineHeight: "18px",
+                          padding: 0,
+                        }}
+                        type="button"
+                      >
+                        {`${intentLegs.filter((leg) => leg.status === "deposited" || leg.status === "fulfilled").length} of ${intentLegs.length} deposited`}
+                        <ChevronDown
+                          style={{
+                            height: 12,
+                            transform: depositDetailsExpanded
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
+                            transition: "transform 220ms ease",
+                            width: 12,
+                          }}
+                        />
+                      </button>
+                    )}
+                    {showIntentLegs && depositDetailsExpanded && (
+                      <span
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        {intentLegs.map((leg) => {
+                          const source = intentData?.sources[leg.sourceIndex];
+                          const sourceToken =
+                            eligibleFromTokens[leg.sourceIndex];
+                          const symbol =
+                            source?.token.symbol ?? sourceToken?.symbol;
+                          const chainName = getShortChainName(
+                            source?.chain.id ?? sourceToken?.chainId,
+                            source?.chain.name ?? sourceToken?.chainName ?? ""
+                          );
+                          const statusLabel = leg.error
+                            ? "Failed"
+                            : leg.status === "created"
+                              ? "Waiting for deposit"
+                              : leg.status === "deposited"
+                                ? "Deposited"
+                                : leg.status === "fulfilled"
+                                  ? "Fulfilled"
+                                  : "Expired";
+                          const isLegError =
+                            Boolean(leg.error) || leg.status === "expired";
+
+                          return (
+                            <span
+                              key={leg.sourceIndex}
+                              style={{
+                                color: isLegError ? danger : muted,
+                                fontSize: "12px",
+                                lineHeight: "18px",
+                              }}
+                            >
+                              {symbol && chainName
+                                ? `${symbol} on ${chainName}`
+                                : `Deposit ${leg.sourceIndex + 1}`}
+                              {` · ${statusLabel}`}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </span>
                   {canExpand && index === 0 && (
-                    <ChevronDown
+                    <button
+                      aria-expanded={stepsExpanded}
+                      aria-label={
+                        stepsExpanded
+                          ? "Collapse progress details"
+                          : "Expand progress details"
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setStepsExpanded((current) => !current);
+                      }}
                       style={{
+                        alignItems: "center",
+                        appearance: "none",
+                        background: "transparent",
+                        border: 0,
                         color: muted,
+                        cursor: "pointer",
+                        display: "inline-flex",
                         flexShrink: 0,
-                        height: 14,
+                        justifyContent: "center",
                         marginLeft: "auto",
                         marginTop: hasDescription ? 2 : 0,
-                        transform: stepsExpanded
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 220ms ease",
-                        width: 14,
+                        padding: 0,
                       }}
-                    />
+                      type="button"
+                    >
+                      <ChevronDown
+                        style={{
+                          height: 14,
+                          transform: stepsExpanded
+                            ? "rotate(180deg)"
+                            : "rotate(0deg)",
+                          transition: "transform 220ms ease",
+                          width: 14,
+                        }}
+                      />
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
