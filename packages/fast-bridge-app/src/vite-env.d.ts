@@ -39,6 +39,7 @@ declare global {
     readonly VITE_AVALANCHE_RPC: string;
     readonly VITE_BASE: string;
     readonly VITE_BASE_RPC: string;
+    readonly VITE_IS_APP_DOWN?: string;
     readonly VITE_KAIA_RPC: string;
     readonly VITE_MAINNET_RPC: string;
     readonly VITE_MEGAETH_RPC: string;

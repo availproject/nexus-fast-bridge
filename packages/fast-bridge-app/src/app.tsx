@@ -154,6 +154,10 @@ const GRADIENT_ASSETS = [
   "/landing-new/assets/chain-gradients/bnb-ribbon.png",
 ];
 
+const isAppDown =
+  import.meta.env.VITE_IS_APP_DOWN === "true" ||
+  import.meta.env.VITE_IS_APP_DOWN === "1";
+
 export default function App() {
   const { appConfig } = useRuntime();
   const activeBg =
@@ -211,9 +215,9 @@ export default function App() {
             }}
           />
           <Navbar />
-          <MaintenanceBanner />
+          {isAppDown ? <MaintenanceBanner /> : null}
           <main className="fastbridge-app-main">
-            <FastBridgeShowcase />
+            {isAppDown ? null : <FastBridgeShowcase />}
           </main>
           <FastBridgeAppFooter />
         </div>
