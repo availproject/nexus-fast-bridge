@@ -101,15 +101,6 @@
       hasCompositeIcon: false,
     },
     {
-      bg: "/landing-assets/Hero-bg_kaia.avif",
-      chain: "Kaia",
-      slug: "kaia",
-      chainIcon: "/landing-assets/kaia-icon.png",
-      token: "USDC",
-      tokenIcon: "/landing-assets/usdc-icon.png",
-      hasCompositeIcon: false,
-    },
-    {
       bg: "/landing-assets/Hero-bg_scroll.avif",
       chain: "Scroll",
       slug: "scroll",

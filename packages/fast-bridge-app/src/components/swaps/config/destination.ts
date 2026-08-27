@@ -250,7 +250,6 @@ export const TOKEN_IMAGES: Record<string, string> = {
   WETH: "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1595348880",
   USDS: "https://assets.coingecko.com/coins/images/39926/standard/usds.webp?1726666683",
   SOPH: "https://assets.coingecko.com/coins/images/38680/large/sophon_logo_200.png",
-  KAIA: "https://assets.coingecko.com/asset_platforms/images/9672/large/kaia.png",
   BNB: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
   // Add ETH as fallback for any ETH-related tokens
   ETH: "https://coin-images.coingecko.com/coins/images/279/large/ethereum.png?1696501628",

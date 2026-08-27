@@ -79,11 +79,11 @@ const FAQ_GROUPS: FAQGroup[] = [
     items: [
       {
         q: "Which chains does FastBridge support?",
-        a: "FastBridge currently supports multiple EVM chains: Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism, Base, Scroll, Polygon, BNB, Kaia, and HyperEVM, with more chains being added regularly. You can always check the bridge interface for the current full list.",
+        a: "FastBridge currently supports multiple EVM chains: Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism, Base, Scroll, Polygon, BNB, and HyperEVM, with more chains being added regularly. You can always check the bridge interface for the current full list.",
       },
       {
         q: "Which tokens can I bridge?",
-        a: "On the source side, FastBridge supports any token your wallet already holds on a supported chain (Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism, Base, Scroll, Polygon, BNB, Kaia, and HyperEVM). On the destination side, you can receive any token that is supported on those chains. Since you can swap as well as bridge, you can send one token and receive a different one at the destination. Stablecoin-to-stablecoin transfers settle with zero slippage, while swaps between different tokens may carry a small price impact that is always shown before you confirm.",
+        a: "On the source side, FastBridge supports any token your wallet already holds on a supported chain (Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism, Base, Scroll, Polygon, BNB, and HyperEVM). On the destination side, you can receive any token that is supported on those chains. Since you can swap as well as bridge, you can send one token and receive a different one at the destination. Stablecoin-to-stablecoin transfers settle with zero slippage, while swaps between different tokens may carry a small price impact that is always shown before you confirm.",
       },
       {
         q: "Will more chains be added?",

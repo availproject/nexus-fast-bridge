@@ -146,7 +146,6 @@ const GRADIENT_ASSETS = [
   "/landing-new/assets/chain-gradients/arbitrum-ribbon.png",
   "/landing-new/assets/chain-gradients/avalanche-ribbon.png",
   "/landing-new/assets/chain-gradients/hyperevm-ribbon.png",
-  "/landing-new/assets/chain-gradients/kaia-ribbon.png",
   "/landing-new/assets/chain-gradients/monad-ribbon.png",
   "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
   "/landing-new/assets/chain-gradients/base-ribbon.png",

@@ -44,12 +44,6 @@
       "png": "assets/chain-gradients/hyperevm-ribbon.png",
       "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #50E3C20A 0px 2px 4px, #50E3C229 0px 12px 24px, #50E3C226 0px 32px 64px"
     },
-    "kaia": {
-      "label": "Kaia Mainnet",
-      "primary": "#31C48D",
-      "png": "assets/chain-gradients/kaia-ribbon.png",
-      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #31C48D0A 0px 2px 4px, #31C48D29 0px 12px 24px, #31C48D26 0px 32px 64px"
-    },
     "monad": {
       "label": "Monad",
       "primary": "#836EF9",

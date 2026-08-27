@@ -26,11 +26,11 @@
       "destination": "/guides/:slug/index.html"
     },
     {
-      "source": "/:slug(about|app|guides|faqs|contact|megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)",
+      "source": "/:slug(about|app|guides|faqs|contact|megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|bnb-smart-chain|hyperevm|avalanche)",
       "destination": "/:slug/index.html"
     },
     {
-      "source": "/:slug(about|app|guides|faqs|contact|megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|kaia|bnb-smart-chain|hyperevm|avalanche)/(.*)",
+      "source": "/:slug(about|app|guides|faqs|contact|megaeth|monad|citrea|arbitrum|ethereum|polygon|base|optimism|op-mainnet|scroll|bnb-smart-chain|hyperevm|avalanche)/(.*)",
       "destination": "/:slug/index.html"
     },
     {

@@ -642,7 +642,6 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
-  8217, // Kaia
   534352, // Scroll
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
