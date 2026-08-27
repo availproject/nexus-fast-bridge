@@ -179,3 +179,19 @@ This prevents fast intents from jumping directly from an in-progress row to `Swa
 The status endpoints return snapshots rather than transition history. If every source moves from
 `created` to `fulfilled` between two polls, the UI correctly moves from `0 of N` to `N of N`; it
 does not invent an intermediate per-leg sequence that the SDK did not observe.
+
+## Fee mapping
+
+The Better Intent compatibility layer currently maps API fees into the existing FastBridge UI as
+follows:
+
+| API field | FastBridge display |
+| --- | --- |
+| `depositRaw` | Network Fee |
+| `protocolRaw` | Protocol Fee |
+| `solverRaw` | Solver Fee |
+| `fulfillmentRaw` | Combined Fees (Estimated) total; no separate row |
+| `caGasRaw` | Not displayed separately |
+
+Raw values temporarily use the destination token decimals. This must be updated if the API confirms
+a different denomination for any fee field.
