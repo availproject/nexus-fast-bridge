@@ -78,6 +78,16 @@ normalized `legs` array in every status event and in the final result.
 
 SDK change: https://github.com/availproject/nexus-sdk/commit/23c26f4
 
+The SDK polls both endpoints every two seconds:
+
+- `/better-intent/status/:id` supplies the unified status and substatus;
+- `/better-intent/rff/:id` supplies the individual legs, errors, and explorer links.
+
+The deployed v1.8 API can report the unified status as `deposited` after only one source leg
+deposits. FastBridge therefore does not use that value to complete the deposit row. It advances
+only after every returned leg is `deposited` or `fulfilled`. Middleware v1.9 changes the unified
+status to follow the least-advanced leg and also returns structured progress details directly.
+
 ## Mapping used now
 
 FastBridge uses execution steps for wallet actions and leg statuses for backend transfer progress.
@@ -147,5 +157,25 @@ as `1 of 2 deposited`. Selecting that summary expands the source legs inline. Ea
 - the source token and chain;
 - its current status, such as waiting, deposited, fulfilled, or failed.
 
+Only the status label is colored: waiting is amber, deposited is blue, fulfilled is green, and
+failed or expired is red.
+
 The leg details and the full progress timeline have independent expand/collapse controls. This keeps
 the default progress screen compact while still exposing multi-source progress.
+
+Before the first status poll, FastBridge creates one `Waiting for deposit` row for every quoted
+source. Backend leg statuses replace those placeholders by `sourceIndex` as polling continues.
+
+## Completion transition
+
+Approval count and source-leg count are independent. For example, a two-leg intent may display
+`Approved tokens (1 of 1)` when only one source required a new allowance, followed by `2 of 2
+deposited` for the source legs.
+
+When the SDK resolves successfully, FastBridge commits a final fulfilled status for every quoted
+source and renders the completed approval, deposit, and receive rows before opening the receipt.
+This prevents fast intents from jumping directly from an in-progress row to `Swap Complete`.
+
+The status endpoints return snapshots rather than transition history. If every source moves from
+`created` to `fulfilled` between two polls, the UI correctly moves from `0 of N` to `N of N`; it
+does not invent an intermediate per-leg sequence that the SDK did not observe.
