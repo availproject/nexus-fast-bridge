@@ -49,7 +49,7 @@ export interface SwapIntentDestination {
   value?: string;
 }
 
-export type BridgeProvider = "nexus" | "mayan" | null;
+export type BridgeProvider = "nexus" | "nexus-v2" | "mayan" | null;
 
 export interface SwapIntentData {
   bridgeProvider?: BridgeProvider;
@@ -989,6 +989,9 @@ export function SwapIntentPreview({
     destinationUsdNumber.gt(0);
 
   const bridgeFees = intentData?.feesAndBuffer?.bridge;
+  const isBetterIntentProvider =
+    intentData?.bridgeProvider === "nexus-v2" ||
+    intentData?.bridgeProvider === "mayan";
   const bridgeFeeData =
     bridgeFees && typeof bridgeFees === "object" ? bridgeFees : undefined;
   const bridgeTotalNumber =
@@ -1113,7 +1116,7 @@ export function SwapIntentPreview({
   const feeDetailRows = bridgeFeeData
     ? [
         {
-          label: "Execution Gas Fee",
+          label: isBetterIntentProvider ? "Network Fee" : "Execution Gas Fee",
           value: executionGasFeeNumber ?? new Decimal(0),
         },
         {

@@ -305,7 +305,10 @@ export const normalizeIntentQuote = (
     feesAndBuffer: {
       buffer: "0",
       bridge: {
-        caGas: formatUnits(quote.fees.caGasRaw, outputDecimals),
+        // The legacy UI reads `caGas` as its network-fee slot. Better Intent's
+        // source-side network fee is `depositRaw`; `caGasRaw` is not shown
+        // separately because it can overlap other fee components.
+        caGas: formatUnits(quote.fees.depositRaw, outputDecimals),
         protocol: formatUnits(quote.fees.protocolRaw, outputDecimals),
         solver: formatUnits(quote.fees.solverRaw, outputDecimals),
         total: formatUnits(quote.fees.fulfillmentRaw, outputDecimals),
