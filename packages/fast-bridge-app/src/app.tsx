@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
+import MaintenanceBanner from "@/components/maintenance-banner";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -210,6 +211,7 @@ export default function App() {
             }}
           />
           <Navbar />
+          <MaintenanceBanner />
           <main className="fastbridge-app-main">
             <FastBridgeShowcase />
           </main>

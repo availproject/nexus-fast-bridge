@@ -108,6 +108,58 @@ body,
   margin: 0 auto;
 }
 
+.fastbridge-app-banner-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.fastbridge-app-banner-inner {
+  width: min(1240px, calc(100% - 80px));
+  margin: 16px auto 0;
+}
+
+.fastbridge-app-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  color: #d32f2f;
+  background: rgba(252, 238, 237, 0.9);
+  border: 1px solid #f7c4c1;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px 0 rgba(211, 47, 47, 0.06);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.fastbridge-app-banner-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #d32f2f;
+}
+
+.fastbridge-app-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.fastbridge-app-banner-title {
+  font-weight: 600;
+  color: #d32f2f;
+}
+
+.fastbridge-app-banner-subtitle {
+  font-weight: 400;
+  color: #d32f2f;
+  opacity: 0.92;
+}
+
 .fastbridge-app-logo {
   display: inline-flex;
   align-items: center;
@@ -287,6 +339,11 @@ button,
     padding: 32px 0 0;
   }
 
+  .fastbridge-app-banner-inner {
+    width: calc(100% - 40px);
+    margin: 16px auto 0;
+  }
+
   .fastbridge-app-logo-image {
     width: 130px;
     height: auto;
@@ -322,6 +379,26 @@ button,
 
   .fastbridge-app-nav-inner {
     width: calc(100% - 24px) !important;
+  }
+
+  .fastbridge-app-banner-inner {
+    width: calc(100% - 24px) !important;
+    margin: 12px auto 0;
+  }
+
+  .fastbridge-app-banner {
+    gap: 10px !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .fastbridge-app-banner-icon {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .fastbridge-app-banner-text {
+    font-size: 13px !important;
   }
 
   .fastbridge-app-logo-image {
