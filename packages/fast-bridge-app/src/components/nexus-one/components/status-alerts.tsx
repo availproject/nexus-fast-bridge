@@ -29,7 +29,7 @@ export function StatusAlert({
 
   return (
     <div
-      className={`rounded-md py-2 px-2.5 text-xs flex items-start w-full leading-4 font-normal ${styles[type]} ${className}`}
+      className={`rounded-md py-2 px-2.5 text-xs flex items-start w-full min-w-0 overflow-hidden leading-4 font-normal ${styles[type]} ${className}`}
       role={type === "error" ? "alert" : "status"}
       style={{
         animation: "nexusBannerSlideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -37,7 +37,7 @@ export function StatusAlert({
       }}
     >
       {icons[type]}
-      <div className="flex-1 break-words">
+      <div className="flex-1 min-w-0 max-h-32 overflow-y-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
         {type === "error" && typeof message === "string"
           ? getUserFacingError(message)
           : message}
