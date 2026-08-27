@@ -102,6 +102,7 @@ import {
   type NexusOneProps,
   type SwapType,
 } from "./types";
+import { markIntentLegsFulfilled } from "./utils/better-intent-progress";
 import { findCitreaReceiveToken } from "./utils/citrea-tokens";
 import {
   type DepositSourceFilter,
@@ -237,6 +238,7 @@ const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
 
 const SCIENTIFIC_DECIMAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)e[+-]?\d+$/i;
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
+const COMPLETED_PROGRESS_HOLD_MS = 1200;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 500;
 const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
@@ -6593,6 +6595,20 @@ function NexusOneInner({
     setRawPlanSteps([]);
   };
 
+  const retainPlanForExecution = () => {
+    const retainedPlanEvent = [...progressEventsRef.current]
+      .reverse()
+      .find(
+        (event) =>
+          event.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST ||
+          event.name === PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST
+      );
+    const retainedEvents = retainedPlanEvent ? [retainedPlanEvent] : [];
+    progressEventsRef.current = retainedEvents;
+    setProgressEvents(retainedEvents);
+    setFailedProgressStep(null);
+  };
+
   const appendProgressEvent = (
     name: string,
     step: SwapStepType | BridgeStepType | undefined,
@@ -9288,6 +9304,31 @@ function NexusOneInner({
       handleSwapEvent(event);
     };
 
+    const renderCompletedIntentProgress = async () => {
+      const latestStatusEvent = [...progressEventsRef.current]
+        .reverse()
+        .find((event) => event.name === PROGRESS_EVENT_NAMES.INTENT_STATUS)
+        ?.event as any;
+      const reportedLegs = Array.isArray(latestStatusEvent?.legs)
+        ? latestStatusEvent.legs
+        : [];
+      const quotedSources =
+        swapIntentRef.current?.intent?.sources ?? intentData?.sources ?? [];
+      const legs = markIntentLegsFulfilled(quotedSources.length, reportedLegs);
+
+      appendIntentStatusEvent({
+        intentId: latestStatusEvent?.intentId,
+        legs,
+        status: "fulfilled",
+        substatus: "completed",
+        type: "status",
+      });
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, COMPLETED_PROGRESS_HOLD_MS);
+      });
+    };
+
     const buildRecipientTransferExecuteConfig = (transferAmount: bigint) => {
       if (!resolvedRecipientAddress) {
         throw new Error("Recipient address is required");
@@ -9540,6 +9581,13 @@ function NexusOneInner({
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
+          await renderCompletedIntentProgress();
+          if (
+            swapRunIdRef.current !== runId ||
+            swapStepRef.current !== "progress"
+          ) {
+            return;
+          }
           const resolvedFinalExplorerUrl =
             finalExplorerUrl ||
             explorerUrlsRef.current.destinationExplorerUrl ||
@@ -9895,6 +9943,13 @@ function NexusOneInner({
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
+          await renderCompletedIntentProgress();
+          if (
+            swapRunIdRef.current !== runId ||
+            swapStepRef.current !== "progress"
+          ) {
+            return;
+          }
           finishCurrentSwapHistoryEntry("fulfilled");
           resetInputsAfterSuccessfulExecution();
           onComplete?.();
@@ -10529,7 +10584,7 @@ function NexusOneInner({
       startSwapHistoryEntry();
       setSwapStep("progress");
       setQuoteRefreshing(false);
-      resetProgressEvents();
+      retainPlanForExecution();
       if (swapStepsListRef.current.length > 0) {
         seed(swapStepsListRef.current);
       } else {

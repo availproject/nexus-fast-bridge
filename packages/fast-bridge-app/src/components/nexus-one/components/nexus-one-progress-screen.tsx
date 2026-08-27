@@ -15,6 +15,10 @@ import {
   type NexusOneMode,
   type SwapType,
 } from "../types";
+import {
+  type IntentProgressLeg,
+  mergeExpectedIntentLegs,
+} from "../utils/better-intent-progress";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
@@ -63,6 +67,8 @@ const muted = "var(--foreground-muted, #848483)";
 const border = "var(--border-default, #E8E8E7)";
 const brand = "var(--foreground-brand, #006BF4)";
 const danger = "var(--foreground-negative, #E92C2C)";
+const success = "var(--foreground-positive, #168A47)";
+const warning = "var(--foreground-warning, #B7791F)";
 
 const parseDecimal = (value: unknown) => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -132,13 +138,7 @@ const PROGRESS_EVENT_NAMES = {
   INTENT_STATUS: "intent_status",
 } as const;
 
-type BetterIntentLegStatus = {
-  sourceIndex: number;
-  status: "created" | "deposited" | "fulfilled" | "expired";
-  txExplorerUrl?: string;
-  protocolExplorerUrl?: string;
-  error?: string;
-};
+type BetterIntentLegStatus = IntentProgressLeg;
 
 type BetterIntentStatusEvent = {
   status: "created" | "deposited" | "fulfilled" | "expired";
@@ -639,8 +639,12 @@ const buildStatusRows = ({
   rawSteps: rawStepsProp,
   steps,
   approvalTotalCount,
+  betterIntent,
+  betterIntentSourceCount,
   context,
 }: {
+  betterIntent?: boolean;
+  betterIntentSourceCount?: number;
   events: NexusOneProgressEvent[];
   failedStep?: ProgressSdkStep | null;
   isExactOut?: boolean;
@@ -712,11 +716,13 @@ const buildStatusRows = ({
     completedApprovalsCount = Math.min(totalApprovals, completedApprovalsCount);
   }
 
-  const allApprovalsDone =
-    totalApprovals === 0 || completedApprovalsCount >= totalApprovals;
-
   const intentStatus = getLatestIntentStatus(events);
+  const allApprovalsDone =
+    intentStatus?.status === "fulfilled" ||
+    totalApprovals === 0 ||
+    completedApprovalsCount >= totalApprovals;
   const intentLegs = intentStatus?.legs ?? [];
+  const intentLegCount = intentLegs.length || betterIntentSourceCount || 0;
   const hasIntentLegs = intentLegs.length > 0;
   const hasFailedIntentLeg = intentLegs.some(
     (leg) => leg.status === "expired" || Boolean(leg.error)
@@ -727,19 +733,23 @@ const buildStatusRows = ({
       (leg) => leg.status === "deposited" || leg.status === "fulfilled"
     );
   const intentLegsReachedDeposit =
-    allIntentLegsDeposited || didAllIntentLegsReachDeposit(events);
+    intentStatus?.status === "fulfilled" ||
+    allIntentLegsDeposited ||
+    didAllIntentLegsReachDeposit(events);
   const allIntentLegsFulfilled =
     (hasIntentLegs && intentLegs.every((leg) => leg.status === "fulfilled")) ||
     intentStatus?.status === "fulfilled";
-  const isBetterIntentPlan = effectiveRawSteps.some((step) =>
-    [
-      "erc20_approval",
-      "native_transaction",
-      "intent_signature",
-      "intent_submission",
-      "intent_fulfillment",
-    ].includes(String(step?.type ?? step?.rawType ?? "").toLowerCase())
-  );
+  const isBetterIntentPlan =
+    betterIntent === true ||
+    effectiveRawSteps.some((step) =>
+      [
+        "erc20_approval",
+        "native_transaction",
+        "intent_signature",
+        "intent_submission",
+        "intent_fulfillment",
+      ].includes(String(step?.type ?? step?.rawType ?? "").toLowerCase())
+    );
 
   // Track 2nd-to-last step and last step in rawSteps
   const totalRawSteps = effectiveRawSteps.length;
@@ -864,7 +874,7 @@ const buildStatusRows = ({
     label:
       swapState === "completed"
         ? isBetterIntentPlan
-          ? intentLegs.length === 1
+          ? intentLegCount === 1
             ? "Deposit completed"
             : "Deposits completed"
           : "Swaps completed"
@@ -877,12 +887,12 @@ const buildStatusRows = ({
                 : "Swap failed"))
           : swapState === "inProgress"
             ? isBetterIntentPlan
-              ? intentLegs.length === 1
+              ? intentLegCount === 1
                 ? "Deposit in progress"
                 : "Deposits in progress"
               : "Swaps in progress"
             : isBetterIntentPlan
-              ? intentLegs.length === 1
+              ? intentLegCount === 1
                 ? "Deposit source"
                 : "Deposit sources"
               : "Swap tokens",
@@ -1303,7 +1313,12 @@ export function NexusOneProgressScreen({
     setLockedApprovalTotal(computedApprovalTotal);
   }, [computedApprovalTotal, lockedApprovalTotal, progressEvents.length]);
 
+  const isBetterIntentQuote =
+    intentData?.bridgeProvider === "nexus-v2" ||
+    intentData?.bridgeProvider === "mayan";
   const statusRows = buildStatusRows({
+    betterIntent: isBetterIntentQuote,
+    betterIntentSourceCount: intentData?.sources.length,
     events: progressEvents,
     failedStep,
     isExactOut: swapType === "exactOut",
@@ -1319,7 +1334,13 @@ export function NexusOneProgressScreen({
     },
   });
   const latestIntentStatus = getLatestIntentStatus(progressEvents);
-  const intentLegs = latestIntentStatus?.legs ?? [];
+  const reportedIntentLegs = latestIntentStatus?.legs ?? [];
+  const intentLegs = isBetterIntentQuote
+    ? mergeExpectedIntentLegs(
+        intentData?.sources.length ?? 0,
+        reportedIntentLegs
+      )
+    : reportedIntentLegs;
   const [stepsExpanded, setStepsExpanded] = useState(true);
   const [depositDetailsExpanded, setDepositDetailsExpanded] = useState(false);
   const activeRow =
@@ -1653,12 +1674,19 @@ export function NexusOneProgressScreen({
                                   : "Expired";
                           const isLegError =
                             Boolean(leg.error) || leg.status === "expired";
+                          const statusColor = isLegError
+                            ? danger
+                            : leg.status === "created"
+                              ? warning
+                              : leg.status === "deposited"
+                                ? brand
+                                : success;
 
                           return (
                             <span
                               key={leg.sourceIndex}
                               style={{
-                                color: isLegError ? danger : muted,
+                                color: muted,
                                 fontSize: "12px",
                                 lineHeight: "18px",
                               }}
@@ -1666,7 +1694,10 @@ export function NexusOneProgressScreen({
                               {symbol && chainName
                                 ? `${symbol} on ${chainName}`
                                 : `Deposit ${leg.sourceIndex + 1}`}
-                              {` · ${statusLabel}`}
+                              {" · "}
+                              <span style={{ color: statusColor }}>
+                                {statusLabel}
+                              </span>
                             </span>
                           );
                         })}
