@@ -190,8 +190,12 @@ follows:
 | `depositRaw` | Network Fee |
 | `protocolRaw` | Protocol Fee |
 | `solverRaw` | Solver Fee |
-| `fulfillmentRaw` | Combined Fees (Estimated) total; no separate row |
+| `fulfillmentRaw` | Not displayed separately; intended to equal protocol + solver |
 | `caGasRaw` | Not displayed separately |
+
+The combined Fees (Estimated) value is `depositRaw + protocolRaw + solverRaw`. This keeps the total
+equal to the visible fee rows and avoids depending on the currently inconsistent Nexus v2
+`fulfillmentRaw` value.
 
 Raw values temporarily use the destination token decimals. This must be updated if the API confirms
 a different denomination for any fee field.

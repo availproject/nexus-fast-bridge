@@ -277,6 +277,8 @@ export const normalizeIntentQuote = (
     (total, entry) => total + entry.totalRequiredRaw,
     0n
   );
+  const displayedFeeTotalRaw =
+    quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
 
   return {
     bridgeProvider: quote.provider,
@@ -311,7 +313,7 @@ export const normalizeIntentQuote = (
         caGas: formatUnits(quote.fees.depositRaw, outputDecimals),
         protocol: formatUnits(quote.fees.protocolRaw, outputDecimals),
         solver: formatUnits(quote.fees.solverRaw, outputDecimals),
-        total: formatUnits(quote.fees.fulfillmentRaw, outputDecimals),
+        total: formatUnits(displayedFeeTotalRaw, outputDecimals),
       },
     },
     sources,
