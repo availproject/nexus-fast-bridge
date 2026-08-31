@@ -197,5 +197,6 @@ The combined Fees (Estimated) value is `depositRaw + protocolRaw + solverRaw`. T
 equal to the visible fee rows and avoids depending on the currently inconsistent Nexus v2
 `fulfillmentRaw` value.
 
-Raw values temporarily use the destination token decimals. This must be updated if the API confirms
-a different denomination for any fee field.
+The API denominates every raw fee in the destination token. The compatibility layer first formats
+each value using the destination token decimals, then multiplies it by the destination token's USD
+rate before passing it to FastBridge's dollar-denominated fee UI.
