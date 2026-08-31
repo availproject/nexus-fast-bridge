@@ -93,6 +93,12 @@ export const addIntentUsdValues = (
 ): LegacyIntent => {
   const destinationRate = getUsdRate(intent.destination.token.symbol);
   const destinationAmount = Number(intent.destination.amount);
+  const feeAmountToUsd = (value: string) => {
+    const amount = Number(value);
+    return destinationRate > 0 && Number.isFinite(amount)
+      ? String(amount * destinationRate)
+      : value;
+  };
   return {
     ...intent,
     destination: {
@@ -101,6 +107,16 @@ export const addIntentUsdValues = (
         destinationRate > 0 && Number.isFinite(destinationAmount)
           ? String(destinationAmount * destinationRate)
           : intent.destination.value,
+    },
+    feesAndBuffer: {
+      ...intent.feesAndBuffer,
+      bridge: {
+        ...intent.feesAndBuffer.bridge,
+        caGas: feeAmountToUsd(intent.feesAndBuffer.bridge.caGas),
+        protocol: feeAmountToUsd(intent.feesAndBuffer.bridge.protocol),
+        solver: feeAmountToUsd(intent.feesAndBuffer.bridge.solver),
+        total: feeAmountToUsd(intent.feesAndBuffer.bridge.total),
+      },
     },
     sources: intent.sources.map((source) => {
       const rate = getUsdRate(source.token.symbol);
