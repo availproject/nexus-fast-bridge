@@ -115,6 +115,17 @@
   border-radius: 12px;
 }
 
+.contact-form__error {
+  padding: 16px 18px;
+  font-family: "Google Sans Flex", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+}
+
 @media (max-width: 768px) {
   .contact {
     padding-top: clamp(28px, 7vw, 48px);

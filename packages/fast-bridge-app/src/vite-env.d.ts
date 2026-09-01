@@ -48,6 +48,7 @@ declare global {
     readonly VITE_POLYGON_RPC: string;
     readonly VITE_SCROLL_RPC: string;
     readonly VITE_SOPHON_RPC: string;
+    readonly VITE_TURNSTILE_SITE_KEY: string;
     readonly VITE_WALLET_CONNECT_ID: string;
   }
 
