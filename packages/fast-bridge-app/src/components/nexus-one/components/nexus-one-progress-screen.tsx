@@ -10,6 +10,7 @@ import type {
   SwapStepType,
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import {
   type NexusOneDepositMetadata,
   type NexusOneMode,
@@ -1313,9 +1314,9 @@ export function NexusOneProgressScreen({
     setLockedApprovalTotal(computedApprovalTotal);
   }, [computedApprovalTotal, lockedApprovalTotal, progressEvents.length]);
 
-  const isBetterIntentQuote =
-    intentData?.bridgeProvider === "nexus-v2" ||
-    intentData?.bridgeProvider === "mayan";
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
   const statusRows = buildStatusRows({
     betterIntent: isBetterIntentQuote,
     betterIntentSourceCount: intentData?.sources.length,
