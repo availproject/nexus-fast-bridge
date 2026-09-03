@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 // import { loadLastChain } from "@/providers/runtime-context";
@@ -25,6 +26,10 @@ export default function ContactPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
+
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
   const handleBridgeClick = () => {
     // const lastChain = loadLastChain();
@@ -83,6 +88,11 @@ export default function ContactPage() {
       return;
     }
 
+    if (turnstileSiteKey && !turnstileToken) {
+      setError("Please complete the captcha verification.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -96,6 +106,7 @@ export default function ContactPage() {
           subject: topic,
           timestamp: new Date().toISOString(),
           topic,
+          turnstileToken,
         }),
       });
       const result = (await response.json()) as ContactResponse;
@@ -103,6 +114,8 @@ export default function ContactPage() {
       if (response.ok && result.success) {
         setSubmitted(true);
         form.reset();
+        setTurnstileToken(null);
+        turnstileRef.current?.reset();
         return;
       }
 
@@ -231,10 +244,34 @@ export default function ContactPage() {
             />
           </div>
 
+          {turnstileSiteKey && (
+            <div className="contact-field contact-turnstile">
+              <Turnstile
+                onError={() => {
+                  setTurnstileToken(null);
+                }}
+                onExpire={() => {
+                  setTurnstileToken(null);
+                }}
+                onSuccess={(token) => {
+                  setTurnstileToken(token);
+                  setError("");
+                }}
+                options={{
+                  theme: "light",
+                }}
+                ref={turnstileRef}
+                siteKey={turnstileSiteKey}
+              />
+            </div>
+          )}
+
           <div className="contact-form__actions">
             <button
               className="section-btn contact-form__submit"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting || Boolean(turnstileSiteKey && !turnstileToken)
+              }
               type="submit"
             >
               {isSubmitting ? "Sending..." : "Send message"}
@@ -242,7 +279,7 @@ export default function ContactPage() {
           </div>
 
           {error && (
-            <p className="contact-form__success" role="alert">
+            <p className="contact-form__error" role="alert">
               {error}
             </p>
           )}

@@ -9,7 +9,6 @@ export const SUPPORTED_CHAINS = {
   AVALANCHE: 43_114,
   SCROLL: 534_352,
   MEGAETH: 4326,
-  KAIA: 8217,
   BNB: 56,
   MONAD: 143,
   HYPEREVM: 999,
@@ -83,13 +82,6 @@ export const CHAIN_METADATA: Record<number, ChainMetadata> = {
     nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     blockExplorerUrls: ["https://mega.etherscan.io"],
     rpcUrls: ["https://rpcs.avail.so/megaeth"],
-  },
-  [SUPPORTED_CHAINS.KAIA]: {
-    logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/kaia/logo.png",
-    name: "Kaia",
-    nativeCurrency: { name: "KAIA", symbol: "KAIA", decimals: 18 },
-    blockExplorerUrls: ["https://kaiascan.io"],
-    rpcUrls: ["https://rpcs.avail.so/kaia"],
   },
   [SUPPORTED_CHAINS.MONAD]: {
     logo: "https://files.availproject.org/fastbridge/monad/monad-favicon.svg",
@@ -192,7 +184,6 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   [SUPPORTED_CHAINS.AVALANCHE]: "Avalanche",
   [SUPPORTED_CHAINS.SCROLL]: "Scroll",
   [SUPPORTED_CHAINS.MEGAETH]: "MegaETH",
-  [SUPPORTED_CHAINS.KAIA]: "Kaia",
   [SUPPORTED_CHAINS.BNB]: "BNB",
   [SUPPORTED_CHAINS.MONAD]: "Monad",
   [SUPPORTED_CHAINS.HYPEREVM]: "HyperEVM",
@@ -285,7 +276,6 @@ export function getShortChainName(
 
 export const TOKEN_IMAGES: Record<string, string> = {
   BNB: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png",
-  KAIA: "https://assets.coingecko.com/asset_platforms/images/9672/large/kaia.png",
   SOPH: "https://assets.coingecko.com/coins/images/38680/large/sophon_logo_200.png",
   USDC: "https://coin-images.coingecko.com/coins/images/6319/large/usdc.png",
   USDM: "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/tokens/usdm/logo.png",

@@ -250,16 +250,6 @@ const CHAIN_META = [
     themeColor: "#C4A882",
   },
   {
-    slug: "kaia",
-    title:
-      "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",
-    description:
-      "Bridge USDT and KAIA tokens to Kaia blockchain from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Kaia (formerly Klaytn).",
-    imageUrl: LANDING_META_IMAGE_URL,
-    canonicalUrl: "https://fastbridge.availproject.org/kaia",
-    themeColor: "#31C48D",
-  },
-  {
     slug: "bnb-smart-chain",
     title: "Bridge to BNB Smart Chain – Fast ETH to BNB Transfers | FastBridge",
     description:

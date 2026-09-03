@@ -678,64 +678,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     },
   },
 
-  // ── Kaia ────────────────────────────────────────────────────────────────
-  kaia: {
-    slug: "kaia",
-    appConfig: {
-      chainId: 8217,
-      chainName: "Kaia",
-      chainNativeCurrency: { name: "KAIA", symbol: "KAIA", decimals: 18 },
-      chainRpcUrl: "https://rpcs.avail.so/kaia",
-      chainBlockExplorerUrl: "https://kaiascan.io",
-      chainTestnet: false,
-      useChainLogo: true,
-      chainIconUrl:
-        "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/kaia/logo.png",
-      chainLogoUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/kaia.svg",
-      backgroundImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/bg/bg-kaia.png",
-      mascotImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/mascot/mascot-kaia.png",
-      chainGifUrl: "",
-      chainGifAlt: "Bridge to Kaia",
-      heroText: "Move your assets to Kaia faster than ever!",
-      appTitle: "Kaia Fast Bridge",
-      appDescription: "Kaia Fast Bridge",
-      primaryColor: "#31C48D",
-      secondaryColor: "#ffffff",
-      nexusNetwork: "canary",
-      nexusSupportedChain: 8217,
-      nexusPrimaryToken: "USDC",
-      boxShadow:
-        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #31C48D0A 0px 2px 4px, #31C48D29 0px 12px 24px, #31C48D26 0px 32px 64px",
-      ribbonPng: "/landing-new/assets/chain-gradients/kaia-ribbon.png",
-      meta: {
-        title:
-          "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",
-        description:
-          "Bridge USDT and KAIA tokens to Kaia blockchain from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Kaia (formerly Klaytn).",
-        canonicalUrl: "https://fastbridge.availproject.org/kaia",
-        imageUrl: LANDING_META_IMAGE_URL,
-        faviconUrl: "/avail_logo.svg",
-        themeColor: "#31C48D",
-        backgroundColor: "#ffffff",
-      },
-    },
-    chainFeatures: {
-      supportedTokens: ["USDT", "KAIA"],
-      slug: "kaia",
-      buttonFg: "black",
-      analyticsFastBridgeKey: "kaia",
-      maxBridgeAmount: 550,
-      mapUsdmToUsdcBalance: true,
-      denyIntentOnReset: true,
-      tokenDenyListByChainId: {},
-      allowanceLogoOverrideByChainId: {},
-      dialogShowCloseButton: true,
-    },
-  },
-
   // ── BNB Smart Chain ─────────────────────────────────────────────────────
   "bnb-smart-chain": {
     slug: "bnb-smart-chain",

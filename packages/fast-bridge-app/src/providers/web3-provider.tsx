@@ -13,7 +13,6 @@ import {
   type Chain,
   citrea,
   hyperEvm as hyperevm,
-  kaia,
   mainnet,
   megaeth,
   monad,
@@ -40,7 +39,6 @@ const staticTransports = {
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
-  [kaia.id]: http(rpcConfig.kaia || undefined),
   [bsc.id]: http(rpcConfig.bnb || undefined),
 };
 
@@ -56,7 +54,6 @@ const staticChains = [
   megaeth,
   citrea,
   hyperevm,
-  kaia,
   bsc,
 ] as [Chain, ...Chain[]];
 

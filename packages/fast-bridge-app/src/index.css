@@ -108,6 +108,58 @@ body,
   margin: 0 auto;
 }
 
+.fastbridge-app-banner-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.fastbridge-app-banner-inner {
+  width: min(1240px, calc(100% - 80px));
+  margin: 16px auto 0;
+}
+
+.fastbridge-app-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  color: #d32f2f;
+  background: rgba(252, 238, 237, 0.9);
+  border: 1px solid #f7c4c1;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px 0 rgba(211, 47, 47, 0.06);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.fastbridge-app-banner-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: #d32f2f;
+}
+
+.fastbridge-app-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: "Geist", var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.fastbridge-app-banner-title {
+  font-weight: 600;
+  color: #d32f2f;
+}
+
+.fastbridge-app-banner-subtitle {
+  font-weight: 400;
+  color: #d32f2f;
+  opacity: 0.92;
+}
+
 .fastbridge-app-logo {
   display: inline-flex;
   align-items: center;
@@ -287,6 +339,11 @@ button,
     padding: 32px 0 0;
   }
 
+  .fastbridge-app-banner-inner {
+    width: calc(100% - 40px);
+    margin: 16px auto 0;
+  }
+
   .fastbridge-app-logo-image {
     width: 130px;
     height: auto;
@@ -322,6 +379,26 @@ button,
 
   .fastbridge-app-nav-inner {
     width: calc(100% - 24px) !important;
+  }
+
+  .fastbridge-app-banner-inner {
+    width: calc(100% - 24px) !important;
+    margin: 12px auto 0;
+  }
+
+  .fastbridge-app-banner {
+    gap: 10px !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .fastbridge-app-banner-icon {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .fastbridge-app-banner-text {
+    font-size: 13px !important;
   }
 
   .fastbridge-app-logo-image {
@@ -658,4 +735,142 @@ button,
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+}
+
+/* Custom scrollbars for app, widgets, modals, and sheets on Windows & Linux */
+.fastbridge-app-shell,
+.fastbridge-app-shell *,
+[data-nexus-one-root],
+[data-nexus-one-root] *,
+[data-nexus-one-sheet],
+[data-nexus-one-sheet] *,
+[data-nexus-one-portal],
+[data-nexus-one-portal] *,
+[data-nexus-scrollbar],
+[data-nexus-scrollbar] *,
+.nexus-custom-scrollbar,
+.nexus-custom-scrollbar *,
+[data-radix-popper-content-wrapper],
+[data-radix-popper-content-wrapper] *,
+[data-radix-portal],
+[data-radix-portal] *,
+[role="dialog"],
+[role="dialog"] *,
+div[style*="zIndex: 9999999"],
+div[style*="zIndex: 9999999"] *,
+div[style*="zIndex: 999999"],
+div[style*="zIndex: 999999"] * {
+  scrollbar-color: #9dbafa #f5f5f5;
+  scrollbar-width: thin;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar,
+[data-nexus-one-root] ::-webkit-scrollbar,
+[data-nexus-one-sheet] ::-webkit-scrollbar,
+[data-nexus-one-portal] ::-webkit-scrollbar,
+[data-nexus-scrollbar] ::-webkit-scrollbar,
+.nexus-custom-scrollbar ::-webkit-scrollbar,
+.nexus-custom-scrollbar::-webkit-scrollbar,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar,
+[data-radix-portal] ::-webkit-scrollbar,
+[role="dialog"] ::-webkit-scrollbar,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar-button,
+[data-nexus-one-root] ::-webkit-scrollbar-button,
+[data-nexus-one-sheet] ::-webkit-scrollbar-button,
+[data-nexus-one-portal] ::-webkit-scrollbar-button,
+[data-nexus-scrollbar] ::-webkit-scrollbar-button,
+.nexus-custom-scrollbar ::-webkit-scrollbar-button,
+.nexus-custom-scrollbar::-webkit-scrollbar-button,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-button,
+[data-radix-portal] ::-webkit-scrollbar-button,
+[role="dialog"] ::-webkit-scrollbar-button,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-button,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar-track,
+[data-nexus-one-root] ::-webkit-scrollbar-track,
+[data-nexus-one-sheet] ::-webkit-scrollbar-track,
+[data-nexus-one-portal] ::-webkit-scrollbar-track,
+[data-nexus-scrollbar] ::-webkit-scrollbar-track,
+.nexus-custom-scrollbar ::-webkit-scrollbar-track,
+.nexus-custom-scrollbar::-webkit-scrollbar-track,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-track,
+[data-radix-portal] ::-webkit-scrollbar-track,
+[role="dialog"] ::-webkit-scrollbar-track,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-track,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-track,
+.fastbridge-app-shell ::-webkit-scrollbar-track-piece,
+[data-nexus-one-root] ::-webkit-scrollbar-track-piece,
+[data-nexus-one-sheet] ::-webkit-scrollbar-track-piece,
+[data-nexus-one-portal] ::-webkit-scrollbar-track-piece,
+[data-nexus-scrollbar] ::-webkit-scrollbar-track-piece,
+.nexus-custom-scrollbar ::-webkit-scrollbar-track-piece,
+.nexus-custom-scrollbar::-webkit-scrollbar-track-piece,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-track-piece,
+[data-radix-portal] ::-webkit-scrollbar-track-piece,
+[role="dialog"] ::-webkit-scrollbar-track-piece,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-track-piece,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-track-piece {
+  width: 3px;
+  height: 3px;
+  background: #f5f5f5;
+  border-radius: 18px;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar-thumb,
+[data-nexus-one-root] ::-webkit-scrollbar-thumb,
+[data-nexus-one-sheet] ::-webkit-scrollbar-thumb,
+[data-nexus-one-portal] ::-webkit-scrollbar-thumb,
+[data-nexus-scrollbar] ::-webkit-scrollbar-thumb,
+.nexus-custom-scrollbar ::-webkit-scrollbar-thumb,
+.nexus-custom-scrollbar::-webkit-scrollbar-thumb,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-thumb,
+[data-radix-portal] ::-webkit-scrollbar-thumb,
+[role="dialog"] ::-webkit-scrollbar-thumb,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-thumb,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-thumb {
+  width: 3px;
+  height: 3px;
+  background: #9dbafa;
+  border-radius: 18px;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar-thumb:hover,
+[data-nexus-one-root] ::-webkit-scrollbar-thumb:hover,
+[data-nexus-one-sheet] ::-webkit-scrollbar-thumb:hover,
+[data-nexus-one-portal] ::-webkit-scrollbar-thumb:hover,
+[data-nexus-scrollbar] ::-webkit-scrollbar-thumb:hover,
+.nexus-custom-scrollbar ::-webkit-scrollbar-thumb:hover,
+.nexus-custom-scrollbar::-webkit-scrollbar-thumb:hover,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-thumb:hover,
+[data-radix-portal] ::-webkit-scrollbar-thumb:hover,
+[role="dialog"] ::-webkit-scrollbar-thumb:hover,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-thumb:hover,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-thumb:hover {
+  background: #9dbafa;
+}
+
+.fastbridge-app-shell ::-webkit-scrollbar-corner,
+[data-nexus-one-root] ::-webkit-scrollbar-corner,
+[data-nexus-one-sheet] ::-webkit-scrollbar-corner,
+[data-nexus-one-portal] ::-webkit-scrollbar-corner,
+[data-nexus-scrollbar] ::-webkit-scrollbar-corner,
+.nexus-custom-scrollbar ::-webkit-scrollbar-corner,
+.nexus-custom-scrollbar::-webkit-scrollbar-corner,
+[data-radix-popper-content-wrapper] ::-webkit-scrollbar-corner,
+[data-radix-portal] ::-webkit-scrollbar-corner,
+[role="dialog"] ::-webkit-scrollbar-corner,
+div[style*="zIndex: 9999999"] ::-webkit-scrollbar-corner,
+div[style*="zIndex: 999999"] ::-webkit-scrollbar-corner {
+  background: transparent;
 }

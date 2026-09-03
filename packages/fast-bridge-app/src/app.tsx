@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import FastBridgeShowcase from "@/components/fast-bridge-showcase";
+import MaintenanceBanner from "@/components/maintenance-banner";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -145,13 +146,16 @@ const GRADIENT_ASSETS = [
   "/landing-new/assets/chain-gradients/arbitrum-ribbon.png",
   "/landing-new/assets/chain-gradients/avalanche-ribbon.png",
   "/landing-new/assets/chain-gradients/hyperevm-ribbon.png",
-  "/landing-new/assets/chain-gradients/kaia-ribbon.png",
   "/landing-new/assets/chain-gradients/monad-ribbon.png",
   "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
   "/landing-new/assets/chain-gradients/base-ribbon.png",
   "/landing-new/assets/chain-gradients/scroll-ribbon.png",
   "/landing-new/assets/chain-gradients/bnb-ribbon.png",
 ];
+
+const isAppDown =
+  import.meta.env.VITE_IS_APP_DOWN === "true" ||
+  import.meta.env.VITE_IS_APP_DOWN === "1";
 
 export default function App() {
   const { appConfig } = useRuntime();
@@ -210,8 +214,9 @@ export default function App() {
             }}
           />
           <Navbar />
+          {isAppDown ? <MaintenanceBanner /> : null}
           <main className="fastbridge-app-main">
-            <FastBridgeShowcase />
+            {isAppDown ? null : <FastBridgeShowcase />}
           </main>
           <FastBridgeAppFooter />
         </div>

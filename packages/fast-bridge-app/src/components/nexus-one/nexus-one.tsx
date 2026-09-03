@@ -13115,6 +13115,7 @@ function NexusOneInner({
         typeof document !== "undefined" &&
         createPortal(
           <div
+            data-nexus-one-portal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 if (isSourcePickerMultiselect) {
@@ -13579,6 +13580,7 @@ function NexusOneInner({
         typeof document !== "undefined" &&
         createPortal(
           <div
+            data-nexus-one-portal="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 closeDrawerToIdle();
