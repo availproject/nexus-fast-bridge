@@ -1,10 +1,7 @@
 import Decimal from "decimal.js";
 import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
-import {
-  formatIntentProviderName,
-  isBetterIntentProvider,
-} from "../../nexus/better-intent-compat";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import type { SwapIntentData } from "./swap-intent-preview";
 
 interface FeeRow {
@@ -47,7 +44,6 @@ export function EstimatedFeesDisclosure({
   totalFeeUsd,
 }: EstimatedFeesDisclosureProps) {
   const [open, setOpen] = useState(false);
-  const providerName = formatIntentProviderName(intentData?.bridgeProvider);
   const feeSummary = useMemo(() => {
     const bridge = intentData?.feesAndBuffer?.bridge;
     const isBetterIntentQuote = isBetterIntentProvider(
@@ -183,34 +179,6 @@ export function EstimatedFeesDisclosure({
               paddingTop: "10px",
             }}
           >
-            {providerName && (
-              <div
-                style={{
-                  alignItems: "center",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "12px",
-                  }}
-                >
-                  Routed via
-                </span>
-                <span
-                  style={{
-                    color: "#1F1F1F",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "12px",
-                  }}
-                >
-                  {providerName}
-                </span>
-              </div>
-            )}
             {(feeSummary.rows.length > 0
               ? feeSummary.rows
               : [

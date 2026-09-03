@@ -15,6 +15,7 @@ import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { AddressIdenticon } from "./address-identicon";
+import { IntentProviderBanner } from "./intent-provider-chip";
 import { type SwapTokenOption } from "./swap-asset-selector";
 
 export interface SwapIntentSource {
@@ -516,42 +517,6 @@ function InlineInfoTooltip({ message }: { message: string }) {
         </span>
       )}
     </span>
-  );
-}
-
-function MayanPoweredBadge() {
-  return (
-    <div
-      style={{
-        alignItems: "center",
-        background: "#F3F6FF",
-        border: "1px solid #E8EEFF",
-        borderRadius: "8px",
-        color: brand,
-        display: "flex",
-        fontFamily,
-        fontSize: "12px",
-        fontWeight: 500,
-        gap: "4px",
-        lineHeight: "16px",
-        minHeight: "36px",
-        padding: "9px 12px",
-        width: "100%",
-      }}
-    >
-      <Info style={{ flexShrink: 0, height: 13, width: 13 }} />
-      <span style={{ flexShrink: 0 }}>This transaction is powered by</span>
-      <img
-        alt="Mayan"
-        src={withBasePath("/mayan_logo.svg")}
-        style={{
-          display: "block",
-          height: "20px",
-          objectFit: "contain",
-          width: "auto",
-        }}
-      />
-    </div>
   );
 }
 
@@ -1455,7 +1420,6 @@ export function SwapIntentPreview({
       : flowMode === "send" || hasRecipientTransfer
         ? "Send now"
         : "Swap now";
-  const shouldShowMayanBadge = intentData?.bridgeProvider === "mayan";
   const swapBufferRefundMessage = `Excess funds are refunded as USDC on ${destChainName || "the destination chain"}`;
 
   return (
@@ -1978,7 +1942,7 @@ export function SwapIntentPreview({
         </div>
       )}
 
-      {shouldShowMayanBadge && <MayanPoweredBadge />}
+      <IntentProviderBanner provider={intentData?.bridgeProvider} />
 
       <Button
         disabled={isLoading || isRefreshing || isExecuting || quoteUnavailable}
