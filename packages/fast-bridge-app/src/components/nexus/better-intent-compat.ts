@@ -3,6 +3,7 @@ import type {
   IntentBalance,
   IntentEvent,
   IntentHookData,
+  IntentProvider,
   IntentQuote,
   IntentRouteConstraints,
   IntentSource,
@@ -14,6 +15,28 @@ type SupportedChain = ReturnType<NexusClient["getSupportedChains"]>[number];
 type SupportedToken = SupportedChain["tokens"][number] & {
   contractAddress: `0x${string}`;
 };
+
+/** Providers the Better Intent middleware can name on a quote, status, or catalog entry. */
+export const BETTER_INTENT_PROVIDERS: readonly IntentProvider[] = [
+  "nexus-v2",
+  "mayan",
+  "relay",
+];
+
+/** Providers whose intents the Nexus Explorer does not index. */
+const EXTERNAL_INTENT_PROVIDERS: readonly IntentProvider[] = ["mayan", "relay"];
+
+export const isBetterIntentProvider = (
+  value: unknown
+): value is IntentProvider =>
+  typeof value === "string" &&
+  (BETTER_INTENT_PROVIDERS as readonly string[]).includes(value);
+
+export const isExternalIntentProvider = (
+  value: unknown
+): value is IntentProvider =>
+  typeof value === "string" &&
+  (EXTERNAL_INTENT_PROVIDERS as readonly string[]).includes(value);
 
 export type SupportedChainsAndTokensResult = Array<
   Omit<SupportedChain, "logo" | "tokens"> & {

@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import type { SwapIntentData } from "./swap-intent-preview";
 
 interface FeeRow {
@@ -45,9 +46,9 @@ export function EstimatedFeesDisclosure({
   const [open, setOpen] = useState(false);
   const feeSummary = useMemo(() => {
     const bridge = intentData?.feesAndBuffer?.bridge;
-    const isBetterIntentProvider =
-      intentData?.bridgeProvider === "nexus-v2" ||
-      intentData?.bridgeProvider === "mayan";
+    const isBetterIntentQuote = isBetterIntentProvider(
+      intentData?.bridgeProvider
+    );
     const data = bridge && typeof bridge === "object" ? bridge : undefined;
     const collection = parseDecimal(data?.collection);
     const fulfilment = parseDecimal(data?.fulfilment);
@@ -66,7 +67,7 @@ export function EstimatedFeesDisclosure({
     const rows: FeeRow[] = data
       ? [
           {
-            label: isBetterIntentProvider ? "Network Fee" : "Execution Gas Fee",
+            label: isBetterIntentQuote ? "Network Fee" : "Execution Gas Fee",
             value: executionGas ?? new Decimal(0),
           },
           { label: "Protocol Fee", value: protocol ?? new Decimal(0) },
