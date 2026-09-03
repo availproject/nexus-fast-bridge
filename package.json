@@ -16,7 +16,7 @@
   },
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
-    "@avail-project/nexus-core": "github:availproject/nexus-sdk#fix/better-intent-relay-provider",
+    "@avail-project/nexus-core": "github:availproject/nexus-sdk#refactor/use-better-intents",
     "@fontsource/geist-sans": "5.2.5",
     "@marsidev/react-turnstile": "1.5.0",
     "@radix-ui/react-accordion": "1.2.12",
