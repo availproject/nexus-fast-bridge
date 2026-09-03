@@ -644,7 +644,6 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   143, // Monad
   4326, // MegaETH
   4114, // Citrea
-  534352, // Scroll
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
   SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])
@@ -680,7 +679,7 @@ export const compareChainsBySwapDisplayOrder = <
   return (a.chainName ?? "").localeCompare(b.chainName ?? "");
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
