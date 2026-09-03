@@ -71,6 +71,8 @@ import {
   adaptIntentEvent,
   adaptIntentHook,
   addIntentUsdValues,
+  isBetterIntentProvider,
+  isExternalIntentProvider,
   isTokenSupportedForRole,
   type SupportedChainsAndTokensResult,
 } from "../nexus/better-intent-compat";
@@ -255,14 +257,12 @@ type PredictiveQuoteBaseline = {
 const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
   [SUPPORTED_CHAINS.MEGAETH]: 5000,
   [SUPPORTED_CHAINS.CITREA]: 2000,
-  [SUPPORTED_CHAINS.SCROLL]: 500,
   [SUPPORTED_CHAINS.ARC]: 5000,
 };
 
 const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
   [SUPPORTED_CHAINS.MEGAETH]: 500,
   [SUPPORTED_CHAINS.CITREA]: 500,
-  [SUPPORTED_CHAINS.SCROLL]: 500,
 };
 
 const SCIENTIFIC_DECIMAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)e[+-]?\d+$/i;
@@ -1612,7 +1612,7 @@ const isSwapSkippedStepType = (type: string) => type.includes("SWAP_SKIPPED");
 const normalizeBridgeProvider = (
   value: unknown
 ): BridgeProvider | undefined => {
-  if (value === "nexus" || value === "mayan" || value === null) {
+  if (value === "nexus" || value === null || isBetterIntentProvider(value)) {
     return value;
   }
   return undefined;
@@ -9727,9 +9727,10 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
-          const isMayanIntent =
-            getSdkIntentProvider(result, swapResult) === "mayan";
-          const providerTransactionExplorerUrl = isMayanIntent
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
             ? await resolveBetterIntentTransactionExplorerUrl(
                 appConfig.nexusNetwork,
                 intentId
@@ -9743,8 +9744,8 @@ function NexusOneInner({
               result,
               swapResult
             ) ||
-            (isMayanIntent ? null : getSdkExplorerUrl(result));
-          if (isMayanIntent) {
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
+          if (isExternalProviderIntent) {
             intentExplorerUrl = null;
           }
           finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
@@ -9968,9 +9969,10 @@ function NexusOneInner({
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
-          const isMayanIntent =
-            getSdkIntentProvider(result, swapResult) === "mayan";
-          const providerTransactionExplorerUrl = isMayanIntent
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
             ? await resolveBetterIntentTransactionExplorerUrl(
                 appConfig.nexusNetwork,
                 intentId
@@ -9984,7 +9986,7 @@ function NexusOneInner({
               result,
               swapResult
             ) ||
-            (isMayanIntent ? null : getSdkExplorerUrl(result));
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             if (activeMode === "send" || hasCustomSwapRecipient) {
               setTransferExplorerUrl(finalExplorerUrl);
@@ -9993,7 +9995,7 @@ function NexusOneInner({
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(!isMayanIntent && intentExplorerUrl
+            ...(!isExternalProviderIntent && intentExplorerUrl
               ? { intentExplorerUrl }
               : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
@@ -10149,9 +10151,10 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
-          const isMayanIntent =
-            getSdkIntentProvider(result, swapResult) === "mayan";
-          const providerTransactionExplorerUrl = isMayanIntent
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
             ? await resolveBetterIntentTransactionExplorerUrl(
                 appConfig.nexusNetwork,
                 intentId
@@ -10165,13 +10168,13 @@ function NexusOneInner({
               result,
               swapResult
             ) ||
-            (isMayanIntent ? null : getSdkExplorerUrl(result));
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(!isMayanIntent && intentExplorerUrl
+            ...(!isExternalProviderIntent && intentExplorerUrl
               ? { intentExplorerUrl }
               : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
