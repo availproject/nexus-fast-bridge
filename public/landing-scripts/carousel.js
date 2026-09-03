@@ -109,15 +109,6 @@
       tokenIcon: "/landing-assets/usdc-icon.png",
       hasCompositeIcon: false,
     },
-    {
-      bg: "/landing-assets/Hero-bg_scroll.avif",
-      chain: "Scroll",
-      slug: "scroll",
-      chainIcon: "/landing-assets/scroll-icon.png",
-      token: "USDC",
-      tokenIcon: "/landing-assets/usdc-icon.png",
-      hasCompositeIcon: false,
-    },
   ];
 
   const heroBg = document.querySelector(".hero-bg");
