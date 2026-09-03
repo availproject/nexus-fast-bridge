@@ -1,8 +1,8 @@
-import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
 import { ChevronDown } from "lucide-react";
 import React, { type RefObject, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { CHAIN_METADATA, usdFormatter } from "../../common";
+import type { LegacyIntentHookData } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
@@ -38,7 +38,7 @@ interface DestinationContainerProps {
   setSwapMode: (mode: SwapMode) => void;
   status: TransactionStatus;
   swapBalance: UserAsset[] | null;
-  swapIntent: RefObject<OnSwapIntentHookData | null>;
+  swapIntent: RefObject<LegacyIntentHookData | null>;
   swapMode: SwapMode;
 }
 

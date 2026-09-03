@@ -48,6 +48,19 @@ import {
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
+import {
+  adaptIntentEvent,
+  adaptIntentHook,
+  addIntentUsdValues,
+  isBetterIntentProvider,
+  isExternalIntentProvider,
+  type SupportedChainsAndTokensResult,
+} from "../nexus/better-intent-compat";
+import {
+  classifyIntentError,
+  formatClassifiedIntentError,
+  isUserRejectedIntentError,
+} from "../nexus/intent-error-classifier";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
@@ -91,6 +104,7 @@ import {
   type NexusOneProps,
   type SwapType,
 } from "./types";
+import { markIntentLegsFulfilled } from "./utils/better-intent-progress";
 import { findCitreaReceiveToken } from "./utils/citrea-tokens";
 import {
   type DepositSourceFilter,
@@ -215,17 +229,16 @@ type PredictiveQuoteBaseline = {
 const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
   [SUPPORTED_CHAINS.MEGAETH]: 5000,
   [SUPPORTED_CHAINS.CITREA]: 2000,
-  [SUPPORTED_CHAINS.SCROLL]: 500,
 };
 
 const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
   [SUPPORTED_CHAINS.MEGAETH]: 500,
   [SUPPORTED_CHAINS.CITREA]: 500,
-  [SUPPORTED_CHAINS.SCROLL]: 500,
 };
 
 const SCIENTIFIC_DECIMAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)e[+-]?\d+$/i;
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
+const COMPLETED_PROGRESS_HOLD_MS = 1200;
 const EXACT_OUT_INPUT_DEBOUNCE_MS = 500;
 const DRAWER_CLOSE_MS = 220;
 const BALANCE_REFRESH_AFTER_TERMINAL_MS = 5000;
@@ -954,6 +967,51 @@ const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
     ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
     : null;
 
+const getBetterIntentMiddlewareBaseUrl = (network: unknown) =>
+  `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/middleware`;
+
+const resolveBetterIntentTransactionExplorerUrl = async (
+  network: unknown,
+  intentId?: string | null
+) => {
+  if (!intentId) return null;
+
+  try {
+    const response = await fetch(
+      `${getBetterIntentMiddlewareBaseUrl(network)}/api/v1/better-intent/rff/${intentId}`
+    );
+    if (!response.ok) return null;
+
+    const detail = await response.json();
+    const legs = Array.isArray(detail?.legs) ? detail.legs : [];
+    const transactionLeg = legs.find((leg: any) =>
+      getTransactionHash(leg?.txHash, leg?.transactionHash)
+    );
+    const txHash = getTransactionHash(
+      transactionLeg?.txHash,
+      transactionLeg?.transactionHash
+    );
+    const source = Array.isArray(detail?.request?.sources)
+      ? detail.request.sources[transactionLeg?.sourceIndex ?? 0]
+      : undefined;
+    const rawChainId = source?.chain_id ?? source?.chainId;
+    const chainId =
+      typeof rawChainId === "string" && rawChainId.startsWith("0x")
+        ? Number(BigInt(rawChainId))
+        : Number(rawChainId);
+
+    return Number.isSafeInteger(chainId) && txHash
+      ? getExplorerTxUrl(chainId, txHash)
+      : null;
+  } catch (error) {
+    console.warn("Could not resolve Better Intent transaction explorer URL", {
+      error,
+      intentId,
+    });
+    return null;
+  }
+};
+
 const getObjectTransactionHash = (value: any) =>
   getTransactionHash(
     value?.txHash,
@@ -991,6 +1049,18 @@ const getSdkSwapResult = (result: any) => {
   const candidate = result?.swapResult ?? result?.result;
   return candidate && typeof candidate === "object" ? candidate : null;
 };
+
+const getSdkIntentProvider = (result: any, swapResult?: any) =>
+  getNonEmptyString(
+    swapResult?.quote?.provider,
+    swapResult?.provider,
+    result?.quote?.provider,
+    result?.provider,
+    result?.swapResult?.quote?.provider,
+    result?.swapResult?.provider,
+    result?.result?.quote?.provider,
+    result?.result?.provider
+  )?.toLowerCase();
 
 const getSdkTransactionHash = (result: any) =>
   getObjectTransactionHash(result) ||
@@ -1516,7 +1586,7 @@ const isAutoRefundAvailableProgressEvent = (event?: NexusOneProgressEvent) =>
 const normalizeBridgeProvider = (
   value: unknown
 ): BridgeProvider | undefined => {
-  if (value === "nexus" || value === "mayan" || value === null) {
+  if (value === "nexus" || value === null || isBetterIntentProvider(value)) {
     return value;
   }
   return undefined;
@@ -1688,7 +1758,12 @@ const normalizePlanStepType = (stepType: unknown, state?: unknown) => {
     bridge_intent_submission: "BRIDGE_INTENT_SUBMISSION",
     destination_swap: "DESTINATION_SWAP",
     eoa_to_ephemeral_transfer: "EOA_TO_EPHEMERAL_TRANSFER",
+    erc20_approval: "ERC20_APPROVAL",
     execute_approval: "APPROVAL",
+    intent_fulfillment: "INTENT_FULFILLMENT",
+    intent_signature: "INTENT_SIGNATURE",
+    intent_submission: "INTENT_SUBMISSION",
+    native_transaction: "NATIVE_TRANSACTION",
     request_signing: "REQUEST_SIGNING",
     request_submission: "REQUEST_SUBMISSION",
     source_swap: "SOURCE_SWAP",
@@ -1958,6 +2033,21 @@ const getFailureMessageForProgressStep = (
   }
 
   const type = getProgressStepType(step);
+  if (type.includes("ERC20_APPROVAL")) {
+    return "Token Approval Failed";
+  }
+  if (type.includes("NATIVE_TRANSACTION")) {
+    return "Source Transaction Failed";
+  }
+  if (type.includes("INTENT_SIGNATURE")) {
+    return "Intent Signature Failed";
+  }
+  if (type.includes("INTENT_SUBMISSION")) {
+    return "Intent Submission Failed";
+  }
+  if (type.includes("INTENT_FULFILLMENT")) {
+    return "Intent Fulfillment Failed";
+  }
   if (
     type.includes("CREATE_PERMIT_FOR_SOURCE_SWAP") ||
     type.includes("CREATE_PERMIT_EOA_TO_EPHEMERAL") ||
@@ -1967,7 +2057,7 @@ const getFailureMessageForProgressStep = (
   ) {
     return "Collection Failed";
   }
-  if (type.includes("DESTINATION_SWAP") || type.includes("FULFIL")) {
+  if (type.includes("DESTINATION_SWAP")) {
     return "Destination Swap Failed";
   }
   if (
@@ -3148,6 +3238,7 @@ function NexusOneInner({
     bridgableBalance,
     swapBalance,
     getFiatValue,
+    getRouteSupportedChains,
     resolveTokenUsdRate,
     swapSupportedChainsAndTokens,
     supportedChainsAndTokens,
@@ -3292,6 +3383,107 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
+  const [sourceOptionCatalog, setSourceOptionCatalog] =
+    useState<SupportedChainsAndTokensResult | null>(null);
+  const [destinationOptionCatalog, setDestinationOptionCatalog] =
+    useState<SupportedChainsAndTokensResult | null>(null);
+
+  useEffect(() => {
+    if (!(nexusSDK && toToken?.chainId && toToken.contractAddress)) {
+      setSourceOptionCatalog(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      const readableAmount = isSwapExactOut ? amount.trim() : "";
+      let amountRaw: bigint | undefined;
+      try {
+        amountRaw = readableAmount
+          ? parseUnits(readableAmount, toToken.decimals)
+          : undefined;
+      } catch {
+        amountRaw = undefined;
+      }
+      void getRouteSupportedChains({
+        destinations: [
+          {
+            chainId: toToken.chainId,
+            tokenAddress: toToken.contractAddress as `0x${string}`,
+            amountRaw,
+          },
+        ],
+      })
+        .then((catalog) => {
+          if (active) setSourceOptionCatalog(catalog);
+        })
+        .catch((error) => {
+          console.error("Failed to load constrained source catalog", error);
+          if (active) setSourceOptionCatalog(null);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [amount, getRouteSupportedChains, isSwapExactOut, nexusSDK, toToken]);
+
+  useEffect(() => {
+    const concreteSources = fromTokens.filter(
+      (token) => token.chainId && token.contractAddress
+    );
+    if (!(nexusSDK && concreteSources.length > 0)) {
+      setDestinationOptionCatalog(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      const readableAmounts = concreteSources.map(
+        (token) =>
+          token.userAmount ||
+          (concreteSources.length === 1 && !isSwapExactOut ? amount : "")
+      );
+      const includeAmounts = readableAmounts.every(
+        (value) => Number(value) > 0
+      );
+      const sources = concreteSources.map((token, index) => {
+        let amountRaw: bigint | undefined;
+        try {
+          amountRaw = includeAmounts
+            ? parseUnits(readableAmounts[index]!, token.decimals)
+            : undefined;
+        } catch {
+          amountRaw = undefined;
+        }
+        return {
+          chainId: token.chainId,
+          tokenAddress: token.contractAddress as `0x${string}`,
+          amountRaw,
+        };
+      });
+      const hasPartialAmounts = sources.some(
+        (source) => source.amountRaw === undefined
+      );
+      void getRouteSupportedChains({
+        sources: hasPartialAmounts
+          ? sources.map(({ amountRaw: _amountRaw, ...source }) => source)
+          : sources,
+      })
+        .then((catalog) => {
+          if (active) setDestinationOptionCatalog(catalog);
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to load constrained destination catalog",
+            error
+          );
+          if (active) setDestinationOptionCatalog(null);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [amount, fromTokens, getRouteSupportedChains, isSwapExactOut, nexusSDK]);
   const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
     useState<SwapTokenOption[]>([]);
   useEffect(() => {
@@ -3550,6 +3742,8 @@ function NexusOneInner({
   const [swapQuoteIssue, setSwapQuoteIssue] = useState<SwapQuoteIssue | null>(
     null
   );
+  const [hasBlockingProviderQuoteError, setHasBlockingProviderQuoteError] =
+    useState(false);
   const [receiveAmountIssue, setReceiveAmountIssue] =
     useState<ReceiveAmountIssue | null>(null);
   const receiveAmountIssueRef = useRef<ReceiveAmountIssue | null>(null);
@@ -4489,59 +4683,21 @@ function NexusOneInner({
     const cached = maxSwapQuoteCacheRef.current[key];
     if (cached) return cached;
 
-    const calculateMaxForSwap = nexusSDK?.calculateMaxForSwap;
-    if (typeof calculateMaxForSwap !== "function" || !token.chainId) {
-      return undefined;
-    }
+    const destinationRate = await resolveUsdRateForSymbol(token.symbol);
+    const walletUsd = getActiveTotalBalanceUsd();
+    if (destinationRate.lte(0) || walletUsd.lte(0)) return undefined;
 
-    const max = await calculateMaxForSwap({
-      toChainId: token.chainId,
-      toTokenAddress: (token.contractAddress || zeroAddress) as `0x${string}`,
-    });
-    const decimals = Number.isFinite(Number(max.decimals))
-      ? Number(max.decimals)
-      : token.decimals || 18;
-    const maxAmount =
-      parseFiatNumber(max.maxAmount) ??
-      (max.maxAmountRaw !== undefined
-        ? new Decimal(max.maxAmountRaw.toString()).div(
-            new Decimal(10).pow(decimals)
-          )
-        : undefined);
-
-    if (!maxAmount || maxAmount.lte(0)) return undefined;
-
-    const safeMaxAmount = maxAmount.mul(receiveMaxSafetyMultiplier);
-    const destinationRate = await resolveUsdRateForSymbol(
-      max.symbol || token.symbol
-    );
-    let maxUsdAmount = destinationRate.gt(0)
-      ? safeMaxAmount.mul(destinationRate)
-      : undefined;
-
-    if (!maxUsdAmount || maxUsdAmount.lte(0)) {
-      const sourcesUsd = await (max.sources ?? []).reduce(
-        async (sumPromise, source) => {
-          const sum = await sumPromise;
-          const amount = parseFiatNumber(source.amount) ?? new Decimal(0);
-          if (amount.lte(0)) return sum;
-
-          const sourceRate = await resolveUsdRateForSymbol(source.symbol);
-          return sourceRate.gt(0) ? sum.plus(amount.mul(sourceRate)) : sum;
-        },
-        Promise.resolve(new Decimal(0))
-      );
-
-      if (sourcesUsd.gt(0)) {
-        maxUsdAmount = sourcesUsd.mul(receiveMaxSafetyMultiplier);
-      }
-    }
+    // Better Intent deliberately does not expose the old routing-based max API.
+    // This is a conservative display estimate; the quote remains authoritative.
+    const maxUsdAmount = walletUsd.mul(receiveMaxSafetyMultiplier);
+    const safeMaxAmount = maxUsdAmount.div(destinationRate);
+    const decimals = token.decimals || 18;
 
     const quote: CachedMaxSwapQuote = {
       decimals,
       maxTokenAmount: safeMaxAmount,
       maxUsdAmount,
-      symbol: max.symbol || token.symbol,
+      symbol: token.symbol,
     };
     maxSwapQuoteCacheRef.current[key] = quote;
     return quote;
@@ -6439,6 +6595,20 @@ function NexusOneInner({
     setRawPlanSteps([]);
   };
 
+  const retainPlanForExecution = () => {
+    const retainedPlanEvent = [...progressEventsRef.current]
+      .reverse()
+      .find(
+        (event) =>
+          event.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_LIST ||
+          event.name === PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST
+      );
+    const retainedEvents = retainedPlanEvent ? [retainedPlanEvent] : [];
+    progressEventsRef.current = retainedEvents;
+    setProgressEvents(retainedEvents);
+    setFailedProgressStep(null);
+  };
+
   const appendProgressEvent = (
     name: string,
     step: SwapStepType | BridgeStepType | undefined,
@@ -6486,6 +6656,22 @@ function NexusOneInner({
           steps: stepList,
           rawSteps: rawSteps ?? (stepList as any),
           planType,
+        },
+      ];
+      progressEventsRef.current = next;
+      return next;
+    });
+  };
+
+  const appendIntentStatusEvent = (event: unknown) => {
+    setProgressEvents((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: `${Date.now()}-${prev.length}-intent-status`,
+          name: "intent_status",
+          completed: (event as any)?.status === "fulfilled",
+          event,
         },
       ];
       progressEventsRef.current = next;
@@ -6747,7 +6933,25 @@ function NexusOneInner({
 
   const handleSwapIntentCallback = useCallback(
     (data: any, runId: number, quoteInputKey: string) => {
-      const { intent, allow, deny, refresh } = data;
+      const compatibleData = data?.quote
+        ? (() => {
+            const adapted = adaptIntentHook(
+              data,
+              swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? []
+            );
+            return {
+              ...adapted,
+              intent: addIntentUsdValues(adapted.intent, (symbol) =>
+                getUsdRateForSymbol(symbol).toNumber()
+              ),
+              refresh: async (...args: Parameters<typeof adapted.refresh>) =>
+                addIntentUsdValues(await adapted.refresh(...args), (symbol) =>
+                  getUsdRateForSymbol(symbol).toNumber()
+                ),
+            };
+          })()
+        : data;
+      const { intent, allow, deny, refresh } = compatibleData;
       const bridgeProvider = normalizeBridgeProvider(
         data?.bridgeProvider ??
           intent?.bridgeProvider ??
@@ -6795,6 +6999,7 @@ function NexusOneInner({
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
         setTxError("Quote unavailable");
+        setHasBlockingProviderQuoteError(true);
         return;
       }
       const resolvedQuoteInputKey = quoteInputKey;
@@ -6836,6 +7041,7 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
+        setHasBlockingProviderQuoteError(false);
       });
       if (
         swapRunIdRef.current === runId &&
@@ -7467,6 +7673,7 @@ function NexusOneInner({
   useEffect(() => {
     activeQuoteInputKeyRef.current = activeQuoteInputKey;
     setTxError(null);
+    setHasBlockingProviderQuoteError(false);
   }, [activeQuoteInputKey]);
   const hasCurrentQuoteIntent = Boolean(
     intentData &&
@@ -8979,6 +9186,11 @@ function NexusOneInner({
     };
 
     const handlePlanEvent = (event: any) => {
+      if (event.type === "status") {
+        appendIntentStatusEvent(event);
+        return;
+      }
+
       if (event.type === "plan_preview" || event.type === "plan_confirmed") {
         const stepList = Array.isArray(event.plan?.steps)
           ? event.plan.steps.map((step: any) =>
@@ -9061,7 +9273,13 @@ function NexusOneInner({
       logSdkSwapEvent("ignored event without string type", event);
     };
 
-    const onEvent = (event: any) => {
+    const onEvent = (rawEvent: any) => {
+      const event =
+        rawEvent?.type === "quote" ||
+        rawEvent?.type === "step" ||
+        rawEvent?.type === "status"
+          ? adaptIntentEvent(rawEvent)
+          : rawEvent;
       const isCurrentRun = swapRunIdRef.current === runId;
       const isCurrentQuote = isCurrentQuoteInput();
       logSdkSwapEvent("onEvent", event, {
@@ -9084,6 +9302,31 @@ function NexusOneInner({
         getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
       );
       handleSwapEvent(event);
+    };
+
+    const renderCompletedIntentProgress = async () => {
+      const latestStatusEvent = [...progressEventsRef.current]
+        .reverse()
+        .find((event) => event.name === PROGRESS_EVENT_NAMES.INTENT_STATUS)
+        ?.event as any;
+      const reportedLegs = Array.isArray(latestStatusEvent?.legs)
+        ? latestStatusEvent.legs
+        : [];
+      const quotedSources =
+        swapIntentRef.current?.intent?.sources ?? intentData?.sources ?? [];
+      const legs = markIntentLegsFulfilled(quotedSources.length, reportedLegs);
+
+      appendIntentStatusEvent({
+        intentId: latestStatusEvent?.intentId,
+        legs,
+        status: "fulfilled",
+        substatus: "completed",
+        type: "status",
+      });
+
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, COMPLETED_PROGRESS_HOLD_MS);
+      });
     };
 
     const buildRecipientTransferExecuteConfig = (transferAmount: bigint) => {
@@ -9305,14 +9548,27 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           const resultFinalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
-            );
+            ) ||
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
+          if (isExternalProviderIntent) {
+            intentExplorerUrl = null;
+          }
           finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
           if (resultFinalExplorerUrl) {
             setTransferExplorerUrl(resultFinalExplorerUrl);
@@ -9326,6 +9582,13 @@ function NexusOneInner({
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
+          await renderCompletedIntentProgress();
+          if (
+            swapRunIdRef.current !== runId ||
+            swapStepRef.current !== "progress"
+          ) {
+            return;
+          }
           const resolvedFinalExplorerUrl =
             finalExplorerUrl ||
             explorerUrlsRef.current.destinationExplorerUrl ||
@@ -9441,8 +9704,10 @@ function NexusOneInner({
                   },
                   {
                     onEvent,
-                    onIntent: (data) =>
-                      handleSwapIntentCallback(data, runId, quoteInputKey),
+                    hooks: {
+                      onIntent: (data) =>
+                        handleSwapIntentCallback(data, runId, quoteInputKey),
+                    },
                   }
                 );
 
@@ -9468,14 +9733,24 @@ function NexusOneInner({
           const intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           const finalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               executeTxHash,
               result,
               swapResult
-            );
+            ) ||
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             if (activeMode === "send" || hasCustomSwapRecipient) {
               setTransferExplorerUrl(finalExplorerUrl);
@@ -9484,7 +9759,9 @@ function NexusOneInner({
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(!isExternalProviderIntent && intentExplorerUrl
+              ? { intentExplorerUrl }
+              : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
           });
         } else {
@@ -9635,20 +9912,32 @@ function NexusOneInner({
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
+          const isExternalProviderIntent = isExternalIntentProvider(
+            getSdkIntentProvider(result, swapResult)
+          );
+          const providerTransactionExplorerUrl = isExternalProviderIntent
+            ? await resolveBetterIntentTransactionExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              )
+            : null;
           const finalExplorerUrl =
-            getSdkExplorerUrl(result) ||
+            providerTransactionExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
-            );
+            ) ||
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
           if (finalExplorerUrl) {
             mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(intentExplorerUrl ? { intentExplorerUrl } : {}),
+            ...(!isExternalProviderIntent && intentExplorerUrl
+              ? { intentExplorerUrl }
+              : { intentExplorerUrl: null }),
             ...(intentId ? { intentId } : {}),
           });
         }
@@ -9657,6 +9946,13 @@ function NexusOneInner({
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
+          await renderCompletedIntentProgress();
+          if (
+            swapRunIdRef.current !== runId ||
+            swapStepRef.current !== "progress"
+          ) {
+            return;
+          }
           finishCurrentSwapHistoryEntry("fulfilled");
           resetInputsAfterSuccessfulExecution();
           onComplete?.();
@@ -9677,10 +9973,7 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
-      const isIntentDenied =
-        err?.code === "USER_DENIED_INTENT" ||
-        err?.message?.includes("User denied") ||
-        err?.message?.includes("denied swap intent");
+      const isIntentDenied = isUserRejectedIntentError(err);
       if (isIntentDenied) {
         return;
       }
@@ -9693,7 +9986,7 @@ function NexusOneInner({
       if (swapRunIdRef.current !== runId || !isCurrentQuoteInput()) {
         return;
       }
-      if (activeMode === "deposit" && err?.code !== "USER_DENIED_INTENT") {
+      if (activeMode === "deposit" && !isUserRejectedIntentError(err)) {
         const hasActiveExecution =
           swapStepRef.current === "progress" &&
           Boolean(currentSwapIdRef.current);
@@ -9803,7 +10096,7 @@ function NexusOneInner({
           }
         }, 700);
       };
-      if (err?.code === "USER_DENIED_INTENT") {
+      if (isUserRejectedIntentError(err)) {
         if (hasActiveExecution) {
           showFailedProgressThenReceipt("Transaction cancelled by user");
         } else if (!background && swapStepRef.current === "preview-intent") {
@@ -9821,11 +10114,8 @@ function NexusOneInner({
         onError?.(issue.message);
         return;
       }
-      const errorMessage =
-        err?.message ||
-        (typeof err === "string"
-          ? err
-          : "Transaction failed. Please try again or check console.");
+      const classifiedError = classifyIntentError(err);
+      const errorMessage = formatClassifiedIntentError(classifiedError);
       if (isTimeout && hasActiveExecution) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);
@@ -9836,6 +10126,11 @@ function NexusOneInner({
       } else if (!background || swapStepRef.current === "preview-intent") {
         setSwapStep("idle");
       }
+      setHasBlockingProviderQuoteError(
+        !hasActiveExecution &&
+          classifiedError.bucket === "quote_provider" &&
+          !classifiedError.retryable
+      );
       setTxError(errorMessage);
       onError?.(errorMessage);
     }
@@ -10292,7 +10587,7 @@ function NexusOneInner({
       startSwapHistoryEntry();
       setSwapStep("progress");
       setQuoteRefreshing(false);
-      resetProgressEvents();
+      retainPlanForExecution();
       if (swapStepsListRef.current.length > 0) {
         seed(swapStepsListRef.current);
       } else {
@@ -11040,7 +11335,8 @@ function NexusOneInner({
         : !hasReadySwapQuoteInput ||
           receiveMaxCalculating ||
           quoteRefreshing ||
-          Boolean(blockingQuoteIssue));
+          Boolean(blockingQuoteIssue)) ||
+      hasBlockingProviderQuoteError;
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
     : isBalancesLoading ||
@@ -11051,6 +11347,8 @@ function NexusOneInner({
       (!hasCurrentExactOutPaymentIntent &&
         isQuoteUnavailableForAutoSourceFlow) ||
       Boolean(blockingQuoteIssue);
+  const isDepositCtaBlocked =
+    isDepositCtaDisabled || hasBlockingProviderQuoteError;
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -11064,12 +11362,14 @@ function NexusOneInner({
           (!hasCurrentExactOutPaymentIntent &&
             isQuoteUnavailableForAutoSourceFlow))) ||
       Boolean(blockingQuoteIssue);
+  const isSendCtaBlocked = isSendCtaDisabled || hasBlockingProviderQuoteError;
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
     if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
     if (insufficientSourceIssue) return "Insufficient balance";
     if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
+    if (hasBlockingProviderQuoteError) return "Quote unavailable";
     if (receiveMaxCalculating) return "Calculating...";
     if (
       isExactOutPaymentQuotePending ||
@@ -12281,7 +12581,7 @@ function NexusOneInner({
                       }}
                     >
                       <button
-                        disabled={isDepositCtaDisabled}
+                        disabled={isDepositCtaBlocked}
                         onClick={() => {
                           if (needsWalletConnection) {
                             void handleConnectWallet({
@@ -12296,7 +12596,7 @@ function NexusOneInner({
                           backgroundColor:
                             effectiveNexusInitError || blockingQuoteIssue
                               ? "#FCEEED"
-                              : isDepositCtaDisabled
+                              : isDepositCtaBlocked
                                 ? "#CBCBCB"
                                 : theme.colors.text,
                           border:
@@ -12309,7 +12609,7 @@ function NexusOneInner({
                               : theme.radius.primaryButton,
                           boxShadow:
                             blockingQuoteIssue ||
-                            isDepositCtaDisabled ||
+                            isDepositCtaBlocked ||
                             effectiveNexusInitError
                               ? "none"
                               : theme.shadows.primaryButton,
@@ -12320,7 +12620,7 @@ function NexusOneInner({
                           height: "40px",
                           justifyContent: "center",
                           paddingInline: "16px",
-                          cursor: isDepositCtaDisabled
+                          cursor: isDepositCtaBlocked
                             ? "not-allowed"
                             : "pointer",
                           userSelect: "none",
@@ -12344,7 +12644,7 @@ function NexusOneInner({
                           <Loader2
                             className="animate-spin"
                             style={{
-                              color: isDepositCtaDisabled
+                              color: isDepositCtaBlocked
                                 ? theme.colors.muted
                                 : theme.colors.surface,
                               height: "14px",
@@ -12358,7 +12658,7 @@ function NexusOneInner({
                             color:
                               effectiveNexusInitError || blockingQuoteIssue
                                 ? "#D32F2F"
-                                : isDepositCtaDisabled
+                                : isDepositCtaBlocked
                                   ? theme.colors.muted
                                   : theme.colors.surface,
                             fontFamily: theme.fonts.sans,
@@ -12458,7 +12758,7 @@ function NexusOneInner({
                   }}
                 >
                   <button
-                    disabled={isSendCtaDisabled}
+                    disabled={isSendCtaBlocked}
                     onClick={() => {
                       if (needsWalletConnection) {
                         void handleConnectWallet({ reportConversion: true });
@@ -12475,7 +12775,7 @@ function NexusOneInner({
                       backgroundColor:
                         effectiveNexusInitError || blockingQuoteIssue
                           ? "#FCEEED"
-                          : isSendCtaDisabled
+                          : isSendCtaBlocked
                             ? "#CBCBCB"
                             : theme.colors.text,
                       border:
@@ -12488,7 +12788,7 @@ function NexusOneInner({
                           : theme.radius.primaryButton,
                       boxShadow:
                         blockingQuoteIssue ||
-                        isSendCtaDisabled ||
+                        isSendCtaBlocked ||
                         effectiveNexusInitError
                           ? "none"
                           : theme.shadows.primaryButton,
@@ -12499,7 +12799,7 @@ function NexusOneInner({
                       height: "40px",
                       justifyContent: "center",
                       paddingInline: "16px",
-                      cursor: isSendCtaDisabled ? "not-allowed" : "pointer",
+                      cursor: isSendCtaBlocked ? "not-allowed" : "pointer",
                       width: "100%",
                     }}
                   >
@@ -12520,7 +12820,7 @@ function NexusOneInner({
                       <Loader2
                         className="animate-spin"
                         style={{
-                          color: isSendCtaDisabled
+                          color: isSendCtaBlocked
                             ? theme.colors.muted
                             : theme.colors.surface,
                           height: "14px",
@@ -12534,7 +12834,7 @@ function NexusOneInner({
                         color:
                           effectiveNexusInitError || blockingQuoteIssue
                             ? "#D32F2F"
-                            : isSendCtaDisabled
+                            : isSendCtaBlocked
                               ? theme.colors.muted
                               : theme.colors.surface,
                         fontFamily: theme.fonts.sans,
@@ -13258,7 +13558,9 @@ function NexusOneInner({
                     : undefined
                 }
                 swapBalance={swapBalance}
-                swapSupportedChains={swapSupportedChainsAndTokens}
+                swapSupportedChains={
+                  sourceOptionCatalog ?? swapSupportedChainsAndTokens
+                }
                 title={
                   isSwapExactOut
                     ? "Choose assets to send"
@@ -13390,6 +13692,7 @@ function NexusOneInner({
                   setToToken(token);
                   closeDrawerToIdle();
                 }}
+                routeSupportedChains={destinationOptionCatalog}
                 selectedToken={toToken}
               />
             </div>

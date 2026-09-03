@@ -2,12 +2,14 @@
 
 "use client";
 
+import type { IntentProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { ChevronDown, Info, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { withBasePath } from "@/lib/utils";
 import type { SwapStepType } from "../../common/types/transaction-flow";
 import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
@@ -49,7 +51,7 @@ export interface SwapIntentDestination {
   value?: string;
 }
 
-export type BridgeProvider = "nexus" | "mayan" | null;
+export type BridgeProvider = "nexus" | IntentProvider | null;
 
 export interface SwapIntentData {
   bridgeProvider?: BridgeProvider;
@@ -966,6 +968,9 @@ export function SwapIntentPreview({
     destinationUsdNumber.gt(0);
 
   const bridgeFees = intentData?.feesAndBuffer?.bridge;
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
   const bridgeFeeData =
     bridgeFees && typeof bridgeFees === "object" ? bridgeFees : undefined;
   const bridgeTotalNumber =
@@ -1090,7 +1095,7 @@ export function SwapIntentPreview({
   const feeDetailRows = bridgeFeeData
     ? [
         {
-          label: "Execution Gas Fee",
+          label: isBetterIntentQuote ? "Network Fee" : "Execution Gas Fee",
           value: executionGasFeeNumber ?? new Decimal(0),
         },
         {

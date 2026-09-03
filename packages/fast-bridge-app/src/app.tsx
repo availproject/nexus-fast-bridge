@@ -11,8 +11,7 @@ import Web3Provider from "@/providers/web3-provider";
 
 const NEXUS_PROVIDER_CONFIG = {
   debug: true,
-  // this is place to switch between "canary" and "mainnet"
-  network: "mainnet",
+  network: "canary",
 } as const;
 
 function XSocialIcon() {
@@ -150,7 +149,6 @@ const GRADIENT_ASSETS = [
   "/landing-new/assets/chain-gradients/monad-ribbon.png",
   "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
   "/landing-new/assets/chain-gradients/base-ribbon.png",
-  "/landing-new/assets/chain-gradients/scroll-ribbon.png",
   "/landing-new/assets/chain-gradients/bnb-ribbon.png",
 ];
 

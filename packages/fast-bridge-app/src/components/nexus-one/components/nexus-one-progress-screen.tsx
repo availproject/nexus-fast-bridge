@@ -10,11 +10,16 @@ import type {
   SwapStepType,
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import {
   type NexusOneDepositMetadata,
   type NexusOneMode,
   type SwapType,
 } from "../types";
+import {
+  type IntentProgressLeg,
+  mergeExpectedIntentLegs,
+} from "../utils/better-intent-progress";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
@@ -63,6 +68,8 @@ const muted = "var(--foreground-muted, #848483)";
 const border = "var(--border-default, #E8E8E7)";
 const brand = "var(--foreground-brand, #006BF4)";
 const danger = "var(--foreground-negative, #E92C2C)";
+const success = "var(--foreground-positive, #168A47)";
+const warning = "var(--foreground-warning, #B7791F)";
 
 const parseDecimal = (value: unknown) => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -129,7 +136,38 @@ const PROGRESS_EVENT_NAMES = {
   BRIDGE_PLAN_PROGRESS: "bridge_plan_progress",
   SWAP_PLAN_LIST: "swap_plan_list",
   SWAP_PLAN_PROGRESS: "swap_plan_progress",
+  INTENT_STATUS: "intent_status",
 } as const;
+
+type BetterIntentLegStatus = IntentProgressLeg;
+
+type BetterIntentStatusEvent = {
+  status: "created" | "deposited" | "fulfilled" | "expired";
+  legs: BetterIntentLegStatus[];
+};
+
+const getLatestIntentStatus = (
+  events: NexusOneProgressEvent[]
+): BetterIntentStatusEvent | undefined => {
+  const event = [...events]
+    .reverse()
+    .find((candidate) => candidate.name === PROGRESS_EVENT_NAMES.INTENT_STATUS)
+    ?.event as BetterIntentStatusEvent | undefined;
+  return event && Array.isArray(event.legs) ? event : undefined;
+};
+
+const didAllIntentLegsReachDeposit = (events: NexusOneProgressEvent[]) =>
+  events.some((candidate) => {
+    if (candidate.name !== PROGRESS_EVENT_NAMES.INTENT_STATUS) return false;
+    const statusEvent = candidate.event as BetterIntentStatusEvent | undefined;
+    return (
+      Array.isArray(statusEvent?.legs) &&
+      statusEvent.legs.length > 0 &&
+      statusEvent.legs.every(
+        (leg) => leg.status === "deposited" || leg.status === "fulfilled"
+      )
+    );
+  });
 
 type ProgressListEventName =
   | typeof PROGRESS_EVENT_NAMES.BRIDGE_PLAN_LIST
@@ -142,7 +180,33 @@ const STATUS_ORDER: ProgressStatusId[] = [
   "action",
 ];
 
-const SWAP_APPROVAL_TYPES = ["ALLOWANCE", "ALLOWANCE_APPROVAL"];
+const SWAP_APPROVAL_TYPES = [
+  "ALLOWANCE",
+  "ALLOWANCE_APPROVAL",
+  "ERC20_APPROVAL",
+];
+
+const BETTER_INTENT_PROCESSING_TYPES = [
+  "NATIVE_TRANSACTION",
+  "INTENT_SIGNATURE",
+  "INTENT_SUBMISSION",
+];
+
+const BETTER_INTENT_RECEIVE_TYPES = ["INTENT_FULFILLMENT"];
+
+const getBetterIntentFailureLabel = (step?: ProgressSdkStep | null) => {
+  const type = getStepType(step ?? undefined);
+  if (type.includes("ERC20_APPROVAL")) return "Token approval failed";
+  if (type.includes("NATIVE_TRANSACTION")) {
+    return "Source transaction failed";
+  }
+  if (type.includes("INTENT_SIGNATURE")) return "Intent signature failed";
+  if (type.includes("INTENT_SUBMISSION")) return "Intent submission failed";
+  if (type.includes("INTENT_FULFILLMENT")) {
+    return "Intent fulfillment failed";
+  }
+  return undefined;
+};
 
 const REFUND_ELIGIBLE_SWAP_TYPES = [
   "BRIDGE_INTENT_SUBMISSION",
@@ -228,6 +292,14 @@ const getStatusForStep = (
 
   if (type.includes("SWAP_START")) {
     return "swapTokens";
+  }
+
+  if (BETTER_INTENT_PROCESSING_TYPES.some((token) => type.includes(token))) {
+    return "swapTokens";
+  }
+
+  if (BETTER_INTENT_RECEIVE_TYPES.some((token) => type.includes(token))) {
+    return "receiveToken";
   }
 
   if (
@@ -409,6 +481,7 @@ const isRawApprovalStep = (step: any) => {
   return (
     type === "allowance" ||
     type === "allowance_approval" ||
+    type === "erc20_approval" ||
     type === "approval" ||
     type === "source_swap" ||
     id.startsWith("allowance") ||
@@ -567,8 +640,12 @@ const buildStatusRows = ({
   rawSteps: rawStepsProp,
   steps,
   approvalTotalCount,
+  betterIntent,
+  betterIntentSourceCount,
   context,
 }: {
+  betterIntent?: boolean;
+  betterIntentSourceCount?: number;
   events: NexusOneProgressEvent[];
   failedStep?: ProgressSdkStep | null;
   isExactOut?: boolean;
@@ -612,6 +689,7 @@ const buildStatusRows = ({
   const failedStatus = failedStep
     ? getStatusForStep(failedStep, mode, false)
     : null;
+  const betterIntentFailureLabel = getBetterIntentFailureLabel(failedStep);
 
   // Track completed approvals
   let completedApprovalsCount = 0;
@@ -639,8 +717,40 @@ const buildStatusRows = ({
     completedApprovalsCount = Math.min(totalApprovals, completedApprovalsCount);
   }
 
+  const intentStatus = getLatestIntentStatus(events);
   const allApprovalsDone =
-    totalApprovals === 0 || completedApprovalsCount >= totalApprovals;
+    intentStatus?.status === "fulfilled" ||
+    totalApprovals === 0 ||
+    completedApprovalsCount >= totalApprovals;
+  const intentLegs = intentStatus?.legs ?? [];
+  const intentLegCount = intentLegs.length || betterIntentSourceCount || 0;
+  const hasIntentLegs = intentLegs.length > 0;
+  const hasFailedIntentLeg = intentLegs.some(
+    (leg) => leg.status === "expired" || Boolean(leg.error)
+  );
+  const allIntentLegsDeposited =
+    hasIntentLegs &&
+    intentLegs.every(
+      (leg) => leg.status === "deposited" || leg.status === "fulfilled"
+    );
+  const intentLegsReachedDeposit =
+    intentStatus?.status === "fulfilled" ||
+    allIntentLegsDeposited ||
+    didAllIntentLegsReachDeposit(events);
+  const allIntentLegsFulfilled =
+    (hasIntentLegs && intentLegs.every((leg) => leg.status === "fulfilled")) ||
+    intentStatus?.status === "fulfilled";
+  const isBetterIntentPlan =
+    betterIntent === true ||
+    effectiveRawSteps.some((step) =>
+      [
+        "erc20_approval",
+        "native_transaction",
+        "intent_signature",
+        "intent_submission",
+        "intent_fulfillment",
+      ].includes(String(step?.type ?? step?.rawType ?? "").toLowerCase())
+    );
 
   // Track 2nd-to-last step and last step in rawSteps
   const totalRawSteps = effectiveRawSteps.length;
@@ -668,12 +778,21 @@ const buildStatusRows = ({
     "SWAP_COMPLETE",
     "SWAP_SKIPPED",
   ]);
+  const betterIntentSubmissionCompleted = hasCompletedType(events, steps, [
+    "INTENT_SUBMISSION",
+  ]);
+  const betterIntentFulfillmentCompleted = hasCompletedType(events, steps, [
+    "INTENT_FULFILLMENT",
+  ]);
 
   const isLastStepCompleted =
+    betterIntentFulfillmentCompleted ||
     swapCompleteEvent ||
     (lastStep ? isStepDone(lastStep, lastStepIndex) : false);
 
   const isSecondLastStepCompleted =
+    betterIntentSubmissionCompleted ||
+    betterIntentFulfillmentCompleted ||
     isLastStepCompleted ||
     (secondLastStep
       ? isStepDone(secondLastStep, secondLastStepIndex)
@@ -721,18 +840,28 @@ const buildStatusRows = ({
           : undefined,
       label:
         approveState === "completed"
-          ? `Approved Swaps (${totalApprovals} of ${totalApprovals})`
+          ? isBetterIntentPlan
+            ? `Approved tokens (${totalApprovals} of ${totalApprovals})`
+            : `Approved Swaps (${totalApprovals} of ${totalApprovals})`
           : approveState === "error"
             ? "Approval failed"
-            : `Approve Swaps (${completedApprovalsCount + 1} of ${totalApprovals})`,
+            : isBetterIntentPlan
+              ? `Approve tokens (${completedApprovalsCount + 1} of ${totalApprovals})`
+              : `Approve Swaps (${completedApprovalsCount + 1} of ${totalApprovals})`,
     });
   }
 
   // --- 2. SWAPS IN PROGRESS STEP ---
   let swapState: ProgressStatusState = "default";
-  if (failedStatus === "swapTokens") {
+  if (
+    failedStatus === "swapTokens" ||
+    (hasFailedIntentLeg && !intentLegsReachedDeposit)
+  ) {
     swapState = "error";
-  } else if (isSecondLastStepCompleted) {
+  } else if (
+    intentLegsReachedDeposit ||
+    (!isBetterIntentPlan && isSecondLastStepCompleted)
+  ) {
     swapState = "completed";
   } else if (allApprovalsDone) {
     swapState = "inProgress";
@@ -745,23 +874,47 @@ const buildStatusRows = ({
     state: swapState,
     label:
       swapState === "completed"
-        ? "Swaps completed"
+        ? isBetterIntentPlan
+          ? intentLegCount === 1
+            ? "Deposit completed"
+            : "Deposits completed"
+          : "Swaps completed"
         : swapState === "error"
-          ? refundEligibleFailure
-            ? "Swap failed. Refund initiated"
-            : "Swap failed"
+          ? (betterIntentFailureLabel ??
+            (isBetterIntentPlan
+              ? "Source transfer failed"
+              : refundEligibleFailure
+                ? "Swap failed. Refund initiated"
+                : "Swap failed"))
           : swapState === "inProgress"
-            ? "Swaps in progress"
-            : "Swap tokens",
+            ? isBetterIntentPlan
+              ? intentLegCount === 1
+                ? "Deposit in progress"
+                : "Deposits in progress"
+              : "Swaps in progress"
+            : isBetterIntentPlan
+              ? intentLegCount === 1
+                ? "Deposit source"
+                : "Deposit sources"
+              : "Swap tokens",
   });
 
   // --- 3. RECEIVING TOKEN STEP ---
   let receiveState: ProgressStatusState = "default";
-  if (failedStatus === "receiveToken") {
+  if (
+    failedStatus === "receiveToken" ||
+    (hasFailedIntentLeg && intentLegsReachedDeposit)
+  ) {
     receiveState = "error";
-  } else if (isLastStepCompleted) {
+  } else if (
+    allIntentLegsFulfilled ||
+    (!isBetterIntentPlan && isLastStepCompleted)
+  ) {
     receiveState = "completed";
-  } else if (isSecondLastStepCompleted) {
+  } else if (
+    intentLegsReachedDeposit ||
+    (!isBetterIntentPlan && isSecondLastStepCompleted)
+  ) {
     receiveState = "inProgress";
   } else {
     receiveState = "default";
@@ -774,9 +927,12 @@ const buildStatusRows = ({
       receiveState === "completed"
         ? `Received ${destinationSymbol} on ${destinationChain}`
         : receiveState === "error"
-          ? refundEligibleFailure
-            ? "Destination swap failed. Refund initiated."
-            : "Destination swap failed."
+          ? (betterIntentFailureLabel ??
+            (isBetterIntentPlan
+              ? "Transfer fulfillment failed"
+              : refundEligibleFailure
+                ? "Destination swap failed. Refund initiated."
+                : "Destination swap failed."))
           : receiveState === "inProgress"
             ? `Receiving ${destinationSymbol} on ${destinationChain}`
             : `Receive ${destinationSymbol} on ${destinationChain}`,
@@ -1158,7 +1314,12 @@ export function NexusOneProgressScreen({
     setLockedApprovalTotal(computedApprovalTotal);
   }, [computedApprovalTotal, lockedApprovalTotal, progressEvents.length]);
 
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
   const statusRows = buildStatusRows({
+    betterIntent: isBetterIntentQuote,
+    betterIntentSourceCount: intentData?.sources.length,
     events: progressEvents,
     failedStep,
     isExactOut: swapType === "exactOut",
@@ -1173,7 +1334,16 @@ export function NexusOneProgressScreen({
       recipientAddress,
     },
   });
+  const latestIntentStatus = getLatestIntentStatus(progressEvents);
+  const reportedIntentLegs = latestIntentStatus?.legs ?? [];
+  const intentLegs = isBetterIntentQuote
+    ? mergeExpectedIntentLegs(
+        intentData?.sources.length ?? 0,
+        reportedIntentLegs
+      )
+    : reportedIntentLegs;
   const [stepsExpanded, setStepsExpanded] = useState(true);
+  const [depositDetailsExpanded, setDepositDetailsExpanded] = useState(false);
   const activeRow =
     statusRows.find(
       (row) => row.state === "preapproval" || row.state === "inProgress"
@@ -1183,7 +1353,12 @@ export function NexusOneProgressScreen({
     statusRows[statusRows.length - 1];
   const visibleRows = stepsExpanded ? statusRows : activeRow ? [activeRow] : [];
   const canExpand = statusRows.length > 1;
-  const getRowHeight = (row: ProgressStatusRow) => (row.description ? 64 : 52);
+  const getRowHeight = (row: ProgressStatusRow) => {
+    if (row.id === "swapTokens" && intentLegs.length > 0) {
+      return depositDetailsExpanded ? 68 + intentLegs.length * 18 : 68;
+    }
+    return row.description ? 64 : 52;
+  };
   const collapsedStatusHeight = activeRow ? getRowHeight(activeRow) : 52;
   const expandedStatusHeight = statusRows.reduce(
     (sum, row) => sum + getRowHeight(row),
@@ -1332,14 +1507,18 @@ export function NexusOneProgressScreen({
               const isDefault = row.state === "default";
               const isLoading =
                 row.state === "preapproval" || row.state === "inProgress";
-              const hasDescription = Boolean(row.description);
+              const showIntentLegs =
+                row.id === "swapTokens" && intentLegs.length > 0;
+              const hasDescription = Boolean(row.description) || showIntentLegs;
               const rowColor = isDefault ? muted : isError ? danger : primary;
 
               return (
-                <button
+                <div
                   key={row.id}
                   onClick={() => {
-                    if (canExpand) setStepsExpanded((current) => !current);
+                    if (canExpand) {
+                      setStepsExpanded((current) => !current);
+                    }
                   }}
                   style={{
                     alignItems: hasDescription ? "flex-start" : "center",
@@ -1363,7 +1542,6 @@ export function NexusOneProgressScreen({
                       "color 220ms ease, min-height 220ms ease, opacity 220ms ease",
                     width: "100%",
                   }}
-                  type="button"
                 >
                   {isCompleted || isError ? (
                     <span
@@ -1432,24 +1610,142 @@ export function NexusOneProgressScreen({
                         {row.description}
                       </span>
                     )}
+                    {showIntentLegs && (
+                      <button
+                        aria-expanded={depositDetailsExpanded}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setDepositDetailsExpanded((current) => !current);
+                        }}
+                        style={{
+                          alignItems: "center",
+                          appearance: "none",
+                          background: "transparent",
+                          border: 0,
+                          color: brand,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          fontFamily,
+                          fontSize: "12px",
+                          fontWeight: 400,
+                          gap: "3px",
+                          lineHeight: "18px",
+                          padding: 0,
+                        }}
+                        type="button"
+                      >
+                        {`${intentLegs.filter((leg) => leg.status === "deposited" || leg.status === "fulfilled").length} of ${intentLegs.length} deposited`}
+                        <ChevronDown
+                          style={{
+                            height: 12,
+                            transform: depositDetailsExpanded
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
+                            transition: "transform 220ms ease",
+                            width: 12,
+                          }}
+                        />
+                      </button>
+                    )}
+                    {showIntentLegs && depositDetailsExpanded && (
+                      <span
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        {intentLegs.map((leg) => {
+                          const source = intentData?.sources[leg.sourceIndex];
+                          const sourceToken =
+                            eligibleFromTokens[leg.sourceIndex];
+                          const symbol =
+                            source?.token.symbol ?? sourceToken?.symbol;
+                          const chainName = getShortChainName(
+                            source?.chain.id ?? sourceToken?.chainId,
+                            source?.chain.name ?? sourceToken?.chainName ?? ""
+                          );
+                          const statusLabel = leg.error
+                            ? "Failed"
+                            : leg.status === "created"
+                              ? "Waiting for deposit"
+                              : leg.status === "deposited"
+                                ? "Deposited"
+                                : leg.status === "fulfilled"
+                                  ? "Fulfilled"
+                                  : "Expired";
+                          const isLegError =
+                            Boolean(leg.error) || leg.status === "expired";
+                          const statusColor = isLegError
+                            ? danger
+                            : leg.status === "created"
+                              ? warning
+                              : leg.status === "deposited"
+                                ? brand
+                                : success;
+
+                          return (
+                            <span
+                              key={leg.sourceIndex}
+                              style={{
+                                color: muted,
+                                fontSize: "12px",
+                                lineHeight: "18px",
+                              }}
+                            >
+                              {symbol && chainName
+                                ? `${symbol} on ${chainName}`
+                                : `Deposit ${leg.sourceIndex + 1}`}
+                              {" · "}
+                              <span style={{ color: statusColor }}>
+                                {statusLabel}
+                              </span>
+                            </span>
+                          );
+                        })}
+                      </span>
+                    )}
                   </span>
                   {canExpand && index === 0 && (
-                    <ChevronDown
+                    <button
+                      aria-expanded={stepsExpanded}
+                      aria-label={
+                        stepsExpanded
+                          ? "Collapse progress details"
+                          : "Expand progress details"
+                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setStepsExpanded((current) => !current);
+                      }}
                       style={{
+                        alignItems: "center",
+                        appearance: "none",
+                        background: "transparent",
+                        border: 0,
                         color: muted,
+                        cursor: "pointer",
+                        display: "inline-flex",
                         flexShrink: 0,
-                        height: 14,
+                        justifyContent: "center",
                         marginLeft: "auto",
                         marginTop: hasDescription ? 2 : 0,
-                        transform: stepsExpanded
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 220ms ease",
-                        width: 14,
+                        padding: 0,
                       }}
-                    />
+                      type="button"
+                    >
+                      <ChevronDown
+                        style={{
+                          height: 14,
+                          transform: stepsExpanded
+                            ? "rotate(180deg)"
+                            : "rotate(0deg)",
+                          transition: "transform 220ms ease",
+                          width: 14,
+                        }}
+                      />
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>

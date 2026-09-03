@@ -101,7 +101,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "MegaETH Fast Bridge",
       primaryColor: "#2B2B2B",
       secondaryColor: "#ECE8E8",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 4326,
       nexusPrimaryToken: "USDM",
       boxShadow:
@@ -200,7 +200,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Monad Fast Bridge",
       primaryColor: "#836EF9",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 143,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -273,7 +273,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Move assets from any chain to Citrea, instantly.",
       primaryColor: "#1A1A1A",
       secondaryColor: "#CDD2D8",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 4114,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -355,7 +355,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Arbitrum Fast Bridge",
       primaryColor: "#28A0F0",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 42_161,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -411,7 +411,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Ethereum Fast Bridge",
       primaryColor: "#627EEA",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 1,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -469,7 +469,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Polygon Fast Bridge",
       primaryColor: "#8247E5",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 137,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -527,7 +527,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Base Fast Bridge",
       primaryColor: "#0052FF",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 8453,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -585,7 +585,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "OP Mainnet Fast Bridge",
       primaryColor: "#FF0420",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 10,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -617,67 +617,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     },
   },
 
-  // ── Scroll ──────────────────────────────────────────────────────────────
-  scroll: {
-    slug: "scroll",
-    appConfig: {
-      chainId: 534_352,
-      chainName: "Scroll",
-      chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://rpcs.avail.so/scroll",
-      chainBlockExplorerUrl: "https://scrollscan.com",
-      chainTestnet: false,
-      useChainLogo: true,
-      chainIconUrl:
-        "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/scroll/logo.png",
-      chainLogoUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/scroll.svg",
-      backgroundImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/bg/bg-scroll.png",
-      chainGifUrl: "",
-      chainGifAlt: "Bridge to Scroll",
-      heroText: "Move your assets to Scroll faster than ever!",
-      appTitle: "Scroll Fast Bridge",
-      appDescription: "Scroll Fast Bridge",
-      primaryColor: "#C4A882",
-      secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
-      nexusSupportedChain: 534_352,
-      nexusPrimaryToken: "USDC",
-      boxShadow:
-        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #C4A8820A 0px 2px 4px, #C4A88224 0px 12px 24px, #C4A88222 0px 32px 64px",
-      ribbonPng: "/landing-new/assets/chain-gradients/scroll-ribbon.png",
-      meta: {
-        title:
-          "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
-        description:
-          "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
-        canonicalUrl: "https://fastbridge.availproject.org/scroll",
-        imageUrl: LANDING_META_IMAGE_URL,
-        faviconUrl: "/avail_logo.svg",
-        themeColor: "#C4A882",
-        backgroundColor: "#ffffff",
-      },
-    },
-    chainFeatures: {
-      supportedTokens: ["USDC", "USDT", "ETH"],
-      slug: "scroll",
-      buttonFg: "black",
-      analyticsFastBridgeKey: "scroll",
-      maxBridgeAmount: 550,
-      maxBridgeAmountByDestinationChainId: {
-        [SUPPORTED_CHAINS.SCROLL]: 500,
-      },
-      mapUsdmToUsdcBalance: true,
-      denyIntentOnReset: true,
-      tokenDenyListByChainId: {},
-      allowanceLogoOverrideByChainId: {},
-      dialogShowCloseButton: true,
-      bottomBannerImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/scroll-banner.svg",
-    },
-  },
-
   // ── BNB Smart Chain ─────────────────────────────────────────────────────
   "bnb-smart-chain": {
     slug: "bnb-smart-chain",
@@ -704,7 +643,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "BNB Smart Chain Fast Bridge",
       primaryColor: "#F3BA2F",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 56,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -762,7 +701,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "HyperEVM Fast Bridge",
       primaryColor: "#50E3C2",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 999,
       nexusPrimaryToken: "USDC",
       boxShadow:
@@ -820,7 +759,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       appDescription: "Avalanche Fast Bridge",
       primaryColor: "#E84142",
       secondaryColor: "#ffffff",
-      nexusNetwork: "mainnet",
+      nexusNetwork: "canary",
       nexusSupportedChain: 43_114,
       nexusPrimaryToken: "USDC",
       boxShadow:
