@@ -6,11 +6,6 @@ FastBridge now installs `@avail-project/nexus-core` from the `refactor/use-bette
 `availproject/nexus-sdk` instead of SDK 2.2.4. The lockfile pins the resolved SDK commit so local
 and CI tests use the same code.
 
-Until [nexus-sdk#247](https://github.com/availproject/nexus-sdk/pull/247) merges, `package.json`
-points at that PR's branch, `fix/better-intent-relay-provider`, because the base branch rejects the
-Relay provider that middleware 1.10.x now returns. Switch the specifier back to
-`#refactor/use-better-intents` and re-run `pnpm install` once the SDK PR lands.
-
 The SDK branch already contains the Better Intent backend client and execution orchestration. This
 FastBridge change wires the application to the SDK's new public response and event models while
 preserving the current confirmation and progress UI.
@@ -95,8 +90,10 @@ Middleware 1.10.0 added Relay as a third provider and made `provider` mandatory 
 `/better-intent/submit`; 1.10.1 and 1.10.2 removed Scroll from the catalogs and deployment config.
 FastBridge handles this as follows:
 
-- The SDK accepts `relay` in catalog, balance, quote, and status responses (nexus-sdk#247). Before
-  that fix, `initialize()` failed on canary with `Invalid Better Intent chains response`.
+- The SDK accepts `relay` in catalog, balance, quote, and status responses
+  ([nexus-sdk#247](https://github.com/availproject/nexus-sdk/pull/247), merged into
+  `refactor/use-better-intents`). Before that fix, `initialize()` failed on canary with
+  `Invalid Better Intent chains response`.
 - The SDK already sends the quoted `provider` on submit, so no application change was needed.
 - Provider-specific UI checks (`Network Fee` labelling, per-leg progress, explorer fallback) go
   through the shared helpers instead of comparing against `nexus-v2` and `mayan` literally.

@@ -28,8 +28,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#fix/better-intent-relay-provider
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/4ea21eb6a9a48bf62d3d6c53b7946c1a2971e714(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
+        specifier: github:availproject/nexus-sdk#refactor/use-better-intents
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/bcb1635c159f20950745d75f6db04274786efae4(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@fontsource/geist-sans':
         specifier: 5.2.5
         version: 5.2.5
@@ -177,8 +177,8 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/4ea21eb6a9a48bf62d3d6c53b7946c1a2971e714':
-    resolution: {gitHosted: true, integrity: sha512-dzMgUzSi3ETgE73adi7H7kfimh0DmIeZP1Dg/9IKGfseG6x22ubgxgJIWXwNbl/mAaUol2EU//gMtpoGXZ3Nxg==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/4ea21eb6a9a48bf62d3d6c53b7946c1a2971e714}
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/bcb1635c159f20950745d75f6db04274786efae4':
+    resolution: {gitHosted: true, integrity: sha512-xgh994N7uF3tY3YLdMlbAGwkPsSOAYOfs0iL+f840rPi4WQUtq81tyH3Fky4A+cuhFHNxT09AFpG8yiDTyvK+Q==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/bcb1635c159f20950745d75f6db04274786efae4}
     version: 2.2.4
     engines: {node: '>=18.0.0'}
 
@@ -4798,7 +4798,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/4ea21eb6a9a48bf62d3d6c53b7946c1a2971e714(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/bcb1635c159f20950745d75f6db04274786efae4(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@avail-project/nexus-types': 0.1.21(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)(zod@4.4.3)
       '@opentelemetry/api-logs': 0.219.0
@@ -5669,7 +5669,7 @@ snapshots:
   '@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/semantic-conventions': 1.40.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1)':
     dependencies:
