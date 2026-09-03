@@ -709,7 +709,7 @@ export {
   compareChainsBySwapDisplayOrder,
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8453, 42161, 43114, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
