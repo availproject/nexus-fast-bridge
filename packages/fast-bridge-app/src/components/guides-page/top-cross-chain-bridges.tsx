@@ -389,7 +389,7 @@ export default function TopCrossChainBridgesPage() {
                 <p>
                   FastBridge supports all major EVM chains, including Ethereum,
                   Arbitrum, Optimism, Base, Polygon, Avalanche, BNB Chain,
-                  Scroll, HyperEVM, Monad, MegaETH, and Citrea.
+                  HyperEVM, Monad, MegaETH, and Citrea.
                 </p>
                 <button
                   className="seo-pick__link"
