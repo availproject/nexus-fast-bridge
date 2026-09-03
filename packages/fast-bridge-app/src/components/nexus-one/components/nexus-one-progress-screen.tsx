@@ -22,6 +22,7 @@ import {
 } from "../utils/better-intent-progress";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { StatusAlert } from "./status-alerts";
+import { IntentProviderChip } from "./intent-provider-chip";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
 
@@ -1462,6 +1463,10 @@ export function NexusOneProgressScreen({
             </div>
           )}
         </div>
+      </div>
+
+      <div style={{ marginBottom: "8px" }}>
+        <IntentProviderChip provider={intentData?.bridgeProvider} />
       </div>
 
       <div
