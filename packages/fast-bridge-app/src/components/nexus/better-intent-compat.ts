@@ -32,6 +32,16 @@ export const isBetterIntentProvider = (
   typeof value === "string" &&
   (BETTER_INTENT_PROVIDERS as readonly string[]).includes(value);
 
+const INTENT_PROVIDER_LABELS: Record<IntentProvider, string> = {
+  "nexus-v2": "Nexus",
+  mayan: "Mayan",
+  relay: "Relay",
+};
+
+/** Display name for the provider a quote was routed through, or undefined if it is not one. */
+export const formatIntentProviderName = (value: unknown): string | undefined =>
+  isBetterIntentProvider(value) ? INTENT_PROVIDER_LABELS[value] : undefined;
+
 export const isExternalIntentProvider = (
   value: unknown
 ): value is IntentProvider =>
