@@ -52,6 +52,7 @@ import {
   adaptIntentEvent,
   adaptIntentHook,
   addIntentUsdValues,
+  isTokenSupportedForRole,
   type SupportedChainsAndTokensResult,
 } from "../nexus/better-intent-compat";
 import {
@@ -4052,6 +4053,45 @@ function NexusOneInner({
     setDepositSourceFilter("all");
     setExactOutQuoteSourceModeValue("all");
   };
+
+  useEffect(() => {
+    if (
+      activeMode === "deposit" ||
+      !toToken?.chainId ||
+      !swapSupportedChainsAndTokens
+    ) {
+      return;
+    }
+
+    const isInBaseCatalog = isTokenSupportedForRole(
+      swapSupportedChainsAndTokens,
+      "destination",
+      toToken.chainId,
+      toToken.contractAddress
+    );
+    const isAllowedForSources = destinationOptionCatalog
+      ? isTokenSupportedForRole(
+          destinationOptionCatalog,
+          "destination",
+          toToken.chainId,
+          toToken.contractAddress
+        )
+      : true;
+
+    if (isInBaseCatalog && isAllowedForSources) {
+      return;
+    }
+
+    clearPendingSwapIntent();
+    setToToken(undefined);
+    setAmount("");
+  }, [
+    activeMode,
+    destinationOptionCatalog,
+    swapSupportedChainsAndTokens,
+    toToken?.chainId,
+    toToken?.contractAddress,
+  ]);
 
   const resetExactOutSourcesToAuto = () => {
     setFromTokens((current) => (current.length === 0 ? current : []));
