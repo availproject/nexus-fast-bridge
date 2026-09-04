@@ -1472,9 +1472,11 @@ export function NexusOneProgressScreen({
         </div>
       </div>
 
-      <div style={{ marginBottom: "8px" }}>
-        <IntentProviderChip provider={intentData?.bridgeProvider} />
-      </div>
+      {isBetterIntentProvider(intentData?.bridgeProvider) && (
+        <div style={{ marginBottom: "8px" }}>
+          <IntentProviderChip provider={intentData.bridgeProvider} />
+        </div>
+      )}
 
       <div
         aria-live="polite"
