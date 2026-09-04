@@ -240,16 +240,6 @@ const CHAIN_META = [
     themeColor: "#FF0420",
   },
   {
-    slug: "scroll",
-    title:
-      "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
-    description:
-      "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
-    imageUrl: LANDING_META_IMAGE_URL,
-    canonicalUrl: "https://fastbridge.availproject.org/scroll",
-    themeColor: "#C4A882",
-  },
-  {
     slug: "kaia",
     title:
       "Bridge to Kaia – Fast Cross-Chain Transfers & Swaps to Kaia Blockchain | FastBridge",

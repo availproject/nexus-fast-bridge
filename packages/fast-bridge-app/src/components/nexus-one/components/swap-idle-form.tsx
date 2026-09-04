@@ -4,6 +4,7 @@ import Decimal from "decimal.js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AddressIdenticon } from "./address-identicon";
+import { IntentProviderChip } from "./intent-provider-chip";
 import {
   formatSelectedTokenBalanceLabel,
   formatTokenAmountDisplay,
@@ -3027,6 +3028,9 @@ export function SwapIdleForm({
             width: "100%",
           }}
         >
+          <div style={{ flexBasis: "100%" }}>
+            <IntentProviderChip provider={intentData?.bridgeProvider} />
+          </div>
           {/* Left: Fees (Est) $0 (i) */}
           <div
             style={{

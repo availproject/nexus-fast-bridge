@@ -295,8 +295,8 @@ export default function AboutPage() {
               <dt>Chains</dt>
               <dd>
                 Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism,
-                Base, Scroll, Polygon, BNB, HyperEVM, <strong>12 chains</strong>
-                , with more being added regularly.
+                Base, Polygon, BNB, HyperEVM, <strong>11 chains</strong>, with
+                more being added regularly.
               </dd>
             </div>
             <div>
@@ -567,7 +567,7 @@ export default function AboutPage() {
                 <dt>Chains</dt>
                 <dd>
                   Ethereum, Optimism, Base, Monad, MegaETH, Citrea, Arbitrum,
-                  Avalanche, Scroll, Polygon, BNB, and HyperEVM
+                  Avalanche, Polygon, BNB, and HyperEVM
                 </dd>
               </div>
               <div className="seo-spec-card__row">

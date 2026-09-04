@@ -149,7 +149,6 @@ const GRADIENT_ASSETS = [
   "/landing-new/assets/chain-gradients/monad-ribbon.png",
   "/landing-new/assets/chain-gradients/megaeth-ribbon.png",
   "/landing-new/assets/chain-gradients/base-ribbon.png",
-  "/landing-new/assets/chain-gradients/scroll-ribbon.png",
   "/landing-new/assets/chain-gradients/bnb-ribbon.png",
 ];
 

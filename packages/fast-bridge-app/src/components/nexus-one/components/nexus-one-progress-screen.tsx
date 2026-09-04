@@ -10,6 +10,7 @@ import type {
   SwapStepType,
 } from "../../common/types/transaction-flow";
 import { getShortChainName } from "../../common/utils/constant";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import {
   type NexusOneDepositMetadata,
   type NexusOneMode,
@@ -20,6 +21,7 @@ import {
   mergeExpectedIntentLegs,
 } from "../utils/better-intent-progress";
 import { resolveTokenVisuals } from "../utils/token-visuals";
+import { IntentProviderChip } from "./intent-provider-chip";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
 
@@ -1313,9 +1315,9 @@ export function NexusOneProgressScreen({
     setLockedApprovalTotal(computedApprovalTotal);
   }, [computedApprovalTotal, lockedApprovalTotal, progressEvents.length]);
 
-  const isBetterIntentQuote =
-    intentData?.bridgeProvider === "nexus-v2" ||
-    intentData?.bridgeProvider === "mayan";
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
   const statusRows = buildStatusRows({
     betterIntent: isBetterIntentQuote,
     betterIntentSourceCount: intentData?.sources.length,
@@ -1469,6 +1471,12 @@ export function NexusOneProgressScreen({
           )}
         </div>
       </div>
+
+      {isBetterIntentProvider(intentData?.bridgeProvider) && (
+        <div style={{ marginBottom: "8px" }}>
+          <IntentProviderChip provider={intentData.bridgeProvider} />
+        </div>
+      )}
 
       <div
         aria-live="polite"

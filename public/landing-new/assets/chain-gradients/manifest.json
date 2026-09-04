@@ -68,12 +68,6 @@
       "png": "assets/chain-gradients/base-ribbon.png",
       "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #0052FF0A 0px 2px 4px, #0052FF29 0px 12px 24px, #0052FF26 0px 32px 64px"
     },
-    "scroll": {
-      "label": "Scroll",
-      "primary": "#C4A882",
-      "png": "assets/chain-gradients/scroll-ribbon.png",
-      "boxShadow": "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #C4A8820A 0px 2px 4px, #C4A88224 0px 12px 24px, #C4A88222 0px 32px 64px"
-    },
     "bnb": {
       "label": "BNB Smart Chain",
       "primary": "#F3BA2F",

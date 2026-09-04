@@ -617,67 +617,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     },
   },
 
-  // ── Scroll ──────────────────────────────────────────────────────────────
-  scroll: {
-    slug: "scroll",
-    appConfig: {
-      chainId: 534_352,
-      chainName: "Scroll",
-      chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-      chainRpcUrl: "https://rpcs.avail.so/scroll",
-      chainBlockExplorerUrl: "https://scrollscan.com",
-      chainTestnet: false,
-      useChainLogo: true,
-      chainIconUrl:
-        "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/chains/scroll/logo.png",
-      chainLogoUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/scroll.svg",
-      backgroundImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/bg/bg-scroll.png",
-      chainGifUrl: "",
-      chainGifAlt: "Bridge to Scroll",
-      heroText: "Move your assets to Scroll faster than ever!",
-      appTitle: "Scroll Fast Bridge",
-      appDescription: "Scroll Fast Bridge",
-      primaryColor: "#C4A882",
-      secondaryColor: "#ffffff",
-      nexusNetwork: "canary",
-      nexusSupportedChain: 534_352,
-      nexusPrimaryToken: "USDC",
-      boxShadow:
-        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #C4A8820A 0px 2px 4px, #C4A88224 0px 12px 24px, #C4A88222 0px 32px 64px",
-      ribbonPng: "/landing-new/assets/chain-gradients/scroll-ribbon.png",
-      meta: {
-        title:
-          "Bridge to Scroll – Fast zkEVM Cross-Chain Transfers & Swaps | FastBridge",
-        description:
-          "Bridge ETH, USDC and USDT to Scroll zkEVM from Ethereum and other EVM chains. FastBridge combines your balances across chains and delivers fast, secure cross-chain transfers to Scroll L2.",
-        canonicalUrl: "https://fastbridge.availproject.org/scroll",
-        imageUrl: LANDING_META_IMAGE_URL,
-        faviconUrl: "/avail_logo.svg",
-        themeColor: "#C4A882",
-        backgroundColor: "#ffffff",
-      },
-    },
-    chainFeatures: {
-      supportedTokens: ["USDC", "USDT", "ETH"],
-      slug: "scroll",
-      buttonFg: "black",
-      analyticsFastBridgeKey: "scroll",
-      maxBridgeAmount: 550,
-      maxBridgeAmountByDestinationChainId: {
-        [SUPPORTED_CHAINS.SCROLL]: 500,
-      },
-      mapUsdmToUsdcBalance: true,
-      denyIntentOnReset: true,
-      tokenDenyListByChainId: {},
-      allowanceLogoOverrideByChainId: {},
-      dialogShowCloseButton: true,
-      bottomBannerImageUrl:
-        "https://files.availproject.org/nexus-fast-bridge/logos/scroll-banner.svg",
-    },
-  },
-
   // ── Kaia ────────────────────────────────────────────────────────────────
   kaia: {
     slug: "kaia",
