@@ -831,7 +831,22 @@ export function ReceiveAssetSelector({
   }, [swapBalance, swapSupportedChainsAndTokens]);
 
   const tokensWithBalances = useMemo(() => {
-    return apiTokens.map((token) => {
+    if (!swapSupportedChainsAndTokens) {
+      return [];
+    }
+
+    return apiTokens.flatMap((token) => {
+      if (
+        !isTokenSupportedForRole(
+          swapSupportedChainsAndTokens,
+          "destination",
+          token.chainId,
+          token.contractAddress
+        )
+      ) {
+        return [];
+      }
+
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
@@ -843,11 +858,18 @@ export function ReceiveAssetSelector({
       )
         ? undefined
         : "Unavailable for the selected source";
-      return balance
-        ? { ...token, ...balance, disabledReason }
-        : { ...token, hasBalance: false, disabledReason };
+      return [
+        balance
+          ? { ...token, ...balance, disabledReason }
+          : { ...token, hasBalance: false, disabledReason },
+      ];
     });
-  }, [apiTokens, balanceMap, routeSupportedChains]);
+  }, [
+    apiTokens,
+    balanceMap,
+    routeSupportedChains,
+    swapSupportedChainsAndTokens,
+  ]);
 
   useEffect(() => {
     const handleGlobalClick = () => setTooltipState(null);
