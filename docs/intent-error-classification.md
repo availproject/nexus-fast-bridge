@@ -148,27 +148,35 @@ These buckets control display only. They must not be sent as the canonical telem
    }
    ```
 
-3. Record the terminal outcome for attempts that the middleware owns after commitment.
-4. Accept and propagate the agreed attempt ID so browser, SDK, middleware, and provider records can
-   be correlated.
-5. Add the planned client and surface identity headers when that API contract is available.
+3. At the first quote request, accept a caller-supplied attempt ID or generate one when absent, then
+   return it to the caller. The current per-request `x-request-id` behavior is prior art, but is not
+   yet a persisted attempt that spans quote, submit, and destination delivery.
+4. Accept and propagate that same attempt ID through requotes, submission, status, and terminal
+   processing so browser, SDK, middleware, and provider records can be correlated.
+5. Record `completed` and `failed` after commitment, where middleware and protocol are authoritative.
+6. Implement the settled identity-header contract: `x-nexus-client-id` and `x-nexus-surface` must be
+   present on Better Intent requests. The client ID is accepted as declared until its registry
+   exists; unrecognized surfaces are mapped to `other` for bounded telemetry.
+7. Persist the client ID with the RFF as required by the telemetry contract.
 
 The backend currently returns structured source verdicts, but `providerReasons` are still strings.
 FastBridge must not parse those strings because provider wording can change.
 
 ### SDK
 
-1. Create an `attemptId` when the first quote is requested.
-2. Reuse it across requotes until that attempt reaches a terminal outcome. A retry after a terminal
-   outcome receives a new ID.
+1. Supply an attempt ID on the first quote request or capture the one generated and returned by the
+   middleware. Do not substitute the SDK's current operation ID, which has a different lifecycle.
+2. Reuse the attempt ID across requotes and later middleware calls until that attempt reaches a
+   terminal outcome. A retry after a terminal outcome receives a new ID.
 3. Track whether the ERC20 or native commitment point has been crossed.
 4. Expose one terminal attempt outcome: `completed`, `stopped`, `rejected`, or `failed`.
 5. Preserve structured errors in intent step events. The current `IntentEvent` exposes
    `error?: string`, which loses category, code, service, and middleware details.
 6. Add stable codes for quote expiry and post-commit intent expiry. FastBridge currently recognizes
    quote expiry from message text.
-7. Include outcome, commitment state, error category, code, service, and attempt ID in product
-   analytics events, not only operational logs.
+7. Include outcome, commitment state, service, and attempt ID in product analytics events, not only
+   operational logs. Add `error.code` only after the shared Reason taxonomy is approved; the
+   telemetry contract explicitly says not to populate it with ad hoc product-event values.
 8. Preserve structured provider failure codes and values through `getIntentQuoteFailure`.
 
 ### FastBridge
@@ -266,11 +274,12 @@ For every case verify:
 The Nexus Telemetry Contract defines outcomes and commitment points, but the final cross-service
 reason-bucket taxonomy is still being defined. Before implementation is finalized, confirm:
 
-1. The canonical public event and field names.
-2. Whether middleware or SDK generates the initial attempt ID.
+1. The canonical SDK public event shape. The telemetry attribute names are proposed in nexus-v2
+   PR #630, which is still open.
+2. The approved cross-service Reason taxonomy for product-event `error.code` values.
 3. How observed outcome and FastBridge accountability outcome are represented together.
 4. The structured schema for provider failures.
-5. The final client and surface identity headers.
+5. The allocated FastBridge client ID and the declared surface value the SDK must send.
 
 FastBridge should continue to own final user-facing copy. The backend and SDK should expose stable,
 structured facts that any product can map to its own wording.
