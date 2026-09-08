@@ -264,8 +264,7 @@ FastBridge must not parse those strings because provider wording can change.
    - short actionable copy for the user;
    - middleware code, subcode, error ID, and provider details under **Technical details**.
 
-8. Rebase the branch onto current FastBridge `master`, resolve the six missing mainline commits, and
-   rerun the production build and manual flow matrix before merge.
+8. Run the funded-wallet manual flow matrix against the rebased branch before merge.
 
 FastBridge still emits its own `deposit_failed` categories. Commitment is no longer inferred from
 the displayed screen, but canonical attempt outcome and correlation remain future work.
@@ -282,7 +281,7 @@ treated as ready to deploy until these integration items are resolved:
 | FastBridge focused compatibility/error tests | Pass | Add browser tests for wallet cancellation and quote refusal |
 | FastBridge production build | Pass | Rerun after branch integration |
 | FastBridge repository-wide lint | Fails with 347 errors and 15 warnings across the existing repository | Establish/fix the baseline before using repository-wide lint as a release gate; changed error files pass focused checks |
-| FastBridge versus current `master` | Branch is 6 commits behind | Rebase or merge current `master` |
+| FastBridge versus current `master` | Rebased; branch is 0 commits behind | Keep current until merge |
 | Better Intent SDK versus current SDK `main` | Better Intent branch does not include v2.3.0 mainline history | Integrate main and resolve behavior/type conflicts |
 | FastBridge PR #72 | Contains Relay/provider-display/Scroll-removal work not present on this branch | Combine PR #72 with this branch's unsupported-token and structured-outcome fixes |
 | Structured provider failures | Not available | Backend change required only for precise provider-specific copy |
