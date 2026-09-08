@@ -6,6 +6,7 @@ import type {
   IntentQuote,
   IntentRouteConstraints,
   IntentSource,
+  IntentStepError,
   NexusClient,
 } from "@avail-project/nexus-core";
 import { formatUnits } from "@avail-project/nexus-core/utils";
@@ -415,7 +416,9 @@ export type LegacyPlanEvent =
       stepType: string;
       state: string;
       step: IntentQuote["plan"]["steps"][number];
+      committed?: boolean;
       error?: unknown;
+      errorDetails?: IntentStepError;
     }
   | IntentEvent;
 
@@ -429,7 +432,9 @@ export const adaptIntentEvent = (event: IntentEvent): LegacyPlanEvent => {
       stepType: event.step.type,
       state: event.state,
       step: event.step,
-      error: event.error,
+      committed: event.committed,
+      error: event.errorDetails ?? event.error,
+      errorDetails: event.errorDetails,
     };
   }
   return event;

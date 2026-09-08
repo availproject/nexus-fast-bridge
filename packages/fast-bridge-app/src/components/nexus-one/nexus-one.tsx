@@ -3645,6 +3645,7 @@ function NexusOneInner({
     []
   );
   const progressEventsRef = useRef<NexusOneProgressEvent[]>([]);
+  const intentCommittedRef = useRef(false);
   const [rawPlanSteps, setRawPlanSteps] = useState<unknown[]>([]);
   const rawPlanStepsRef = useRef<unknown[]>([]);
   const swapStepsListRef = useRef<SwapStepType[]>([]);
@@ -3697,6 +3698,7 @@ function NexusOneInner({
 
   const rotateAttempt = useCallback(() => {
     widgetAttemptIdRef.current = newAttemptId();
+    intentCommittedRef.current = false;
     previewViewedTsRef.current = null;
     previewConfirmedTsRef.current = null;
     fundsMovedRef.current = false;
@@ -6816,6 +6818,18 @@ function NexusOneInner({
     scheduleTerminalBalanceRefresh();
   };
 
+  const discardCurrentSwapHistoryEntry = () => {
+    const currentId = currentSwapIdRef.current;
+    if (currentId) {
+      setSwapHistory((entries) =>
+        entries.filter((entry) => entry.id !== currentId)
+      );
+    }
+    currentSwapIdRef.current = null;
+    currentSwapStartedAtRef.current = 0;
+    setCurrentSwapId(null);
+  };
+
   const markSwapExecutionStarted = () => {
     if (currentSwapStartedAtRef.current > 0) return;
     const now = Date.now();
@@ -8897,6 +8911,7 @@ function NexusOneInner({
     setCurrentSwapId(null);
     currentSwapIdRef.current = null;
     currentSwapStartedAtRef.current = 0;
+    intentCommittedRef.current = false;
     void refreshSelectedSourceBalances();
   };
 
@@ -9217,6 +9232,7 @@ function NexusOneInner({
     swapIntentRef.current = null;
     if (!background) {
       resetProgressEvents();
+      intentCommittedRef.current = false;
       swapStepsListRef.current = [];
       resetSteps();
     }
@@ -9416,6 +9432,9 @@ function NexusOneInner({
     };
 
     const onEvent = (rawEvent: any) => {
+      if (rawEvent?.type === "step" && rawEvent.committed === true) {
+        intentCommittedRef.current = true;
+      }
       const event =
         rawEvent?.type === "quote" ||
         rawEvent?.type === "step" ||
@@ -10249,11 +10268,7 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
-      const isIntentDenied =
-        isUserRejectedIntentError(err) || isIntentHookDenial(err);
-      if (isIntentDenied) {
-        return;
-      }
+
       const caughtTimeout = isTimeoutLikeError(err);
       if (caughtTimeout) {
         console.warn("Timeout in handleEnterPreview:", err);
@@ -10264,9 +10279,7 @@ function NexusOneInner({
         return;
       }
       if (activeMode === "deposit" && !isUserRejectedIntentError(err)) {
-        const hasActiveExecution =
-          swapStepRef.current === "progress" &&
-          Boolean(currentSwapIdRef.current);
+        const hasCommittedIntent = intentCommittedRef.current;
         const isInsufficient = isInsufficientSourcesError(err);
         const errMessage =
           (typeof err?.message === "string" ? err.message : "") ||
@@ -10282,14 +10295,14 @@ function NexusOneInner({
           | "simulation"
           | "nexus_operation"
           | "execute_leg"
-          | "unknown" = !hasActiveExecution ? "simulation" : "nexus_operation";
+          | "unknown" = !hasCommittedIntent ? "simulation" : "nexus_operation";
         const errorCategory: string = isUserRejected
           ? "user_rejected"
           : isTimeout
             ? "timeout"
             : isInsufficient
               ? "no_eligible_sources"
-              : !hasActiveExecution
+              : !hasCommittedIntent
                 ? "quote_failed"
                 : "execution_failed";
         reachedTerminalRef.current = true;
@@ -10308,10 +10321,11 @@ function NexusOneInner({
       setQuoteRefreshing(false);
       setIntentLoading(false);
       setReceiveMaxCalculating(false);
-      const hasActiveExecution =
-        swapStepRef.current === "progress" && Boolean(currentSwapIdRef.current);
+      const hasCommittedIntent = intentCommittedRef.current;
+      const isIntentDenied =
+        isUserRejectedIntentError(err) || isIntentHookDenial(err);
 
-      if (!hasActiveExecution && !isIntentDenied) {
+      if (!hasCommittedIntent && !isIntentDenied) {
         const timeTakenMs = quoteFetchStartTimeRef.current
           ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
           : undefined;
@@ -10340,7 +10354,6 @@ function NexusOneInner({
           destination_chain_id: toToken?.chainId,
         });
       }
-
       const isTimeout = caughtTimeout;
       const showFailedProgressThenReceipt = (
         error: string,
@@ -10491,14 +10504,19 @@ function NexusOneInner({
         }, 700);
       };
       if (isUserRejectedIntentError(err)) {
-        if (hasActiveExecution) {
+        if (hasCommittedIntent) {
           showFailedProgressThenReceipt("Transaction cancelled by user");
-        } else if (!background && swapStepRef.current === "preview-intent") {
-          setSwapStep("idle");
+        } else if (!background) {
+          discardCurrentSwapHistoryEntry();
+          const nextStep = swapIntentRef.current?.intent
+            ? "preview-intent"
+            : "idle";
+          swapStepRef.current = nextStep;
+          setSwapStep(nextStep);
         }
         return;
       }
-      if (isInsufficientSourcesError(err) && !hasActiveExecution) {
+      if (isInsufficientSourcesError(err) && !hasCommittedIntent) {
         const issue = buildInsufficientSourcesIssue(err);
         setQuoteRefreshing(false);
         setIntentLoading(false);
@@ -10514,18 +10532,18 @@ function NexusOneInner({
       }
       const classifiedError = classifyIntentError(err);
       const errorMessage = formatClassifiedIntentError(classifiedError);
-      if (isTimeout && hasActiveExecution) {
+      if (isTimeout && hasCommittedIntent) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);
         return;
       }
-      if (hasActiveExecution) {
+      if (hasCommittedIntent) {
         showFailedProgressThenReceipt(errorMessage);
       } else if (!background || swapStepRef.current === "preview-intent") {
         setSwapStep("idle");
       }
       setHasBlockingProviderQuoteError(
-        !hasActiveExecution &&
+        !hasCommittedIntent &&
           classifiedError.bucket === "quote_provider" &&
           !classifiedError.retryable
       );

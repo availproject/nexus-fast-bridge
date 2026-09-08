@@ -24,6 +24,7 @@ interface ErrorLike {
   details?: Record<string, unknown>;
   message?: string;
   name?: string;
+  service?: string;
 }
 
 const USER_REJECTED_PATTERN = /user (rejected|denied)|denied swap intent/i;
@@ -174,7 +175,9 @@ const classifyNonQuoteError = (
   if (
     value.category === "execution" ||
     value.context?.service === "wallet" ||
-    value.context?.service === "rpc"
+    value.context?.service === "rpc" ||
+    value.service === "wallet" ||
+    value.service === "rpc"
   ) {
     return {
       bucket: "wallet_network",
