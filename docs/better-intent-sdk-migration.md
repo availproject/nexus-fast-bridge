@@ -2,9 +2,9 @@
 
 ## What changed
 
-FastBridge now installs `@avail-project/nexus-core` from
-`availproject/nexus-sdk#refactor/use-better-intents` instead of SDK 2.2.4. The lockfile pins the
-resolved SDK commit so local and CI tests use the same code.
+FastBridge now installs `@avail-project/nexus-core` from the `refactor/use-better-intents` line of
+`availproject/nexus-sdk` instead of SDK 2.2.4. The lockfile pins the resolved SDK commit so local
+and CI tests use the same code.
 
 The SDK branch already contains the Better Intent backend client and execution orchestration. This
 FastBridge change wires the application to the SDK's new public response and event models while
@@ -14,10 +14,12 @@ FastBridge configures the SDK with `network: "canary"`. The Better Intent rollou
 mainnet deployment; canary still operates against mainnet chains and therefore requires real assets
 and native gas for live execution tests.
 
-FastBridge does not force a single provider. Nexus and Mayan remain available, and middleware owns
-provider selection for each quote. The UI reads directional `asSource` and `asDestination` support
-from constrained `/chains` responses instead of assuming that every catalog token works in both
-roles.
+FastBridge does not force a single provider. Nexus, Mayan, and Relay remain available, and
+middleware owns provider selection for each quote. The provider set is read from the SDK's
+`IntentProvider` type through `isBetterIntentProvider` and `isExternalIntentProvider` in the
+compatibility layer, so a new middleware provider needs no UI branch of its own. The UI reads
+directional `asSource` and `asDestination` support from constrained `/chains` responses instead of
+assuming that every catalog token works in both roles.
 
 ## Endpoint wiring
 
@@ -78,9 +80,26 @@ and Better Intent backend.
 - Catalog-compatible does not guarantee amount-level quote success. Provider minimums, balance,
   approval gas, and price checks remain quote-time errors and are displayed using
   `getIntentQuoteFailure`.
-- The canary Nexus Explorer does not currently index Better Intent Mayan records. For fulfilled
-  Mayan intents, FastBridge resolves the source transaction from the Better Intent detail endpoint
-  and links to the chain explorer instead of showing the broken Nexus Explorer URL.
+- The canary Nexus Explorer does not index external-provider Better Intent records (Mayan, Relay).
+  For fulfilled external intents, FastBridge resolves the source transaction from the Better Intent
+  detail endpoint and links to the chain explorer instead of showing the broken Nexus Explorer URL.
+
+## Middleware 1.10.x compatibility
+
+Middleware 1.10.0 added Relay as a third provider and made `provider` mandatory on
+`/better-intent/submit`; 1.10.1 and 1.10.2 removed Scroll from the catalogs and deployment config.
+FastBridge handles this as follows:
+
+- The SDK accepts `relay` in catalog, balance, quote, and status responses
+  ([nexus-sdk#247](https://github.com/availproject/nexus-sdk/pull/247), merged into
+  `refactor/use-better-intents`). Before that fix, `initialize()` failed on canary with
+  `Invalid Better Intent chains response`.
+- The SDK already sends the quoted `provider` on submit, so no application change was needed.
+- Provider-specific UI checks (`Network Fee` labelling, per-leg progress, explorer fallback) go
+  through the shared helpers instead of comparing against `nexus-v2` and `mayan` literally.
+- Scroll is removed from `CHAIN_REGISTRY`, chain constants, wallet transports, landing assets, route
+  generation, and Vercel rewrites, following the earlier Kaia removal. The `/scroll` route no longer
+  exists because the middleware no longer serves the chain.
 
 ## Current validation status
 
@@ -103,7 +122,7 @@ Run on canary with a funded wallet, including native gas on every ERC-20 source 
 ## Validation
 
 - TypeScript check passes.
-- Production build passes and generates all 21 routes.
+- Production build passes and generates all 22 routes.
 - Local FastBridge UI and static assets load successfully.
 - The full repository checker also scans unchanged legacy scripts under `public/landing-new`, which
   currently contain pre-existing lint errors unrelated to this migration.
