@@ -1,5 +1,9 @@
 # Intent outcomes and error classification
 
+**Audit status:** reviewed against Better Intent middleware `middleware-v1.10.0-rc.0`, Nexus SDK
+branch `refactor/use-better-intents` at `1da9b79`, and FastBridge branch
+`codex/use-better-intent-sdk` at `97c101a`.
+
 This document aligns FastBridge error handling with the Nexus Telemetry Contract.
 
 The implementation must keep three separate pieces of information:
@@ -133,13 +137,75 @@ These buckets control display only. They must not be sent as the canonical telem
 | `QUOTE_PRICE_UNAVAILABLE` | A reliable route price is unavailable |
 | `QUOTE_PRICE_OUTLIER` | The quote failed the safe-price check |
 
-## Required changes
+## Current implementation status
+
+### Backend and API
+
+The middleware currently returns:
+
+- stable top-level middleware `code`, `subcode`, and `errorId` values;
+- structured `sourceVerdicts` describing whether each source was routable, unroutable, or unused;
+- provider-specific failures in `providerReasons` as formatted strings.
+
+For example, an amount-dependent provider refusal currently reaches the SDK as:
+
+```json
+{
+  "code": "QUOTE_UNAVAILABLE",
+  "subcode": "INTENT_REFUSED",
+  "sourceVerdicts": [{ "tokenSymbol": "USDC", "state": "unused" }],
+  "providerReasons": ["mayan: AMOUNT_TOO_SMALL: Amount too small (min ~1 USDC)"]
+}
+```
+
+This is enough to classify the request as a quote-provider rejection. It is not enough to safely
+produce provider-specific UI copy such as “Minimum amount is 1 USDC,” because FastBridge would
+have to parse wording owned by the provider or middleware.
+
+### SDK
+
+The Better Intent SDK branch now:
+
+- preserves middleware quote failures through `getIntentQuoteFailure(error)`;
+- exposes stable Nexus error `category`, `code`, and `context.service` on thrown errors;
+- exposes structured `errorDetails` on failed intent step events while retaining legacy
+  `error?: string` compatibility;
+- exposes `committed: boolean` on every intent step event;
+- marks ERC20 intents committed after successful intent signing;
+- marks native intents committed when the native transaction is submitted, before receipt
+  confirmation;
+- exposes per-leg lifecycle status on status events.
+
+The SDK does **not** yet expose a canonical attempt ID or terminal attempt outcome. Quote expiry and
+post-commit intent expiry also use generic backend errors rather than dedicated stable codes.
+
+### FastBridge
+
+FastBridge now:
+
+- classifies middleware quote subcodes into user-facing buckets;
+- uses structured SDK categories and wallet/RPC service fields for non-quote errors;
+- keeps legacy message matching as a compatibility fallback;
+- shows short user copy first and raw middleware identifiers/details under **Technical details**;
+- disables the action button for a terminal, non-retryable provider quote error;
+- consumes the SDK's `committed` flag instead of treating the progress screen as proof that the
+  intent was committed;
+- returns a pre-commit wallet cancellation to preview and removes its pending local-history entry;
+- shows the failure flow for errors received after commitment;
+- keeps structured step errors available through the Better Intent compatibility adapter.
+
+For `QUOTE_UNAVAILABLE / INTENT_REFUSED`, the current user-facing message is intentionally generic:
+
+> No provider can complete this route with the selected assets and amount. Try another amount,
+> asset, or network.
+
+The technical section still shows `sourceVerdicts` and `providerReasons` for debugging.
+
+## Remaining work
 
 ### Backend
 
-1. Keep returning the stable middleware `code`, `subcode`, `errorId`, and structured
-   `sourceVerdicts`.
-2. Return provider failures as structured objects instead of formatted strings. For example:
+1. Return provider failures as structured objects instead of formatted strings. For example:
 
    ```json
    {
@@ -150,16 +216,16 @@ These buckets control display only. They must not be sent as the canonical telem
    }
    ```
 
-3. At the first quote request, accept a caller-supplied attempt ID or generate one when absent, then
+2. At the first quote request, accept a caller-supplied attempt ID or generate one when absent, then
    return it to the caller. The current per-request `x-request-id` behavior is prior art, but is not
    yet a persisted attempt that spans quote, submit, and destination delivery.
-4. Accept and propagate that same attempt ID through requotes, submission, status, and terminal
+3. Accept and propagate that same attempt ID through requotes, submission, status, and terminal
    processing so browser, SDK, middleware, and provider records can be correlated.
-5. Record `completed` and `failed` after commitment, where middleware and protocol are authoritative.
-6. Implement the settled identity-header contract: `x-nexus-client-id` and `x-nexus-surface` must be
+4. Record `completed` and `failed` after commitment, where middleware and protocol are authoritative.
+5. Implement the settled identity-header contract: `x-nexus-client-id` and `x-nexus-surface` must be
    present on Better Intent requests. The client ID is accepted as declared until its registry
    exists; unrecognized surfaces are mapped to `other` for bounded telemetry.
-7. Persist the client ID with the RFF as required by the telemetry contract.
+6. Persist the client ID with the RFF as required by the telemetry contract.
 
 The backend currently returns structured source verdicts, but `providerReasons` are still strings.
 FastBridge must not parse those strings because provider wording can change.
@@ -170,25 +236,26 @@ FastBridge must not parse those strings because provider wording can change.
    middleware. Do not substitute the SDK's current operation ID, which has a different lifecycle.
 2. Reuse the attempt ID across requotes and later middleware calls until that attempt reaches a
    terminal outcome. A retry after a terminal outcome receives a new ID.
-3. Track whether the ERC20 or native commitment point has been crossed.
-4. Expose the browser-authoritative pre-commit outcome and relay post-commit middleware status with
+3. Expose the browser-authoritative pre-commit outcome and relay post-commit middleware status with
    the same attempt ID. Do not emit a competing canonical post-commit result.
-5. Preserve structured errors in intent step events. The current `IntentEvent` exposes
-   `error?: string`, which loses category, code, service, and middleware details.
-6. Add stable codes for quote expiry and post-commit intent expiry. FastBridge currently recognizes
+4. Add stable codes for quote expiry and post-commit intent expiry. FastBridge currently recognizes
    quote expiry from message text.
-7. Include outcome, commitment state, service, and attempt ID in product analytics events, not only
+5. Include outcome, commitment state, service, and attempt ID in product analytics events, not only
    operational logs. Add `error.code` only after the shared Reason taxonomy is approved; the
    telemetry contract explicitly says not to populate it with ad hoc product-event values.
-8. Preserve structured provider failure codes and values through `getIntentQuoteFailure`.
+6. Preserve the backend's future structured provider failure codes and values through
+   `getIntentQuoteFailure`.
+7. Rebase or merge the Better Intent branch with current SDK `main` and rerun the complete SDK
+   regression suite. The audited Better Intent branch does not currently contain the newer v2.3.0
+   mainline history.
 
 ### FastBridge
 
-1. Consume the SDK's structured terminal outcome instead of inferring it from UI state such as
-   `swapStep === "progress"`.
-2. Remove the early silent return for user rejection. A pre-commit rejection should close or reset
-   the flow without a failure receipt, while still recording `stopped`.
-3. Use stable SDK codes for classification. Keep text-pattern matching only as temporary backwards
+1. Consume a future SDK canonical terminal outcome. Commitment is now SDK-driven, but FastBridge
+   still owns terminal local-history and product-analytics decisions.
+2. Record `stopped` for pre-commit user cancellation. The UI and local-history behavior are fixed,
+   but the canonical analytics outcome contract is not implemented.
+3. Use stable SDK codes for quote and intent expiry. Keep text-pattern matching only as temporary backwards
    compatibility.
 4. Emit the same `attemptId` with every relevant product event.
 5. Record both observed and product-accountability outcomes for the native second-prompt case.
@@ -197,8 +264,33 @@ FastBridge must not parse those strings because provider wording can change.
    - short actionable copy for the user;
    - middleware code, subcode, error ID, and provider details under **Technical details**.
 
-FastBridge currently emits its own `deposit_failed` categories and estimates whether execution is
-active from the progress screen. This should be replaced by the SDK's commitment and outcome data.
+8. Rebase the branch onto current FastBridge `master`, resolve the six missing mainline commits, and
+   rerun the production build and manual flow matrix before merge.
+
+FastBridge still emits its own `deposit_failed` categories. Commitment is no longer inferred from
+the displayed screen, but canonical attempt outcome and correlation remain future work.
+
+## Release readiness audit
+
+The current error-classification behavior is internally consistent, but the branch should not be
+treated as ready to deploy until these integration items are resolved:
+
+| Check | Current result | Required action |
+| --- | --- | --- |
+| SDK typecheck, lint, dependency boundaries | Pass | None |
+| SDK tests | 187 passing | Rerun after mainline integration |
+| FastBridge focused compatibility/error tests | Pass | Add browser tests for wallet cancellation and quote refusal |
+| FastBridge production build | Pass | Rerun after branch integration |
+| FastBridge repository-wide lint | Fails with 347 errors and 15 warnings across the existing repository | Establish/fix the baseline before using repository-wide lint as a release gate; changed error files pass focused checks |
+| FastBridge versus current `master` | Branch is 6 commits behind | Rebase or merge current `master` |
+| Better Intent SDK versus current SDK `main` | Better Intent branch does not include v2.3.0 mainline history | Integrate main and resolve behavior/type conflicts |
+| FastBridge PR #72 | Contains Relay/provider-display/Scroll-removal work not present on this branch | Combine PR #72 with this branch's unsupported-token and structured-outcome fixes |
+| Structured provider failures | Not available | Backend change required only for precise provider-specific copy |
+| Canonical attempt outcome and ID | Not available | Cross-layer API/SDK/telemetry contract required |
+
+Structured provider failures are **not a blocker** for generic production-safe error handling. They
+are a blocker only for safely displaying exact provider facts such as a minimum amount without
+parsing unstable text.
 
 ## Before and after
 
@@ -277,8 +369,8 @@ For every case verify:
 The Nexus Telemetry Contract defines outcomes and commitment points, but the final cross-service
 reason-bucket taxonomy is still being defined. Before implementation is finalized, confirm:
 
-1. The canonical SDK public event shape. The telemetry attribute names are proposed in nexus-v2
-   PR #630, which is still open.
+1. The canonical SDK public attempt-outcome event shape. The telemetry attribute keys were merged
+   in nexus-v2 PR #630, but the telemetry document still marks the reason taxonomy as draft.
 2. The approved cross-service Reason taxonomy for product-event `error.code` values.
 3. How observed outcome and FastBridge accountability outcome are represented together.
 4. The structured schema for provider failures.
