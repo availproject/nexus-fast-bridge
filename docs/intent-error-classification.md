@@ -13,7 +13,8 @@ user commits is `rejected`, while an intent expiry after commitment is `failed`.
 
 ## Target event
 
-The SDK should expose enough information for a product to report one terminal event per attempt:
+The SDK should expose enough information for a product to report browser-authoritative pre-commit
+outcomes and consume middleware-authoritative post-commit outcomes:
 
 ```ts
 type IntentAttemptOutcome = "completed" | "stopped" | "rejected" | "failed";
@@ -36,8 +37,9 @@ type IntentAttemptResult = {
 };
 ```
 
-The exact public type can change during implementation, but these facts must not be reduced to a
-formatted error string.
+The exact public type still needs agreement. These facts must not be reduced to a formatted error
+string, and the SDK/FastBridge must not create a second canonical post-commit outcome when the
+middleware has already recorded one.
 
 ## Attempt outcomes
 
@@ -169,7 +171,8 @@ FastBridge must not parse those strings because provider wording can change.
 2. Reuse the attempt ID across requotes and later middleware calls until that attempt reaches a
    terminal outcome. A retry after a terminal outcome receives a new ID.
 3. Track whether the ERC20 or native commitment point has been crossed.
-4. Expose one terminal attempt outcome: `completed`, `stopped`, `rejected`, or `failed`.
+4. Expose the browser-authoritative pre-commit outcome and relay post-commit middleware status with
+   the same attempt ID. Do not emit a competing canonical post-commit result.
 5. Preserve structured errors in intent step events. The current `IntentEvent` exposes
    `error?: string`, which loses category, code, service, and middleware details.
 6. Add stable codes for quote expiry and post-commit intent expiry. FastBridge currently recognizes
