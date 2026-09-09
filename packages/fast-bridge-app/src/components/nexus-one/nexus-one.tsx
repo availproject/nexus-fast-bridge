@@ -52,6 +52,7 @@ import {
   adaptIntentEvent,
   adaptIntentHook,
   addIntentUsdValues,
+  extractIntentIdFromUrl,
   isBetterIntentProvider,
   isExternalIntentProvider,
   isTokenSupportedForRole,
@@ -156,7 +157,7 @@ interface SwapHistoryEntry {
   id: string;
   intentData: SwapIntentData | null;
   intentExplorerUrl?: string | null;
-  intentId?: number;
+  intentId?: string;
   mode: NexusOneMode;
   opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
@@ -519,6 +520,11 @@ const normalizeStoredHistoryEntry = (
     startedAt,
     failureMessage:
       entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
+    intentId:
+      typeof (entry as { intentId?: unknown }).intentId === "string" ||
+      typeof (entry as { intentId?: unknown }).intentId === "number"
+        ? String((entry as { intentId: string | number }).intentId)
+        : undefined,
     intentData: entry.intentData ?? null,
     fromTokens: Array.isArray(entry.fromTokens) ? entry.fromTokens : [],
     opportunity: sanitizeOpportunityForHistory(entry.opportunity),
@@ -823,14 +829,6 @@ const sortIntentSourcesByUsdDesc = (sources: SwapIntentData["sources"]) =>
     if (usdDelta !== 0) return usdDelta;
     return (a.token?.symbol ?? "").localeCompare(b.token?.symbol ?? "");
   });
-
-const extractIntentIdFromUrl = (url?: string | null) => {
-  if (!url) return undefined;
-  const match = url.match(/(\d+)(?:\/)?$/);
-  if (!match) return undefined;
-  const parsed = Number(match[1]);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-};
 
 const getNonEmptyString = (...values: unknown[]) => {
   for (const value of values) {
@@ -3431,7 +3429,9 @@ function NexusOneInner({
         })
         .catch((error) => {
           console.error("Failed to load constrained source catalog", error);
-          if (active) setSourceOptionCatalog(null);
+          // A failed constrained lookup must not fall back to the unrestricted
+          // catalog, which could expose sources incompatible with this output.
+          if (active) setSourceOptionCatalog([]);
         });
     }, 250);
     return () => {
@@ -3489,7 +3489,8 @@ function NexusOneInner({
             "Failed to load constrained destination catalog",
             error
           );
-          if (active) setDestinationOptionCatalog(null);
+          // Fail closed: null means unrestricted to selector consumers.
+          if (active) setDestinationOptionCatalog([]);
         });
     }, 250);
     return () => {
