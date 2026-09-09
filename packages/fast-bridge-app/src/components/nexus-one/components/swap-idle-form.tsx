@@ -7,6 +7,7 @@ import {
   getTotalBalance,
   getTotalBalanceInFiat,
 } from "../../nexus/balance-utils";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import { AddressIdenticon } from "./address-identicon";
 import { IntentProviderChip } from "./intent-provider-chip";
 import {
@@ -1349,9 +1350,20 @@ export function SwapIdleForm({
   };
 
   const feeAmountValue = React.useMemo(() => {
-    if (totalFeeUsd && parseDecimal(totalFeeUsd)?.gt(0)) {
-      const dec = parseDecimal(totalFeeUsd);
-      return dec && dec.lt(0.01) ? "0.00" : (dec?.toFixed(2) ?? "0.00");
+    const isBetterIntentFee = isBetterIntentProvider(
+      intentData?.bridgeProvider
+    );
+    const destinationUsdRate = toToken
+      ? parseDecimal(getTokenUsdRate?.(toToken))
+      : undefined;
+    const normalizedTotalUsd = parseDecimal(totalFeeUsd);
+    if (normalizedTotalUsd?.gte(0)) {
+      return normalizedTotalUsd.lt(0.01)
+        ? "0.00"
+        : normalizedTotalUsd.toFixed(2);
+    }
+    if (isBetterIntentFee && !destinationUsdRate?.gt(0)) {
+      return "--";
     }
     const rawBridge = intentData?.feesAndBuffer?.bridge;
     const bridgeTotal =
@@ -1359,10 +1371,14 @@ export function SwapIdleForm({
         ? parseDecimal(rawBridge)
         : parseDecimal(rawBridge?.total);
     if (bridgeTotal && bridgeTotal.gt(0)) {
-      return bridgeTotal.lt(0.01) ? "0.00" : bridgeTotal.toFixed(2);
+      const displayedTotal =
+        isBetterIntentFee && destinationUsdRate?.gt(0)
+          ? bridgeTotal.mul(destinationUsdRate)
+          : bridgeTotal;
+      return displayedTotal.lt(0.01) ? "0.00" : displayedTotal.toFixed(2);
     }
     return "0.00";
-  }, [intentData, totalFeeUsd]);
+  }, [getTokenUsdRate, intentData, toToken, totalFeeUsd]);
 
   // Fees breakdown for fees tooltip
   const feeBreakdown = React.useMemo(() => {
@@ -1387,10 +1403,23 @@ export function SwapIdleForm({
     const solverFee = parseDecimal(bridgeFeeData?.solver);
     const protocolFee = parseDecimal(bridgeFeeData?.protocol);
 
+    const isBetterIntentFee = isBetterIntentProvider(
+      intentData?.bridgeProvider
+    );
+    const destinationUsdRate = toToken
+      ? parseDecimal(getTokenUsdRate?.(toToken))
+      : undefined;
     const formatFeeStr = (dec: Decimal | undefined) => {
-      if (!dec || dec.lte(0)) return "$0.00";
-      if (dec.lt(0.01)) return "<$0.01";
-      return `$${dec.toFixed(2)}`;
+      if (isBetterIntentFee && !destinationUsdRate?.gt(0)) {
+        return "--";
+      }
+      const usdValue =
+        isBetterIntentFee && destinationUsdRate?.gt(0) && dec
+          ? dec.mul(destinationUsdRate)
+          : dec;
+      if (!usdValue || usdValue.lte(0)) return "$0.00";
+      if (usdValue.lt(0.01)) return "<$0.01";
+      return `$${usdValue.toFixed(2)}`;
     };
 
     return {
@@ -1399,7 +1428,7 @@ export function SwapIdleForm({
       protocolFees: formatFeeStr(protocolFee),
       solverFees: formatFeeStr(solverFee),
     };
-  }, [intentData, destinationGasFeeUsd]);
+  }, [destinationGasFeeUsd, getTokenUsdRate, intentData, toToken]);
 
   // Min received display for slippage tooltip
   const minReceivedDisplay = React.useMemo(() => {
@@ -3103,7 +3132,7 @@ export function SwapIdleForm({
                     lineHeight: "normal",
                   }}
                 >
-                  ${feeAmountValue}
+                  {feeAmountValue === "--" ? "--" : `$${feeAmountValue}`}
                 </span>
                 <div
                   onMouseEnter={() => setTooltip("fees-info")}
