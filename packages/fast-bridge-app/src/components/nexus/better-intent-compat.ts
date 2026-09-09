@@ -11,6 +11,7 @@ import type {
   NexusClient,
 } from "@avail-project/nexus-core";
 import { formatUnits } from "@avail-project/nexus-core/utils";
+import Decimal from "decimal.js";
 
 type SupportedChain = ReturnType<NexusClient["getSupportedChains"]>[number];
 type SupportedToken = SupportedChain["tokens"][number] & {
@@ -26,6 +27,7 @@ export const BETTER_INTENT_PROVIDERS: readonly IntentProvider[] = [
 
 /** Providers whose intents the Nexus Explorer does not index. */
 const EXTERNAL_INTENT_PROVIDERS: readonly IntentProvider[] = ["mayan", "relay"];
+const INTENT_ID_URL_PATTERN = /(?:^|\/)(0x[a-fA-F0-9]{64}|\d+)(?:\/)?$/;
 
 export const isBetterIntentProvider = (
   value: unknown
@@ -48,6 +50,15 @@ export const isExternalIntentProvider = (
 ): value is IntentProvider =>
   typeof value === "string" &&
   (EXTERNAL_INTENT_PROVIDERS as readonly string[]).includes(value);
+
+/** Extracts either a Better Intent hash or a legacy numeric ID from an explorer URL. */
+export const extractIntentIdFromUrl = (url?: string | null) => {
+  if (!url) {
+    return undefined;
+  }
+  const match = url.match(INTENT_ID_URL_PATTERN);
+  return match?.[1];
+};
 
 export type SupportedChainsAndTokensResult = Array<
   Omit<SupportedChain, "logo" | "tokens"> & {
@@ -120,7 +131,8 @@ export interface LegacyIntent {
     };
     value?: string;
   }>;
-  sourcesTotal: string;
+  /** Total source amount when every source uses the same token symbol. */
+  sourcesTotal?: string;
 }
 
 export const addIntentUsdValues = (
@@ -313,10 +325,24 @@ export const normalizeIntentQuote = (
       },
     };
   });
-  const sourceTotalRaw = quote.input.reduce(
-    (total, entry) => total + entry.totalRequiredRaw,
-    0n
+  const sourceSymbols = new Set(
+    quote.input.map((entry) => entry.tokenSymbol.trim().toUpperCase())
   );
+  const sourcesTotal =
+    sourceSymbols.size === 1
+      ? quote.input
+          .reduce(
+            (total, entry, index) =>
+              total.plus(
+                formatUnits(
+                  entry.totalRequiredRaw,
+                  sources[index]?.token.decimals ?? outputDecimals
+                )
+              ),
+            new Decimal(0)
+          )
+          .toString()
+      : undefined;
   const displayedFeeTotalRaw =
     quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
 
@@ -357,10 +383,7 @@ export const normalizeIntentQuote = (
       },
     },
     sources,
-    sourcesTotal: formatUnits(
-      sourceTotalRaw,
-      sources[0]?.token.decimals ?? outputDecimals
-    ),
+    ...(sourcesTotal === undefined ? {} : { sourcesTotal }),
   };
 };
 
