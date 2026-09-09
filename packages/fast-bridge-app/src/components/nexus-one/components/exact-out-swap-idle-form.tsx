@@ -3,6 +3,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AddressIdenticon } from "./address-identicon";
 import { EstimatedFeesDisclosure } from "./estimated-fees-disclosure";
+import { IntentProviderChip } from "./intent-provider-chip";
 import {
   formatSelectedTokenBalanceLabel,
   type SwapTokenOption,
@@ -792,6 +793,8 @@ export function ExactOutSwapIdleForm({
             {routeMessage}
           </span>
         )}
+
+        <IntentProviderChip provider={intentData?.bridgeProvider} />
 
         <EstimatedFeesDisclosure
           destinationGasFeeUsd={destinationGasFeeUsd}

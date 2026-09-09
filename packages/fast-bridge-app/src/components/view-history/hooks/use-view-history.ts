@@ -33,11 +33,6 @@ interface NexusIntentRecord {
   status: NexusIntentStatus;
 }
 
-interface NexusIntentListResult {
-  intents: NexusIntentRecord[];
-  total: number;
-}
-
 export interface IntentHistoryItem {
   destinationChain?: NexusIntentRecord["destinationChain"];
   destinations: NexusIntentRecord["destinations"];
@@ -49,23 +44,14 @@ export interface IntentHistoryItem {
   status: NexusIntentStatus;
 }
 
-interface IntentHistoryClient {
-  listIntents?: (params?: {
-    page?: number;
-    status?: NexusIntentStatus;
-  }) => Promise<NexusIntentListResult | null | undefined>;
-}
-
 const normalizeIntentRecord = (
-  intent: NexusIntentRecord
+  intent: IntentHistoryRecord
 ): IntentHistoryItem => ({
-  destinationChain: intent.destinationChain,
-  destinations: intent.destinations ?? [],
-  expiry: intent.expiry,
+  destinations: [],
+  expiry: intent.updatedAt ?? intent.createdAt ?? 0,
   explorerUrl: intent.explorerUrl,
-  id: intent.requestHash,
-  requestHash: intent.requestHash,
-  sources: intent.sources,
+  id: intent.id,
+  requestHash: intent.id,
   status: intent.status,
 });
 
@@ -100,22 +86,12 @@ const useViewHistory = () => {
       return;
     }
     try {
-      const historyClient = nexusSDK as IntentHistoryClient;
-      if (typeof historyClient.listIntents !== "function") {
-        setLoadError(null);
-        setHistory([]);
-        setDisplayedHistory([]);
-        setPage(0);
-        setHasMore(false);
-        return;
-      }
-
       const nextHistory: IntentHistoryItem[] = [];
       let currentPage = 1;
       let total = Number.POSITIVE_INFINITY;
 
       while (nextHistory.length < total) {
-        const result = await historyClient.listIntents({ page: currentPage });
+        const result = await nexusSDK.listIntents({ page: currentPage });
         const intents = result?.intents ?? [];
         total = Number.isFinite(result?.total)
           ? (result?.total ?? intents.length)
@@ -251,3 +227,5 @@ const useViewHistory = () => {
 };
 
 export default useViewHistory;
+
+import type { IntentHistoryRecord } from "@avail-project/nexus-core";

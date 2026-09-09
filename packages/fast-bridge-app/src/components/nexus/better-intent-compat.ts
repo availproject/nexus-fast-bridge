@@ -1,0 +1,487 @@
+import type {
+  IntentAllowanceHookData,
+  IntentBalance,
+  IntentEvent,
+  IntentHookData,
+  IntentProvider,
+  IntentQuote,
+  IntentRouteConstraints,
+  IntentSource,
+  IntentStepError,
+  NexusClient,
+} from "@avail-project/nexus-core";
+import { formatUnits } from "@avail-project/nexus-core/utils";
+import Decimal from "decimal.js";
+
+type SupportedChain = ReturnType<NexusClient["getSupportedChains"]>[number];
+type SupportedToken = SupportedChain["tokens"][number] & {
+  contractAddress: `0x${string}`;
+};
+
+/** Providers the Better Intent middleware can name on a quote, status, or catalog entry. */
+export const BETTER_INTENT_PROVIDERS: readonly IntentProvider[] = [
+  "nexus-v2",
+  "mayan",
+  "relay",
+];
+
+/** Providers whose intents the Nexus Explorer does not index. */
+const EXTERNAL_INTENT_PROVIDERS: readonly IntentProvider[] = ["mayan", "relay"];
+const INTENT_ID_URL_PATTERN = /(?:^|\/)(0x[a-fA-F0-9]{64}|\d+)(?:\/)?$/;
+
+export const isBetterIntentProvider = (
+  value: unknown
+): value is IntentProvider =>
+  typeof value === "string" &&
+  (BETTER_INTENT_PROVIDERS as readonly string[]).includes(value);
+
+const INTENT_PROVIDER_LABELS: Record<IntentProvider, string> = {
+  "nexus-v2": "Nexus",
+  mayan: "Mayan",
+  relay: "Relay",
+};
+
+/** Display name for the provider a quote was routed through, or undefined if it is not one. */
+export const formatIntentProviderName = (value: unknown): string | undefined =>
+  isBetterIntentProvider(value) ? INTENT_PROVIDER_LABELS[value] : undefined;
+
+export const isExternalIntentProvider = (
+  value: unknown
+): value is IntentProvider =>
+  typeof value === "string" &&
+  (EXTERNAL_INTENT_PROVIDERS as readonly string[]).includes(value);
+
+/** Extracts either a Better Intent hash or a legacy numeric ID from an explorer URL. */
+export const extractIntentIdFromUrl = (url?: string | null) => {
+  if (!url) {
+    return undefined;
+  }
+  const match = url.match(INTENT_ID_URL_PATTERN);
+  return match?.[1];
+};
+
+export type SupportedChainsAndTokensResult = Array<
+  Omit<SupportedChain, "logo" | "tokens"> & {
+    logo: string;
+    swapSupported: boolean;
+    tokens: SupportedToken[];
+  }
+>;
+
+export interface ChainBalance {
+  balance: string;
+  chain: { id: number; logo: string; name: string };
+  contractAddress: `0x${string}`;
+  decimals: number;
+  symbol: string;
+  universe: "EVM";
+  value: string;
+}
+
+export interface TokenBalance {
+  balance: string;
+  chainBalances: ChainBalance[];
+  decimals: number;
+  logo: string;
+  name: string;
+  symbol: string;
+  value: string;
+}
+
+export interface LegacyIntent {
+  bridgeProvider: string | null;
+  destination: {
+    amount: string;
+    value?: string;
+    chain: { id: number; logo: string; name: string };
+    token: {
+      contractAddress: `0x${string}`;
+      decimals: number;
+      logo?: string;
+      symbol: string;
+    };
+    gas: {
+      amount: string;
+      token: {
+        contractAddress: `0x${string}`;
+        decimals: number;
+        symbol: string;
+      };
+    };
+  };
+  feesAndBuffer: {
+    buffer: string;
+    bridge: {
+      caGas: string;
+      protocol: string;
+      solver: string;
+      total: string;
+    };
+  };
+  sources: Array<{
+    amount: string;
+    /** Stable index assigned by the Better Intent quote and used by status legs. */
+    sourceIndex: number;
+    chain: { id: number; logo: string; name: string };
+    token: {
+      contractAddress: `0x${string}`;
+      decimals: number;
+      logo?: string;
+      symbol: string;
+    };
+    value?: string;
+  }>;
+  /** Total source amount when every source uses the same token symbol. */
+  sourcesTotal?: string;
+}
+
+export const addIntentUsdValues = (
+  intent: LegacyIntent,
+  getUsdRate: (symbol: string) => number
+): LegacyIntent => {
+  const destinationRate = getUsdRate(intent.destination.token.symbol);
+  const destinationAmount = Number(intent.destination.amount);
+  return {
+    ...intent,
+    destination: {
+      ...intent.destination,
+      value:
+        destinationRate > 0 && Number.isFinite(destinationAmount)
+          ? String(destinationAmount * destinationRate)
+          : intent.destination.value,
+    },
+    // Better Intent fee fields are denominated in the destination token.
+    // Keep them in that unit here so consumers can convert exactly once.
+    feesAndBuffer: intent.feesAndBuffer,
+    sources: intent.sources.map((source) => {
+      const rate = getUsdRate(source.token.symbol);
+      const amount = Number(source.amount);
+      return {
+        ...source,
+        value:
+          rate > 0 && Number.isFinite(amount)
+            ? String(amount * rate)
+            : source.value,
+      };
+    }),
+  };
+};
+
+export interface LegacyIntentHookData {
+  allow: () => void;
+  deny: () => void;
+  intent: LegacyIntent;
+  refresh: (sources?: number[] | IntentSource[]) => Promise<LegacyIntent>;
+}
+
+export interface LegacyAllowanceHookData {
+  allow: IntentAllowanceHookData["allow"];
+  deny: () => void;
+  sources: Array<{
+    allowance: {
+      current: string;
+      currentRaw: bigint;
+      minimum: string;
+      minimumRaw: bigint;
+    };
+    chain: { id: number; logo: string; name: string };
+    holderAddress: `0x${string}`;
+    token: {
+      contractAddress: `0x${string}`;
+      decimals: number;
+      logo?: string;
+      symbol: string;
+    };
+  }>;
+}
+
+const sameAddress = (left: string, right: string) =>
+  left.toLowerCase() === right.toLowerCase();
+
+const chainById = (chains: SupportedChainsAndTokensResult, chainId: number) =>
+  chains.find((chain) => chain.id === chainId);
+
+const tokenByAddress = (
+  chains: SupportedChainsAndTokensResult,
+  chainId: number,
+  address: string
+) =>
+  chainById(chains, chainId)?.tokens.find((token) =>
+    sameAddress(token.address, address)
+  );
+
+export const normalizeSupportedChains = (
+  chains: ReturnType<NexusClient["getSupportedChains"]>
+): SupportedChainsAndTokensResult =>
+  chains.map((chain) => ({
+    ...chain,
+    logo: chain.logo ?? "",
+    swapSupported: chain.capabilities.intent,
+    tokens: chain.tokens.map((token) => ({
+      ...token,
+      contractAddress: token.address,
+    })),
+  }));
+
+export const isTokenSupportedForRole = (
+  chains: SupportedChainsAndTokensResult | null | undefined,
+  role: "source" | "destination",
+  chainId: number | undefined,
+  tokenAddress: string
+): boolean => {
+  if (!chains || chainId === undefined) {
+    return true;
+  }
+  const token = tokenByAddress(chains, chainId, tokenAddress);
+  if (!token) {
+    return false;
+  }
+  const directional = role === "source" ? token.asSource : token.asDestination;
+  return (directional ?? token.providers).length > 0;
+};
+
+export type GetRouteSupportedChains = (
+  constraints: IntentRouteConstraints
+) => Promise<SupportedChainsAndTokensResult>;
+
+export const normalizeIntentBalances = (
+  balances: IntentBalance[],
+  chains: SupportedChainsAndTokensResult
+): TokenBalance[] => {
+  const grouped = new Map<string, TokenBalance>();
+
+  for (const entry of balances) {
+    if (!entry.usable) {
+      continue;
+    }
+    const readable = formatUnits(entry.balanceRaw, entry.decimals);
+    const chain = chainById(chains, entry.chainId);
+    const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
+    const identity = `${entry.symbol.toUpperCase()}:${entry.decimals}`;
+    const chainBalance: ChainBalance = {
+      balance: readable,
+      value: String(entry.valueUsd ?? 0),
+      symbol: entry.symbol,
+      chain: {
+        id: entry.chainId,
+        logo: chain?.logo ?? "",
+        name: chain?.name ?? `Chain ${entry.chainId}`,
+      },
+      contractAddress: entry.tokenAddress,
+      decimals: entry.decimals,
+      universe: "EVM",
+    };
+    const existing = grouped.get(identity);
+    if (existing) {
+      existing.chainBalances.push(chainBalance);
+      existing.balance = String(Number(existing.balance) + Number(readable));
+      existing.value = String(
+        Number(existing.value) + Number(entry.valueUsd ?? 0)
+      );
+      continue;
+    }
+    grouped.set(identity, {
+      balance: readable,
+      value: String(entry.valueUsd ?? 0),
+      chainBalances: [chainBalance],
+      decimals: entry.decimals,
+      logo: token?.logo ?? entry.logo ?? "",
+      name: entry.name,
+      symbol: entry.symbol,
+    });
+  }
+
+  return [...grouped.values()];
+};
+
+export const normalizeIntentQuote = (
+  quote: IntentQuote,
+  chains: SupportedChainsAndTokensResult
+): LegacyIntent => {
+  const outputChain = chainById(chains, quote.output.chainId);
+  const outputToken = tokenByAddress(
+    chains,
+    quote.output.chainId,
+    quote.output.tokenAddress
+  );
+  const outputDecimals = outputToken?.decimals ?? 18;
+  const sources = quote.input.map((entry, sourceIndex) => {
+    const chain = chainById(chains, entry.chainId);
+    const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
+    const decimals = token?.decimals ?? outputDecimals;
+    return {
+      amount: formatUnits(entry.amountRaw, decimals),
+      sourceIndex,
+      chain: {
+        id: entry.chainId,
+        logo: chain?.logo ?? "",
+        name: chain?.name ?? `Chain ${entry.chainId}`,
+      },
+      token: {
+        contractAddress: entry.tokenAddress,
+        decimals,
+        logo: token?.logo,
+        symbol: entry.tokenSymbol,
+      },
+    };
+  });
+  const sourceSymbols = new Set(
+    quote.input.map((entry) => entry.tokenSymbol.trim().toUpperCase())
+  );
+  const sourcesTotal =
+    sourceSymbols.size === 1
+      ? quote.input
+          .reduce(
+            (total, entry, index) =>
+              total.plus(
+                formatUnits(
+                  entry.totalRequiredRaw,
+                  sources[index]?.token.decimals ?? outputDecimals
+                )
+              ),
+            new Decimal(0)
+          )
+          .toString()
+      : undefined;
+  const displayedFeeTotalRaw =
+    quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
+
+  return {
+    bridgeProvider: quote.provider,
+    destination: {
+      amount: formatUnits(quote.output.amountRaw, outputDecimals),
+      chain: {
+        id: quote.output.chainId,
+        logo: outputChain?.logo ?? "",
+        name: outputChain?.name ?? `Chain ${quote.output.chainId}`,
+      },
+      token: {
+        contractAddress: quote.output.tokenAddress,
+        decimals: outputDecimals,
+        logo: outputToken?.logo,
+        symbol: outputToken?.symbol ?? "",
+      },
+      gas: {
+        amount: "0",
+        token: {
+          contractAddress: "0x0000000000000000000000000000000000000000",
+          decimals: outputChain?.nativeCurrency.decimals ?? 18,
+          symbol: outputChain?.nativeCurrency.symbol ?? "",
+        },
+      },
+    },
+    feesAndBuffer: {
+      buffer: "0",
+      bridge: {
+        // The legacy UI reads `caGas` as its network-fee slot. Better Intent's
+        // source-side network fee is `depositRaw`; `caGasRaw` is not shown
+        // separately because it can overlap other fee components.
+        caGas: formatUnits(quote.fees.depositRaw, outputDecimals),
+        protocol: formatUnits(quote.fees.protocolRaw, outputDecimals),
+        solver: formatUnits(quote.fees.solverRaw, outputDecimals),
+        total: formatUnits(displayedFeeTotalRaw, outputDecimals),
+      },
+    },
+    sources,
+    ...(sourcesTotal === undefined ? {} : { sourcesTotal }),
+  };
+};
+
+const normalizeRefreshSources = (
+  sources: number[] | IntentSource[] | undefined,
+  quote: IntentQuote
+): IntentSource[] | undefined => {
+  if (!sources || sources.length === 0) {
+    return undefined;
+  }
+  if (typeof sources[0] !== "number") {
+    return sources as IntentSource[];
+  }
+  return (sources as number[]).flatMap((chainId) => {
+    const input = quote.input.find((entry) => entry.chainId === chainId);
+    return input ? [{ chainId, tokenAddress: input.tokenAddress }] : [];
+  });
+};
+
+export const adaptIntentHook = (
+  data: IntentHookData,
+  chains: SupportedChainsAndTokensResult
+): LegacyIntentHookData => ({
+  allow: data.allow,
+  deny: data.deny,
+  intent: normalizeIntentQuote(data.quote, chains),
+  refresh: async (sources) =>
+    normalizeIntentQuote(
+      await data.refresh(normalizeRefreshSources(sources, data.quote)),
+      chains
+    ),
+});
+
+export const adaptAllowanceHook = (
+  data: IntentAllowanceHookData,
+  chains: SupportedChainsAndTokensResult
+): LegacyAllowanceHookData => ({
+  allow: data.allow,
+  deny: data.deny,
+  sources: data.allowances.map((allowance) => {
+    const chain = chainById(chains, allowance.chainId);
+    const token = tokenByAddress(
+      chains,
+      allowance.chainId,
+      allowance.tokenAddress
+    );
+    const decimals = token?.decimals ?? 18;
+    return {
+      allowance: {
+        current: formatUnits(allowance.currentRaw, decimals),
+        currentRaw: allowance.currentRaw,
+        minimum: formatUnits(allowance.requiredRaw, decimals),
+        minimumRaw: allowance.requiredRaw,
+      },
+      chain: {
+        id: allowance.chainId,
+        logo: chain?.logo ?? "",
+        name: chain?.name ?? `Chain ${allowance.chainId}`,
+      },
+      holderAddress: allowance.owner,
+      token: {
+        contractAddress: allowance.tokenAddress,
+        decimals,
+        logo: token?.logo,
+        symbol: token?.symbol ?? "",
+      },
+    };
+  }),
+});
+
+export type LegacyPlanEvent =
+  | { type: "plan_preview"; plan: { steps: IntentQuote["plan"]["steps"] } }
+  | { type: "plan_confirmed"; plan: { steps: IntentQuote["plan"]["steps"] } }
+  | {
+      type: "plan_progress";
+      stepType: string;
+      state: string;
+      step: IntentQuote["plan"]["steps"][number];
+      committed?: boolean;
+      error?: unknown;
+      errorDetails?: IntentStepError;
+    }
+  | IntentEvent;
+
+export const adaptIntentEvent = (event: IntentEvent): LegacyPlanEvent => {
+  if (event.type === "quote") {
+    return { type: "plan_preview", plan: event.quote.plan };
+  }
+  if (event.type === "step") {
+    return {
+      type: "plan_progress",
+      stepType: event.step.type,
+      state: event.state,
+      step: event.step,
+      committed: event.committed,
+      error: event.errorDetails ?? event.error,
+      errorDetails: event.errorDetails,
+    };
+  }
+  return event;
+};

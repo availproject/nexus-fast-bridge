@@ -19,6 +19,10 @@ import {
   getShortChainName,
   isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
+import {
+  isTokenSupportedForRole,
+  type SupportedChainsAndTokensResult,
+} from "../../nexus/better-intent-compat";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
@@ -42,6 +46,7 @@ interface ReceiveAssetSelectorProps {
   needsWalletConnection?: boolean;
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
+  routeSupportedChains?: SupportedChainsAndTokensResult | null;
   selectedToken?: SwapTokenOption;
 }
 
@@ -602,6 +607,7 @@ export function ReceiveAssetSelector({
   selectedToken,
   excludedTokens = [],
   needsWalletConnection = false,
+  routeSupportedChains,
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -761,15 +767,45 @@ export function ReceiveAssetSelector({
   }, [swapBalance, swapSupportedChainsAndTokens]);
 
   const tokensWithBalances = useMemo(() => {
-    return apiTokens.map((token) => {
+    if (!swapSupportedChainsAndTokens) {
+      return [];
+    }
+
+    return apiTokens.flatMap((token) => {
+      if (
+        !isTokenSupportedForRole(
+          swapSupportedChainsAndTokens,
+          "destination",
+          token.chainId,
+          token.contractAddress
+        )
+      ) {
+        return [];
+      }
+
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
-      return balance
-        ? { ...token, ...balance }
-        : { ...token, hasBalance: false };
+      const disabledReason = isTokenSupportedForRole(
+        routeSupportedChains,
+        "destination",
+        token.chainId,
+        token.contractAddress
+      )
+        ? undefined
+        : "Unavailable for the selected source";
+      return [
+        balance
+          ? { ...token, ...balance, disabledReason }
+          : { ...token, hasBalance: false, disabledReason },
+      ];
     });
-  }, [apiTokens, balanceMap]);
+  }, [
+    apiTokens,
+    balanceMap,
+    routeSupportedChains,
+    swapSupportedChainsAndTokens,
+  ]);
 
   useEffect(() => {
     const handleGlobalClick = () => setTooltipState(null);
@@ -1686,10 +1722,13 @@ export function ReceiveAssetSelector({
                   );
                   const hasBalance =
                     Number.isFinite(numericBalance) && numericBalance > 0;
+                  const disabled = Boolean(t.disabledReason);
                   return (
                     <button
+                      disabled={disabled}
                       key={hash}
                       onClick={() => {
+                        if (disabled) return;
                         setSelectedTokenHash(hash);
                         setSelectedTokenFull(t);
                         onSelect(t);
@@ -1701,11 +1740,12 @@ export function ReceiveAssetSelector({
                         border: "none",
                         borderBottom: "1px solid #F0F0EF",
                         boxSizing: "border-box",
-                        cursor: "pointer",
+                        cursor: disabled ? "not-allowed" : "pointer",
                         display: "flex",
                         justifyContent: "space-between",
                         padding: "10px 14px",
                         width: "100%",
+                        opacity: disabled ? 0.5 : 1,
                       }}
                       type="button"
                     >
