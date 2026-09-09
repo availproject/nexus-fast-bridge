@@ -919,7 +919,7 @@ export default function TopCrossChainBridgesPage() {
               </p>
               <a
                 className="site-footer__cta"
-                href="https://docs.availproject.org/docs/nexus/get-started"
+                href="https://widgets.availproject.org/docs/components/swaps"
                 rel="noopener noreferrer"
                 target="_blank"
               >
