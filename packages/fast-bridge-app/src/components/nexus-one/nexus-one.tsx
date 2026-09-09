@@ -10562,10 +10562,17 @@ function NexusOneInner({
       !reversedTokenSelection
     )
       return;
+    const retainedSourceAmount =
+      reversedTokenSelection.fromTokens[0]?.userAmount ?? "";
     syncingIntentSourcesRef.current = false;
     maxPercentRunRef.current += 1;
     clearPendingSwapIntent();
-    setAmount("");
+    setAmount(retainedSourceAmount);
+    if (retainedSourceAmount && swapType !== "exactIn") {
+      // A retained source input must drive the new quote, not the old receive amount.
+      setSwapType("exactIn");
+      writeSwapParam("in");
+    }
     setReceiveAmountIssue(null);
     setMaxCalculationPercent(null);
     setFromTokens(

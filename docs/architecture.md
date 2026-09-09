@@ -56,7 +56,7 @@ When a new behavior difference is required, extend `ChainFeatures`, add a safe f
 
 - `components/nexus/balance-utils.ts` normalizes both SDK balance APIs. Display wallet holdings from `totalBalance`; use `usableBalance` for inputs, percentages, MAX, source allocation, and quote validation. The UI token option's legacy `balance` field always means usable funds.
 - SDK `value` describes usable funds in USD. Display USD totals use the corresponding unit price and total holding, with cached rates as a fallback. Token amounts retain decimal precision through aggregation.
-- Single-mode direction reversal swaps both tokens and chains, clears amounts and invalidates the previous quote. Unified or incomplete selections cannot be reversed.
+- Single-mode direction reversal swaps both tokens and chains and keeps the source input's amount and token/USD mode. It clears the old receive amount, cached USD value, percentage and quote, then validates the retained input against the new source's usable balance. A retained source amount drives an exact-input quote. Unified or incomplete selections cannot be reversed.
 - Done after either success or failure clears amounts, percentages and quotes. Single mode keeps both token selections; multi mode keeps the destination and clears sources.
 - `lib/user-facing-error.ts` supplies readable reasons for receipts, alerts and connection errors. It strips sensitive payloads and developer diagnostics. An unknown transaction status is not proof of a refund or of funds being in a wallet.
 

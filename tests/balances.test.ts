@@ -175,7 +175,7 @@ test("reserved-only assets without a price keep their token total and do not bec
   assert.equal(isAmountAboveUsableBalance(normalized, "0.0001"), true);
 });
 
-test("Done and reverse preserve the two balances without restoring entered amounts", () => {
+test("Done clears amounts and reverse retains the source amount while preserving both balances", () => {
   const tokens = deriveTokenOptions([
     normalize([
       chain(),
@@ -200,5 +200,5 @@ test("Done and reverse preserve the two balances without restoring entered amoun
   assert.ok(reversed);
   assert.equal(reversed.fromTokens[0].totalBalance, "0.1");
   assert.equal(reversed.fromTokens[0].balance, "0.09");
-  assert.equal(reversed.fromTokens[0].userAmount, "");
+  assert.equal(reversed.fromTokens[0].userAmount, "0.01");
 });

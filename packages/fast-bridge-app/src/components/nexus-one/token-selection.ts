@@ -45,7 +45,14 @@ export function reverseTokenSelection(
     return undefined;
   }
   return {
-    fromTokens: [clearTokenInput(destination)],
+    fromTokens: [
+      {
+        ...clearTokenInput(destination),
+        // The input stays in the source panel; its quote and percentage do not.
+        userAmount: source.userAmount ?? "",
+        userAmountMode: source.userAmountMode ?? "token",
+      },
+    ],
     toToken: clearTokenInput(source),
   };
 }
