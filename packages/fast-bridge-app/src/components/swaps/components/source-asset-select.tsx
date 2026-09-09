@@ -1,4 +1,5 @@
 "use client";
+
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { Link2, Loader2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
@@ -7,6 +8,10 @@ import {
   isSwapSupportedBySdkChainList,
   SHORT_CHAIN_NAME,
 } from "../../common";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+} from "../../nexus/balance-utils";
 import { type UserAsset, useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { DialogClose } from "../../ui/dialog";
@@ -62,7 +67,7 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
         ) {
           continue;
         }
-        if (Number.parseFloat(breakdown.balance) <= 0) {
+        if (Number.parseFloat(getTotalBalance(breakdown)) <= 0) {
           continue;
         }
         const tokenSymbol = breakdown.symbol;
@@ -82,11 +87,11 @@ const SourceAssetSelect: FC<SourceAssetSelectProps> = ({
           logo: tokenLogo,
           name: tokenSymbol,
           symbol: tokenSymbol,
-          balance: formatTokenBalance(breakdown?.balance, {
+          balance: formatTokenBalance(getTotalBalance(breakdown), {
             symbol: tokenSymbol,
             decimals: breakdown.decimals ?? asset.decimals,
           }),
-          balanceInFiat: `$${breakdown.balanceInFiat}`,
+          balanceInFiat: `$${getTotalBalanceInFiat(breakdown)}`,
           chainId: breakdown.chain?.id,
         });
       }

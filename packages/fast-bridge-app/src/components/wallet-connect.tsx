@@ -1,4 +1,7 @@
-"use client";
+import { getUserFacingError } from "@/lib/user-facing-error";
+
+("use client");
+
 import type { EthereumProvider } from "@avail-project/nexus-core";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -116,7 +119,10 @@ export function PreviewPanel({ children }: Readonly<PreviewPanelProps>) {
       console.log("[Nexus Init] Initialization successful!");
     } catch (error) {
       console.error("[Nexus Init] Initialization failed:", error);
-      const errorMessage = (error as Error)?.message || "Unknown error";
+      const errorMessage = getUserFacingError(
+        error,
+        "We couldn't connect your wallet. Unlock it and try again."
+      );
       setInitError(errorMessage);
       toast.error(errorMessage);
     } finally {

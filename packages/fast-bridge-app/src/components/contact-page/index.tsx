@@ -1,6 +1,7 @@
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getUserFacingError } from "@/lib/user-facing-error";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
@@ -119,10 +120,18 @@ export default function ContactPage() {
         return;
       }
 
-      setError(result.error || "Form submission failed. Please try again.");
-    } catch {
       setError(
-        "Something went wrong. Please try again or email us directly at support@availproject.org"
+        getUserFacingError(
+          result.error,
+          "Your message couldn't be sent. Please try again."
+        )
+      );
+    } catch (error) {
+      setError(
+        getUserFacingError(
+          error,
+          "Your message couldn't be sent. Check your connection and try again."
+        )
       );
     } finally {
       setIsSubmitting(false);

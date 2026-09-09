@@ -31,8 +31,21 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
+import { asRecord } from "@/lib/error-safety";
 import { reportConnectWalletConversion } from "@/lib/google-tag";
+import {
+  createSdkEventHandler,
+  executeWithAppEvents,
+  isIntentHookDenial,
+  isPlanStepComplete,
+  normalizePlanStep,
+} from "@/lib/nexus-events";
 import { readSwapParam, writeSwapParam } from "@/lib/url-params";
+import {
+  getReceiptErrorMessage,
+  getUserFacingError,
+  TRANSACTION_STATUS_MESSAGE,
+} from "@/lib/user-facing-error";
 import { useRuntime } from "@/providers/runtime-context";
 import { ErrorBoundary } from "../common/components/error-boundary";
 import { useTransactionSteps } from "../common/tx/use-transaction-steps";
@@ -48,6 +61,13 @@ import {
   TOKEN_CONTRACT_ADDRESSES,
   TOKEN_METADATA,
 } from "../common/utils/constant";
+import {
+  getTotalBalanceInFiat,
+  isAmountAboveUsableBalance,
+  sumTokenOptionBalances,
+  type TokenOptionBalances,
+  toTokenOptionBalances,
+} from "../nexus/balance-utils";
 import { type UserAsset, useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
@@ -82,8 +102,8 @@ import {
   SwapIntentPreview,
   type SwapIntentSource,
 } from "./components/swap-intent-preview";
-
 import { nexusOneTheme } from "./theme";
+import { retainTokenSelection, reverseTokenSelection } from "./token-selection";
 import {
   type NexusOneDepositConfig,
   type NexusOneDepositMetadata,
@@ -258,7 +278,6 @@ const PROGRESS_EVENT_NAMES = {
   SWAP_PLAN_LIST: "swap_plan_list",
   SWAP_PLAN_PROGRESS: "swap_plan_progress",
 } as const;
-const PLAN_FINAL_STATES = new Set(["completed", "confirmed", "success"]);
 const PLAN_STEP_FUNDS_MOVED_STATES = new Set([
   "completed",
   "confirmed",
@@ -450,6 +469,10 @@ const sanitizeOpportunityForHistory = (
 const sanitizeHistoryEntry = (entry: SwapHistoryEntry): SwapHistoryEntry => ({
   ...entry,
   createdAt: entry.createdAt ?? entry.startedAt ?? Date.now(),
+  error: entry.error ? getReceiptErrorMessage(entry) : undefined,
+  failureDescription: entry.failureDescription
+    ? getUserFacingError(entry.failureDescription, TRANSACTION_STATUS_MESSAGE)
+    : undefined,
   failureMessage:
     entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
   opportunity: sanitizeOpportunityForHistory(entry.opportunity),
@@ -500,11 +523,21 @@ const normalizeStoredHistoryEntry = (
     ...entry,
     id: entry.id,
     mode: entry.mode,
-    status: entry.status,
+    // Older clients inferred refunds from step names; that is not SDK evidence.
+    status: entry.status === "refund-initiated" ? "failed" : entry.status,
+    autoRefundAvailable: false,
     createdAt,
     startedAt,
+    error: entry.error ? getReceiptErrorMessage(entry) : undefined,
+    failureDescription: entry.failureDescription
+      ? getUserFacingError(entry.failureDescription, TRANSACTION_STATUS_MESSAGE)
+      : undefined,
     failureMessage:
-      entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
+      entry.status === "timeout"
+        ? TIMEOUT_LABEL
+        : entry.autoRefundAvailable || entry.status === "refund-initiated"
+          ? "Transfer failed. Check transaction status."
+          : entry.failureMessage,
     intentData: entry.intentData ?? null,
     fromTokens: Array.isArray(entry.fromTokens) ? entry.fromTokens : [],
     opportunity: sanitizeOpportunityForHistory(entry.opportunity),
@@ -1504,14 +1537,7 @@ const mergeHistorySourceRows = (rows: HistorySourceRow[]) => {
 const getProgressStepType = (step?: SwapStepType | BridgeStepType | null) =>
   String((step as any)?.type ?? (step as any)?.typeID ?? "").toUpperCase();
 
-const isBridgeRefundStepType = (type: string) =>
-  type.includes("BRIDGE_INTENT_SUBMISSION") || type.includes("BRIDGE_DEPOSIT");
-
 const isSwapSkippedStepType = (type: string) => type.includes("SWAP_SKIPPED");
-
-const isAutoRefundAvailableProgressEvent = (event?: NexusOneProgressEvent) =>
-  event?.name === PROGRESS_EVENT_NAMES.SWAP_PLAN_PROGRESS &&
-  isBridgeRefundStepType(getProgressStepType(event.step));
 
 const normalizeBridgeProvider = (
   value: unknown
@@ -1669,58 +1695,6 @@ const normalizeRenderableSwapIntentData = (
   return bridgeProvider === undefined
     ? normalized
     : { ...normalized, bridgeProvider };
-};
-
-const normalizePlanStepType = (stepType: unknown, state?: unknown) => {
-  const normalized = String(stepType ?? "").toLowerCase();
-  const normalizedState = String(state ?? "").toLowerCase();
-
-  if (normalized === "execute_transaction") {
-    return normalizedState === "confirmed" || normalizedState === "completed"
-      ? "TRANSACTION_CONFIRMED"
-      : "TRANSACTION_SENT";
-  }
-
-  const mapped: Record<string, string> = {
-    allowance_approval: "APPROVAL",
-    bridge_deposit: "BRIDGE_DEPOSIT",
-    bridge_fill: "BRIDGE_FILL",
-    bridge_intent_submission: "BRIDGE_INTENT_SUBMISSION",
-    destination_swap: "DESTINATION_SWAP",
-    eoa_to_ephemeral_transfer: "EOA_TO_EPHEMERAL_TRANSFER",
-    execute_approval: "APPROVAL",
-    request_signing: "REQUEST_SIGNING",
-    request_submission: "REQUEST_SUBMISSION",
-    source_swap: "SOURCE_SWAP",
-    vault_deposit: "BRIDGE_DEPOSIT",
-  };
-
-  return mapped[normalized] ?? normalized.toUpperCase();
-};
-
-const normalizePlanStep = (
-  stepLike: unknown,
-  fallbackStepType?: unknown,
-  state?: unknown,
-  completed?: boolean
-): SwapStepType | BridgeStepType => {
-  const source =
-    stepLike && typeof stepLike === "object" ? (stepLike as any) : {};
-  const rawStepType = fallbackStepType ?? source.stepType ?? source.type;
-  const progressType = normalizePlanStepType(
-    rawStepType ?? source.typeID,
-    state
-  );
-  const progressKey =
-    source.id ?? source.stepId ?? source.typeID ?? progressType;
-
-  return {
-    ...source,
-    completed,
-    rawType: rawStepType,
-    type: progressType,
-    typeID: String(progressKey),
-  } as SwapStepType | BridgeStepType;
 };
 
 const getPlanStepChainId = (event: any, step: any) =>
@@ -1976,9 +1950,9 @@ const getFailureMessageForProgressStep = (
     type.includes("DEPOSIT")
   ) {
     return mode === "send"
-      ? "Send failed. Funds are in your wallet"
+      ? "Send failed. Check transaction status."
       : mode === "deposit"
-        ? "Deposit failed. Funds are in your wallet"
+        ? "Deposit failed. Check transaction status."
         : "Swap Failed";
   }
   if (
@@ -1990,41 +1964,10 @@ const getFailureMessageForProgressStep = (
     return "Swap Failed";
   }
   return mode === "send"
-    ? "Send failed. Funds are in your wallet"
+    ? "Send failed. Check transaction status."
     : mode === "deposit"
-      ? "Deposit failed. Funds are in your wallet"
+      ? "Deposit failed. Check transaction status."
       : "Swap Failed";
-};
-
-const getBridgeTokenSymbolForProgressStep = (
-  step: SwapStepType | BridgeStepType | null | undefined
-) => {
-  const rawStep = step as any;
-  return (
-    getNonEmptyString(
-      rawStep?.bridgeToken?.symbol,
-      rawStep?.data?.bridgeToken?.symbol,
-      rawStep?.bridgeTokenSymbol,
-      rawStep?.data?.bridgeTokenSymbol,
-      rawStep?.swaps?.[0]?.input?.symbol,
-      rawStep?.data?.swaps?.[0]?.input?.symbol,
-      rawStep?.input?.symbol,
-      rawStep?.data?.input?.symbol,
-      rawStep?.asset?.symbol,
-      rawStep?.data?.asset?.symbol
-    ) ?? "USDC"
-  );
-};
-
-const getFailureDescriptionForProgressStep = (
-  step: SwapStepType | BridgeStepType | null | undefined,
-  autoRefundAvailable = false
-) => {
-  if (autoRefundAvailable) return undefined;
-  const type = getProgressStepType(step);
-  if (!type.includes("DESTINATION_SWAP")) return undefined;
-  const bridgeTokenSymbol = getBridgeTokenSymbolForProgressStep(step);
-  return `${bridgeTokenSymbol} has been bridged and you have those funds in your wallet.`;
 };
 
 const getSourceRows = (
@@ -2320,27 +2263,17 @@ function SwapReceiptPanel({
     (sum, source) => sum.plus(parseDecimalLoose(source.value) ?? 0),
     new Decimal(0)
   );
-  const defaultSwapFailureHeadline = entry.autoRefundAvailable
-    ? "Swap Failed. Refund Initiated"
-    : "Swap Failed";
-  const entryFailureMessage =
-    entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage;
-  const storedFailureMessage =
-    !entry.autoRefundAvailable && entryFailureMessage?.includes("Refund")
-      ? undefined
-      : entryFailureMessage;
-  const failureHeadline =
-    storedFailureMessage ||
-    (isDeposit
-      ? "Deposit failed. Funds are in your wallet"
-      : isRecipientTransfer
-        ? "Send failed. Funds are in your wallet"
-        : defaultSwapFailureHeadline);
-  const failureDescription = isFailed ? entry.failureDescription : undefined;
+  const failureHeadline = isDeposit
+    ? "Deposit failed"
+    : isRecipientTransfer
+      ? "Send failed"
+      : "Swap failed";
+  const failureDescription = isFailed
+    ? getReceiptErrorMessage(entry)
+    : undefined;
   const timeoutHeadline = TIMEOUT_LABEL;
   const timeoutDescription = isTimeout
-    ? entry.failureDescription ||
-      "This transaction is still pending. Check the intent explorer for the latest status."
+    ? getReceiptErrorMessage(entry)
     : undefined;
   const receiptLocation = isDeposit ? depositVenue : chainName;
   const receiptSummary = receiptLocation ? `on ${receiptLocation}` : "";
@@ -2423,7 +2356,9 @@ function SwapReceiptPanel({
         </div>
         {(failureDescription || timeoutDescription) && (
           <div
+            role="alert"
             style={{
+              overflowWrap: "anywhere",
               color: "#848483",
               fontFamily: uiFont,
               fontSize: "13px",
@@ -3205,7 +3140,10 @@ function NexusOneInner({
   const [editingAssetIndex, setEditingAssetIndex] = useState<number | null>(
     null
   );
-  const [txError, setTxError] = useState<string | null>(null);
+  const [txError, setRawTxError] = useState<string | null>(null);
+  const setTxError = useCallback((message: string | null) => {
+    setRawTxError(message ? getUserFacingError(message) : null);
+  }, []);
   const [walletActionPending, setWalletActionPending] = useState(false);
   const defaultRecipientAddress = ownerAddress ?? "";
   const effectiveRecipientAddress =
@@ -3560,9 +3498,8 @@ function NexusOneInner({
   const swapStepRef = useRef<SwapStep>(swapStep);
   const syncingIntentSourcesRef = useRef(false);
   const lastSwapIntentRefreshAtRef = useRef(0);
-  const [destinationBalance, setDestinationBalance] = useState<string | null>(
-    null
-  );
+  const [destinationBalance, setDestinationBalance] =
+    useState<TokenOptionBalances | null>(null);
   const [swapHistory, setSwapHistory] = useState<SwapHistoryEntry[]>(() =>
     readSwapHistoryFromStorage(historyStorageKey)
   );
@@ -3799,15 +3736,12 @@ function NexusOneInner({
       name: sourceSymbol,
       logo: sourceLogo ?? "",
       decimals: sourceDecimals,
-      balance: matchedBreakdown?.balance
-        ? `${matchedBreakdown.balance} ${sourceSymbol}`
-        : `${source.amount} ${sourceSymbol}`,
-      balanceInFiat:
-        matchedBreakdown?.balanceInFiat != null
-          ? `$${Number(matchedBreakdown.balanceInFiat).toFixed(2)}`
-          : Number.isFinite(sourceValue)
-            ? `$${sourceValue.toFixed(2)}`
-            : "$0.00",
+      ...toTokenOptionBalances(
+        matchedBreakdown ?? {
+          balance: source.amount,
+          balanceInFiat: Number.isFinite(sourceValue) ? sourceValue : 0,
+        }
+      ),
       chainId: source.chain.id,
       chainName: getShortChainName(
         source.chain.id,
@@ -3994,7 +3928,7 @@ function NexusOneInner({
     }
   };
 
-  const getSwapBalanceTotalUsd = () =>
+  const getSwapUsableBalanceUsd = () =>
     (swapBalance ?? []).reduce((sum, asset) => {
       const breakdown = asset.breakdown ?? [];
       if (breakdown.length > 0) {
@@ -4353,7 +4287,7 @@ function NexusOneInner({
             .some((candidate) => candidate?.toUpperCase() === lookupSymbol);
         if (!addressMatches && !symbolMatches) continue;
 
-        const balance = parseFiatNumber(breakdown.balance);
+        const balance = parseFiatNumber(breakdown.usableBalance);
         const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
         if (balance && fiatBalance && balance.gt(0) && fiatBalance.gt(0)) {
           return fiatBalance.div(balance);
@@ -4396,7 +4330,7 @@ function NexusOneInner({
   const getActiveTotalBalanceUsd = () =>
     isExactOutPaymentFlow
       ? getExactOutTotalSourceBalanceUsd()
-      : getSwapBalanceTotalUsd();
+      : getSwapUsableBalanceUsd();
   const getTotalBalancePercentUsdAmount = (pct: number) => {
     const ratio =
       isExactOutPaymentFlow && pct === 100
@@ -4714,7 +4648,7 @@ function NexusOneInner({
     }
 
     const balanceAmount =
-      parseFiatNumber(destinationBalance) ??
+      parseFiatNumber(destinationBalance?.balance) ??
       parseFiatNumber(token.balance) ??
       new Decimal(0);
     if (balanceAmount.lte(0)) return null;
@@ -5400,10 +5334,7 @@ function NexusOneInner({
               logo: asset.logo ?? "",
               name: bSymbol,
               symbol: bSymbol,
-              balance: `${breakdown.balance} ${bSymbol}`,
-              balanceInFiat: breakdown.balanceInFiat
-                ? `$${parseFiatNumber(breakdown.balanceInFiat)?.toDecimalPlaces(2).toFixed() ?? "0.00"}`
-                : "$0.00",
+              ...toTokenOptionBalances(breakdown),
             });
           }
         }
@@ -5483,7 +5414,7 @@ function NexusOneInner({
 
         if (!isNativeBalance) continue;
         balance = balance.plus(
-          parseFiatNumber(breakdown.balance) ?? new Decimal(0)
+          parseFiatNumber(breakdown.usableBalance) ?? new Decimal(0)
         );
       }
     }
@@ -5506,7 +5437,8 @@ function NexusOneInner({
       for (const breakdown of asset.breakdown ?? []) {
         const chainId = breakdown.chain?.id;
         const contractAddress = breakdown.contractAddress;
-        const balance = parseFiatNumber(breakdown.balance) ?? new Decimal(0);
+        const balance =
+          parseFiatNumber(breakdown.usableBalance) ?? new Decimal(0);
         const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
         if (
           !chainId ||
@@ -5531,11 +5463,7 @@ function NexusOneInner({
           logo: asset.logo ?? "",
           name: symbol,
           symbol,
-          balance: `${breakdown.balance} ${symbol}`,
-          balanceInFiat:
-            fiatBalance !== undefined
-              ? `$${fiatBalance.toDecimalPlaces(2).toFixed()}`
-              : "$0.00",
+          ...toTokenOptionBalances(breakdown),
         });
       }
     }
@@ -5572,17 +5500,14 @@ function NexusOneInner({
           toToken.symbol.toUpperCase();
         if (!addressMatches && !symbolMatches) continue;
 
-        const balanceAmount = parseFiatNumber(breakdown.balance);
+        const balanceAmount = parseFiatNumber(breakdown.usableBalance);
         if (!balanceAmount || balanceAmount.lte(0)) continue;
 
         const chainMeta = CHAIN_METADATA[chainId];
         const symbol = breakdown.symbol ?? asset.symbol ?? toToken.symbol;
         const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
         return {
-          balance: `${breakdown.balance} ${symbol}`,
-          balanceInFiat: fiatBalance
-            ? `$${fiatBalance.toDecimalPlaces(2).toFixed()}`
-            : "$0.00",
+          ...toTokenOptionBalances(breakdown),
           chainId,
           chainLogo:
             chainMeta?.logo ?? breakdown.chain?.logo ?? toToken.chainLogo,
@@ -6002,7 +5927,7 @@ function NexusOneInner({
       getMinimumBalanceSourceTokens()
     );
     if (isSwapExactOut || allSourceTotal.gt(0)) return allSourceTotal;
-    return getSwapBalanceTotalUsd();
+    return getSwapUsableBalanceUsd();
   };
 
   const getExactOutIntentSourceUsd = () => {
@@ -6178,7 +6103,10 @@ function NexusOneInner({
 
     return {
       type: "insufficientSources",
-      message: "Add more source balance across your assets",
+      message: getUserFacingError(
+        error,
+        "There isn't enough usable source balance. Reduce the amount or choose another asset."
+      ),
     };
   };
 
@@ -6268,10 +6196,7 @@ function NexusOneInner({
           const chainMeta = CHAIN_METADATA[chainId];
           const fiatBalance = parseFiatNumber(breakdown.balanceInFiat);
           const snapshot: SwapTokenOption = {
-            balance: `${breakdown.balance ?? "0"} ${symbol}`,
-            balanceInFiat: fiatBalance
-              ? formatUsdDisplay(fiatBalance)
-              : "$0.00",
+            ...toTokenOptionBalances(breakdown),
             chainId,
             chainLogo: chainMeta?.logo ?? breakdown.chain?.logo,
             chainName: getShortChainName(
@@ -6306,22 +6231,10 @@ function NexusOneInner({
 
         if (token.isUnified) {
           const sourceTokens = (token.sourceTokens ?? []).map(updateToken);
-          const totalBalance = sourceTokens.reduce(
-            (sum, source) =>
-              sum.plus(parseFiatNumber(source.balance) ?? new Decimal(0)),
-            new Decimal(0)
-          );
-          const totalFiat = sourceTokens.reduce(
-            (sum, source) =>
-              sum.plus(parseFiatNumber(source.balanceInFiat) ?? new Decimal(0)),
-            new Decimal(0)
-          );
-
           return {
             ...token,
             ...preservedAmounts,
-            balance: totalBalance.toDecimalPlaces(8).toFixed(),
-            balanceInFiat: formatUsdDisplay(totalFiat),
+            ...sumTokenOptionBalances(sourceTokens),
             sourceTokens,
           };
         }
@@ -6331,8 +6244,7 @@ function NexusOneInner({
           return {
             ...token,
             ...preservedAmounts,
-            balance: `0 ${token.symbol}`,
-            balanceInFiat: "$0.00",
+            ...toTokenOptionBalances({ balance: "0", balanceInFiat: 0 }),
             chainLogo:
               token.chainLogo ??
               (token.chainId ? CHAIN_METADATA[token.chainId]?.logo : undefined),
@@ -6451,20 +6363,19 @@ function NexusOneInner({
         ? Boolean((step as any).completed)
         : defaultCompleted;
 
-    setProgressEvents((prev) => {
-      const next = [
-        ...prev,
-        {
-          id: `${Date.now()}-${prev.length}-${(step as any).typeID ?? (step as any).type ?? name}`,
-          name,
-          completed,
-          event,
-          step,
-        },
-      ];
-      progressEventsRef.current = next;
-      return next;
-    });
+    const prev = progressEventsRef.current;
+    const next = [
+      ...prev,
+      {
+        id: `${Date.now()}-${prev.length}-${(step as any).typeID ?? (step as any).type ?? name}`,
+        name,
+        completed,
+        event,
+        step,
+      },
+    ];
+    progressEventsRef.current = next;
+    setProgressEvents(next);
   };
 
   const appendProgressListEvent = (
@@ -6475,22 +6386,21 @@ function NexusOneInner({
   ) => {
     if (stepList.length === 0) return;
 
-    setProgressEvents((prev) => {
-      const next = [
-        ...prev,
-        {
-          id: `${Date.now()}-${prev.length}-${name}`,
-          name,
-          completed: false,
-          step: stepList[0],
-          steps: stepList,
-          rawSteps: rawSteps ?? (stepList as any),
-          planType,
-        },
-      ];
-      progressEventsRef.current = next;
-      return next;
-    });
+    const prev = progressEventsRef.current;
+    const next = [
+      ...prev,
+      {
+        id: `${Date.now()}-${prev.length}-${name}`,
+        name,
+        completed: false,
+        step: stepList[0],
+        steps: stepList,
+        rawSteps: rawSteps ?? (stepList as any),
+        planType,
+      },
+    ];
+    progressEventsRef.current = next;
+    setProgressEvents(next);
   };
 
   const startSwapHistoryEntry = () => {
@@ -6498,7 +6408,7 @@ function NexusOneInner({
     const now = Date.now();
     const resolvedToToken =
       toToken && destinationBalance
-        ? { ...toToken, balance: destinationBalance }
+        ? { ...toToken, ...destinationBalance }
         : toToken;
     const entry: SwapHistoryEntry = {
       id,
@@ -6794,9 +6704,12 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
-        setTxError("Quote unavailable");
+        setTxError(
+          "We couldn't prepare this quote. Try again or choose a different token or chain."
+        );
         return;
       }
+
       const resolvedQuoteInputKey = quoteInputKey;
       const normalizedRefresh =
         typeof refresh === "function"
@@ -7036,10 +6949,10 @@ function NexusOneInner({
 
         if (!addressMatches && !symbolMatches) continue;
 
-        const balance = parseFiatNumber(breakdown.balance);
+        const balance = parseFiatNumber(breakdown.usableBalance);
         if (!balance) return null;
 
-        return `${balance.toDecimalPlaces(6).toFixed()} ${token.symbol}`;
+        return toTokenOptionBalances(breakdown);
       }
     }
 
@@ -7272,6 +7185,8 @@ function NexusOneInner({
         ...toTokenFromOpportunity(configuredDeposit),
         balance: current?.balance ?? "0",
         balanceInFiat: current?.balanceInFiat ?? "$0.00",
+        totalBalance: current?.totalBalance,
+        totalBalanceInFiat: current?.totalBalanceInFiat,
       };
       if (
         current &&
@@ -7307,6 +7222,8 @@ function NexusOneInner({
         ...toTokenFromOpportunity(selectedOpportunity),
         balance: current?.balance ?? "0",
         balanceInFiat: current?.balanceInFiat ?? "$0.00",
+        totalBalance: current?.totalBalance,
+        totalBalanceInFiat: current?.totalBalanceInFiat,
       };
       if (
         current &&
@@ -8042,7 +7959,7 @@ function NexusOneInner({
 
         if (!addressMatches && !symbolMatches) continue;
 
-        const balanceAmount = parseFiatNumber(breakdown.balance);
+        const balanceAmount = parseFiatNumber(breakdown.usableBalance);
         if (!balanceAmount || balanceAmount.lte(0)) continue;
 
         const chainMeta = CHAIN_METADATA[chainId];
@@ -8065,11 +7982,7 @@ function NexusOneInner({
             logo: asset.logo ?? toToken.logo,
             name: symbol,
             symbol,
-            balance: `${breakdown.balance} ${symbol}`,
-            balanceInFiat:
-              fiatBalance !== undefined
-                ? `$${fiatBalance.toDecimalPlaces(2).toFixed()}`
-                : "$0.00",
+            ...toTokenOptionBalances(breakdown),
           },
         ];
       }
@@ -8521,7 +8434,14 @@ function NexusOneInner({
   // Handlers
   // ---------------------------------------------------------------------------
 
-  const handleReset = () => {
+  const handleDone = () => {
+    const retained = retainTokenSelection(
+      { fromTokens, toToken },
+      isMultiAssetMode
+    );
+    const hasSource = retained.fromTokens.length > 0;
+    syncingIntentSourcesRef.current = false;
+    maxPercentRunRef.current += 1;
     clearPendingSwapIntent();
     setAmount("");
     setRecipientAddress("");
@@ -8533,56 +8453,29 @@ function NexusOneInner({
     setIntentFeeUsd(undefined);
     setIntentData(null);
     setPredictiveQuote(null);
-    setFromTokens([]);
-    setToToken(undefined);
-    setSelectedOpportunity(undefined);
-    setSourceSelectionTouched(false);
+    setFromTokens(retained.fromTokens);
+    setToToken(retained.toToken);
+    setSourceSelectionTouched(hasSource);
     setDepositSourceFilter("all");
-    setExactOutQuoteSourceModeValue("all");
-    sourcePickerDraftModeRef.current = "all";
-    sourcePickerDraftTouchedRef.current = false;
+    setExactOutQuoteSourceModeValue(hasSource ? "selected" : "all");
+    sourcePickerDraftModeRef.current = hasSource ? "selected" : "all";
+    sourcePickerDraftTouchedRef.current = hasSource;
+    lastAutoIntentSourceTokensRef.current = [];
+    tokenUserAmountsRef.current.clear();
+    resetSourcePickerDraft();
     setDepositAmountMode("token");
-    setIsMultiAssetMode(false);
-    setSwapType("exactIn");
+    setMaxCalculationPercent(null);
+    swapStepRef.current = "idle";
     setSwapStep("idle");
     setCurrentSwapId(null);
     currentSwapIdRef.current = null;
     currentSwapStartedAtRef.current = 0;
+    void refreshSelectedSourceBalances();
   };
 
   const handleFailureBack = () => {
-    clearPendingSwapIntent();
-    setTxError(null);
-    void refreshSelectedSourceBalances();
-    setSwapStep("idle");
-    setCurrentSwapId(null);
-    currentSwapIdRef.current = null;
-    currentSwapStartedAtRef.current = 0;
+    handleDone();
     rotateAttempt();
-  };
-
-  const resetInputsAfterSuccessfulExecution = () => {
-    setAmount("");
-    setRecipientAddress("");
-    setIsRecipientUserEdited(false);
-    setTxError(null);
-    setSwapQuoteIssue(null);
-    setIntentToAmount(undefined);
-    setIntentFeeUsd(undefined);
-    setIntentData(null);
-    setPredictiveQuote(null);
-    clearSelectedSources();
-    setDepositAmountMode("token");
-    if (activeMode === "deposit") {
-      setSelectedOpportunity(configuredDeposit);
-      setToToken(
-        configuredDeposit
-          ? toTokenFromOpportunity(configuredDeposit)
-          : undefined
-      );
-    } else {
-      setToToken(undefined);
-    }
   };
 
   const handleModalOpenChange = useCallback(
@@ -8625,7 +8518,12 @@ function NexusOneInner({
       try {
         await clickHandler();
       } catch (error: any) {
-        setTxError(error?.message || "Unable to connect wallet.");
+        setTxError(
+          getUserFacingError(
+            error,
+            "We couldn't connect your wallet. Unlock it and try again."
+          )
+        );
       } finally {
         setWalletActionPending(false);
       }
@@ -8680,7 +8578,12 @@ function NexusOneInner({
 
       await handleInit(effectiveProvider as EthereumProvider);
     } catch (error: any) {
-      setTxError(error?.message || "Unable to connect wallet.");
+      setTxError(
+        getUserFacingError(
+          error,
+          "We couldn't connect your wallet. Unlock it and try again."
+        )
+      );
     } finally {
       setWalletActionPending(false);
     }
@@ -8749,6 +8652,15 @@ function NexusOneInner({
         setTxError(null);
         setSwapQuoteIssue(null);
       }
+      return;
+    }
+
+    if (!isExactOutFlow && hasExactInSourceBalanceExceeded) {
+      clearPendingSwapIntent();
+      setSwapQuoteIssue({
+        type: "insufficientSources",
+        message: "Amount exceeds the usable source balance.",
+      });
       return;
     }
 
@@ -8830,7 +8742,12 @@ function NexusOneInner({
           }
           resolvedRecipientAddress = ensAddr;
         } catch (e: any) {
-          setTxError(e.message || "Failed to resolve ENS name.");
+          setTxError(
+            getUserFacingError(
+              e,
+              "We couldn't look up this ENS name. Check the name and try again."
+            )
+          );
           return;
         }
       } else {
@@ -8875,7 +8792,9 @@ function NexusOneInner({
     }
 
     if (!nexusSDK) {
-      setTxError("SDK not initialized");
+      setTxError(
+        "FastBridge is still connecting. Wait a moment, then try again."
+      );
       if (!background) {
         setSwapStep("idle");
       }
@@ -8979,6 +8898,8 @@ function NexusOneInner({
     };
 
     const handlePlanEvent = (event: any) => {
+      // Lifecycle statuses do not complete the outer operation; UI steps use plans/progress.
+      if (event.type === "status") return;
       if (event.type === "plan_preview" || event.type === "plan_confirmed") {
         const stepList = Array.isArray(event.plan?.steps)
           ? event.plan.steps.map((step: any) =>
@@ -9025,7 +8946,7 @@ function NexusOneInner({
       }
 
       const state = String(event.state ?? "").toLowerCase();
-      const completed = PLAN_FINAL_STATES.has(state);
+      const completed = isPlanStepComplete(state);
       const step = normalizePlanStep(
         event.step,
         event.stepType,
@@ -9061,30 +8982,41 @@ function NexusOneInner({
       logSdkSwapEvent("ignored event without string type", event);
     };
 
-    const onEvent = (event: any) => {
-      const isCurrentRun = swapRunIdRef.current === runId;
-      const isCurrentQuote = isCurrentQuoteInput();
-      logSdkSwapEvent("onEvent", event, {
-        currentRunId: swapRunIdRef.current,
-        isCurrentQuote,
-        isCurrentRun,
-        quoteInputKey,
-        runId,
-      });
-      if (!isCurrentRun || !isCurrentQuote) {
-        logSdkSwapEvent("ignored stale onEvent", event, {
+    const onEvent = createSdkEventHandler(
+      (event) => {
+        const isCurrentRun = swapRunIdRef.current === runId;
+        const isCurrentQuote = isCurrentQuoteInput();
+        logSdkSwapEvent("onEvent", event, {
           currentRunId: swapRunIdRef.current,
           isCurrentQuote,
+          isCurrentRun,
           quoteInputKey,
           runId,
         });
-        return;
+        if (!isCurrentRun || !isCurrentQuote) {
+          logSdkSwapEvent("ignored stale onEvent", event, {
+            currentRunId: swapRunIdRef.current,
+            isCurrentQuote,
+            quoteInputKey,
+            runId,
+          });
+          return;
+        }
+        patchCurrentIntentExplorerUrl(
+          getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
+        );
+        handleSwapEvent(event);
+      },
+      (error) => {
+        if (swapRunIdRef.current !== runId) return;
+        setTxError(
+          getUserFacingError(
+            error,
+            "We couldn't update the transfer progress. Check your wallet or the explorer for its status."
+          )
+        );
       }
-      patchCurrentIntentExplorerUrl(
-        getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
-      );
-      handleSwapEvent(event);
-    };
+    );
 
     const buildRecipientTransferExecuteConfig = (transferAmount: bigint) => {
       if (!resolvedRecipientAddress) {
@@ -9118,12 +9050,14 @@ function NexusOneInner({
     };
 
     const executeRecipientTransfer = async (transferAmount: bigint) => {
-      const result = await nexusSDK.execute(
+      const result = await executeWithAppEvents(
+        nexusSDK,
         {
           toChainId: toToken.chainId!,
+          waitForReceipt: true,
           ...buildRecipientTransferExecuteConfig(transferAmount),
         },
-        { onEvent }
+        onEvent
       );
       const finalExplorerUrl =
         getSdkExplorerUrl(result) ||
@@ -9175,6 +9109,10 @@ function NexusOneInner({
           }
 
           if (cleanAmount.lte(0)) continue;
+
+          if (isAmountAboveUsableBalance(token, cleanAmount.toFixed())) {
+            throw new Error("Amount exceeds the usable source balance.");
+          }
 
           const safeTokenAmountStr = cleanAmount
             .toDecimalPlaces(
@@ -9339,7 +9277,6 @@ function NexusOneInner({
               : {}),
             ...(intentId ? { intentId } : {}),
           });
-          resetInputsAfterSuccessfulExecution();
           onComplete?.();
           setSwapStep("success");
         }
@@ -9599,11 +9536,14 @@ function NexusOneInner({
               setReceiveMaxCalculating(false);
               setSwapQuoteIssue({
                 type: "insufficientSources",
-                message: "Insufficient balance for swap.",
+                message:
+                  "There isn't enough usable balance for this swap. Reduce the amount or choose another source asset.",
               } as any);
               return;
             }
-            setTxError("Insufficient balance for swap.");
+            setTxError(
+              "There isn't enough usable balance for this swap. Reduce the amount or choose another source asset."
+            );
             setIntentLoading(false);
             setQuoteRefreshing(false);
             setReceiveMaxCalculating(false);
@@ -9658,7 +9598,6 @@ function NexusOneInner({
           swapStepRef.current === "progress"
         ) {
           finishCurrentSwapHistoryEntry("fulfilled");
-          resetInputsAfterSuccessfulExecution();
           onComplete?.();
           if (activeMode === "deposit") {
             reachedTerminalRef.current = true;
@@ -9677,10 +9616,7 @@ function NexusOneInner({
         }
       }
     } catch (err: any) {
-      const isIntentDenied =
-        err?.code === "USER_DENIED_INTENT" ||
-        err?.message?.includes("User denied") ||
-        err?.message?.includes("denied swap intent");
+      const isIntentDenied = isIntentHookDenial(err);
       if (isIntentDenied) {
         return;
       }
@@ -9745,7 +9681,11 @@ function NexusOneInner({
         error: string,
         patch: Partial<SwapHistoryEntry> = {}
       ) => {
-        const failedProgressEvent = progressEventsRef.current.at(-1);
+        const failedProgressEvent =
+          [...progressEventsRef.current]
+            .reverse()
+            .find((progress) => asRecord(progress.event).state === "failed") ??
+          progressEventsRef.current.at(-1);
         const isTransferExecution =
           activeMode === "send" || hasCustomSwapRecipient;
         const fallbackFailedStep =
@@ -9756,15 +9696,15 @@ function NexusOneInner({
                 typeID: "DETERMINING_SWAP",
               } as unknown as SwapStepType);
         const failedStep = failedProgressEvent?.step ?? fallbackFailedStep;
-        const autoRefundAvailable =
-          isAutoRefundAvailableProgressEvent(failedProgressEvent);
+        // A failed deposit/relay step does not establish refund eligibility.
+        const autoRefundAvailable = false;
         setFailedProgressStep(failedStep);
         finishCurrentSwapHistoryEntry("failed", {
           error,
           autoRefundAvailable,
-          failureDescription: getFailureDescriptionForProgressStep(
-            failedStep,
-            autoRefundAvailable
+          failureDescription: getUserFacingError(
+            error,
+            TRANSACTION_STATUS_MESSAGE
           ),
           failureMessage: getFailureMessageForProgressStep(
             failedStep,
@@ -9789,8 +9729,10 @@ function NexusOneInner({
       ) => {
         finishCurrentSwapHistoryEntry("timeout", {
           error: message,
-          failureDescription:
-            "This transaction is still pending. Check the intent explorer for the latest status.",
+          failureDescription: getUserFacingError(
+            message,
+            TRANSACTION_STATUS_MESSAGE
+          ),
           failureMessage: TIMEOUT_LABEL,
           ...patch,
         });
@@ -9821,11 +9763,12 @@ function NexusOneInner({
         onError?.(issue.message);
         return;
       }
-      const errorMessage =
-        err?.message ||
-        (typeof err === "string"
-          ? err
-          : "Transaction failed. Please try again or check console.");
+      const errorMessage = getUserFacingError(
+        err,
+        hasActiveExecution
+          ? TRANSACTION_STATUS_MESSAGE
+          : "We couldn't prepare this transfer. Review the amount and route, then try again."
+      );
       if (isTimeout && hasActiveExecution) {
         showTimeoutReceipt(errorMessage);
         setTxError(null);
@@ -10608,6 +10551,51 @@ function NexusOneInner({
     applySwapTypeChange(nextType, true);
   };
 
+  const reversedTokenSelection = isMultiAssetMode
+    ? undefined
+    : reverseTokenSelection({ fromTokens, toToken });
+
+  const handleReverseTokens = () => {
+    if (
+      activeMode !== "swap" ||
+      swapStepRef.current !== "idle" ||
+      !reversedTokenSelection
+    )
+      return;
+    syncingIntentSourcesRef.current = false;
+    maxPercentRunRef.current += 1;
+    clearPendingSwapIntent();
+    setAmount("");
+    setReceiveAmountIssue(null);
+    setMaxCalculationPercent(null);
+    setFromTokens(
+      swapBalance
+        ? patchSourceTokensWithBalances(
+            reversedTokenSelection.fromTokens,
+            swapBalance
+          )
+        : reversedTokenSelection.fromTokens
+    );
+    setToToken(reversedTokenSelection.toToken);
+    setSourceSelectionTouched(true);
+    setExactOutQuoteSourceModeValue("selected");
+    sourcePickerDraftModeRef.current = "selected";
+    sourcePickerDraftTouchedRef.current = true;
+    lastAutoIntentSourceTokensRef.current = [];
+    tokenUserAmountsRef.current.clear();
+    resetSourcePickerDraft();
+    setSourceSelectionRevision((current) => current + 1);
+    const destination = reversedTokenSelection.toToken;
+    if (destination) {
+      onReceiveAssetChange?.({
+        chainId: destination.chainId,
+        chainName: destination.chainName,
+        contractAddress: destination.contractAddress,
+        symbol: destination.symbol,
+      });
+    }
+  };
+
   const handleToggleMultiAssetMode = useCallback(() => {
     const willEnable = !isMultiAssetMode;
     setIsMultiAssetMode(willEnable);
@@ -10799,8 +10787,10 @@ function NexusOneInner({
           return;
         }
         setTxError(
-          error?.message ||
-            "Unable to calculate this percentage for the deposit asset."
+          getUserFacingError(
+            error,
+            "We couldn't calculate this amount. Please try again."
+          )
         );
       }
       return;
@@ -10840,7 +10830,10 @@ function NexusOneInner({
         return;
       }
       setTxError(
-        error?.message || "Unable to calculate the max deposit amount."
+        getUserFacingError(
+          error,
+          "We couldn't calculate the maximum deposit. Please try again."
+        )
       );
     }
   };
@@ -10916,13 +10909,7 @@ function NexusOneInner({
       const requested = parseFiatNumber(raw);
       if (!requested || requested.lte(0)) return false;
 
-      if (token.userAmountMode === "usd") {
-        const fiatBal = parseFiatNumber(token.balanceInFiat);
-        return Boolean(fiatBal && requested.gt(fiatBal));
-      }
-
-      const tokenBal = parseFiatNumber(token.balance);
-      return Boolean(tokenBal && requested.gt(tokenBal));
+      return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
     });
   }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
 
@@ -11178,7 +11165,7 @@ function NexusOneInner({
       : undefined);
   const toTokenWithFetchedBalance =
     resolvedToToken && destinationBalance
-      ? { ...resolvedToToken, balance: destinationBalance }
+      ? { ...resolvedToToken, ...destinationBalance }
       : resolvedToToken;
   const predictiveDisconnectedReceiveQuote = useMemo(() => {
     if (!needsWalletConnection || !toToken) return undefined;
@@ -11423,7 +11410,11 @@ function NexusOneInner({
   );
   const displayExactOutRouteLoading =
     isExactOutRouteLoading && !shouldShowPredictiveExactOutDisplay;
-  const totalSwapBalanceUsd = getSwapBalanceTotalUsd()
+  const totalSwapBalanceUsd = (swapBalance ?? [])
+    .reduce(
+      (sum, asset) => sum.plus(getTotalBalanceInFiat(asset)),
+      new Decimal(0)
+    )
     .toDecimalPlaces(2)
     .toFixed();
   const sendAmountUsd =
@@ -11986,6 +11977,9 @@ function NexusOneInner({
                 {swapStep === "progress" && (
                   <NexusOneProgressScreen
                     failedStep={failedProgressStep}
+                    failureMessage={
+                      currentSwapEntry?.error ?? txError ?? undefined
+                    }
                     fromAmountUsd={previewFromAmountUsd}
                     fromTokens={fromTokens}
                     intentData={intentData}
@@ -12010,9 +12004,7 @@ function NexusOneInner({
                       <SwapReceiptPanel
                         entry={currentSwapEntry}
                         onDone={
-                          swapStep === "failed"
-                            ? handleFailureBack
-                            : handleReset
+                          swapStep === "failed" ? handleFailureBack : handleDone
                         }
                         visualSources={currentTokenVisualSources}
                       />
@@ -12045,6 +12037,7 @@ function NexusOneInner({
               <>
                 <SwapIdleForm
                   amount={amount}
+                  canReverseTokens={Boolean(reversedTokenSelection)}
                   defaultRecipientAddress={defaultRecipientAddress}
                   destinationGasFeeUsd={previewDestinationGasFeeUsd}
                   fromTokens={
@@ -12074,6 +12067,7 @@ function NexusOneInner({
                     openDrawerStep("choose-swap-asset");
                   }}
                   onRestoreAuto={handleAutoExactOut}
+                  onReverseTokens={handleReverseTokens}
                   onSetPercent={handleSendPercentSelect}
                   onToggleMultiAssetMode={handleToggleMultiAssetMode}
                   onUpdateTokens={handleSwapTokensUpdate}
@@ -12996,7 +12990,7 @@ function NexusOneInner({
                   }
                   if (shouldClearDestination) {
                     setToToken(undefined);
-                    setDestinationBalance(undefined);
+                    setDestinationBalance(null);
                   }
                   if (isSwapExactOut) {
                     invalidateExactOutQuoteForRefresh({

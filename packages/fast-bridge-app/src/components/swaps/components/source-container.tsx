@@ -8,6 +8,7 @@ import {
   computeAmountFromFraction,
   usdFormatter,
 } from "../../common";
+import { getTotalBalance, getUsableBalance } from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
@@ -173,7 +174,7 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
                 }
                 setSwapMode("exactIn");
                 const amount = computeAmountFromFraction(
-                  availableBalance?.balance ?? "0",
+                  getUsableBalance(availableBalance),
                   option.value,
                   inputs?.fromToken?.decimals,
                   SAFETY_MARGIN
@@ -259,7 +260,7 @@ const SourceContainer: React.FC<SourceContainerProps> = ({
 
         <span className="text-sm text-muted-foreground">
           {formatBalance(
-            availableBalance?.balance ?? "0",
+            getTotalBalance(availableBalance),
             inputs?.fromToken?.symbol,
             availableBalance?.decimals
           )}

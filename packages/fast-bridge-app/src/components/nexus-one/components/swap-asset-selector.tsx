@@ -1,6 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
+
 import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
@@ -29,6 +30,12 @@ import {
   getShortChainName,
   isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+  sumTokenOptionBalances,
+  toTokenOptionBalances,
+} from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
 
 export const formatMiddleTruncatedAddress = (address?: string) => {
@@ -43,6 +50,7 @@ const tabularNums: React.CSSProperties = {
 };
 
 export interface SwapTokenOption {
+  /** Spendable SDK usableBalance; never the wallet display total. */
   balance: string;
   balanceInFiat: string;
   chainId?: number;
@@ -57,6 +65,8 @@ export interface SwapTokenOption {
   selectedPct?: number | null;
   sourceTokens?: SwapTokenOption[];
   symbol: string;
+  totalBalance?: string;
+  totalBalanceInFiat?: string;
   unifiedSymbol?: "USDC" | "USDT" | "ETH";
   userAmount?: string;
   userAmountMode?: "token" | "usd";
@@ -105,7 +115,7 @@ export function deriveTokenOptions(
       if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
         continue;
       }
-      if (Number.parseFloat(bd.balance ?? "0") <= 0) continue;
+      if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       const balanceNum = Number.parseFloat(bd.balance ?? "0");
       const fiatNum = Number(bd.balanceInFiat ?? (bd as any).value ?? 0);
@@ -119,11 +129,7 @@ export function deriveTokenOptions(
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
         decimals: bd.decimals ?? asset.decimals ?? 18,
-        balance: bd.balance,
-        balanceInFiat:
-          bd.balanceInFiat != null
-            ? `$${Number(bd.balanceInFiat).toFixed(2)}`
-            : "$0.00",
+        ...toTokenOptionBalances(bd),
         priceUSD: priceUsd > 0 ? priceUsd : 0,
         chainId: bd.chain?.id,
         chainName: getShortChainName(
@@ -303,8 +309,8 @@ const ChainLogos = ({
           id: t.chainId,
           logo: t.chainLogo,
           name: getShortChainName(t.chainId, t.chainName),
-          balance: t.balance,
-          balanceInFiat: t.balanceInFiat,
+          balance: getTotalBalance(t),
+          balanceInFiat: String(getTotalBalanceInFiat(t)),
           balanceValue:
             Number.isNaN(balanceValue) || !Number.isFinite(balanceValue)
               ? 0
@@ -393,7 +399,14 @@ const ChainLogos = ({
                 style={{ color: "#161615", fontSize: 12, letterSpacing: 0 }}
               >
                 {tokens
-                  .reduce((sum, token) => sum + getTokenFiatValue(token), 0)
+                  .reduce(
+                    (sum, token) =>
+                      sum +
+                      (parseTokenAmount(
+                        getTotalBalanceInFiat(token)
+                      )?.toNumber() ?? 0),
+                    0
+                  )
                   .toLocaleString(undefined, {
                     currency: "USD",
                     maximumFractionDigits: 2,
@@ -684,18 +697,20 @@ const UNIFIED_MAINNET_CHAIN_IDS = new Set([
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const getTokenFiatValue = (token: Pick<SwapTokenOption, "balanceInFiat">) => {
+const getTokenFiatValue = (
+  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
+) => {
   const parsed = Number(
-    String(token.balanceInFiat ?? "").replace(/[^0-9.]/g, "") || 0
+    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
   );
   return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
 };
 
 const formatBalanceWithSymbol = (
-  token: Pick<SwapTokenOption, "balance" | "symbol">
+  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
 ) => {
   const symbol = token.symbol?.trim() || "";
-  const balanceStr = String(token.balance ?? "").trim();
+  const balanceStr = getTotalBalance(token).trim();
   let cleanBalance = balanceStr;
   if (symbol) {
     cleanBalance = balanceStr.replace(
@@ -805,11 +820,11 @@ export const formatUsdBalanceLabel = (value: unknown) => {
 };
 
 export const formatSelectedTokenBalanceLabel = (
-  token?: Pick<SwapTokenOption, "balance" | "symbol">
+  token?: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
 ) => {
   if (!token) return "";
   const symbol = token.symbol || "";
-  const formatted = formatTokenAmountDisplay(token.balance);
+  const formatted = formatTokenAmountDisplay(getTotalBalance(token));
   return symbol ? `${formatted} ${symbol}` : formatted;
 };
 
@@ -1261,8 +1276,10 @@ export function SwapAssetSelector({
       }
 
       return mergeTokenOptions(
-        result.filter(
-          (token) => getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD
+        result.filter((token) =>
+          (parseTokenAmount(token.balanceInFiat) ?? new Decimal(0)).gte(
+            MIN_FIAT_THRESHOLD
+          )
         ),
         lockedSelectedTokens
       );
@@ -1425,16 +1442,20 @@ export function SwapAssetSelector({
           symbol.toUpperCase()
         );
         const maxDigits = isStable ? 2 : 6;
-        const formattedBal = totalBalVal.toLocaleString(undefined, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: maxDigits,
-        });
+        const walletBalances = sumTokenOptionBalances(sortedGroup);
+        const formattedBal = Number(walletBalances.totalBalance).toLocaleString(
+          undefined,
+          {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: maxDigits,
+          }
+        );
 
         return {
           symbol,
           logo: sortedGroup[0].logo,
           totalFiat: totalFiatVal,
-          totalFiatStr: `$${totalFiatVal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
+          totalFiatStr: walletBalances.totalBalanceInFiat,
           totalBalStr: `${formattedBal} ${symbol}`,
           totalBalRaw: totalBalVal,
           tokens: sortedGroup,
@@ -1781,7 +1802,7 @@ export function SwapAssetSelector({
                 lineHeight: "20px",
               }}
             >
-              {formatTokenAmountDisplay(token.balance)}
+              {formatTokenAmountDisplay(getTotalBalance(token))}
             </span>
           )}
         </button>
@@ -1967,7 +1988,7 @@ export function SwapAssetSelector({
                     fontSize: isDesktop ? 13 : 11,
                   }}
                 >
-                  ≈ {token.balanceInFiat}
+                  ≈ {getTotalBalanceInFiat(token)}
                 </span>
               </>
             )}
@@ -2031,8 +2052,7 @@ export function SwapAssetSelector({
       (!isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent));
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
-      balance: String(group.totalBalRaw),
-      balanceInFiat: group.totalFiatStr,
+      ...sumTokenOptionBalances(group.tokens),
       chainId: undefined,
       chainName: "All Chains",
       chainLogo: "/nexus-one/all-chains.png",
@@ -3352,7 +3372,7 @@ export function SwapAssetSelector({
                                 marginLeft: 12,
                               }}
                             >
-                              {token.balanceInFiat}
+                              {getTotalBalanceInFiat(token)}
                             </span>
                           </div>
                         ))}

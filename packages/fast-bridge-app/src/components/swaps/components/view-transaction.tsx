@@ -2,6 +2,7 @@ import type { OnSwapIntentHookData } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { ChevronDown, ChevronUp, Info, MoveDown, XIcon } from "lucide-react";
 import { type FC, type RefObject, useMemo, useState } from "react";
+import { getUserFacingError } from "@/lib/user-facing-error";
 import { cn } from "@/lib/utils";
 import {
   formatUsdForDisplay,
@@ -627,7 +628,9 @@ const ViewTransaction: FC<ViewTransactionProps> = ({
           </div>
         )}
         {status === "error" && (
-          <p className="text-destructive text-sm">{txError}</p>
+          <p className="text-destructive text-sm">
+            {getUserFacingError(txError)}
+          </p>
         )}
         {shouldShowExactOutSourceSelection &&
           exactOutSourceOptions.length > 0 && (

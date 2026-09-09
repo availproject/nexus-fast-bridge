@@ -1,8 +1,13 @@
 "use client";
+
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import { Link2, Search, X } from "lucide-react";
 import { type FC, useMemo, useState } from "react";
 import { CHAIN_METADATA, SHORT_CHAIN_NAME, usdFormatter } from "../../common";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+} from "../../nexus/balance-utils";
 import { type UserAsset, useNexus } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import { DialogClose } from "../../ui/dialog";
@@ -53,11 +58,13 @@ const DestinationAssetSelect: FC<DestinationAssetSelectProps> = ({
         );
       return {
         ...token,
-        balance: formatTokenBalance(balance?.balance ?? "0", {
+        balance: formatTokenBalance(getTotalBalance(balance), {
           symbol: balance?.symbol ?? token.symbol,
           decimals: balance?.decimals ?? 0,
         }),
-        balanceInFiat: usdFormatter.format(balance?.balanceInFiat ?? 0),
+        balanceInFiat: usdFormatter.format(
+          Number(getTotalBalanceInFiat(balance))
+        ),
       };
     });
   }, [swapBalance]);

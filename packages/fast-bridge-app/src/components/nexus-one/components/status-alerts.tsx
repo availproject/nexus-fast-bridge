@@ -1,6 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 import { AlertCircle, Info } from "lucide-react";
+import { getUserFacingError } from "@/lib/user-facing-error";
 import { nexusOneTheme } from "../theme";
 
 export type AlertType = "error" | "info" | "warning";
@@ -29,13 +30,18 @@ export function StatusAlert({
   return (
     <div
       className={`rounded-md py-2 px-2.5 text-xs flex items-start w-full leading-4 font-normal ${styles[type]} ${className}`}
+      role={type === "error" ? "alert" : "status"}
       style={{
         animation: "nexusBannerSlideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
         transition: "all 0.25s cubic-bezier(0.2, 0, 0, 1)",
       }}
     >
       {icons[type]}
-      <div className="flex-1">{message}</div>
+      <div className="flex-1 break-words">
+        {type === "error" && typeof message === "string"
+          ? getUserFacingError(message)
+          : message}
+      </div>
     </div>
   );
 }

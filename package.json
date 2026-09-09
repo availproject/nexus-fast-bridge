@@ -12,7 +12,8 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "precommit:fix-staged": "node scripts/precommit-fix-staged.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:feedback": "node scripts/test-feedback.mjs"
   },
   "packageManager": "pnpm@11.7.0",
   "dependencies": {

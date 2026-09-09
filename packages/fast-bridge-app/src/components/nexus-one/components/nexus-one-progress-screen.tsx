@@ -5,6 +5,7 @@
 import Decimal from "decimal.js";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { isPlanStepComplete } from "@/lib/nexus-events";
 import type {
   BridgeStepType,
   SwapStepType,
@@ -16,6 +17,7 @@ import {
   type SwapType,
 } from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
+import { StatusAlert } from "./status-alerts";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
 
@@ -40,6 +42,7 @@ export type NexusOneProgressEvent = {
 
 interface NexusOneProgressScreenProps {
   failedStep?: ProgressSdkStep | null;
+  failureMessage?: string;
   fromAmountUsd?: string;
   fromTokens?: SwapTokenOption[];
   intentData?: SwapIntentData | null;
@@ -144,11 +147,6 @@ const STATUS_ORDER: ProgressStatusId[] = [
 
 const SWAP_APPROVAL_TYPES = ["ALLOWANCE", "ALLOWANCE_APPROVAL"];
 
-const REFUND_ELIGIBLE_SWAP_TYPES = [
-  "BRIDGE_INTENT_SUBMISSION",
-  "BRIDGE_DEPOSIT",
-];
-
 const DESTINATION_SWAP_TYPES = [
   "DESTINATION_SWAP",
   "DESTINATION_SWAP_BATCH_TX",
@@ -200,6 +198,7 @@ const isApprovalStep = (step?: ProgressSdkStep) => {
       (step as any)?.stepType ??
       ""
   ).toLowerCase();
+  if (rawType === "allowance_approval" || rawType === "allowance") return true;
   const type = getStepType(step);
   if (type.includes("SOURCE_SWAP") || rawType === "source_swap") {
     return true;
@@ -349,14 +348,6 @@ const getApprovalUnitsForStep = (step?: ProgressSdkStep): ApprovalUnit[] => {
 const countApprovalUnits = (steps: ProgressSdkStep[]) =>
   steps.reduce((sum, step) => sum + getApprovalUnitsForStep(step).length, 0);
 
-const APPROVAL_FINAL_STATES = new Set([
-  "completed",
-  "confirmed",
-  "success",
-  "submitted",
-  "tx_sent",
-]);
-
 const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
   if (event.completed) return true;
   const rawState = String(
@@ -366,7 +357,7 @@ const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
       (event as any)?.state ??
       ""
   ).toLowerCase();
-  return APPROVAL_FINAL_STATES.has(rawState);
+  return isPlanStepComplete(rawState);
 };
 
 const countCompletedApprovalUnitsFromEvents = (
@@ -394,7 +385,7 @@ const countCompletedApprovalUnitsFromEvents = (
       completedIds.add(stepId);
     }
     const units = getApprovalUnitsForStep(event.step);
-    count += units.length > 0 ? units.length : 1;
+    count += units.length;
   }
 
   return count;
@@ -455,13 +446,7 @@ const isEventMatchingRawStep = (
   ).toLowerCase();
 
   if (rawStepId && eventStepId) {
-    if (
-      rawStepId === eventStepId ||
-      eventStepId.includes(rawStepId) ||
-      rawStepId.includes(eventStepId)
-    ) {
-      return true;
-    }
+    return rawStepId === eventStepId;
   }
 
   const rawType = String(rawStep?.type ?? rawStep?.rawType ?? "").toLowerCase();
@@ -560,7 +545,7 @@ const getApprovalSymbolFromProgressEvent = (event?: NexusOneProgressEvent) => {
   return units[0]?.symbol;
 };
 
-const buildStatusRows = ({
+export const buildStatusRows = ({
   events,
   failedStep,
   mode,
@@ -603,11 +588,6 @@ const buildStatusRows = ({
           countApprovalUnits(fallbackSteps),
           countCompletedApprovalUnitsFromEvents(events)
         ));
-
-  const refundEligibleFailure =
-    failedStep !== null &&
-    failedStep !== undefined &&
-    stepMatches(failedStep, REFUND_ELIGIBLE_SWAP_TYPES);
 
   const failedStatus = failedStep
     ? getStatusForStep(failedStep, mode, false)
@@ -747,9 +727,7 @@ const buildStatusRows = ({
       swapState === "completed"
         ? "Swaps completed"
         : swapState === "error"
-          ? refundEligibleFailure
-            ? "Swap failed. Refund initiated"
-            : "Swap failed"
+          ? "Swap failed"
           : swapState === "inProgress"
             ? "Swaps in progress"
             : "Swap tokens",
@@ -774,9 +752,7 @@ const buildStatusRows = ({
       receiveState === "completed"
         ? `Received ${destinationSymbol} on ${destinationChain}`
         : receiveState === "error"
-          ? refundEligibleFailure
-            ? "Destination swap failed. Refund initiated."
-            : "Destination swap failed."
+          ? "Destination swap failed."
           : receiveState === "inProgress"
             ? `Receiving ${destinationSymbol} on ${destinationChain}`
             : `Receive ${destinationSymbol} on ${destinationChain}`,
@@ -812,7 +788,7 @@ const buildStatusRows = ({
           : depositState === "inProgress"
             ? `Depositing ${destinationSymbol} to ${opportunityName}`
             : depositState === "error"
-              ? "Deposit failed. Funds are in your wallet."
+              ? "Deposit failed. Check transaction status."
               : depositState === "preapproval"
                 ? `Approve Deposit of ${destinationSymbol} to ${opportunityName}`
                 : `Deposit ${destinationSymbol} to ${opportunityName}`,
@@ -931,6 +907,7 @@ export function NexusOneProgressScreen({
   steps,
   progressEvents = [],
   failedStep,
+  failureMessage,
   rawSteps,
   recipientAddress,
   swapBalances,
@@ -1455,6 +1432,7 @@ export function NexusOneProgressScreen({
           </div>
         </div>
       </div>
+      {failureMessage && <StatusAlert message={failureMessage} type="error" />}
     </div>
   );
 }
