@@ -10,10 +10,12 @@ export function HistoryTooltip({ children }: { children: ReactElement }) {
         <Content
           align="end"
           avoidCollisions={false}
-          className="fade-in-0 slide-in-from-bottom-1 z-[1000] min-w-[9.875rem] shrink-0 animate-in whitespace-nowrap rounded-[0.5rem] bg-white px-2.5 py-[0.5625rem] text-center font-medium text-[#111827] text-xs leading-4 duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-1 motion-reduce:animate-none"
+          className="fade-in-0 slide-in-from-bottom-1 z-[2147483647] min-w-[9.875rem] shrink-0 animate-in whitespace-nowrap rounded-[0.5rem] bg-white px-2.5 py-[0.5625rem] text-center font-medium text-[#111827] text-xs leading-4 duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-1 motion-reduce:animate-none"
           side="top"
-          sideOffset={8}
+          sideOffset={12}
           style={{
+            boxShadow:
+              "0 0 0 0.0625rem rgba(17, 24, 39, 0.06), 0 0.25rem 0.75rem rgba(17, 24, 39, 0.12)",
             fontFamily: '"Geist", system-ui, sans-serif',
           }}
         >
