@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
+import { getTotalBalanceInFiat } from "../../nexus/balance-utils";
 import { PayWithSources as SharedPayWithSources } from "./pay-with-sources";
 import {
   formatSelectedTokenBalanceLabel,
@@ -636,7 +637,7 @@ export function DepositIdleForm({
     isCalculatingMax && activePendingPercent === 100
   );
   const destinationBalanceLabel = isUsdMode
-    ? formatUsdBalanceLabel(toToken?.balanceInFiat)
+    ? formatUsdBalanceLabel(getTotalBalanceInFiat(toToken))
     : formatSelectedTokenBalanceLabel(toToken) ||
       `0 ${toToken?.symbol || ""}`.trim();
 

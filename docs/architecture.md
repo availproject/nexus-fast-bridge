@@ -51,3 +51,29 @@ When a new behavior difference is required, extend `ChainFeatures`, add a safe f
 - Route, token, amount, recipient, or chain changes must invalidate stale intents before requesting a new quote.
 - Runtime image paths must remain valid from the root-hosted SPA.
 - A production change must pass `pnpm check` and `pnpm build`.
+
+## Balances and transfer UI
+
+- `components/nexus/balance-utils.ts` normalizes both SDK balance APIs. Display wallet holdings from `totalBalance`; use `usableBalance` for inputs, percentages, MAX, source allocation, and quote validation. The UI token option's legacy `balance` field always means usable funds.
+- SDK `value` describes usable funds in USD. Display USD totals use the corresponding unit price and total holding, with cached rates as a fallback. Token amounts retain decimal precision through aggregation.
+- Single-mode direction reversal swaps both tokens and chains and keeps the source input's amount and token/USD mode. It clears the old receive amount, cached USD value, percentage and quote, then validates the retained input against the new source's usable balance. A retained source amount drives an exact-input quote. Unified or incomplete selections cannot be reversed.
+- Done after either success or failure clears amounts, percentages and quotes. Single mode keeps both token selections; multi mode keeps the destination and clears sources.
+- `lib/user-facing-error.ts` supplies readable reasons for receipts, alerts and connection errors. It strips sensitive payloads and developer diagnostics. An unknown transaction status is not proof of a refund or of funds being in a wallet.
+
+## SDK progress contract
+
+The integration is checked against the installed Nexus SDK `2.4.1`.
+
+| SDK callback | FastBridge handling |
+| --- | --- |
+| `status` | Lifecycle information only. It does not complete the outer operation. |
+| `plan_preview` | Seeds the progress list. |
+| `plan_confirmed` | Supplies the authoritative steps, including allowance changes. |
+| `plan_progress` | Preserves step identity, chain metadata, state and public explorer hashes. Only `confirmed` or `completed` completes a step. |
+| Rejected operation promise | Supplies the failure reason and final app error state, including failures without a progress callback. |
+
+`lib/nexus-events.ts` isolates UI callback exceptions so they cannot abort a wallet operation. Failed-step references update synchronously, before the SDK rejection reaches the app. Approval counts use exact step IDs and do not count bridge-fill events as approvals.
+
+Standalone `execute()` does not emit progress callbacks in SDK `2.4.1`. The existing recipient-transfer fallback emits app-observed start and result/error states and waits for a receipt. It does not invent wallet-prompt or broadcast timing. SDK-owned telemetry is separate from this UI callback handling.
+
+Run `pnpm test:feedback` for balance, selection, error and progress regressions. The SDK tests exercise the actual installed bridge/swap event mappers; the test adapter fails if their implementation markers change. These checks do not submit live wallet transactions.

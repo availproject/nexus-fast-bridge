@@ -2,6 +2,11 @@
 
 import Decimal from "decimal.js";
 import React, { useMemo } from "react";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+  getUsableBalance,
+} from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   formatTokenAmountDisplay,
@@ -35,13 +40,14 @@ export function AmountInputUnified({
   header,
 }: AmountInputUnifiedProps) {
   const handleMax = () => {
-    if (!totalBalanceValue) return;
-    onChange(totalBalanceValue);
-    onCommit?.(totalBalanceValue);
+    const available = maxAvailableAmount ?? usableBalanceValue;
+    if (!available) return;
+    onChange(available);
+    onCommit?.(available);
   };
 
   const isUsdMode = !tokenSymbol;
-  const totalBalanceValue = useMemo(() => {
+  const usableBalanceValue = useMemo(() => {
     if (!unifiedBalances || !unifiedBalances.length) return "";
     if (isUsdMode) {
       return unifiedBalances
@@ -50,7 +56,7 @@ export function AmountInputUnified({
         .toFixed();
     }
     return unifiedBalances
-      .reduce((acc, curr) => acc.add(curr.balance ?? 0), new Decimal(0))
+      .reduce((acc, curr) => acc.add(getUsableBalance(curr)), new Decimal(0))
       .toDecimalPlaces(8, Decimal.ROUND_DOWN)
       .toFixed();
   }, [isUsdMode, unifiedBalances]);
@@ -58,13 +64,13 @@ export function AmountInputUnified({
     if (!unifiedBalances || !unifiedBalances.length) return "0";
     if (isUsdMode) {
       const fiatAmount = unifiedBalances.reduce(
-        (acc, curr) => acc.add(curr.balanceInFiat ?? 0),
+        (acc, curr) => acc.add(getTotalBalanceInFiat(curr)),
         new Decimal(0)
       );
       return formatUsdBalanceLabel(fiatAmount);
     }
     const amount = unifiedBalances.reduce(
-      (acc, curr) => acc.add(curr.balance ?? 0),
+      (acc, curr) => acc.add(getTotalBalance(curr)),
       new Decimal(0)
     );
     return formatTokenAmountDisplay(amount);
@@ -148,7 +154,10 @@ export function AmountInputUnified({
           {/* MAX button — inline beside the input */}
           <button
             className="shrink-0 focus:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            disabled={disabled || !maxAvailableAmount}
+            disabled={
+              disabled ||
+              !(Number(maxAvailableAmount ?? usableBalanceValue) > 0)
+            }
             onClick={handleMax}
             style={{
               background: "var(--background-tertiary, #F0F0EF)",
@@ -169,7 +178,7 @@ export function AmountInputUnified({
         </div>
 
         {/* Balance display — below amount + MAX row */}
-        {(totalBalanceValue || maxAvailableAmount) && (
+        {(usableBalanceValue || maxAvailableAmount) && (
           <div className="absolute bottom-3 left-0 w-full flex justify-center">
             <p
               style={{

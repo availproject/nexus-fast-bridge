@@ -987,7 +987,7 @@ export default function TopCrossChainBridgesPage() {
                   Blog
                 </a>
                 <a
-                  href="https://x.com/AvailProject"
+                  href="https://x.com/FastBridgeApp"
                   rel="noopener noreferrer"
                   target="_blank"
                 >

@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { getUserFacingError } from "@/lib/user-facing-error";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -55,7 +56,7 @@ export class ErrorBoundary extends Component<
             Something went wrong
           </div>
           <p className="mb-4 text-muted-foreground text-sm">
-            An unexpected error occurred. Please try again.
+            {getUserFacingError(this.state.error)}
           </p>
           <button
             className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
@@ -121,7 +122,7 @@ export class WidgetErrorBoundary extends Component<
               : "Widget error"}
           </div>
           <p className="mb-4 text-muted-foreground text-sm">
-            {this.state.error?.message || "An unexpected error occurred."}
+            {getUserFacingError(this.state.error)}
           </p>
           <button
             className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"

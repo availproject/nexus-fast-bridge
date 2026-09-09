@@ -108,7 +108,7 @@ function FastBridgeAppFooter() {
           <a
             aria-label="FastBridge on X"
             className="fastbridge-footer-icon-link"
-            href="https://x.com/AvailProject"
+            href="https://x.com/FastBridgeApp"
             rel="noopener noreferrer"
             target="_blank"
           >

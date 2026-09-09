@@ -279,9 +279,9 @@ export default function AboutPage() {
           <p>
             FastBridge currently supports 12 EVM chains, with more being added
             regularly. You can always check the bridge interface for the current
-            full list or follow Avail on{" "}
+            full list or follow FastBridge on{" "}
             <a
-              href="https://x.com/AvailProject"
+              href="https://x.com/FastBridgeApp"
               rel="noopener noreferrer"
               target="_blank"
             >
@@ -718,7 +718,7 @@ export default function AboutPage() {
                   Blog
                 </a>
                 <a
-                  href="https://x.com/AvailProject"
+                  href="https://x.com/FastBridgeApp"
                   rel="noopener noreferrer"
                   target="_blank"
                 >

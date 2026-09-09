@@ -10,6 +10,7 @@ import {
   useCallback,
   useRef,
 } from "react";
+import { createSdkEventHandler, isPlanStepComplete } from "@/lib/nexus-events";
 import type { TransactionStatus } from "../tx/types";
 import type {
   BridgeStepType,
@@ -128,7 +129,7 @@ export function useTransactionExecution({
       }
       console.error("Transaction failed:", error);
       if (options?.reportError) {
-        const message = "Unable to refresh source selection. Please try again.";
+        const message = handleNexusError(error).message;
         setTxError(message);
         onError?.(message);
       }
@@ -257,7 +258,7 @@ export function useTransactionExecution({
       setLastExplorerUrl("");
       setAppliedSourceSelectionKey(sourceSelectionKey);
 
-      const onEvent = (event: TransactionFlowEvent) => {
+      const onEvent = createSdkEventHandler((event: TransactionFlowEvent) => {
         if ("state" in event && event.state === "wallet_prompted") {
           console.log("[NEXUS WALLET PROMPTED]", event);
         }
@@ -280,10 +281,7 @@ export function useTransactionExecution({
           ) {
             stopwatch.start();
           }
-          const completed =
-            event.state === "completed" ||
-            event.state === "confirmed" ||
-            event.state === "submitted";
+          const completed = isPlanStepComplete(event.state);
           if (completed) {
             onStepComplete({
               ...event.step,
@@ -293,7 +291,7 @@ export function useTransactionExecution({
             });
           }
         }
-      };
+      });
 
       const transactionResult = await executeTransaction({
         token: inputs.token,

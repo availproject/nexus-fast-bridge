@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import React, { type RefObject, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { CHAIN_METADATA, usdFormatter } from "../../common";
+import { getTotalBalance } from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { Button } from "../../ui/button";
 import {
@@ -211,7 +212,7 @@ const DestinationContainer: React.FC<DestinationContainerProps> = ({
         {inputs?.toToken ? (
           <span className="text-sm text-muted-foreground">
             {formatBalance(
-              destinationBalance?.balance,
+              getTotalBalance(destinationBalance),
               inputs?.toToken?.symbol,
               destinationBalance?.decimals
             ) ?? ""}

@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { type Hex, padHex, parseUnits } from "viem";
+import { createSdkEventHandler, isPlanStepComplete } from "@/lib/nexus-events";
 import {
   SWAP_EXPECTED_STEPS,
   useDebouncedCallback,
@@ -25,6 +26,11 @@ import {
   useTransactionSteps,
 } from "../../common";
 import type { SwapStepType } from "../../common/types/transaction-flow";
+import {
+  getUsableBalance,
+  isAmountAboveUsableBalance,
+  normalizeUserAssets,
+} from "../../nexus/balance-utils";
 import {
   buildSourceOptionKey,
   getIntentMatchedOptionKeys,
@@ -222,24 +228,7 @@ const useSwaps = ({
     if (!rawSwapBalance) {
       return null;
     }
-    return rawSwapBalance.map((asset) => {
-      const breakdown =
-        asset.chainBalances?.map((cb: any) => ({
-          ...cb,
-          balance: cb.balance,
-          balanceInFiat: Number.parseFloat(cb.value),
-          chain: cb.chain,
-          contractAddress: cb.contractAddress,
-          decimals: cb.decimals,
-          symbol: cb.symbol,
-        })) ??
-        (asset as any).breakdown ??
-        [];
-      return {
-        ...asset,
-        breakdown,
-      };
-    });
+    return normalizeUserAssets(rawSwapBalance);
   }, [rawSwapBalance]);
   const {
     steps,
@@ -638,13 +627,16 @@ const useSwaps = ({
       );
     if (
       !sourceBalance ||
-      Number.parseFloat(sourceBalance.balance ?? "0") <= 0
+      Number.parseFloat(getUsableBalance(sourceBalance)) <= 0
     ) {
       throw new Error(
         "No balance found for this wallet on supported source chains."
       );
     }
 
+    if (isAmountAboveUsableBalance(sourceBalance, fromAmount)) {
+      throw new Error("Amount exceeds the usable source balance.");
+    }
     const amountBigInt = parseUnits(fromAmount, fromToken.decimals);
     const swapInput: SwapExactInParams = {
       sources: [
@@ -659,7 +651,7 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactIn(swapInput, {
-      onEvent: (event) => {
+      onEvent: createSdkEventHandler((event) => {
         if ("state" in event && event.state === "wallet_prompted") {
           console.log("[NEXUS WALLET PROMPTED]", event);
         }
@@ -679,10 +671,7 @@ const useSwaps = ({
           seed(list as any);
         }
         if (event.type === "plan_progress") {
-          const completed =
-            event.state === "completed" ||
-            event.state === "confirmed" ||
-            event.state === "submitted";
+          const completed = isPlanStepComplete(event.state);
           if (completed) {
             const { type, ...restStep } = event.step;
             const step = {
@@ -709,7 +698,7 @@ const useSwaps = ({
             onStepComplete(step as any);
           }
         }
-      },
+      }),
       hooks: {
         onIntent: (data) => {
           swapIntent.current = data;
@@ -746,7 +735,7 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactOut(swapInput, {
-      onEvent: (event) => {
+      onEvent: createSdkEventHandler((event) => {
         if ("state" in event && event.state === "wallet_prompted") {
           console.log("[NEXUS WALLET PROMPTED]", event);
         }
@@ -766,10 +755,7 @@ const useSwaps = ({
           seed(list as any);
         }
         if (event.type === "plan_progress") {
-          const completed =
-            event.state === "completed" ||
-            event.state === "confirmed" ||
-            event.state === "submitted";
+          const completed = isPlanStepComplete(event.state);
           if (completed) {
             const { type, ...restStep } = event.step;
             const step = {
@@ -796,7 +782,7 @@ const useSwaps = ({
             onStepComplete(step as any);
           }
         }
-      },
+      }),
       hooks: {
         onIntent: (data) => {
           swapIntent.current = data;

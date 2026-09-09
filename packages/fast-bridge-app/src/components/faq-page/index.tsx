@@ -93,11 +93,11 @@ const FAQ_GROUPS: FAQGroup[] = [
             across EVM and non-EVM chains. New integrations are added on an
             ongoing basis. Follow{" "}
             <a
-              href="https://x.com/AvailProject"
+              href="https://x.com/FastBridgeApp"
               rel="noopener noreferrer"
               target="_blank"
             >
-              Avail's official channels
+              FastBridge on X
             </a>{" "}
             for announcements.
           </>
@@ -621,7 +621,7 @@ export default function FAQPage() {
                   Blog
                 </a>
                 <a
-                  href="https://x.com/AvailProject"
+                  href="https://x.com/FastBridgeApp"
                   rel="noopener noreferrer"
                   target="_blank"
                 >

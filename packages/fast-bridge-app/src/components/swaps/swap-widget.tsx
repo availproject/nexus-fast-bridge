@@ -2,6 +2,7 @@
 
 import { ArrowDownUp, Loader2, RefreshCcw } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
+import { getUserFacingError } from "@/lib/user-facing-error";
 import { useNexus } from "../nexus/nexus-provider";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -195,7 +196,9 @@ function SwapWidget({
           </div>
         </div>
         {status === "error" && (
-          <p className="text-destructive text-sm">{txError}</p>
+          <p className="text-destructive text-sm">
+            {getUserFacingError(txError)}
+          </p>
         )}
       </div>
 

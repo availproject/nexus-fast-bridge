@@ -3,6 +3,10 @@
 import Decimal from "decimal.js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+} from "../../nexus/balance-utils";
 import { AddressIdenticon } from "./address-identicon";
 import {
   formatSelectedTokenBalanceLabel,
@@ -10,6 +14,7 @@ import {
   formatUsdBalanceLabel,
   type SwapTokenOption,
 } from "./swap-asset-selector";
+import { SwapDirectionButton } from "./swap-direction-button";
 
 const tabularNums: React.CSSProperties = {
   fontFeatureSettings: '"tnum"',
@@ -21,6 +26,7 @@ const ASSET_DROPDOWN_SHADOW =
 
 interface SwapIdleFormProps {
   amount: string;
+  canReverseTokens?: boolean;
   defaultRecipientAddress?: string;
   destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
@@ -40,6 +46,7 @@ interface SwapIdleFormProps {
   onOpenRecipientPicker?: () => void;
   onOpenSourcePicker: (index?: number) => void;
   onRestoreAuto?: () => void;
+  onReverseTokens?: () => void;
   onSetPercent?: (pct: number) => void;
   onToggleExpand?: () => void;
   onToggleMultiAssetMode?: () => void;
@@ -338,7 +345,7 @@ function UnifiedTokenLogoBadge({
                   lineHeight: "16px",
                 }}
               >
-                ≈ {formatUsdBalanceLabel(token.balanceInFiat)}
+                ≈ {formatUsdBalanceLabel(getTotalBalanceInFiat(token))}
               </span>
             </div>
             <div
@@ -397,7 +404,7 @@ function UnifiedTokenLogoBadge({
                       lineHeight: "20px",
                     }}
                   >
-                    {formatAmountInputDisplay(source.balance || "0")}
+                    {formatAmountInputDisplay(getTotalBalance(source))}
                   </span>
                 </div>
               ))}
@@ -656,6 +663,7 @@ const formatAmountInputDisplay = (value: string) => {
 
 export function SwapIdleForm({
   amount,
+  canReverseTokens = false,
   receiveQuoteAmount,
   receiveQuoteUsd,
   receiveAmountIssue,
@@ -688,6 +696,7 @@ export function SwapIdleForm({
   onToggleExpand,
   onToggleMultiAssetMode,
   onRestoreAuto,
+  onReverseTokens,
   showRestoreAuto = false,
   needsWalletConnection = false,
   getTokenUsdRate,
@@ -2075,7 +2084,7 @@ export function SwapIdleForm({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "0.75rem",
         width: "100%",
         boxSizing: "border-box",
       }}
@@ -2105,6 +2114,7 @@ export function SwapIdleForm({
           setHoveredPanel((prev) => (prev === "send" ? null : prev))
         }
         style={{
+          position: "relative",
           display: "flex",
           padding: "12px",
           flexDirection: "column",
@@ -2641,6 +2651,12 @@ export function SwapIdleForm({
               </button>
             </div>
           </div>
+        )}
+        {!isMultiAssetMode && onReverseTokens && (
+          <SwapDirectionButton
+            disabled={!canReverseTokens}
+            onClick={onReverseTokens}
+          />
         )}
       </div>
 

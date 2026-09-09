@@ -19,6 +19,11 @@ import {
   getShortChainName,
   isSwapSupportedBySdkChainList,
 } from "../../common/utils/constant";
+import {
+  getTotalBalance,
+  getTotalBalanceInFiat,
+  toTokenOptionBalances,
+} from "../../nexus/balance-utils";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
@@ -721,7 +726,14 @@ export function ReceiveAssetSelector({
   const balanceMap = useMemo(() => {
     const map = new Map<
       string,
-      Pick<ReceiveTokenOption, "balance" | "balanceInFiat" | "hasBalance">
+      Pick<
+        ReceiveTokenOption,
+        | "balance"
+        | "balanceInFiat"
+        | "totalBalance"
+        | "totalBalanceInFiat"
+        | "hasBalance"
+      >
     >();
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
@@ -735,16 +747,14 @@ export function ReceiveAssetSelector({
         }
         const key = getTokenBalanceKey(bd.chain?.id, bd.contractAddress);
         if (!key) continue;
-        const fiatBalance = parseFiatValue(bd.balanceInFiat);
-        const tokenBalance = parseFiatValue(bd.balance);
+        const fiatBalance = parseFiatValue(getTotalBalanceInFiat(bd));
+        const tokenBalance = parseFiatValue(getTotalBalance(bd));
         if (fiatBalance <= 0 && tokenBalance <= 0) continue;
 
         const symbol = bd.symbol ?? asset.symbol;
         const decimals = bd.decimals ?? asset.decimals ?? 18;
         map.set(key, {
-          balance: bd.balance ?? "0",
-          balanceInFiat:
-            bd.balanceInFiat != null ? `$${fiatBalance.toFixed(2)}` : "$0.00",
+          ...toTokenOptionBalances(bd),
           hasBalance: true,
         });
         const nativeAlias = getNativeAddressAlias(bd.contractAddress);
@@ -1855,10 +1865,10 @@ export function ReceiveAssetSelector({
                                 fontWeight: 500,
                               }}
                             >
-                              {formatTokenBalance(t.balance, {
+                              {formatTokenBalance(getTotalBalance(t), {
                                 decimals: t.decimals,
                                 symbol: t.symbol,
-                              }) ?? `${t.balance} ${t.symbol}`}
+                              }) ?? `${getTotalBalance(t)} ${t.symbol}`}
                             </span>
                             <span
                               style={{
@@ -1867,7 +1877,7 @@ export function ReceiveAssetSelector({
                                 fontSize: 13,
                               }}
                             >
-                              {t.balanceInFiat}
+                              {getTotalBalanceInFiat(t)}
                             </span>
                           </div>
                         )
