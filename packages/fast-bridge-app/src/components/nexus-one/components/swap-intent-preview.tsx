@@ -21,6 +21,8 @@ import { type SwapTokenOption } from "./swap-asset-selector";
 export interface SwapIntentSource {
   amount: string;
   chain: { id: number; logo: string; name: string };
+  /** Stable Better Intent quote index used to correlate per-leg status. */
+  sourceIndex?: number;
   token: {
     contractAddress: string;
     decimals: number;

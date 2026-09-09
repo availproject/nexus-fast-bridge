@@ -17,6 +17,7 @@ import {
   type SwapType,
 } from "../types";
 import {
+  findIntentSourceForLeg,
   type IntentProgressLeg,
   mergeExpectedIntentLegs,
 } from "../utils/better-intent-progress";
@@ -1662,7 +1663,12 @@ export function NexusOneProgressScreen({
                         }}
                       >
                         {intentLegs.map((leg) => {
-                          const source = intentData?.sources[leg.sourceIndex];
+                          // Sources are sorted for display, so their array
+                          // position is not a stable Better Intent leg identity.
+                          const source = findIntentSourceForLeg(
+                            intentData?.sources ?? [],
+                            leg.sourceIndex
+                          );
                           const sourceToken =
                             eligibleFromTokens[leg.sourceIndex];
                           const symbol =

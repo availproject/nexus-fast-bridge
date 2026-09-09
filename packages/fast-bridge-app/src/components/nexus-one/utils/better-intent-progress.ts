@@ -7,6 +7,12 @@ export type IntentProgressLeg = {
   error?: string;
 };
 
+export const findIntentSourceForLeg = <T extends { sourceIndex?: number }>(
+  sources: T[],
+  sourceIndex: number
+): T | undefined =>
+  sources.find((source) => source.sourceIndex === sourceIndex);
+
 export const mergeExpectedIntentLegs = (
   sourceCount: number,
   reportedLegs: IntentProgressLeg[]

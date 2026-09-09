@@ -1,9 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  findIntentSourceForLeg,
   markIntentLegsFulfilled,
   mergeExpectedIntentLegs,
 } from "./better-intent-progress.ts";
+
+test("matches status legs by stable source index after display sorting", () => {
+  const sources = [
+    { sourceIndex: 1, symbol: "USDC on Optimism" },
+    { sourceIndex: 0, symbol: "USDC on Monad" },
+  ];
+
+  assert.equal(findIntentSourceForLeg(sources, 0)?.symbol, "USDC on Monad");
+  assert.equal(findIntentSourceForLeg(sources, 1)?.symbol, "USDC on Optimism");
+});
 
 test("seeds every quoted source as waiting for deposit", () => {
   assert.deepEqual(mergeExpectedIntentLegs(2, []), [

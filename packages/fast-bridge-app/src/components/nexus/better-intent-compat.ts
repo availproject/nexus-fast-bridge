@@ -109,6 +109,8 @@ export interface LegacyIntent {
   };
   sources: Array<{
     amount: string;
+    /** Stable index assigned by the Better Intent quote and used by status legs. */
+    sourceIndex: number;
     chain: { id: number; logo: string; name: string };
     token: {
       contractAddress: `0x${string}`;
@@ -291,12 +293,13 @@ export const normalizeIntentQuote = (
     quote.output.tokenAddress
   );
   const outputDecimals = outputToken?.decimals ?? 18;
-  const sources = quote.input.map((entry) => {
+  const sources = quote.input.map((entry, sourceIndex) => {
     const chain = chainById(chains, entry.chainId);
     const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
     const decimals = token?.decimals ?? outputDecimals;
     return {
       amount: formatUnits(entry.amountRaw, decimals),
+      sourceIndex,
       chain: {
         id: entry.chainId,
         logo: chain?.logo ?? "",
