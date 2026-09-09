@@ -536,7 +536,19 @@ const readSwapHistoryFromStorage = (storageKey: string): SwapHistoryEntry[] => {
     return sortSwapHistoryEntries(
       parsed
         .map(normalizeStoredHistoryEntry)
-        .filter((entry): entry is SwapHistoryEntry => Boolean(entry))
+        .filter((entry): entry is SwapHistoryEntry => {
+          if (!entry) return false;
+          // A pending record with no intent or transaction identifier cannot
+          // be resumed or monitored after reload. Older builds created these
+          // during quote/signature attempts, including wallet rejections.
+          return !(
+            entry.status === "pending" &&
+            !entry.intentId &&
+            !entry.intentExplorerUrl &&
+            !entry.sourceExplorerUrl &&
+            !entry.finalExplorerUrl
+          );
+        })
     );
   } catch {
     return [];
@@ -3787,6 +3799,9 @@ function NexusOneInner({
 
   useEffect(() => {
     swapStepRef.current = swapStep;
+    console.info("[NexusOne SDK][swap] Screen state changed", {
+      swapStep,
+    });
   }, [swapStep]);
 
   useEffect(() => {
@@ -6756,6 +6771,11 @@ function NexusOneInner({
 
     currentSwapStartedAtRef.current = 0;
     currentSwapIdRef.current = id;
+    console.info("[NexusOne SDK][swap] Starting execution history entry", {
+      id,
+      mode: activeMode,
+      swapType,
+    });
     setCurrentSwapId(id);
     setSwapHistory((prev) => sortSwapHistoryEntries([entry, ...prev]));
     return id;
@@ -6778,18 +6798,6 @@ function NexusOneInner({
       ...patch,
     });
     scheduleTerminalBalanceRefresh();
-  };
-
-  const discardCurrentSwapHistoryEntry = () => {
-    const currentId = currentSwapIdRef.current;
-    if (currentId) {
-      setSwapHistory((entries) =>
-        entries.filter((entry) => entry.id !== currentId)
-      );
-    }
-    currentSwapIdRef.current = null;
-    currentSwapStartedAtRef.current = 0;
-    setCurrentSwapId(null);
   };
 
   const markSwapExecutionStarted = () => {
@@ -6963,8 +6971,30 @@ function NexusOneInner({
                 : destinationGasSuppliedFee));
 
         if (bridgeTotal !== undefined) {
+          const isBetterIntentFee = isBetterIntentProvider(
+            sortedIntent.bridgeProvider
+          );
+          const destinationAmount = parseFiatNumber(
+            sortedIntent.destination?.amount
+          );
+          const destinationValue = parseFiatNumber(
+            sortedIntent.destination?.value
+          );
+          const destinationUsdRate =
+            destinationAmount?.gt(0) && destinationValue?.gt(0)
+              ? destinationValue.div(destinationAmount)
+              : getUsdRateForSymbol(sortedIntent.destination?.token?.symbol);
+          const feeTotalUsd = isBetterIntentFee
+            ? destinationUsdRate.gt(0)
+              ? bridgeTotal.mul(destinationUsdRate)
+              : undefined
+            : bridgeTotal;
           setIntentFeeUsd(
-            bridgeTotal.gt(0) ? bridgeTotal.toDecimalPlaces(6).toFixed() : "0"
+            feeTotalUsd
+              ? feeTotalUsd.gt(0)
+                ? feeTotalUsd.toDecimalPlaces(6).toFixed()
+                : "0"
+              : undefined
           );
         } else {
           setIntentFeeUsd(undefined);
@@ -6995,13 +7025,29 @@ function NexusOneInner({
             );
             return {
               ...adapted,
-              intent: addIntentUsdValues(adapted.intent, (symbol) =>
-                getUsdRateForSymbol(symbol).toNumber()
-              ),
+              intent: addIntentUsdValues(adapted.intent, (symbol) => {
+                const selectedDestinationRate =
+                  toToken?.symbol?.toUpperCase() === symbol.toUpperCase()
+                    ? getTokenUsdRate(toToken).gt(0)
+                      ? getTokenUsdRate(toToken)
+                      : getDisconnectedUsdRate(toToken)
+                    : undefined;
+                return (
+                  selectedDestinationRate ?? getUsdRateForSymbol(symbol)
+                ).toNumber();
+              }),
               refresh: async (...args: Parameters<typeof adapted.refresh>) =>
-                addIntentUsdValues(await adapted.refresh(...args), (symbol) =>
-                  getUsdRateForSymbol(symbol).toNumber()
-                ),
+                addIntentUsdValues(await adapted.refresh(...args), (symbol) => {
+                  const selectedDestinationRate =
+                    toToken?.symbol?.toUpperCase() === symbol.toUpperCase()
+                      ? getTokenUsdRate(toToken).gt(0)
+                        ? getTokenUsdRate(toToken)
+                        : getDisconnectedUsdRate(toToken)
+                      : undefined;
+                  return (
+                    selectedDestinationRate ?? getUsdRateForSymbol(symbol)
+                  ).toNumber();
+                }),
             };
           })()
         : data;
@@ -7089,7 +7135,17 @@ function NexusOneInner({
         runId,
         quoteInputKey: resolvedQuoteInputKey,
       };
+      const quotedPlanSteps = Array.isArray(data?.quote?.plan?.steps)
+        ? data.quote.plan.steps
+        : [];
       flushSync(() => {
+        if (quotedPlanSteps.length > 0) {
+          // Seed the execution screen directly from the accepted quote. The
+          // SDK also emits a quote event, but that non-blocking event can land
+          // after the progress screen's first render.
+          rawPlanStepsRef.current = quotedPlanSteps;
+          setRawPlanSteps(quotedPlanSteps);
+        }
         applySwapIntent(intentWithBridgeProvider);
         setIntentLoading(false);
         setQuoteRefreshing(false);
@@ -7104,7 +7160,6 @@ function NexusOneInner({
         onStart?.();
         startSwapHistoryEntry();
         setQuoteRefreshing(false);
-        resetProgressEvents();
         allow();
       }
     },
@@ -9118,8 +9173,6 @@ function NexusOneInner({
     }
 
     if (!background) {
-      onStart?.();
-      startSwapHistoryEntry();
       swapStepRef.current = "progress";
       setSwapStep("progress");
     }
@@ -9332,6 +9385,22 @@ function NexusOneInner({
     const onEvent = (rawEvent: any) => {
       if (rawEvent?.type === "step" && rawEvent.committed === true) {
         intentCommittedRef.current = true;
+      }
+      if (rawEvent?.type === "step" && rawEvent?.state === "failed") {
+        const stepError = rawEvent.errorDetails ?? rawEvent.error;
+        console.warn("[NexusOne SDK][swap] Better Intent step failed", {
+          committed: rawEvent.committed,
+          error: rawEvent.error,
+          errorDetails: rawEvent.errorDetails,
+          quoteInputKey,
+          runId,
+          step: rawEvent.step,
+        });
+
+        console.warn("[NexusOne SDK][swap] Step failure classification", {
+          classifiedAsUserRejection: isUserRejectedIntentError(stepError),
+          stepError,
+        });
       }
       const event =
         rawEvent?.type === "quote" ||
@@ -10149,15 +10218,44 @@ function NexusOneInner({
         }, 700);
       };
       if (isUserRejectedIntentError(err)) {
+        console.info("[NexusOne SDK][swap] Classified wallet rejection", {
+          committed: hasCommittedIntent,
+          error: err,
+          nextScreen: "failed",
+          quoteInputKey,
+          runId,
+        });
         if (hasCommittedIntent) {
           showFailedProgressThenReceipt("Transaction cancelled by user");
-        } else if (!background) {
-          discardCurrentSwapHistoryEntry();
-          const nextStep = swapIntentRef.current?.intent
-            ? "preview-intent"
-            : "idle";
-          swapStepRef.current = nextStep;
-          setSwapStep(nextStep);
+        } else {
+          const failedProgressEvent = progressEventsRef.current.at(-1);
+          const failedStep = failedProgressEvent?.step;
+          swapIntentRef.current = null;
+          if (failedStep) {
+            setFailedProgressStep(failedStep);
+          }
+          finishCurrentSwapHistoryEntry("failed", {
+            error: "Transaction cancelled by user",
+            failureMessage: "Transaction cancelled",
+            ...(failedStep
+              ? { failedStepType: getProgressStepType(failedStep) }
+              : {}),
+          });
+          const nextStep = "failed";
+          setTxError(null);
+          flushSync(() => {
+            swapStepRef.current = nextStep;
+            setSwapStep(nextStep);
+          });
+          console.info(
+            "[NexusOne SDK][swap] Wallet rejection screen transition applied",
+            {
+              currentScreenRef: swapStepRef.current,
+              nextScreen: nextStep,
+              quoteInputKey,
+              runId,
+            }
+          );
         }
         return;
       }
@@ -10642,6 +10740,7 @@ function NexusOneInner({
       }
       onStart?.();
       startSwapHistoryEntry();
+      swapStepRef.current = "progress";
       setSwapStep("progress");
       setQuoteRefreshing(false);
       retainPlanForExecution();

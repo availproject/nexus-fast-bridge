@@ -467,7 +467,8 @@ const countCompletedApprovalUnitsFromEvents = (
       completedIds.add(stepId);
     }
     const units = getApprovalUnitsForStep(event.step);
-    count += units.length > 0 ? units.length : 1;
+    if (units.length === 0) continue;
+    count += units.length;
   }
 
   return count;
@@ -1469,14 +1470,13 @@ export function NexusOneProgressScreen({
               on {destinationChain}
             </div>
           )}
+          {isBetterIntentProvider(intentData?.bridgeProvider) && (
+            <div style={{ marginTop: "6px" }}>
+              <IntentProviderChip provider={intentData.bridgeProvider} />
+            </div>
+          )}
         </div>
       </div>
-
-      {isBetterIntentProvider(intentData?.bridgeProvider) && (
-        <div style={{ marginBottom: "8px" }}>
-          <IntentProviderChip provider={intentData.bridgeProvider} />
-        </div>
-      )}
 
       <div
         aria-live="polite"
