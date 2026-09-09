@@ -75,6 +75,7 @@ import { AddressIdenticon } from "./components/address-identicon";
 import { DepositIdleForm } from "./components/deposit-idle-form";
 import { EstimatedFeesDisclosure } from "./components/estimated-fees-disclosure";
 import { ExactOutSwapIdleForm } from "./components/exact-out-swap-idle-form";
+import { HistoryTooltip } from "./components/history-tooltip";
 import {
   type NexusOneProgressEvent,
   NexusOneProgressScreen,
@@ -11672,56 +11673,58 @@ function NexusOneInner({
                   secondsRemaining={quoteRefreshSecondsRemaining}
                 />
               )}
-              <button
-                aria-label="View transaction history"
-                onClick={handleHistoryToggle}
-                style={{
-                  alignItems: "center",
-                  backgroundColor: "transparent",
-                  border: "none",
-                  borderRadius: "999px",
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexShrink: 0,
-                  height: "28px",
-                  justifyContent: "center",
-                  padding: 0,
-                  width: "28px",
-                  color: "#1F1F1F",
-                }}
-                type="button"
-              >
-                <svg
-                  fill="none"
-                  height="16"
-                  style={{ width: "16px", height: "16px", flexShrink: 0 }}
-                  viewBox="0 0 16 16"
-                  width="16"
-                  xmlns="http://www.w3.org/2000/svg"
+              <HistoryTooltip>
+                <button
+                  aria-label="View transaction history"
+                  onClick={handleHistoryToggle}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    borderRadius: "999px",
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexShrink: 0,
+                    height: "28px",
+                    justifyContent: "center",
+                    padding: 0,
+                    width: "28px",
+                    color: "#1F1F1F",
+                  }}
+                  type="button"
                 >
-                  <path
-                    d="M8 4V8L10.5 9.5"
-                    stroke="#1F1F1F"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
-                  />
-                  <path
-                    d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
-                    stroke="#1F1F1F"
-                    strokeLinecap="round"
-                    strokeWidth="1.5"
-                  />
-                  <path
-                    d="M13.5 2V5H10.5"
-                    stroke="#1F1F1F"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    fill="none"
+                    height="16"
+                    style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                    viewBox="0 0 16 16"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M8 4V8L10.5 9.5"
+                      stroke="#1F1F1F"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
+                      stroke="#1F1F1F"
+                      strokeLinecap="round"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M13.5 2V5H10.5"
+                      stroke="#1F1F1F"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                    />
+                  </svg>
+                </button>
+              </HistoryTooltip>
             </div>
           </div>
         ) : (
@@ -11806,58 +11809,60 @@ function NexusOneInner({
                 />
               )}
               {swapStep !== "history" && (
-                <button
-                  aria-label="View transaction history"
-                  onClick={handleHistoryToggle}
-                  style={{
-                    alignItems: "center",
-                    backgroundColor:
-                      theme.primitives.iconButton.backgroundColor,
-                    borderColor: theme.primitives.iconButton.borderColor,
-                    borderRadius: theme.radius.iconButton,
-                    borderStyle: "solid",
-                    borderWidth: "1px",
-                    boxShadow: theme.primitives.iconButton.boxShadow,
-                    boxSizing: "border-box",
-                    display: "flex",
-                    flexShrink: 0,
-                    height: "28px",
-                    justifyContent: "center",
-                    width: "28px",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  <svg
-                    fill="none"
-                    height="14"
-                    style={{ width: "14px", height: "14px", flexShrink: 0 }}
-                    viewBox="0 0 16 16"
-                    width="14"
-                    xmlns="http://www.w3.org/2000/svg"
+                <HistoryTooltip>
+                  <button
+                    aria-label="View transaction history"
+                    onClick={handleHistoryToggle}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor:
+                        theme.primitives.iconButton.backgroundColor,
+                      borderColor: theme.primitives.iconButton.borderColor,
+                      borderRadius: theme.radius.iconButton,
+                      borderStyle: "solid",
+                      borderWidth: "1px",
+                      boxShadow: theme.primitives.iconButton.boxShadow,
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flexShrink: 0,
+                      height: "28px",
+                      justifyContent: "center",
+                      width: "28px",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
                   >
-                    <path
-                      d="M8 4V8L10.5 9.5"
-                      stroke={theme.colors.textStrong}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.4"
-                    />
-                    <path
-                      d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
-                      stroke={theme.colors.textStrong}
-                      strokeLinecap="round"
-                      strokeWidth="1.4"
-                    />
-                    <path
-                      d="M13.5 2V5H10.5"
-                      stroke={theme.colors.textStrong}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.4"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      fill="none"
+                      height="14"
+                      style={{ width: "14px", height: "14px", flexShrink: 0 }}
+                      viewBox="0 0 16 16"
+                      width="14"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M8 4V8L10.5 9.5"
+                        stroke={theme.colors.textStrong}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.4"
+                      />
+                      <path
+                        d="M14 8C14 11.314 11.314 14 8 14C4.686 14 2 11.314 2 8C2 4.686 4.686 2 8 2C10.196 2 12.117 3.179 13.163 4.936"
+                        stroke={theme.colors.textStrong}
+                        strokeLinecap="round"
+                        strokeWidth="1.4"
+                      />
+                      <path
+                        d="M13.5 2V5H10.5"
+                        stroke={theme.colors.textStrong}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.4"
+                      />
+                    </svg>
+                  </button>
+                </HistoryTooltip>
               )}
               {showCloseButton && (
                 <button
