@@ -17,7 +17,6 @@ import {
   useState,
 } from "react";
 import { type Hex, padHex, parseUnits } from "viem";
-import { createSdkEventHandler, isPlanStepComplete } from "@/lib/nexus-events";
 import {
   SWAP_EXPECTED_STEPS,
   useDebouncedCallback,
@@ -651,7 +650,7 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactIn(swapInput, {
-      onEvent: createSdkEventHandler((event) => {
+      onEvent: (event) => {
         if ("state" in event && event.state === "wallet_prompted") {
           console.log("[NEXUS WALLET PROMPTED]", event);
         }
@@ -671,7 +670,10 @@ const useSwaps = ({
           seed(list as any);
         }
         if (event.type === "plan_progress") {
-          const completed = isPlanStepComplete(event.state);
+          const completed =
+            event.state === "completed" ||
+            event.state === "confirmed" ||
+            event.state === "submitted";
           if (completed) {
             const { type, ...restStep } = event.step;
             const step = {
@@ -698,7 +700,7 @@ const useSwaps = ({
             onStepComplete(step as any);
           }
         }
-      }),
+      },
       hooks: {
         onIntent: (data) => {
           swapIntent.current = data;
@@ -735,7 +737,7 @@ const useSwaps = ({
     };
 
     await nexusSDK.swapWithExactOut(swapInput, {
-      onEvent: createSdkEventHandler((event) => {
+      onEvent: (event) => {
         if ("state" in event && event.state === "wallet_prompted") {
           console.log("[NEXUS WALLET PROMPTED]", event);
         }
@@ -755,7 +757,10 @@ const useSwaps = ({
           seed(list as any);
         }
         if (event.type === "plan_progress") {
-          const completed = isPlanStepComplete(event.state);
+          const completed =
+            event.state === "completed" ||
+            event.state === "confirmed" ||
+            event.state === "submitted";
           if (completed) {
             const { type, ...restStep } = event.step;
             const step = {
@@ -782,7 +787,7 @@ const useSwaps = ({
             onStepComplete(step as any);
           }
         }
-      }),
+      },
       hooks: {
         onIntent: (data) => {
           swapIntent.current = data;

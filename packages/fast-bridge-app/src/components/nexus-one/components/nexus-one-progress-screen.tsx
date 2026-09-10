@@ -5,7 +5,6 @@
 import Decimal from "decimal.js";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { isPlanStepComplete } from "@/lib/nexus-events";
 import type {
   BridgeStepType,
   SwapStepType,
@@ -198,7 +197,6 @@ const isApprovalStep = (step?: ProgressSdkStep) => {
       (step as any)?.stepType ??
       ""
   ).toLowerCase();
-  if (rawType === "allowance_approval" || rawType === "allowance") return true;
   const type = getStepType(step);
   if (type.includes("SOURCE_SWAP") || rawType === "source_swap") {
     return true;
@@ -348,6 +346,14 @@ const getApprovalUnitsForStep = (step?: ProgressSdkStep): ApprovalUnit[] => {
 const countApprovalUnits = (steps: ProgressSdkStep[]) =>
   steps.reduce((sum, step) => sum + getApprovalUnitsForStep(step).length, 0);
 
+const APPROVAL_FINAL_STATES = new Set([
+  "completed",
+  "confirmed",
+  "success",
+  "submitted",
+  "tx_sent",
+]);
+
 const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
   if (event.completed) return true;
   const rawState = String(
@@ -357,7 +363,7 @@ const isApprovalEventCompleted = (event: NexusOneProgressEvent) => {
       (event as any)?.state ??
       ""
   ).toLowerCase();
-  return isPlanStepComplete(rawState);
+  return APPROVAL_FINAL_STATES.has(rawState);
 };
 
 const countCompletedApprovalUnitsFromEvents = (
@@ -385,7 +391,7 @@ const countCompletedApprovalUnitsFromEvents = (
       completedIds.add(stepId);
     }
     const units = getApprovalUnitsForStep(event.step);
-    count += units.length;
+    count += units.length > 0 ? units.length : 1;
   }
 
   return count;
@@ -446,7 +452,13 @@ const isEventMatchingRawStep = (
   ).toLowerCase();
 
   if (rawStepId && eventStepId) {
-    return rawStepId === eventStepId;
+    if (
+      rawStepId === eventStepId ||
+      eventStepId.includes(rawStepId) ||
+      rawStepId.includes(eventStepId)
+    ) {
+      return true;
+    }
   }
 
   const rawType = String(rawStep?.type ?? rawStep?.rawType ?? "").toLowerCase();

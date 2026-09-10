@@ -31,15 +31,8 @@ import {
   usePublicClient,
   useWalletClient,
 } from "wagmi";
-import { asRecord } from "@/lib/error-safety";
 import { reportConnectWalletConversion } from "@/lib/google-tag";
-import {
-  createSdkEventHandler,
-  executeWithAppEvents,
-  isIntentHookDenial,
-  isPlanStepComplete,
-  normalizePlanStep,
-} from "@/lib/nexus-events";
+import { isIntentHookDenial } from "@/lib/nexus-events";
 import { readSwapParam, writeSwapParam } from "@/lib/url-params";
 import {
   getReceiptErrorMessage,
@@ -279,6 +272,7 @@ const PROGRESS_EVENT_NAMES = {
   SWAP_PLAN_LIST: "swap_plan_list",
   SWAP_PLAN_PROGRESS: "swap_plan_progress",
 } as const;
+const PLAN_FINAL_STATES = new Set(["completed", "confirmed", "success"]);
 const PLAN_STEP_FUNDS_MOVED_STATES = new Set([
   "completed",
   "confirmed",
@@ -1696,6 +1690,58 @@ const normalizeRenderableSwapIntentData = (
   return bridgeProvider === undefined
     ? normalized
     : { ...normalized, bridgeProvider };
+};
+
+const normalizePlanStepType = (stepType: unknown, state?: unknown) => {
+  const normalized = String(stepType ?? "").toLowerCase();
+  const normalizedState = String(state ?? "").toLowerCase();
+
+  if (normalized === "execute_transaction") {
+    return normalizedState === "confirmed" || normalizedState === "completed"
+      ? "TRANSACTION_CONFIRMED"
+      : "TRANSACTION_SENT";
+  }
+
+  const mapped: Record<string, string> = {
+    allowance_approval: "APPROVAL",
+    bridge_deposit: "BRIDGE_DEPOSIT",
+    bridge_fill: "BRIDGE_FILL",
+    bridge_intent_submission: "BRIDGE_INTENT_SUBMISSION",
+    destination_swap: "DESTINATION_SWAP",
+    eoa_to_ephemeral_transfer: "EOA_TO_EPHEMERAL_TRANSFER",
+    execute_approval: "APPROVAL",
+    request_signing: "REQUEST_SIGNING",
+    request_submission: "REQUEST_SUBMISSION",
+    source_swap: "SOURCE_SWAP",
+    vault_deposit: "BRIDGE_DEPOSIT",
+  };
+
+  return mapped[normalized] ?? normalized.toUpperCase();
+};
+
+const normalizePlanStep = (
+  stepLike: unknown,
+  fallbackStepType?: unknown,
+  state?: unknown,
+  completed?: boolean
+): SwapStepType | BridgeStepType => {
+  const source =
+    stepLike && typeof stepLike === "object" ? (stepLike as any) : {};
+  const rawStepType = fallbackStepType ?? source.stepType ?? source.type;
+  const progressType = normalizePlanStepType(
+    rawStepType ?? source.typeID,
+    state
+  );
+  const progressKey =
+    source.id ?? source.stepId ?? source.typeID ?? progressType;
+
+  return {
+    ...source,
+    completed,
+    rawType: rawStepType,
+    type: progressType,
+    typeID: String(progressKey),
+  } as SwapStepType | BridgeStepType;
 };
 
 const getPlanStepChainId = (event: any, step: any) =>
@@ -6364,19 +6410,20 @@ function NexusOneInner({
         ? Boolean((step as any).completed)
         : defaultCompleted;
 
-    const prev = progressEventsRef.current;
-    const next = [
-      ...prev,
-      {
-        id: `${Date.now()}-${prev.length}-${(step as any).typeID ?? (step as any).type ?? name}`,
-        name,
-        completed,
-        event,
-        step,
-      },
-    ];
-    progressEventsRef.current = next;
-    setProgressEvents(next);
+    setProgressEvents((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: `${Date.now()}-${prev.length}-${(step as any).typeID ?? (step as any).type ?? name}`,
+          name,
+          completed,
+          event,
+          step,
+        },
+      ];
+      progressEventsRef.current = next;
+      return next;
+    });
   };
 
   const appendProgressListEvent = (
@@ -6387,21 +6434,22 @@ function NexusOneInner({
   ) => {
     if (stepList.length === 0) return;
 
-    const prev = progressEventsRef.current;
-    const next = [
-      ...prev,
-      {
-        id: `${Date.now()}-${prev.length}-${name}`,
-        name,
-        completed: false,
-        step: stepList[0],
-        steps: stepList,
-        rawSteps: rawSteps ?? (stepList as any),
-        planType,
-      },
-    ];
-    progressEventsRef.current = next;
-    setProgressEvents(next);
+    setProgressEvents((prev) => {
+      const next = [
+        ...prev,
+        {
+          id: `${Date.now()}-${prev.length}-${name}`,
+          name,
+          completed: false,
+          step: stepList[0],
+          steps: stepList,
+          rawSteps: rawSteps ?? (stepList as any),
+          planType,
+        },
+      ];
+      progressEventsRef.current = next;
+      return next;
+    });
   };
 
   const startSwapHistoryEntry = () => {
@@ -8899,8 +8947,6 @@ function NexusOneInner({
     };
 
     const handlePlanEvent = (event: any) => {
-      // Lifecycle statuses do not complete the outer operation; UI steps use plans/progress.
-      if (event.type === "status") return;
       if (event.type === "plan_preview" || event.type === "plan_confirmed") {
         const stepList = Array.isArray(event.plan?.steps)
           ? event.plan.steps.map((step: any) =>
@@ -8947,7 +8993,7 @@ function NexusOneInner({
       }
 
       const state = String(event.state ?? "").toLowerCase();
-      const completed = isPlanStepComplete(state);
+      const completed = PLAN_FINAL_STATES.has(state);
       const step = normalizePlanStep(
         event.step,
         event.stepType,
@@ -8983,41 +9029,30 @@ function NexusOneInner({
       logSdkSwapEvent("ignored event without string type", event);
     };
 
-    const onEvent = createSdkEventHandler(
-      (event) => {
-        const isCurrentRun = swapRunIdRef.current === runId;
-        const isCurrentQuote = isCurrentQuoteInput();
-        logSdkSwapEvent("onEvent", event, {
+    const onEvent = (event: any) => {
+      const isCurrentRun = swapRunIdRef.current === runId;
+      const isCurrentQuote = isCurrentQuoteInput();
+      logSdkSwapEvent("onEvent", event, {
+        currentRunId: swapRunIdRef.current,
+        isCurrentQuote,
+        isCurrentRun,
+        quoteInputKey,
+        runId,
+      });
+      if (!isCurrentRun || !isCurrentQuote) {
+        logSdkSwapEvent("ignored stale onEvent", event, {
           currentRunId: swapRunIdRef.current,
           isCurrentQuote,
-          isCurrentRun,
           quoteInputKey,
           runId,
         });
-        if (!isCurrentRun || !isCurrentQuote) {
-          logSdkSwapEvent("ignored stale onEvent", event, {
-            currentRunId: swapRunIdRef.current,
-            isCurrentQuote,
-            quoteInputKey,
-            runId,
-          });
-          return;
-        }
-        patchCurrentIntentExplorerUrl(
-          getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
-        );
-        handleSwapEvent(event);
-      },
-      (error) => {
-        if (swapRunIdRef.current !== runId) return;
-        setTxError(
-          getUserFacingError(
-            error,
-            "We couldn't update the transfer progress. Check your wallet or the explorer for its status."
-          )
-        );
+        return;
       }
-    );
+      patchCurrentIntentExplorerUrl(
+        getEventIntentExplorerUrl(appConfig.nexusNetwork, event)
+      );
+      handleSwapEvent(event);
+    };
 
     const buildRecipientTransferExecuteConfig = (transferAmount: bigint) => {
       if (!resolvedRecipientAddress) {
@@ -9051,14 +9086,12 @@ function NexusOneInner({
     };
 
     const executeRecipientTransfer = async (transferAmount: bigint) => {
-      const result = await executeWithAppEvents(
-        nexusSDK,
+      const result = await nexusSDK.execute(
         {
           toChainId: toToken.chainId!,
-          waitForReceipt: true,
           ...buildRecipientTransferExecuteConfig(transferAmount),
         },
-        onEvent
+        { onEvent }
       );
       const finalExplorerUrl =
         getSdkExplorerUrl(result) ||
@@ -9682,11 +9715,7 @@ function NexusOneInner({
         error: string,
         patch: Partial<SwapHistoryEntry> = {}
       ) => {
-        const failedProgressEvent =
-          [...progressEventsRef.current]
-            .reverse()
-            .find((progress) => asRecord(progress.event).state === "failed") ??
-          progressEventsRef.current.at(-1);
+        const failedProgressEvent = progressEventsRef.current.at(-1);
         const isTransferExecution =
           activeMode === "send" || hasCustomSwapRecipient;
         const fallbackFailedStep =

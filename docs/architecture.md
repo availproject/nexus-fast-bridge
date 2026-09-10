@@ -60,20 +60,14 @@ When a new behavior difference is required, extend `ChainFeatures`, add a safe f
 - Done after either success or failure clears amounts, percentages and quotes. Single mode keeps both token selections; multi mode keeps the destination and clears sources.
 - `lib/user-facing-error.ts` supplies readable reasons for receipts, alerts and connection errors. It strips sensitive payloads and developer diagnostics. An unknown transaction status is not proof of a refund or of funds being in a wallet.
 
-## SDK progress contract
+## SDK progress handling
 
-The integration is checked against the installed Nexus SDK `2.4.1`.
+Progress handling uses the original behavior from `1044a8e`, before the September 9 feedback changes, with Nexus SDK `2.4.1`.
 
-| SDK callback | FastBridge handling |
-| --- | --- |
-| `status` | Lifecycle information only. It does not complete the outer operation. |
-| `plan_preview` | Seeds the progress list. |
-| `plan_confirmed` | Supplies the authoritative steps, including allowance changes. |
-| `plan_progress` | Preserves step identity, chain metadata, state and public explorer hashes. Only `confirmed` or `completed` completes a step. |
-| Rejected operation promise | Supplies the failure reason and final app error state, including failures without a progress callback. |
+- `plan_preview` and `plan_confirmed` seed the progress list; the confirmed plan supplies the final raw steps.
+- `plan_progress` uses the original step mapping and matching rules. Completed, confirmed, and success states advance the main progress list.
+- The approval row advances on submission as well as confirmation, including the original `tx_sent` state. This row represents wallet actions; it does not declare the whole swap successful.
+- SDK callbacks update progress directly. Standalone `execute()` uses the SDK directly without app-generated progress events.
+- The operation result or rejection determines the final app outcome. Sanitized failure messages and the other balance and selection fixes remain in place.
 
-`lib/nexus-events.ts` isolates UI callback exceptions so they cannot abort a wallet operation. Failed-step references update synchronously, before the SDK rejection reaches the app. Approval counts use exact step IDs and do not count bridge-fill events as approvals.
-
-Standalone `execute()` does not emit progress callbacks in SDK `2.4.1`. The existing recipient-transfer fallback emits app-observed start and result/error states and waits for a receipt. It does not invent wallet-prompt or broadcast timing. SDK-owned telemetry is separate from this UI callback handling.
-
-Run `pnpm test:feedback` for balance, selection, error and progress regressions. The SDK tests exercise the actual installed bridge/swap event mappers; the test adapter fails if their implementation markers change. These checks do not submit live wallet transactions.
+Run `pnpm test:feedback` for balance, selection, error, SDK emitter and progress-row regressions. The SDK tests exercise the actual installed bridge/swap event mappers; the test adapter fails if their implementation markers change. These checks do not submit live wallet transactions.

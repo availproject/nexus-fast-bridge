@@ -1,16 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ExecuteResult } from "@avail-project/nexus-core";
+import type { BridgeEvent, SwapEvent } from "@avail-project/nexus-core";
 // The test plugin exports the actual mappers from the installed SDK bundle.
 import { bridgeEmitter, swapEmitter } from "@fastbridge-test/nexus-sdk";
-import {
-  createSdkEventHandler,
-  executeWithAppEvents,
-  type FastBridgeOperationEvent,
-  isIntentHookDenial,
-  isPlanStepComplete,
-  normalizePlanStep,
-} from "../packages/fast-bridge-app/src/lib/nexus-events";
+import { isIntentHookDenial } from "../packages/fast-bridge-app/src/lib/nexus-events";
 
 const chain = { id: 8453, name: "Base", logo: "" };
 const wallet = `0x${"a".repeat(40)}` as const;
@@ -21,10 +14,10 @@ const requestHash = `0x${"c".repeat(64)}` as const;
 const explorerUrl = `https://example.com/tx/${txHash}`;
 
 function setup() {
-  const events: FastBridgeOperationEvent[] = [];
-  const onEvent = createSdkEventHandler((event) => {
+  const events: Array<BridgeEvent | SwapEvent> = [];
+  const onEvent = (event: BridgeEvent | SwapEvent) => {
     events.push(event);
-  });
+  };
   return {
     events,
     onEvent,
@@ -167,11 +160,10 @@ test("installed bridge emitter forwards preview, confirmed allowances, signing, 
   assert.ok(deposit);
   assert.equal(deposit.step.chain.id, chain.id);
   assert.equal(deposit.txHash, txHash);
-  assert.equal(isPlanStepComplete(deposit.state), false);
 });
 
 for (const [stepType, states] of Object.entries(statesByStep)) {
-  test(`installed swap emitter preserves every ${stepType} state through the UI adapter`, () => {
+  test(`installed swap emitter preserves every ${stepType} state and step identity`, () => {
     const h = setup();
     const sdk = swapEmitter(h.onEvent);
     const plan = {
@@ -197,18 +189,11 @@ for (const [stepType, states] of Object.entries(statesByStep)) {
       states
     );
     for (const event of h.progress()) {
-      const uiStep = normalizePlanStep(
-        event.step,
-        event.stepType,
-        event.state,
-        isPlanStepComplete(event.state)
-      );
-      assert.equal(uiStep.typeID, event.step.id);
+      assert.equal(event.step.type, stepType);
       assert.equal(
-        uiStep.completed,
-        ["confirmed", "completed"].includes(event.state)
+        event.step.id,
+        swapSteps.find((step) => step.type === stepType)?.id
       );
-      assert.equal(uiStep.type, stepType.toUpperCase());
     }
     const failed = h.progress().at(-1);
     assert.ok(failed && "error" in failed);
@@ -243,11 +228,8 @@ test("confirmed plans replace allowance metadata from previews", () => {
   sdk.emitPlanConfirmed(confirmed);
   const event = h.events.at(-1);
   assert.ok(event?.type === "plan_confirmed");
-  const steps = event.plan.steps.map((step) =>
-    normalizePlanStep(step, step.type, undefined, false)
-  );
-  assert.equal(steps[0].typeID, "final-approval");
-  assert.equal(steps[0].type, "APPROVAL");
+  assert.equal(event.plan.steps[0].id, "final-approval");
+  assert.equal(event.plan.steps[0].type, "allowance_approval");
 });
 
 test("an SDK retry can revisit a wallet prompt without losing progress", () => {
@@ -279,31 +261,6 @@ test("an SDK retry can revisit a wallet prompt without losing progress", () => {
   );
 });
 
-test("SDK callback errors and reporting errors cannot abort an in-flight operation", () => {
-  const error = new Error("UI crashed");
-  const unsafe = swapEmitter(() => {
-    throw error;
-  });
-  assert.throws(
-    () => unsafe.emitStatus("route_building"),
-    (caught) => caught === error
-  );
-  const errors: unknown[] = [];
-  const safe = swapEmitter(
-    createSdkEventHandler(
-      () => {
-        throw error;
-      },
-      (caught) => {
-        errors.push(caught);
-        throw new Error("Reporter crashed");
-      }
-    )
-  );
-  assert.doesNotThrow(() => safe.emitStatus("route_building"));
-  assert.deepEqual(errors, [error]);
-});
-
 test("only exact SDK hook denials bypass operation failure handling", () => {
   for (const message of [
     "User denied swap intent",
@@ -323,77 +280,4 @@ test("only exact SDK hook denials bypass operation failure handling", () => {
     isIntentHookDenial({ code: "user_action/intent_signature_denied" }),
     false
   );
-});
-
-test("standalone execute reports submission evidence without inventing wallet prompts or exposing calldata", async () => {
-  const h = setup();
-  const result = {
-    chainId: chain.id,
-    execute: { txHash, txExplorerUrl: explorerUrl },
-  } satisfies ExecuteResult;
-  const returned = await executeWithAppEvents(
-    { execute: async () => result },
-    { toChainId: chain.id, to: wallet, data: "0x1234" },
-    h.onEvent
-  );
-  assert.equal(returned, result);
-  assert.deepEqual(
-    h.progress().map((e) => e.state),
-    ["started", "submitted"]
-  );
-  const event = h.progress()[1];
-  assert.ok("eventSource" in event);
-  assert.equal(event.eventSource, "app_execute_fallback");
-  assert.ok(!JSON.stringify(h.events).includes(wallet));
-  assert.ok(!JSON.stringify(h.events).includes("0x1234"));
-});
-
-test("execute errors preserve only public hash and readable reason, then rethrow the same error", async () => {
-  const h = setup();
-  const error = {
-    code: "execution/tx_receipt_wait_timeout",
-    message: "Timed out",
-    details: { txHash, signature: "SECRET", to: wallet },
-  };
-  await assert.rejects(
-    executeWithAppEvents(
-      { execute: () => Promise.reject(error) },
-      { toChainId: chain.id, to: wallet },
-      h.onEvent
-    ),
-    (caught) => caught === error
-  );
-  const event = h.progress().at(-1);
-  assert.ok(event && "txHash" in event);
-  assert.equal(event.txHash, txHash);
-  assert.equal(event.state, "failed");
-  assert.ok(!JSON.stringify(h.events).includes("SECRET"));
-  assert.ok(!JSON.stringify(h.events).includes(wallet));
-});
-
-test("confirmed execute result survives a throwing UI callback", async () => {
-  const result = {
-    chainId: chain.id,
-    execute: {
-      txHash,
-      txExplorerUrl: explorerUrl,
-      receipt: { status: "success" },
-    },
-  } as ExecuteResult;
-  const h = setup();
-  const params = { toChainId: chain.id, to: wallet, waitForReceipt: true };
-  await executeWithAppEvents(
-    { execute: async () => result },
-    params,
-    h.onEvent
-  );
-  assert.equal(h.progress().at(-1)?.state, "confirmed");
-  const returned = await executeWithAppEvents(
-    { execute: async () => result },
-    params,
-    () => {
-      throw new Error("UI crashed");
-    }
-  );
-  assert.equal(returned, result);
 });
