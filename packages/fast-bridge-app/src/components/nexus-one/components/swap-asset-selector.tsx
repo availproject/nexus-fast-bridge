@@ -1127,15 +1127,22 @@ export function SwapAssetSelector({
     null
   );
 
+  const normalizeNativeAddress = (addr: string): string =>
+    addr.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      ? "0x0000000000000000000000000000000000000000"
+      : addr;
+
   const handleCopyTokenAddress = useCallback(
-    (e: React.MouseEvent, addr: string) => {
+    (e: React.MouseEvent, addr: string, chainId: number) => {
       e.stopPropagation();
       e.preventDefault();
       if (navigator?.clipboard?.writeText) {
-        void navigator.clipboard.writeText(addr);
-        setCopiedTokenAddress(addr);
+        const normalized = normalizeNativeAddress(addr);
+        const key = `${chainId}:${normalized}`;
+        void navigator.clipboard.writeText(normalized);
+        setCopiedTokenAddress(key);
         setTimeout(() => {
-          setCopiedTokenAddress((curr) => (curr === addr ? null : curr));
+          setCopiedTokenAddress((curr) => (curr === key ? null : curr));
         }, 1500);
       }
     },
@@ -1906,7 +1913,11 @@ export function SwapAssetSelector({
                 {token.contractAddress && (
                   <span
                     onClick={(e) =>
-                      handleCopyTokenAddress(e, token.contractAddress)
+                      handleCopyTokenAddress(
+                        e,
+                        token.contractAddress,
+                        token.chainId
+                      )
                     }
                     style={{
                       color: "#8E8E89",
@@ -1920,9 +1931,12 @@ export function SwapAssetSelector({
                     }}
                     title="Click to copy token address"
                   >
-                    {copiedTokenAddress === token.contractAddress
+                    {copiedTokenAddress ===
+                    `${token.chainId}:${normalizeNativeAddress(token.contractAddress)}`
                       ? "Copied!"
-                      : formatMiddleTruncatedAddress(token.contractAddress)}
+                      : formatMiddleTruncatedAddress(
+                          normalizeNativeAddress(token.contractAddress)
+                        )}
                   </span>
                 )}
               </div>

@@ -649,15 +649,22 @@ export function ReceiveAssetSelector({
     null
   );
 
+  const normalizeNativeAddress = (addr: string): string =>
+    addr.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      ? "0x0000000000000000000000000000000000000000"
+      : addr;
+
   const handleCopyTokenAddress = useCallback(
-    (e: React.MouseEvent, addr: string) => {
+    (e: React.MouseEvent, addr: string, chainId: number) => {
       e.stopPropagation();
       e.preventDefault();
       if (navigator?.clipboard?.writeText) {
-        void navigator.clipboard.writeText(addr);
-        setCopiedTokenAddress(addr);
+        const normalized = normalizeNativeAddress(addr);
+        const key = `${chainId}:${normalized}`;
+        void navigator.clipboard.writeText(normalized);
+        setCopiedTokenAddress(key);
         setTimeout(() => {
-          setCopiedTokenAddress((curr) => (curr === addr ? null : curr));
+          setCopiedTokenAddress((curr) => (curr === key ? null : curr));
         }, 1500);
       }
     },
@@ -1792,7 +1799,11 @@ export function ReceiveAssetSelector({
                             {t.contractAddress && (
                               <span
                                 onClick={(e) =>
-                                  handleCopyTokenAddress(e, t.contractAddress)
+                                  handleCopyTokenAddress(
+                                    e,
+                                    t.contractAddress,
+                                    t.chainId
+                                  )
                                 }
                                 style={{
                                   color: "#8E8E89",
@@ -1806,10 +1817,11 @@ export function ReceiveAssetSelector({
                                 }}
                                 title="Click to copy token address"
                               >
-                                {copiedTokenAddress === t.contractAddress
+                                {copiedTokenAddress ===
+                                `${t.chainId}:${normalizeNativeAddress(t.contractAddress)}`
                                   ? "Copied!"
                                   : formatMiddleTruncatedAddress(
-                                      t.contractAddress
+                                      normalizeNativeAddress(t.contractAddress)
                                     )}
                               </span>
                             )}
