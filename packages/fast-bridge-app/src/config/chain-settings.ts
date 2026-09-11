@@ -123,13 +123,13 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       slug: "megaeth",
       buttonFg: "white",
       analyticsFastBridgeKey: "megaeth",
-      maxBridgeAmount: 550,
+      maxBridgeAmount: 500,
       maxBridgeAmountByDestinationChainId: {
-        [SUPPORTED_CHAINS.MEGAETH]: 5000,
+        [SUPPORTED_CHAINS.MEGAETH]: 500,
       },
       maxBridgeAmountByTokenAndChain: {
         USDM: {
-          [SUPPORTED_CHAINS.MEGAETH]: 5000,
+          [SUPPORTED_CHAINS.MEGAETH]: 500,
         },
       },
       walletInitDelayMs: 500,
@@ -296,13 +296,13 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       slug: "citrea",
       buttonFg: "black",
       analyticsFastBridgeKey: "citrea",
-      maxBridgeAmount: 550,
+      maxBridgeAmount: 500,
       maxBridgeAmountByDestinationChainId: {
-        [SUPPORTED_CHAINS.CITREA]: 2000,
+        [SUPPORTED_CHAINS.CITREA]: 500,
       },
       maxBridgeAmountByTokenAndChain: {
-        USDC: { [SUPPORTED_CHAINS.CITREA]: 2000 },
-        USDT: { [SUPPORTED_CHAINS.CITREA]: 2000 },
+        USDC: { [SUPPORTED_CHAINS.CITREA]: 500 },
+        USDT: { [SUPPORTED_CHAINS.CITREA]: 500 },
       },
       walletInitDelayMs: 0,
       showFluffeyMascot: false,
@@ -664,7 +664,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       slug: "scroll",
       buttonFg: "black",
       analyticsFastBridgeKey: "scroll",
-      maxBridgeAmount: 550,
+      maxBridgeAmount: 500,
       maxBridgeAmountByDestinationChainId: {
         [SUPPORTED_CHAINS.SCROLL]: 500,
       },

@@ -13,19 +13,19 @@ export const GLOBAL_MAX_AMOUNT_BY_TOKEN_AND_CHAIN: Record<
   string,
   Record<number, number>
 > = {
-  // USDM bridging to MegaETH: $5,000 cap
+  // USDM bridging to MegaETH: $500 cap
   USDM: {
-    [SUPPORTED_CHAINS.MEGAETH]: 5000,
+    [SUPPORTED_CHAINS.MEGAETH]: 500,
   },
-  // USDC bridging to Citrea: $2,000 cap
+  // USDC bridging to Citrea/Scroll: $500 cap
   USDC: {
-    [SUPPORTED_CHAINS.CITREA]: 2000,
+    [SUPPORTED_CHAINS.CITREA]: 500,
     [SUPPORTED_CHAINS.SCROLL]: 500,
   },
-  // USDT bridging to Citrea: $2,000 cap
+  // USDT bridging to Citrea/MegaETH/Scroll: $500 cap
   USDT: {
-    [SUPPORTED_CHAINS.CITREA]: 2000,
-    [SUPPORTED_CHAINS.MEGAETH]: 5000,
+    [SUPPORTED_CHAINS.CITREA]: 500,
+    [SUPPORTED_CHAINS.MEGAETH]: 500,
     [SUPPORTED_CHAINS.SCROLL]: 500,
   },
 };
