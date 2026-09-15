@@ -188,7 +188,8 @@ const ViewHistory = ({
                         .join(", ")}
                     </p>
                     <p className="text-muted-foreground text-xs">
-                      Intent #{pastIntent?.id}
+                      {/* Intent #{pastIntent?.id} */}
+                      View Intent
                     </p>
                   </div>
                 </div>
