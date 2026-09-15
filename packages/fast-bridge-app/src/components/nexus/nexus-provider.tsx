@@ -515,7 +515,7 @@ const NexusProvider = ({
       const [bridgeAbleBalanceResult, swapBalanceResult, rates] =
         await withTimeout(
           Promise.allSettled([
-            activeSdk.getBalancesForBridge(),
+            Promise.resolve([]),
             activeSdk.getBalancesForSwap(),
             getCoinbaseRates(),
           ]),
@@ -653,10 +653,7 @@ const NexusProvider = ({
       if (!activeSdk) {
         return;
       }
-      const updatedBalance = await withTimeout(
-        activeSdk.getBalancesForBridge(),
-        15_000
-      );
+      const updatedBalance = await withTimeout(Promise.resolve([]), 15_000);
       const chains = supportedChainsAndTokens.current ?? [];
       setBridgableBalance(
         normalizeUserAssetFiatValues(
