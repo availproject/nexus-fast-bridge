@@ -2413,7 +2413,8 @@ function SwapReceiptPanel({
   const displayAmount = requestedExactOutAmount || amount;
   const showIntentExplorer = hasValidIntentExplorer(entry);
   const intentLabel = entry.intentId
-    ? `Intent #${entry.intentId}`
+    ? // ? `Intent #${entry.intentId}`
+      "View Intent"
     : "View Explorer";
   const sourceRows = getSourceRows(entry, visualSources);
   const sourceCount = sourceRows.length;
