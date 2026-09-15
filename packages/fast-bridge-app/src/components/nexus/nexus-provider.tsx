@@ -184,6 +184,7 @@ const NexusProvider = ({
     setNexusInitError(null);
     console.log("NEXUS CONFIG", stableConfig);
     const nextSdk = createNexusClient({
+      clientId: "nexus-fast-bridge",
       network: stableConfig.network,
       debug: stableConfig.debug,
     });
@@ -519,6 +520,7 @@ const NexusProvider = ({
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
         const nextSdk = createNexusClient({
+          clientId: "nexus-fast-bridge",
           network: stableConfig.network,
           debug: stableConfig.debug,
         });
