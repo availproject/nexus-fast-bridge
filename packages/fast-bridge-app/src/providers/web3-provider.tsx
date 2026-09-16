@@ -4,6 +4,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { defineChain } from "viem";
 import { http, WagmiProvider } from "wagmi";
 import {
   arbitrum,
@@ -23,6 +24,27 @@ import {
 import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
 
+export const arc = defineChain({
+  id: 5042,
+  name: "Arc",
+  nativeCurrency: {
+    name: "USD Coin",
+    symbol: "USDC",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc.mainnet.arc.io"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arc Explorer",
+      url: "https://explorer.arc.io",
+    },
+  },
+});
+
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
 const rpcConfig = rpcs as Record<string, string>;
@@ -40,6 +62,7 @@ const staticTransports = {
   [citrea.id]: http(rpcConfig.citrea || undefined),
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
   [bsc.id]: http(rpcConfig.bnb || undefined),
+  [arc.id]: http(rpcConfig.arc || undefined),
 };
 
 const staticChains = [
@@ -55,6 +78,7 @@ const staticChains = [
   citrea,
   hyperevm,
   bsc,
+  arc,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();

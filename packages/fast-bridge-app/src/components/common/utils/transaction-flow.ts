@@ -4,6 +4,7 @@ import type { Address } from "viem";
 import { SUPPORTED_CHAINS } from "./constant";
 
 const MAX_AMOUNT_REGEX = /^\d*\.?\d+$/;
+const TRAILING_ZEROS_REGEX = /0+$/;
 
 export const MAX_AMOUNT_DEBOUNCE_MS = 300;
 
@@ -70,7 +71,9 @@ export const formatAmountForDisplay = (
     return formatted;
   }
   const [whole, fraction] = formatted.split(".");
-  const trimmedFraction = fraction.slice(0, 6).replace(/0+$/, "");
+  const trimmedFraction = fraction
+    .slice(0, 6)
+    .replace(TRAILING_ZEROS_REGEX, "");
   if (!trimmedFraction && whole === "0" && amount > BigInt(0)) {
     return "0.000001";
   }
@@ -124,7 +127,7 @@ export const getCoverageDecimals = ({
   if (
     type === "bridge" &&
     token === "USDC" &&
-    chainId === SUPPORTED_CHAINS.BNB
+    (chainId === SUPPORTED_CHAINS.BNB || chainId === SUPPORTED_CHAINS.ARC)
   ) {
     return 18;
   }

@@ -11,5 +11,6 @@
   "megaeth": "https://rpcs.avail.so/megaeth",
   "bnb": "https://rpcs.avail.so/bsc",
   "hyperevm": "https://rpcs.avail.so/hyperevm",
-  "citrea": "https://rpcs.avail.so/citrea"
+  "citrea": "https://rpcs.avail.so/citrea",
+  "arc": "https://rpc.mainnet.arc.io"
 }

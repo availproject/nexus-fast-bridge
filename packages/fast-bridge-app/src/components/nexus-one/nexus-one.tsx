@@ -230,6 +230,7 @@ const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
   [SUPPORTED_CHAINS.MEGAETH]: 5000,
   [SUPPORTED_CHAINS.CITREA]: 2000,
   [SUPPORTED_CHAINS.SCROLL]: 500,
+  [SUPPORTED_CHAINS.ARC]: 5000,
 };
 
 const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
@@ -6959,11 +6960,13 @@ function NexusOneInner({
       balance: "0",
       balanceInFiat: "$0.00",
       decimals:
-        matchedToken?.decimals ??
-        citreaToken?.decimals ??
-        opp.tokenDecimals ??
-        tokenMeta?.decimals ??
-        18,
+        opp.chainId === SUPPORTED_CHAINS.ARC && tokenSymbol === "USDC"
+          ? 18
+          : (matchedToken?.decimals ??
+            citreaToken?.decimals ??
+            opp.tokenDecimals ??
+            tokenMeta?.decimals ??
+            18),
       logo:
         opp.tokenLogo ||
         matchedToken?.logo ||
@@ -7075,11 +7078,15 @@ function NexusOneInner({
         balance: `0 ${tokenSymbol}`,
         balanceInFiat: "$0.00",
         decimals:
-          matchedToken?.decimals ??
-          citreaToken?.decimals ??
-          tokenMeta?.decimals ??
-          (isNativePrefill ? chainMeta?.nativeCurrency?.decimals : undefined) ??
-          18,
+          pair.chain === SUPPORTED_CHAINS.ARC && tokenSymbol === "USDC"
+            ? 18
+            : (matchedToken?.decimals ??
+              citreaToken?.decimals ??
+              (isNativePrefill
+                ? chainMeta?.nativeCurrency?.decimals
+                : undefined) ??
+              tokenMeta?.decimals ??
+              18),
         logo: matchedToken?.logo || citreaToken?.logo || tokenMeta?.logo,
         chainName: getShortChainName(
           pair.chain,

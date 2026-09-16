@@ -278,6 +278,15 @@ const CHAIN_META = [
     canonicalUrl: "https://fastbridge.availproject.org/avalanche",
     themeColor: "#E84142",
   },
+  {
+    slug: "arc",
+    title: "Bridge to Arc from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge USDC to Arc from Ethereum, Arbitrum, Base, and other EVM chains in one seamless transaction. FastBridge offers fast, low-fee cross-chain transfers to Arc.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/arc",
+    themeColor: "#0065FF",
+  },
 ];
 
 // Top-level regex constants required by Biome standards

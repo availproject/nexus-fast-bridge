@@ -29,6 +29,7 @@ import {
   getSdkSwapSupportedChainIds,
   getShortChainName,
   isSwapSupportedBySdkChainList,
+  SUPPORTED_CHAINS,
 } from "../../common/utils/constant";
 import {
   getTotalBalance,
@@ -37,6 +38,7 @@ import {
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
+import { ARC_CHAIN_ID, isArcExcludedToken } from "../utils/arc-tokens";
 
 export const formatMiddleTruncatedAddress = (address?: string) => {
   if (!address) return "";
@@ -115,6 +117,9 @@ export function deriveTokenOptions(
       if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
         continue;
       }
+      if (isArcExcludedToken(bd.contractAddress)) {
+        continue;
+      }
       if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       const balanceNum = Number.parseFloat(bd.balance ?? "0");
@@ -123,12 +128,19 @@ export function deriveTokenOptions(
         (bd as any).priceUSD ??
         (bd as any).priceUsd ??
         (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
+      const isArcNative =
+        bd.chain?.id === SUPPORTED_CHAINS.ARC &&
+        (isNativeLikeAddress(bd.contractAddress) ||
+          (bd.symbol ?? asset.symbol)?.toUpperCase() === "USDC");
+      const contractAddress = isArcNative
+        ? "0x0000000000000000000000000000000000000000"
+        : bd.contractAddress;
       tokens.push({
-        contractAddress: bd.contractAddress,
+        contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
-        decimals: bd.decimals ?? asset.decimals ?? 18,
+        decimals: isArcNative ? 18 : (bd.decimals ?? asset.decimals ?? 18),
         ...toTokenOptionBalances(bd),
         priceUSD: priceUsd > 0 ? priceUsd : 0,
         chainId: bd.chain?.id,
@@ -607,10 +619,14 @@ const STABLE_SYMBOL_KEYS = new Set(
 );
 
 const isStableToken = (token: SwapTokenOption) =>
+  !(token.chainId === ARC_CHAIN_ID && token.symbol.toUpperCase() === "USDC") &&
   STABLE_SYMBOL_KEYS.has(normalizeTokenGroupSymbol(token.symbol));
 
 function isNativeToken(t: SwapTokenOption) {
   if (isNativeLikeAddress(t.contractAddress)) return true;
+  if (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC") {
+    return true;
+  }
 
   const sym = t.symbol.toUpperCase();
   const chain = (t.chainName || "").toLowerCase();
@@ -621,7 +637,8 @@ function isNativeToken(t: SwapTokenOption) {
       !chain.includes("bsc") &&
       !chain.includes("polygon") &&
       !chain.includes("monad") &&
-      !chain.includes("hyperevm")
+      !chain.includes("hyperevm") &&
+      !chain.includes("arc")
     );
   if (sym === "POL" || sym === "MATIC") return chain.includes("polygon");
   if (sym === "HYPE") return chain.includes("hyperevm");
@@ -656,6 +673,7 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   4326, // MegaETH
   4114, // Citrea
   534352, // Scroll
+  5042, // Arc
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
   SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])
@@ -1228,7 +1246,10 @@ export function SwapAssetSelector({
         : swapBalance
           ? deriveTokenOptions(swapBalance, swapSupportedChains)
           : []
-    ).filter((token) => !isExcludedToken(token));
+    ).filter(
+      (token) =>
+        !isExcludedToken(token) && !isArcExcludedToken(token.contractAddress)
+    );
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return sortTokensByUsdBalance(baseTokens);
@@ -1346,7 +1367,9 @@ export function SwapAssetSelector({
 
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
-    let result = allTokens;
+    let result = allTokens.filter(
+      (t) => !isArcExcludedToken(t.contractAddress)
+    );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
     }
