@@ -862,13 +862,16 @@ export function ReceiveAssetSelector({
     ) {
       nextIds.add(CITREA_CHAIN_ID);
     }
+    nextIds.add(SUPPORTED_CHAINS.ARC);
 
     return sortChainIdsBySwapDisplayOrder(
-      Array.from(nextIds).filter((id) =>
-        sdkSwapSupportedChainIds
-          ? sdkSwapSupportedChainIds.has(id)
-          : SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
-            isSwapSupportedBySdkChainList(id, swapSupportedChainsAndTokens)
+      Array.from(nextIds).filter(
+        (id) =>
+          id === SUPPORTED_CHAINS.ARC ||
+          (sdkSwapSupportedChainIds
+            ? sdkSwapSupportedChainIds.has(id)
+            : SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&
+              isSwapSupportedBySdkChainList(id, swapSupportedChainsAndTokens))
       )
     );
   }, [sdkSwapSupportedChainIds, swapSupportedChainsAndTokens]);

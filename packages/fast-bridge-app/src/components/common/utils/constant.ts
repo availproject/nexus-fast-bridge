@@ -253,6 +253,7 @@ export function getSdkSwapSupportedChainIds(
       supportedIds.add(chainId);
     }
   }
+  supportedIds.add(SUPPORTED_CHAINS.ARC);
 
   return supportedIds;
 }
@@ -263,6 +264,9 @@ export function isSwapSupportedBySdkChainList(
 ): boolean {
   if (!chainId) {
     return false;
+  }
+  if (Number(chainId) === SUPPORTED_CHAINS.ARC) {
+    return true;
   }
 
   const sdkSupportedIds = getSdkSwapSupportedChainIds(chains);

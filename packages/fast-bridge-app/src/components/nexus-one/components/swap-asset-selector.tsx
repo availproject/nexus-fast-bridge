@@ -661,6 +661,7 @@ const modalHeightTransitionStyle = {
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 export const SWAP_CHAIN_DISPLAY_ORDER = [
+  5042, // Arc
   1, // Ethereum
   42161, // Arbitrum
   8453, // Base
@@ -673,7 +674,6 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   4326, // MegaETH
   4114, // Citrea
   534352, // Scroll
-  5042, // Arc
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
   SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])
@@ -2526,6 +2526,24 @@ export function SwapAssetSelector({
       if (!options.has(token.chainId)) {
         options.set(token.chainId, token);
       }
+    }
+
+    if (
+      !options.has(SUPPORTED_CHAINS.ARC) &&
+      CHAIN_METADATA[SUPPORTED_CHAINS.ARC]
+    ) {
+      const arcMeta = CHAIN_METADATA[SUPPORTED_CHAINS.ARC];
+      options.set(SUPPORTED_CHAINS.ARC, {
+        contractAddress: "",
+        symbol: "",
+        name: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
+        decimals: 18,
+        balance: "0",
+        balanceInFiat: "$0.00",
+        chainId: SUPPORTED_CHAINS.ARC,
+        chainName: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
+        chainLogo: arcMeta.logo,
+      });
     }
 
     return Array.from(options.values()).sort(compareChainsBySwapDisplayOrder);

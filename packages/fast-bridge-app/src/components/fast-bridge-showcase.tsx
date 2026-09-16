@@ -7,7 +7,10 @@ import { getChainSlugById, getChainSlugByName } from "@/config/chain-settings";
 import { readBridgeParams } from "../lib/url-params";
 import { useRuntime } from "../providers/runtime-context";
 import ArcAppBanner from "./arc-app-banner";
-import { TOKEN_CONTRACT_ADDRESSES } from "./common/utils/constant";
+import {
+  SUPPORTED_CHAINS,
+  TOKEN_CONTRACT_ADDRESSES,
+} from "./common/utils/constant";
 import NexusOne from "./nexus-one/nexus-one";
 import type { NexusOneConfig } from "./nexus-one/types";
 import { findCitreaReceiveToken } from "./nexus-one/utils/citrea-tokens";
@@ -28,6 +31,11 @@ interface ReceiveAsset {
 type DestinationPair = NonNullable<
   NonNullable<NexusOneConfig["prefill"]>["destination"]
 >;
+
+const ARC_USDC_DESTINATION_PAIR: DestinationPair = {
+  chain: SUPPORTED_CHAINS.ARC,
+  token: "0x0000000000000000000000000000000000000000",
+};
 
 const tokenAddresses = TOKEN_CONTRACT_ADDRESSES as Record<
   string,
@@ -98,8 +106,12 @@ const FastBridgeShowcase = () => {
   );
 
   const receiveDestination = useMemo(() => {
-    if (isAppRoute || receiveAssetOverrideKey) {
+    if (receiveAssetOverrideKey) {
       return undefined;
+    }
+
+    if (isAppRoute) {
+      return ARC_USDC_DESTINATION_PAIR;
     }
 
     return getPreferredDestinationPair(
@@ -117,10 +129,10 @@ const FastBridgeShowcase = () => {
 
   const nexusConfig = useMemo<NexusOneConfig>(() => {
     const prefill: NexusOneConfig["prefill"] = {};
+    if (receiveDestination) {
+      prefill.destination = receiveDestination;
+    }
     if (!isAppRoute) {
-      if (receiveDestination) {
-        prefill.destination = receiveDestination;
-      }
       if (params.amount) {
         prefill.amount = params.amount;
       }
