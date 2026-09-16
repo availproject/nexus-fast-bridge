@@ -18,6 +18,7 @@ import {
   getSdkSwapSupportedChainIds,
   getShortChainName,
   isSwapSupportedBySdkChainList,
+  SUPPORTED_CHAINS,
 } from "../../common/utils/constant";
 import {
   getTotalBalance,
@@ -818,6 +819,15 @@ export function ReceiveAssetSelector({
     }
     if (!map.has(CITREA_CHAIN_ID)) {
       map.set(CITREA_CHAIN_ID, getCitreaChainMeta());
+    }
+    if (
+      !map.has(SUPPORTED_CHAINS.ARC) &&
+      CHAIN_METADATA[SUPPORTED_CHAINS.ARC]
+    ) {
+      map.set(SUPPORTED_CHAINS.ARC, {
+        name: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].name,
+        logo: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].logo,
+      });
     }
     return map;
   }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);

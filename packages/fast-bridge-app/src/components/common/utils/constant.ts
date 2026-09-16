@@ -13,6 +13,7 @@ export const SUPPORTED_CHAINS = {
   MONAD: 143,
   HYPEREVM: 999,
   CITREA: 4114,
+  ARC: 5042,
   SEPOLIA: 11_155_111,
   BASE_SEPOLIA: 84_532,
   ARBITRUM_SEPOLIA: 421_614,
@@ -109,6 +110,13 @@ export const CHAIN_METADATA: Record<number, ChainMetadata> = {
     nativeCurrency: { name: "cBTC", symbol: "cBTC", decimals: 18 },
     blockExplorerUrls: ["https://explorer.citrea.xyz"],
   },
+  [SUPPORTED_CHAINS.ARC]: {
+    logo: "https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/68921f69e5659feee825637e_9a3d143150a36125b5d7f0c2367c9ca6_arc-favicon-test.png",
+    name: "Arc",
+    nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+    blockExplorerUrls: ["https://explorer.arc.io"],
+    rpcUrls: ["https://rpc.mainnet.arc.io"],
+  },
   // Testnets
   [SUPPORTED_CHAINS.SEPOLIA]: {
     logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/ethereum/logo.png",
@@ -188,6 +196,7 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   [SUPPORTED_CHAINS.MONAD]: "Monad",
   [SUPPORTED_CHAINS.HYPEREVM]: "HyperEVM",
   [SUPPORTED_CHAINS.CITREA]: "Citrea",
+  [SUPPORTED_CHAINS.ARC]: "Arc",
   // [SUPPORTED_CHAINS.TRON]: "Tron",
   [SUPPORTED_CHAINS.SEPOLIA]: "Sepolia",
   [SUPPORTED_CHAINS.BASE_SEPOLIA]: "Base Sepolia",

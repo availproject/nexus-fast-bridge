@@ -621,7 +621,8 @@ function isNativeToken(t: SwapTokenOption) {
       !chain.includes("bsc") &&
       !chain.includes("polygon") &&
       !chain.includes("monad") &&
-      !chain.includes("hyperevm")
+      !chain.includes("hyperevm") &&
+      !chain.includes("arc")
     );
   if (sym === "POL" || sym === "MATIC") return chain.includes("polygon");
   if (sym === "HYPE") return chain.includes("hyperevm");
@@ -656,6 +657,7 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   4326, // MegaETH
   4114, // Citrea
   534352, // Scroll
+  5042, // Arc
 ] as const;
 const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
   SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])

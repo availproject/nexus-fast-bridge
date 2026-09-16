@@ -851,6 +851,61 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       dialogShowCloseButton: true,
     },
   },
+
+  // ── Arc ─────────────────────────────────────────────────────────────────
+  arc: {
+    slug: "arc",
+    appConfig: {
+      chainId: 5042,
+      chainName: "Arc",
+      chainNativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+      chainRpcUrl: "https://rpc.mainnet.arc.io",
+      chainBlockExplorerUrl: "https://explorer.arc.io",
+      chainTestnet: false,
+      useChainLogo: true,
+      chainIconUrl:
+        "https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/68921f69e5659feee825637e_9a3d143150a36125b5d7f0c2367c9ca6_arc-favicon-test.png",
+      chainLogoUrl:
+        "https://cdn.prod.website-files.com/685311a976e7c248b5dfde95/68921f69e5659feee825637e_9a3d143150a36125b5d7f0c2367c9ca6_arc-favicon-test.png",
+      backgroundImageUrl: "",
+      chainGifUrl: "",
+      chainGifAlt: "Bridge to Arc",
+      heroText: "Move your assets to Arc faster than ever!",
+      appTitle: "Arc Fast Bridge",
+      appDescription: "Arc Fast Bridge",
+      primaryColor: "#0065FF",
+      secondaryColor: "#ffffff",
+      nexusNetwork: "mainnet",
+      nexusSupportedChain: 5042,
+      nexusPrimaryToken: "USDC",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #0065FF0A 0px 2px 4px, #0065FF29 0px 12px 24px, #0065FF26 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/universal-ribbon.png",
+      meta: {
+        title:
+          "Bridge to Arc from Multiple Chains in One Transaction | FastBridge",
+        description:
+          "Bridge USDC to Arc from Ethereum, Arbitrum, Base, and other EVM chains in one seamless transaction. FastBridge offers fast, low-fee cross-chain transfers to Arc.",
+        canonicalUrl: "https://fastbridge.availproject.org/arc",
+        imageUrl: LANDING_META_IMAGE_URL,
+        faviconUrl: "/avail_logo.svg",
+        themeColor: "#0065FF",
+        backgroundColor: "#ffffff",
+      },
+    },
+    chainFeatures: {
+      supportedTokens: ["USDC"],
+      slug: "arc",
+      buttonFg: "white",
+      analyticsFastBridgeKey: "arc",
+      maxBridgeAmount: 550,
+      mapUsdmToUsdcBalance: true,
+      denyIntentOnReset: true,
+      tokenDenyListByChainId: {},
+      allowanceLogoOverrideByChainId: {},
+      dialogShowCloseButton: true,
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
