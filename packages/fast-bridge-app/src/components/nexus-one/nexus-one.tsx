@@ -2278,12 +2278,16 @@ function SourceRowsList({
 function SwapReceiptPanel({
   entry,
   onDone,
+  ownerAddress: propOwnerAddress,
   visualSources,
 }: {
   entry: SwapHistoryEntry;
   onDone: () => void;
+  ownerAddress?: string;
   visualSources?: TokenVisualSources;
 }) {
+  const { address: connectedAddress } = useAccount();
+  const ownerAddress = propOwnerAddress ?? connectedAddress;
   const [showSourceDetails, setShowSourceDetails] = useState(false);
   const destination = entry.intentData?.destination;
   const destinationVisuals = getDestinationVisuals(entry, visualSources);
@@ -12302,6 +12306,7 @@ function NexusOneInner({
                         onDone={
                           swapStep === "failed" ? handleFailureBack : handleDone
                         }
+                        ownerAddress={ownerAddress}
                         visualSources={currentTokenVisualSources}
                       />
                     </div>
