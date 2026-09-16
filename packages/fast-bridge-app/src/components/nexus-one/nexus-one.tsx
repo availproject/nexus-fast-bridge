@@ -33,6 +33,12 @@ import {
 } from "wagmi";
 import { reportConnectWalletConversion } from "@/lib/google-tag";
 import { isIntentHookDenial } from "@/lib/nexus-events";
+import {
+  generateQuoteId,
+  trackFastBridgeFail,
+  trackFastBridgeIntentConfirmed,
+  trackFastBridgeSuccess,
+} from "@/lib/telemetry";
 import { readSwapParam, writeSwapParam } from "@/lib/url-params";
 import {
   getReceiptErrorMessage,
@@ -3502,6 +3508,8 @@ function NexusOneInner({
     hadPreviewViewedRef.current = false;
     reachedTerminalRef.current = false;
   }, [newAttemptId]);
+  const quoteIdRef = useRef<string>(generateQuoteId());
+  const quoteFetchStartTimeRef = useRef<number | null>(null);
   const [intentToAmount, setIntentToAmount] = useState<string | undefined>(
     undefined
   );
@@ -6754,9 +6762,29 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
-        setTxError(
-          "We couldn't prepare this quote. Try again or choose a different token or chain."
-        );
+        const errorMsg =
+          "We couldn't prepare this quote. Try again or choose a different token or chain.";
+        setTxError(errorMsg);
+        const timeTakenMs = quoteFetchStartTimeRef.current
+          ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
+          : undefined;
+        trackFastBridgeFail({
+          failure_type: "quote_fetch",
+          reason: errorMsg,
+          error_code: "UNSUPPORTED_INTENT_SHAPE",
+          wallet_address: ownerAddress,
+          quote_id: quoteIdRef.current,
+          time_taken_ms: timeTakenMs,
+          source_tokens_count: fromTokens.length,
+          chain_id_list: Array.from(
+            new Set(
+              [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+                (c): c is number => typeof c === "number"
+              )
+            )
+          ),
+          destination_chain_id: toToken?.chainId,
+        });
         return;
       }
 
@@ -6799,6 +6827,25 @@ function NexusOneInner({
         setQuoteRefreshing(false);
         setReceiveMaxCalculating(false);
         setPreviewQuoteRefreshing(false);
+      });
+      const quoteTimeTakenMs = quoteFetchStartTimeRef.current
+        ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
+        : undefined;
+      trackFastBridgeSuccess({
+        success_type: "quote_fetched",
+        wallet_address: ownerAddress,
+        quote_id: quoteIdRef.current,
+        time_taken_ms: quoteTimeTakenMs,
+        source_tokens_count: fromTokens.length,
+        chain_id_list: Array.from(
+          new Set(
+            [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+              (c): c is number => typeof c === "number"
+            )
+          )
+        ),
+        destination_chain_id: toToken?.chainId,
+        estimated_output: intentWithBridgeProvider?.destination?.amount,
       });
       if (
         swapRunIdRef.current === runId &&
@@ -8756,6 +8803,9 @@ function NexusOneInner({
       return;
     }
 
+    quoteIdRef.current = generateQuoteId();
+    quoteFetchStartTimeRef.current = performance.now();
+
     let resolvedRecipientAddress =
       activeMode === "swap" ? effectiveRecipientAddress : recipientAddress;
 
@@ -9640,6 +9690,36 @@ function NexusOneInner({
         ) {
           finishCurrentSwapHistoryEntry("fulfilled");
           onComplete?.();
+          const chainIdList = Array.from(
+            new Set(
+              [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+                (c): c is number => typeof c === "number"
+              )
+            )
+          );
+          trackFastBridgeSuccess({
+            success_type: "transaction_success",
+            wallet_address: ownerAddress,
+            quote_id: quoteIdRef.current,
+            source_tokens_count: fromTokens.length,
+            chain_id_list: chainIdList,
+            destination_chain_id: toToken?.chainId ?? 0,
+            rff_id:
+              intentId ??
+              extractIntentIdFromUrl(intentExplorerUrl) ??
+              currentSwapEntry?.intentId ??
+              undefined,
+            tx_hash:
+              finalExplorerUrl ?? getSdkTransactionHash(result) ?? undefined,
+            duration_seconds: currentSwapStartedAtRef.current
+              ? Math.max(
+                  1,
+                  Math.round(
+                    (Date.now() - currentSwapStartedAtRef.current) / 1000
+                  )
+                )
+              : undefined,
+          });
           if (activeMode === "deposit") {
             reachedTerminalRef.current = true;
             const now = Date.now();
@@ -9717,6 +9797,37 @@ function NexusOneInner({
       setReceiveMaxCalculating(false);
       const hasActiveExecution =
         swapStepRef.current === "progress" && Boolean(currentSwapIdRef.current);
+
+      if (!hasActiveExecution && !isIntentDenied) {
+        const timeTakenMs = quoteFetchStartTimeRef.current
+          ? Math.round(performance.now() - quoteFetchStartTimeRef.current)
+          : undefined;
+        const errMessage =
+          (typeof err?.message === "string" ? err.message : "") ||
+          (typeof err === "string" ? err : "");
+        const quoteErrMsg = getUserFacingError(
+          err,
+          "We couldn't prepare this transfer. Review the amount and route, then try again."
+        );
+        trackFastBridgeFail({
+          failure_type: "quote_fetch",
+          reason: errMessage || quoteErrMsg,
+          error_code: err?.code ?? (caughtTimeout ? "TIMEOUT" : "QUOTE_FAILED"),
+          wallet_address: ownerAddress,
+          quote_id: quoteIdRef.current,
+          time_taken_ms: timeTakenMs,
+          source_tokens_count: fromTokens.length,
+          chain_id_list: Array.from(
+            new Set(
+              [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+                (c): c is number => typeof c === "number"
+              )
+            )
+          ),
+          destination_chain_id: toToken?.chainId,
+        });
+      }
+
       const isTimeout = caughtTimeout;
       const showFailedProgressThenReceipt = (
         error: string,
@@ -9751,6 +9862,62 @@ function NexusOneInner({
           failedStepType: getProgressStepType(failedStep),
           ...patch,
         });
+
+        const chainIdList = Array.from(
+          new Set(
+            [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+              (c): c is number => typeof c === "number"
+            )
+          )
+        );
+        const errMessage =
+          (typeof err?.message === "string" ? err.message : "") ||
+          (typeof err === "string" ? err : "");
+        const errName = typeof err?.name === "string" ? err.name : "";
+        const isUserRejected =
+          err?.code === 4001 ||
+          err?.code === "ACTION_REJECTED" ||
+          errName === "UserRejectedRequestError" ||
+          /user rejected|user denied/i.test(errMessage);
+
+        const stepChainId = getPlanStepChainId(
+          failedProgressEvent?.rawEvent,
+          failedStep
+        );
+        const stepTokenAddress =
+          (failedStep as any)?.tokenAddress ||
+          (failedStep as any)?.token?.contractAddress ||
+          (failedStep as any)?.data?.token;
+
+        trackFastBridgeFail({
+          failure_type: "step_failure",
+          reason: errMessage || error || "Step execution failed",
+          error_code: isUserRejected
+            ? "user_rejected"
+            : (err?.code ?? "STEP_FAILED"),
+          user_rejected: isUserRejected,
+          wallet_address: ownerAddress,
+          quote_id: quoteIdRef.current,
+          step_type:
+            getProgressStepType(failedStep) || String(failedStep?.type ?? ""),
+          chain_id: stepChainId,
+          token_address: stepTokenAddress,
+          source_tokens_count: fromTokens.length,
+          chain_id_list: chainIdList,
+          destination_chain_id: toToken?.chainId ?? 0,
+          rff_id:
+            extractIntentIdFromUrl(intentUrlRef.current) ??
+            currentSwapEntry?.intentId ??
+            undefined,
+          tx_hash:
+            getPlanStepTransactionHash(
+              failedProgressEvent?.rawEvent,
+              failedStep
+            ) ??
+            explorerUrlsRef.current.destinationExplorerUrl ??
+            undefined,
+        });
+
         window.setTimeout(() => {
           if (
             swapRunIdRef.current === runId &&
@@ -9773,6 +9940,30 @@ function NexusOneInner({
           failureMessage: TIMEOUT_LABEL,
           ...patch,
         });
+
+        const chainIdList = Array.from(
+          new Set(
+            [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+              (c): c is number => typeof c === "number"
+            )
+          )
+        );
+        trackFastBridgeFail({
+          failure_type: "transaction_failure",
+          reason: message,
+          error_code: "TIMEOUT",
+          wallet_address: ownerAddress,
+          quote_id: quoteIdRef.current,
+          source_tokens_count: fromTokens.length,
+          chain_id_list: chainIdList,
+          destination_chain_id: toToken?.chainId ?? 0,
+          rff_id:
+            extractIntentIdFromUrl(intentUrlRef.current) ??
+            currentSwapEntry?.intentId ??
+            undefined,
+          tx_hash: explorerUrlsRef.current.destinationExplorerUrl ?? undefined,
+        });
+
         window.setTimeout(() => {
           if (
             swapRunIdRef.current === runId &&
@@ -10268,6 +10459,30 @@ function NexusOneInner({
           sourceCount: (intentData?.sources ?? []).length,
         });
       }
+      const confirmedChainIdList = (intentData?.sources ?? [])
+        .map((s) => s.chainId)
+        .filter((id): id is number => typeof id === "number");
+
+      trackFastBridgeIntentConfirmed({
+        wallet_address: ownerAddress,
+        quote_id: quoteIdRef.current,
+        source_tokens_count:
+          (intentData?.sources ?? []).length || fromTokens.length,
+        chain_id_list:
+          confirmedChainIdList.length > 0
+            ? confirmedChainIdList
+            : fromTokens.map((t) => t.chainId),
+        destination_chain_id: toToken?.chainId ?? 0,
+        source_tokens: (intentData?.sources ?? []).map((s) => ({
+          symbol: s.symbol,
+          amount: s.amount,
+          chainId: s.chainId,
+          contractAddress: s.contractAddress,
+        })),
+        destination_token: toToken?.symbol,
+        destination_amount: intentData?.destination?.amount ?? amount,
+        fee_usd: Number(intentFeeUsd) || 0,
+      });
       onStart?.();
       startSwapHistoryEntry();
       setSwapStep("progress");

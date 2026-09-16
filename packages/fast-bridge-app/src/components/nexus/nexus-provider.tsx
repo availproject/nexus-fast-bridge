@@ -27,7 +27,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAccountEffect } from "wagmi";
+import { useAccount, useAccountEffect } from "wagmi";
+import { trackFastBridgeFail } from "@/lib/telemetry";
 import { getUserFacingError } from "@/lib/user-facing-error";
 import {
   isSwapSupportedBySdkChainList,
@@ -43,6 +44,16 @@ import {
   toFinitePositiveNumber,
   USD_PEGGED_FALLBACK_RATE,
 } from "../common/utils/token-pricing";
+
+function getErrorCode(error: unknown, fallback: string): string | number {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string" || typeof code === "number") {
+      return code;
+    }
+  }
+  return fallback;
+}
 
 interface NexusContextType {
   allowance: RefObject<OnAllowanceHookData | null>;
@@ -122,7 +133,9 @@ const NexusProvider = ({
     [config]
   );
 
-  console.log("NEXUS PROVIDER CONFIG", stableConfig, defaultConfig, config);
+  const { address } = useAccount();
+  const accountAddressRef = useRef(address);
+  accountAddressRef.current = address;
 
   const sdkRef = useRef<NexusClient | null>(null);
   const [sdk, setSdk] = useState<NexusClient | null>(null);
@@ -458,13 +471,31 @@ const NexusProvider = ({
         );
         setSwapBalance(normalizedSwapBalance);
       } else {
-        setNexusInitError(
-          getUserFacingError(swapBalanceResult.reason, BALANCES_ERROR_MSG)
+        const errorMsg = getUserFacingError(
+          swapBalanceResult.reason,
+          BALANCES_ERROR_MSG
         );
+        setNexusInitError(errorMsg);
+        trackFastBridgeFail({
+          failure_type: "balance_fetch",
+          reason: errorMsg,
+          error_code: getErrorCode(
+            swapBalanceResult.reason,
+            "BALANCE_FETCH_ERROR"
+          ),
+          wallet_address: accountAddressRef.current,
+        });
       }
     } catch (err) {
       console.error("Error setting up Nexus balances:", err);
-      setNexusInitError(getUserFacingError(err, BALANCES_ERROR_MSG));
+      const errorMsg = getUserFacingError(err, BALANCES_ERROR_MSG);
+      setNexusInitError(errorMsg);
+      trackFastBridgeFail({
+        failure_type: "balance_fetch",
+        reason: errorMsg,
+        error_code: getErrorCode(err, "BALANCE_FETCH_ERROR"),
+        wallet_address: accountAddressRef.current,
+      });
     }
   }, [normalizeUserAssetFiatValues]);
 
@@ -488,7 +519,14 @@ const NexusProvider = ({
         setNexusSDK(nextSdk);
       } catch (error) {
         console.error("Error initializing Nexus:", error);
-        setNexusInitError(getUserFacingError(error, NEXUS_INIT_ERROR_MSG));
+        const errorMsg = getUserFacingError(error, NEXUS_INIT_ERROR_MSG);
+        setNexusInitError(errorMsg);
+        trackFastBridgeFail({
+          failure_type: "sdk_init",
+          reason: errorMsg,
+          error_code: getErrorCode(error, "SDK_INIT_ERROR"),
+          wallet_address: accountAddressRef.current,
+        });
         throw error;
       } finally {
         setLoading(false);
@@ -532,6 +570,12 @@ const NexusProvider = ({
         const message =
           "We couldn't access your wallet. Unlock it and reconnect, then try again.";
         setNexusInitError(message);
+        trackFastBridgeFail({
+          failure_type: "sdk_init",
+          reason: message,
+          error_code: "NO_PROVIDER",
+          wallet_address: accountAddressRef.current,
+        });
         throw new Error(message);
       }
       try {
@@ -561,7 +605,14 @@ const NexusProvider = ({
       setBridgableBalance(normalizeUserAssetFiatValues(updatedBalance));
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
-      setNexusInitError(getUserFacingError(error, BALANCES_ERROR_MSG));
+      const errorMsg = getUserFacingError(error, BALANCES_ERROR_MSG);
+      setNexusInitError(errorMsg);
+      trackFastBridgeFail({
+        failure_type: "balance_fetch",
+        reason: errorMsg,
+        error_code: getErrorCode(error, "BALANCE_FETCH_ERROR"),
+        wallet_address: accountAddressRef.current,
+      });
     }
   }, [normalizeUserAssetFiatValues]);
 
@@ -587,7 +638,14 @@ const NexusProvider = ({
       return normalizedSwapBalance;
     } catch (error) {
       console.error("Error fetching swap balance:", error);
-      setNexusInitError(getUserFacingError(error, BALANCES_ERROR_MSG));
+      const errorMsg = getUserFacingError(error, BALANCES_ERROR_MSG);
+      setNexusInitError(errorMsg);
+      trackFastBridgeFail({
+        failure_type: "balance_fetch",
+        reason: errorMsg,
+        error_code: getErrorCode(error, "BALANCE_FETCH_ERROR"),
+        wallet_address: accountAddressRef.current,
+      });
       return null;
     }
   }, [normalizeUserAssetFiatValues]);
