@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { getChainSlugById, getChainSlugByName } from "@/config/chain-settings";
 import { readBridgeParams } from "../lib/url-params";
 import { useRuntime } from "../providers/runtime-context";
+import ArcAppBanner from "./arc-app-banner";
 import { TOKEN_CONTRACT_ADDRESSES } from "./common/utils/constant";
 import NexusOne from "./nexus-one/nexus-one";
 import type { NexusOneConfig } from "./nexus-one/types";
@@ -84,7 +85,12 @@ const FastBridgeShowcase = () => {
   const [receiveAssetOverride, setReceiveAssetOverride] =
     useState<ReceiveAsset | null>(null);
 
-  const isAppRoute = chainSlug === "app";
+  const isAppRoute =
+    chainSlug === "app" ||
+    (typeof window !== "undefined" &&
+      (window.location.pathname === "/app" ||
+        window.location.pathname === "/app/" ||
+        window.location.pathname === "/app.html"));
 
   const receiveAssetOverrideKey = useMemo(
     () => getReceiveAssetKey(receiveAssetOverride),
@@ -150,14 +156,17 @@ const FastBridgeShowcase = () => {
 
   return (
     <PreviewPanel>
-      <NexusOne
-        config={nexusConfig}
-        connectedAddress={address}
-        onConnectWallet={() => {
-          open({ view: "Connect" });
-        }}
-        onReceiveAssetChange={handleReceiveAssetChange}
-      />
+      <div className="fastbridge-showcase-container">
+        {isAppRoute ? <ArcAppBanner /> : null}
+        <NexusOne
+          config={nexusConfig}
+          connectedAddress={address}
+          onConnectWallet={() => {
+            open({ view: "Connect" });
+          }}
+          onReceiveAssetChange={handleReceiveAssetChange}
+        />
+      </div>
     </PreviewPanel>
   );
 };
