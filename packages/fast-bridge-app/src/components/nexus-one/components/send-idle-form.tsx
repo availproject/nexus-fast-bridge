@@ -13,6 +13,7 @@ import {
 interface SendIdleFormProps {
   amount: string;
   calculatingPercent?: number | null;
+  defaultRecipientAddress?: string;
   fromTokens: SwapTokenOption[];
   isCalculatingMax?: boolean;
   isQuoteRefreshing?: boolean;
@@ -595,6 +596,7 @@ export function SendIdleForm({
   onOpenSourcePicker,
   onOpenRecipientPicker,
   recipientAddress,
+  defaultRecipientAddress,
   onSetPercent,
   routeStatus,
   routeMessage,
@@ -702,7 +704,13 @@ export function SendIdleForm({
               style={{
                 alignItems: "center",
                 boxSizing: "border-box",
-                color: brand,
+                color:
+                  recipientAddress &&
+                  (!defaultRecipientAddress ||
+                    recipientAddress.toLowerCase() !==
+                      defaultRecipientAddress.toLowerCase())
+                    ? "#B7791F"
+                    : brand,
                 display: "inline-flex",
                 fontFamily: uiFont,
                 fontSize: "15px",

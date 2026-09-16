@@ -7,6 +7,7 @@ import {
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { getCachedReceiveTokenMatch } from "../components/receive-asset-selector";
 import type { SwapTokenOption } from "../components/swap-asset-selector";
+import { isArcNativeUsdc } from "./arc-tokens";
 
 export type TokenVisualIdentity = {
   chainId?: number;
@@ -221,11 +222,17 @@ export function resolveTokenVisuals(
         lifiToken?.chainName ??
         chainMeta?.name
     ),
-    decimals:
-      identity.decimals ??
-      selectedToken?.decimals ??
-      balanceToken?.decimals ??
-      lifiToken?.decimals,
+    decimals: isArcNativeUsdc({
+      chainId: identity.chainId ?? selectedToken?.chainId,
+      symbol: identity.symbol ?? selectedToken?.symbol,
+      contractAddress:
+        identity.contractAddress ?? selectedToken?.contractAddress,
+    })
+      ? 18
+      : (identity.decimals ??
+        selectedToken?.decimals ??
+        balanceToken?.decimals ??
+        lifiToken?.decimals),
     name:
       identity.name ??
       selectedToken?.name ??

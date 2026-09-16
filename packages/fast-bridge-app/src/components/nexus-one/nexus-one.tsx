@@ -111,6 +111,7 @@ import {
   type NexusOneProps,
   type SwapType,
 } from "./types";
+import { isArcNativeUsdc } from "./utils/arc-tokens";
 import { findCitreaReceiveToken } from "./utils/citrea-tokens";
 import {
   type DepositSourceFilter,
@@ -1579,9 +1580,14 @@ const normalizeSdkIntentChain = (chain: any) => {
 
 const normalizeSdkIntentToken = (token: any, chainId?: number) => {
   const chainMeta = chainId ? CHAIN_METADATA[chainId] : undefined;
-  const decimals = Number(
-    token?.decimals ?? chainMeta?.nativeCurrency.decimals
-  );
+  const isArcNative = isArcNativeUsdc({
+    chainId,
+    symbol: token?.symbol ?? token?.tokenSymbol,
+    contractAddress: token?.contractAddress ?? token?.address,
+  });
+  const decimals = isArcNative
+    ? 18
+    : Number(token?.decimals ?? chainMeta?.nativeCurrency.decimals);
   return {
     contractAddress:
       token?.contractAddress ??
@@ -2570,7 +2576,16 @@ function SwapReceiptPanel({
             >
               Recipient
             </span>
-            <TruncatedAddress address={entry.recipientAddress} />
+            <TruncatedAddress
+              address={entry.recipientAddress}
+              color={
+                ownerAddress &&
+                entry.recipientAddress.toLowerCase() !==
+                  ownerAddress.toLowerCase()
+                  ? "#B7791F"
+                  : undefined
+              }
+            />
           </div>
         )}
         {showIntentExplorer && (
@@ -3358,7 +3373,9 @@ function NexusOneInner({
             current.chainId,
             loadedToken.chainName || current.chainName || chainMeta?.name
           ),
-          decimals: loadedToken.decimals ?? current.decimals,
+          decimals: isArcNativeUsdc(current)
+            ? 18
+            : (loadedToken.decimals ?? current.decimals),
           logo: loadedToken.logo || current.logo,
           name: loadedToken.name || current.name,
           priceUSD: loadedToken.priceUSD ?? current.priceUSD,
@@ -9117,6 +9134,7 @@ function NexusOneInner({
       }
 
       const isNative =
+        isArcNativeUsdc(toToken) ||
         !toToken.contractAddress ||
         toToken.contractAddress.toLowerCase() ===
           "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
@@ -9227,7 +9245,9 @@ function NexusOneInner({
         const exactInSwapPayload = {
           sources: fromPayload,
           toChainId: toToken.chainId!,
-          toTokenAddress: toToken.contractAddress as `0x${string}`,
+          toTokenAddress: isArcNativeUsdc(toToken)
+            ? ("0x0000000000000000000000000000000000000000" as `0x${string}`)
+            : (toToken.contractAddress as `0x${string}`),
         };
         let intentExplorerUrl: string | null = null;
         let intentId = currentSwapEntry?.intentId;
@@ -9308,9 +9328,13 @@ function NexusOneInner({
               );
             }
 
+            const destinationDecimals = isArcNativeUsdc(toToken)
+              ? 18
+              : toToken.decimals || 18;
+
             const transferAmountBigInt = parseUnits(
               transferAmount,
-              toToken.decimals || 18
+              destinationDecimals
             );
             finalExplorerUrl =
               (await executeRecipientTransfer(transferAmountBigInt)) ||
@@ -9372,10 +9396,14 @@ function NexusOneInner({
           setSwapStep("success");
         }
       } else {
+        const destinationDecimals = isArcNativeUsdc(toToken)
+          ? 18
+          : toToken.decimals || 18;
+
         const exactOutAmountString =
           activeMode === "deposit"
             ? depositTokenAmountForQuote
-                ?.toDecimalPlaces(toToken.decimals || 18, Decimal.ROUND_DOWN)
+                ?.toDecimalPlaces(destinationDecimals, Decimal.ROUND_DOWN)
                 .toFixed()
             : amount;
         if (!exactOutAmountString || new Decimal(exactOutAmountString).lte(0)) {
@@ -9390,8 +9418,8 @@ function NexusOneInner({
           return;
         }
         const amountBigInt = parseUnits(
-          toViemDecimalString(exactOutAmountString, toToken.decimals || 18),
-          toToken.decimals || 18
+          toViemDecimalString(exactOutAmountString, destinationDecimals),
+          destinationDecimals
         );
 
         resetExplorerUrls();
@@ -9452,7 +9480,9 @@ function NexusOneInner({
                   {
                     mode: "exactOut",
                     toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
+                    toTokenAddress: isArcNativeUsdc(toToken)
+                      ? ("0x0000000000000000000000000000000000000000" as `0x${string}`)
+                      : (toToken.contractAddress as `0x${string}`),
                     toAmountRaw: amountBigInt,
                     recipient: resolvedRecipientAddress as `0x${string}`,
                     ...fromSourcesPayload,
@@ -9462,7 +9492,9 @@ function NexusOneInner({
               : await nexusSDK.swapAndExecute(
                   {
                     toChainId: toToken.chainId!,
-                    toTokenAddress: toToken.contractAddress as `0x${string}`,
+                    toTokenAddress: isArcNativeUsdc(toToken)
+                      ? ("0x0000000000000000000000000000000000000000" as `0x${string}`)
+                      : (toToken.contractAddress as `0x${string}`),
                     toAmountRaw: amountBigInt,
                     execute: executeConfig,
                     ...fromSourcesPayload,
@@ -12202,6 +12234,7 @@ function NexusOneInner({
                   >
                     <SwapIntentPreview
                       activeMode={activeMode}
+                      defaultRecipientAddress={defaultRecipientAddress}
                       destinationGasFeeUsd={previewDestinationGasFeeUsd}
                       estimatedTime="10s"
                       explorerUrls={explorerUrls}
@@ -12647,6 +12680,7 @@ function NexusOneInner({
                 <SendIdleForm
                   amount={amount}
                   calculatingPercent={maxCalculationPercent}
+                  defaultRecipientAddress={defaultRecipientAddress}
                   fromTokens={displayFromTokens}
                   isCalculatingMax={receiveMaxCalculating}
                   isQuoteRefreshing={

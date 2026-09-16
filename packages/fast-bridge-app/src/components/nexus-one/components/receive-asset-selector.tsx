@@ -31,6 +31,7 @@ import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
   isArcExcludedToken,
+  isArcNativeUsdc,
 } from "../utils/arc-tokens";
 import {
   CITREA_CHAIN_ID,
@@ -406,7 +407,16 @@ export const getCachedReceiveTokenMatch = (
 ): SwapTokenOption | null => {
   if (!token?.chainId || !rawTokensCache) return null;
 
-  const chainTokens = rawTokensCache.tokens[String(token.chainId)] ?? [];
+  if (isArcNativeUsdc(token)) {
+    return {
+      ...token,
+      decimals: 18,
+    };
+  }
+
+  const chainTokens = (
+    rawTokensCache.tokens[String(token.chainId)] ?? []
+  ).filter((candidate) => !isArcExcludedToken(candidate.address));
   const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
   const addressMatch = chainTokens.find(
     (candidate) =>
@@ -423,7 +433,9 @@ export const getCachedReceiveTokenMatch = (
 
   return {
     ...token,
-    decimals: matchedToken.decimals ?? token.decimals,
+    decimals: isArcNativeUsdc(token)
+      ? 18
+      : (matchedToken.decimals ?? token.decimals),
     logo: matchedToken.logoURI || token.logo,
     name: matchedToken.name || token.name,
     priceUSD: matchedToken.priceUSD ?? token.priceUSD,
