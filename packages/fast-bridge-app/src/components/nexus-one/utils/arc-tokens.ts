@@ -18,6 +18,25 @@ export const isArcExcludedToken = (address?: string): boolean => {
   return address.toLowerCase() === ARC_EXCLUDED_TOKEN_ADDRESS;
 };
 
+export const isArcNativeUsdc = (
+  token?: {
+    chainId?: number;
+    symbol?: string;
+    contractAddress?: string;
+  } | null
+): boolean => {
+  if (!token) return false;
+  const isArcChain = token.chainId === ARC_CHAIN_ID;
+  if (!isArcChain) return false;
+  const isUsdcSymbol = token.symbol?.toUpperCase() === "USDC";
+  const isNativeAddress =
+    !token.contractAddress ||
+    token.contractAddress.toLowerCase() === ZERO_ADDRESS ||
+    token.contractAddress.toLowerCase() ===
+      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+  return isUsdcSymbol || isNativeAddress;
+};
+
 export const getArcChainMeta = () => ({
   logo:
     CHAIN_METADATA[ARC_CHAIN_ID]?.logo ??

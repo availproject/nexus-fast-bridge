@@ -2716,45 +2716,56 @@ export function SwapIdleForm({
           >
             Receive
           </span>
-          {Boolean(recipientAddress || defaultRecipientAddress) && (
-            <div
-              onClick={onOpenRecipientPicker}
-              style={{
-                alignItems: "center",
-                boxSizing: "border-box",
-                color: "#3D7BFF",
-                display: "inline-flex",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "12px",
-                fontStyle: "normal",
-                fontWeight: 500,
-                lineHeight: "16px",
-                textTransform: "capitalize",
-                gap: "4px",
-                cursor: onOpenRecipientPicker ? "pointer" : "default",
-              }}
-            >
-              <span>
-                {formatShortAddress(
-                  recipientAddress || defaultRecipientAddress
-                )}
-              </span>
-              {onOpenRecipientPicker && (
-                <svg
-                  fill="none"
-                  height="12"
-                  stroke="#3D7BFF"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  width="12"
+          {Boolean(recipientAddress || defaultRecipientAddress) &&
+            (() => {
+              const isCustomRecipient = Boolean(
+                recipientAddress &&
+                  (!defaultRecipientAddress ||
+                    recipientAddress.toLowerCase() !==
+                      defaultRecipientAddress.toLowerCase())
+              );
+              const recipientColor = isCustomRecipient ? "#B7791F" : "#3D7BFF";
+
+              return (
+                <div
+                  onClick={onOpenRecipientPicker}
+                  style={{
+                    alignItems: "center",
+                    boxSizing: "border-box",
+                    color: recipientColor,
+                    display: "inline-flex",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "12px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "16px",
+                    textTransform: "capitalize",
+                    gap: "4px",
+                    cursor: onOpenRecipientPicker ? "pointer" : "default",
+                  }}
                 >
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                </svg>
-              )}
-            </div>
-          )}
+                  <span>
+                    {formatShortAddress(
+                      recipientAddress || defaultRecipientAddress
+                    )}
+                  </span>
+                  {onOpenRecipientPicker && (
+                    <svg
+                      fill="none"
+                      height="12"
+                      stroke={recipientColor}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      width="12"
+                    >
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                    </svg>
+                  )}
+                </div>
+              );
+            })()}
         </div>
 
         {/* Amount Row: Input / USD value on left, Select asset button on right */}

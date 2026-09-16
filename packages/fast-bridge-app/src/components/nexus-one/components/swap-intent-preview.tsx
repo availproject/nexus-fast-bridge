@@ -74,6 +74,7 @@ export interface SwapIntentData {
 
 export interface SwapIntentPreviewProps {
   activeMode?: NexusOneMode;
+  defaultRecipientAddress?: string;
   destinationGasFeeUsd?: string;
   estimatedTime?: string;
   explorerUrls?: {
@@ -368,7 +369,13 @@ function DetailToggle({
   );
 }
 
-function TruncatedAddress({ address }: { address: string }) {
+function TruncatedAddress({
+  address,
+  color = brand,
+}: {
+  address: string;
+  color?: string;
+}) {
   const [showTooltip, setShowTooltip] = useState(false);
   const label =
     address.length > 12
@@ -383,7 +390,7 @@ function TruncatedAddress({ address }: { address: string }) {
       onMouseLeave={() => setShowTooltip(false)}
       style={{
         alignItems: "center",
-        color: brand,
+        color,
         display: "inline-flex",
         fontFamily,
         fontSize: "12px",
@@ -426,7 +433,19 @@ function TruncatedAddress({ address }: { address: string }) {
   );
 }
 
-function RecipientRow({ address }: { address: string }) {
+function RecipientRow({
+  address,
+  defaultAddress,
+}: {
+  address: string;
+  defaultAddress?: string;
+}) {
+  const isCustom = Boolean(
+    address &&
+      (!defaultAddress ||
+        address.toLowerCase() !== defaultAddress.toLowerCase())
+  );
+
   return (
     <div
       style={{
@@ -460,7 +479,10 @@ function RecipientRow({ address }: { address: string }) {
         </div>
       </div>
       <div style={{ alignItems: "flex-end", display: "flex" }}>
-        <TruncatedAddress address={address} />
+        <TruncatedAddress
+          address={address}
+          color={isCustom ? "#B7791F" : brand}
+        />
       </div>
     </div>
   );
@@ -703,6 +725,7 @@ export function SwapIntentPreview({
   mode,
   opportunity,
   recipientAddress,
+  defaultRecipientAddress,
   activeMode,
   steps,
   explorerUrls,
@@ -1807,7 +1830,10 @@ export function SwapIntentPreview({
         />
 
         {hasRecipientTransfer && recipientAddress && (
-          <RecipientRow address={recipientAddress} />
+          <RecipientRow
+            address={recipientAddress}
+            defaultAddress={defaultRecipientAddress}
+          />
         )}
 
         <Row subtitle="Network & protocol" title="Total Fees" value={feeUsd}>
