@@ -898,7 +898,15 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       slug: "arc",
       buttonFg: "white",
       analyticsFastBridgeKey: "arc",
-      maxBridgeAmount: 550,
+      maxBridgeAmount: 5000,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.ARC]: 5000,
+      },
+      maxBridgeAmountByTokenAndChain: {
+        USDC: {
+          [SUPPORTED_CHAINS.ARC]: 5000,
+        },
+      },
       mapUsdmToUsdcBalance: true,
       denyIntentOnReset: true,
       tokenDenyListByChainId: {},
