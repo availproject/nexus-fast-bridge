@@ -28,6 +28,11 @@ import {
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
+  ARC_CHAIN_ID,
+  getArcNativeTokenOption,
+  isArcExcludedToken,
+} from "../utils/arc-tokens";
+import {
   CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
   getCitreaChainMeta,
@@ -569,6 +574,7 @@ export const getAllReceiveTokenOptions = async (
     };
     for (const t of chains[chainIdStr]) {
       if (!t.address || !t.symbol) continue;
+      if (isArcExcludedToken(t.address)) continue;
       allParsed.push({
         contractAddress: t.address,
         symbol: t.symbol,
@@ -585,7 +591,11 @@ export const getAllReceiveTokenOptions = async (
     }
   }
   const tokensByKey = new Map<string, SwapTokenOption>();
-  for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
+  for (const token of [
+    ...allParsed,
+    ...getCitreaReceiveTokenOptions(),
+    getArcNativeTokenOption(),
+  ]) {
     const address =
       token.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -907,6 +917,7 @@ export function ReceiveAssetSelector({
           };
           for (const t of chains[chainIdStr]) {
             if (!t.address || !t.symbol) continue;
+            if (isArcExcludedToken(t.address)) continue;
             allParsed.push({
               contractAddress: t.address,
               symbol: t.symbol,
@@ -924,7 +935,11 @@ export function ReceiveAssetSelector({
           }
         }
         const tokensByKey = new Map<string, ReceiveTokenOption>();
-        for (const token of [...allParsed, ...getCitreaReceiveTokenOptions()]) {
+        for (const token of [
+          ...allParsed,
+          ...getCitreaReceiveTokenOptions(),
+          getArcNativeTokenOption(),
+        ]) {
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -955,7 +970,8 @@ export function ReceiveAssetSelector({
     t.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     t.contractAddress.toLowerCase() ===
-      "0x0000000000000000000000000000000000000000";
+      "0x0000000000000000000000000000000000000000" ||
+    (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC");
 
   const excludedTokensMap = useMemo(() => {
     const set = new Set<string>();
@@ -997,13 +1013,25 @@ export function ReceiveAssetSelector({
         (t) => getTokenSearchRank(t, deferredQuery) !== null
       );
     }
+    result = result.filter((t) => !isArcExcludedToken(t.contractAddress));
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
-      result = result.filter((t) => dynamicStableSymbols.has(t.symbol));
+      result = result.filter(
+        (t) =>
+          dynamicStableSymbols.has(t.symbol) &&
+          !(t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC")
+      );
     else if (activeTab === "custom")
       result = result.filter(
         (token) =>
-          !isNativeToken(token) && !dynamicStableSymbols.has(token.symbol)
+          !isNativeToken(token) &&
+          !(
+            dynamicStableSymbols.has(token.symbol) &&
+            !(
+              token.chainId === ARC_CHAIN_ID &&
+              token.symbol.toUpperCase() === "USDC"
+            )
+          )
       );
 
     return result;

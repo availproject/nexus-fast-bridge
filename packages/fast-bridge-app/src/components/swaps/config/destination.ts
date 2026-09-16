@@ -239,6 +239,18 @@ export const DESTINATION_SWAP_TOKENS = new Map<
       },
     ],
   ],
+  [
+    SUPPORTED_CHAINS.ARC,
+    [
+      {
+        decimals: 18,
+        logo: "https://coin-images.coingecko.com/coins/images/6319/large/usdc.png",
+        name: "USD Coin",
+        symbol: "USDC",
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+      },
+    ],
+  ],
 ]);
 
 export const TOKEN_IMAGES: Record<string, string> = {
