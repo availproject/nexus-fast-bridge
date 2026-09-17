@@ -10634,6 +10634,12 @@ function NexusOneInner({
         return;
       }
       const classifiedError = classifyIntentError(err);
+      console.error("[NexusOne SDK][swap] Classified intent error", {
+        bucket: classifiedError.bucket,
+        retryable: classifiedError.retryable,
+        technicalDetails: classifiedError.technicalDetails,
+        error: err,
+      });
       const errorMessage = formatClassifiedIntentError(classifiedError);
       if (isTimeout && hasCommittedIntent) {
         showTimeoutReceipt(errorMessage);
