@@ -3299,27 +3299,13 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
-  const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
-    useState<SwapTokenOption[]>([]);
+  const [availableTokens, setAvailableTokens] = useState<SwapTokenOption[]>([]);
   useEffect(() => {
     let active = true;
     void getAllReceiveTokenOptions(swapSupportedChainsAndTokens).then(
       (tokens) => {
         if (active && tokens.length > 0) {
-          const isNativeAddr = (address?: string) =>
-            !address ||
-            address.toLowerCase() ===
-              "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
-            address.toLowerCase() ===
-              "0x0000000000000000000000000000000000000000";
-          const filtered = tokens.filter((token) => {
-            const sym = token.symbol.toUpperCase();
-            const isUsdc = sym === "USDC" || sym === "USDC.E";
-            const isUsdt = sym === "USDT";
-            const isNative = isNativeAddr(token.contractAddress);
-            return isUsdc || isUsdt || isNative;
-          });
-          setDisconnectedAvailableTokens(filtered);
+          setAvailableTokens(tokens);
         }
       }
     );
@@ -3327,6 +3313,7 @@ function NexusOneInner({
       active = false;
     };
   }, [swapSupportedChainsAndTokens]);
+  const disconnectedAvailableTokens = availableTokens;
 
   const previousOwnerAddressRef = useRef<string | undefined>(ownerAddress);
 
@@ -5940,6 +5927,9 @@ function NexusOneInner({
     return (
       err?.code === ERROR_CODES.INSUFFICIENT_BALANCE ||
       message.includes("insufficient balance") ||
+      message.includes("insufficient funds") ||
+      message.includes("insufficient source") ||
+      message.includes("insufficient liquidity") ||
       message.includes("sources are not enough") ||
       (message.includes("source") && message.includes("not enough"))
     );
@@ -8847,7 +8837,7 @@ function NexusOneInner({
       return;
     }
 
-    if (!isExactOutFlow && hasExactInSourceBalanceExceeded) {
+    if (!isExactOutFlow && hasExactInSourceBalanceExceeded && !background) {
       clearPendingSwapIntent();
       setSwapQuoteIssue({
         type: "insufficientSources",
@@ -9279,9 +9269,12 @@ function NexusOneInner({
               parseFiatNumber(token.balance) ?? new Decimal(0);
             const fiatBalance =
               parseFiatNumber(token.balanceInFiat) ?? new Decimal(0);
-            const price = tokenBalance.gt(0)
+            let price = tokenBalance.gt(0)
               ? fiatBalance.div(tokenBalance)
               : new Decimal(0);
+            if (price.lte(0)) {
+              price = getTokenUsdRate(token);
+            }
             if (price.gt(0)) {
               cleanAmount = cleanAmount.div(price);
             } else {
@@ -9291,7 +9284,10 @@ function NexusOneInner({
 
           if (cleanAmount.lte(0)) continue;
 
-          if (isAmountAboveUsableBalance(token, cleanAmount.toFixed())) {
+          if (
+            !background &&
+            isAmountAboveUsableBalance(token, cleanAmount.toFixed())
+          ) {
             throw new Error("Amount exceeds the usable source balance.");
           }
 
@@ -10087,6 +10083,10 @@ function NexusOneInner({
       }
       if (isInsufficientSourcesError(err) && !hasActiveExecution) {
         const issue = buildInsufficientSourcesIssue(err);
+        setQuoteRefreshing(false);
+        setIntentLoading(false);
+        setReceiveMaxCalculating(false);
+        setPreviewQuoteRefreshing(false);
         if (!background || swapStepRef.current === "preview-intent") {
           setSwapStep("idle");
         }
@@ -10142,6 +10142,13 @@ function NexusOneInner({
     }
 
     if (hasInsufficientSourcesQuoteIssue) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
+      return;
+    }
+
+    if (txError) {
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10228,6 +10235,13 @@ function NexusOneInner({
       return;
     }
 
+    if (txError) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
+      return;
+    }
+
     const parsedAmount = parseFiatNumber(amount);
     const hasEnoughForQuote = Boolean(
       parsedAmount?.gt(0) &&
@@ -10302,6 +10316,13 @@ function NexusOneInner({
     }
 
     if (hasInsufficientSourcesQuoteIssue) {
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
+      return;
+    }
+
+    if (txError) {
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -11295,26 +11316,29 @@ function NexusOneInner({
     });
   }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
 
-  const insufficientSourceIssue = hasExactInSourceBalanceExceeded
-    ? {
-        type: "insufficientSources" as const,
-        message:
-          "Cannot proceed with this swap due to insufficient balance on source",
-      }
-    : swapQuoteIssue?.type === "insufficientSources"
+  const insufficientSourceIssue =
+    swapQuoteIssue?.type === "insufficientSources"
       ? swapQuoteIssue
-      : receiveAmountIssue?.type === "insufficientSources"
-        ? receiveAmountIssue
-        : predictiveExactOutQuote?.missingUsd &&
-            Number(predictiveExactOutQuote.missingUsd) > 0
-          ? {
-              type: "insufficientSources" as const,
-              message: !isMultiAssetMode
-                ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
-                : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
-              missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(2),
-            }
-          : null;
+      : hasExactInSourceBalanceExceeded
+        ? {
+            type: "insufficientSources" as const,
+            message:
+              "Cannot proceed with this swap due to insufficient balance on source",
+          }
+        : receiveAmountIssue?.type === "insufficientSources"
+          ? receiveAmountIssue
+          : predictiveExactOutQuote?.missingUsd &&
+              Number(predictiveExactOutQuote.missingUsd) > 0
+            ? {
+                type: "insufficientSources" as const,
+                message: !isMultiAssetMode
+                  ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
+                  : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
+                missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(
+                  2
+                ),
+              }
+            : null;
   const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
@@ -11433,19 +11457,19 @@ function NexusOneInner({
           (!hasCurrentExactOutPaymentIntent &&
             isQuoteUnavailableForAutoSourceFlow))) ||
       Boolean(blockingQuoteIssue);
+  const isQuotePending =
+    isExactOutPaymentQuotePending ||
+    (!hasCurrentExactOutPaymentIntent && (quoteRefreshing || intentLoading));
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
     if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
-    if (insufficientSourceIssue) return "Insufficient balance";
-    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (receiveMaxCalculating) return "Calculating...";
-    if (
-      isExactOutPaymentQuotePending ||
-      (!hasCurrentExactOutPaymentIntent && (quoteRefreshing || intentLoading))
-    ) {
+    if (isQuotePending) {
       return "Fetching quotes...";
     }
+    if (insufficientSourceIssue) return "Insufficient balance";
+    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (isQuoteUnavailableForAutoSourceFlow) return "Quote unavailable";
     if (!hasPositiveRootAmount) return "Enter amount";
     return fallback;
@@ -11454,12 +11478,16 @@ function NexusOneInner({
     if (needsWalletConnection) return walletCtaLabel;
     if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
-    if (insufficientSourceIssue) return "Insufficient balance";
-    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     if (!hasPositiveRootAmount) return "Enter amount";
     if (!toToken) return "Select token";
     if (hasSameOwnerSendRecipient) return "Change recipient";
     if (sendNeedsRecipient) return "Add recipient";
+    if (receiveMaxCalculating) return "Calculating...";
+    if (isQuotePending) {
+      return "Fetching quotes...";
+    }
+    if (insufficientSourceIssue) return "Insufficient balance";
+    if (receiveAmountIssue) return receiveAmountIssue.ctaLabel;
     return quoteCtaLabel("Review send");
   })();
   const previewIntentSourceUsdNumber = (intentData?.sources ?? []).reduce(
@@ -12462,10 +12490,12 @@ function NexusOneInner({
                   }
                   sourceRouteMessage={insufficientSourceIssue?.message}
                   sourceRouteStatus={
-                    insufficientSourceIssue
-                      ? "insufficient"
-                      : isReceiveAmountLoading || displayExactOutRouteLoading
-                        ? "loading"
+                    isIdleSwapQuoteLoading ||
+                    isReceiveAmountLoading ||
+                    displayExactOutRouteLoading
+                      ? "loading"
+                      : insufficientSourceIssue
+                        ? "insufficient"
                         : undefined
                   }
                   swapType={swapType}
@@ -13681,9 +13711,7 @@ function NexusOneInner({
                 showBelowMinimumInline={true}
                 showRestoreAuto={sourcePickerDraftTouched}
                 staticOptions={
-                  !ownerAddress || !swapBalance || swapBalance.length === 0
-                    ? disconnectedAvailableTokens
-                    : undefined
+                  availableTokens.length > 0 ? availableTokens : undefined
                 }
                 swapBalance={swapBalance}
                 swapSupportedChains={swapSupportedChainsAndTokens}

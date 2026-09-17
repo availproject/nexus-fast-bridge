@@ -38,7 +38,35 @@ import {
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
 import type { UserAsset } from "../../nexus/nexus-provider";
-import { ARC_CHAIN_ID, isArcExcludedToken } from "../utils/arc-tokens";
+import {
+  ARC_CHAIN_ID,
+  getArcNativeTokenOption,
+  isArcErc20Usdc,
+  isArcExcludedToken,
+  ZERO_ADDRESS,
+} from "../utils/arc-tokens";
+import {
+  compareChainsBySwapDisplayOrder,
+  SWAP_CHAIN_DISPLAY_ORDER,
+  SWAP_CHAIN_DISPLAY_ORDER_RANK,
+  SWAP_CHAIN_DISPLAY_ORDER_SET,
+  sortChainIdsBySwapDisplayOrder,
+} from "../utils/chain-order";
+
+export function isNativeLikeAddress(address?: string) {
+  const normalized = (address ?? "").toLowerCase();
+  return (
+    normalized === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
+    normalized === "0x0000000000000000000000000000000000000000"
+  );
+}
+
+export const normalizeTokenAddress = (address?: string): string => {
+  if (!address || isNativeLikeAddress(address)) {
+    return ZERO_ADDRESS;
+  }
+  return address.toLowerCase();
+};
 
 export const formatMiddleTruncatedAddress = (address?: string) => {
   if (!address) return "";
@@ -60,6 +88,7 @@ export interface SwapTokenOption {
   chainName?: string;
   contractAddress: string;
   decimals: number;
+  hasBalance?: boolean;
   isUnified?: boolean;
   logo?: string;
   name: string;
@@ -121,6 +150,20 @@ export function deriveTokenOptions(
         continue;
       }
       if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
+      const isArc =
+        bd.chain?.id === SUPPORTED_CHAINS.ARC || bd.chain?.id === ARC_CHAIN_ID;
+      const isArcUsdc = (bd.symbol ?? asset.symbol)?.toUpperCase() === "USDC";
+      if (
+        isArc &&
+        isArcUsdc &&
+        isArcErc20Usdc({
+          chainId: bd.chain?.id,
+          symbol: bd.symbol ?? asset.symbol,
+          contractAddress: bd.contractAddress,
+        })
+      ) {
+        continue;
+      }
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
       const balanceNum = Number.parseFloat(bd.balance ?? "0");
       const fiatNum = Number(bd.balanceInFiat ?? (bd as any).value ?? 0);
@@ -128,20 +171,17 @@ export function deriveTokenOptions(
         (bd as any).priceUSD ??
         (bd as any).priceUsd ??
         (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
-      const isArcNative =
-        bd.chain?.id === SUPPORTED_CHAINS.ARC &&
-        (isNativeLikeAddress(bd.contractAddress) ||
-          (bd.symbol ?? asset.symbol)?.toUpperCase() === "USDC");
-      const contractAddress = isArcNative
-        ? "0x0000000000000000000000000000000000000000"
-        : bd.contractAddress;
+      const contractAddress =
+        isArc && isArcUsdc ? ZERO_ADDRESS : bd.contractAddress;
       tokens.push({
         contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
-        decimals: isArcNative ? 18 : (bd.decimals ?? asset.decimals ?? 18),
+        decimals:
+          isArc && isArcUsdc ? 18 : (bd.decimals ?? asset.decimals ?? 18),
         ...toTokenOptionBalances(bd),
+        hasBalance: true,
         priceUSD: priceUsd > 0 ? priceUsd : 0,
         chainId: bd.chain?.id,
         chainName: getShortChainName(
@@ -154,7 +194,7 @@ export function deriveTokenOptions(
   }
   const seen = new Map<string, SwapTokenOption>();
   for (const t of tokens) {
-    seen.set(`${t.contractAddress.toLowerCase()}-${t.chainId}`, t);
+    seen.set(`${normalizeTokenAddress(t.contractAddress)}-${t.chainId}`, t);
   }
   return Array.from(seen.values());
 }
@@ -660,53 +700,12 @@ const modalHeightTransitionStyle = {
   interpolateSize: "allow-keywords",
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
-export const SWAP_CHAIN_DISPLAY_ORDER = [
-  5042, // Arc
-  1, // Ethereum
-  42161, // Arbitrum
-  8453, // Base
-  137, // Polygon
-  10, // OP
-  999, // HyperEVM
-  56, // BSC
-  43114, // Avalanche
-  143, // Monad
-  4326, // MegaETH
-  4114, // Citrea
-  534352, // Scroll
-] as const;
-const SWAP_CHAIN_DISPLAY_ORDER_RANK = new Map<number, number>(
-  SWAP_CHAIN_DISPLAY_ORDER.map((chainId, index) => [chainId, index])
-);
-export const SWAP_CHAIN_DISPLAY_ORDER_SET = new Set<number>(
-  SWAP_CHAIN_DISPLAY_ORDER
-);
-export const sortChainIdsBySwapDisplayOrder = (chainIds: number[]) =>
-  [...chainIds].sort((a, b) => {
-    const aRank =
-      SWAP_CHAIN_DISPLAY_ORDER_RANK.get(a) ?? Number.MAX_SAFE_INTEGER;
-    const bRank =
-      SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b) ?? Number.MAX_SAFE_INTEGER;
-    if (aRank !== bRank) return aRank - bRank;
-
-    const aName = CHAIN_METADATA[a]?.name ?? String(a);
-    const bName = CHAIN_METADATA[b]?.name ?? String(b);
-    return aName.localeCompare(bName);
-  });
-export const compareChainsBySwapDisplayOrder = <
-  T extends { chainId?: number; chainName?: string },
->(
-  a: T,
-  b: T
-) => {
-  const aRank =
-    SWAP_CHAIN_DISPLAY_ORDER_RANK.get(a.chainId ?? -1) ??
-    Number.MAX_SAFE_INTEGER;
-  const bRank =
-    SWAP_CHAIN_DISPLAY_ORDER_RANK.get(b.chainId ?? -1) ??
-    Number.MAX_SAFE_INTEGER;
-  if (aRank !== bRank) return aRank - bRank;
-  return (a.chainName ?? "").localeCompare(b.chainName ?? "");
+export {
+  SWAP_CHAIN_DISPLAY_ORDER,
+  SWAP_CHAIN_DISPLAY_ORDER_RANK,
+  SWAP_CHAIN_DISPLAY_ORDER_SET,
+  sortChainIdsBySwapDisplayOrder,
+  compareChainsBySwapDisplayOrder,
 };
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
   1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
@@ -755,14 +754,35 @@ const parseTokenAmount = (value: unknown) => {
   }
 };
 
-const compareTokensByUsdBalance = (a: SwapTokenOption, b: SwapTokenOption) => {
-  const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
-  if (fiatDelta !== 0) return fiatDelta;
+export const tokenHasBalance = (token: SwapTokenOption): boolean => {
+  if (token.hasBalance !== undefined) return token.hasBalance;
+  if (getTokenFiatValue(token) > 0) return true;
+  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
+  return bal !== undefined && bal.gt(0);
+};
 
-  const aBalance = parseTokenAmount(a.balance) ?? new Decimal(0);
-  const bBalance = parseTokenAmount(b.balance) ?? new Decimal(0);
-  const balanceDelta = bBalance.cmp(aBalance);
-  if (balanceDelta !== 0) return balanceDelta;
+export const compareTokensWithBalancesFirst = (
+  a: SwapTokenOption,
+  b: SwapTokenOption
+) => {
+  const aHasBalance = tokenHasBalance(a);
+  const bHasBalance = tokenHasBalance(b);
+
+  if (aHasBalance !== bHasBalance) {
+    return aHasBalance ? -1 : 1;
+  }
+
+  if (aHasBalance && bHasBalance) {
+    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
+    if (fiatDelta !== 0) return fiatDelta;
+
+    const aBalance =
+      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+    const bBalance =
+      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+    const balanceDelta = bBalance.cmp(aBalance);
+    if (balanceDelta !== 0) return balanceDelta;
+  }
 
   const chainDelta = compareChainsBySwapDisplayOrder(a, b);
   if (chainDelta !== 0) return chainDelta;
@@ -772,8 +792,10 @@ const compareTokensByUsdBalance = (a: SwapTokenOption, b: SwapTokenOption) => {
   );
 };
 
-const sortTokensByUsdBalance = (tokens: SwapTokenOption[]) =>
-  [...tokens].sort(compareTokensByUsdBalance);
+export const sortTokensWithBalancesFirst = (tokens: SwapTokenOption[]) =>
+  [...tokens].sort(compareTokensWithBalancesFirst);
+
+export const sortTokensByUsdBalance = sortTokensWithBalancesFirst;
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -982,9 +1004,23 @@ const compareTokensBySearch = (
   const bMatched = bRank?.matchedTerms ?? 0;
   if (aMatched !== bMatched) return bMatched - aMatched;
 
+  const aHasBalance = tokenHasBalance(a);
+  const bHasBalance = tokenHasBalance(b);
+  if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
+
   const aFiat = getTokenFiatValue(a);
   const bFiat = getTokenFiatValue(b);
   if (aFiat !== bFiat) return bFiat - aFiat;
+
+  const aBalance =
+    parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+  const bBalance =
+    parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+  const balanceDelta = bBalance.cmp(aBalance);
+  if (balanceDelta !== 0) return balanceDelta;
+
+  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+  if (chainDelta !== 0) return chainDelta;
 
   return `${a.symbol} ${a.chainName}`.localeCompare(
     `${b.symbol} ${b.chainName}`
@@ -1059,14 +1095,6 @@ function removeTokenOptions(
   );
 }
 
-function isNativeLikeAddress(address?: string) {
-  const normalized = (address ?? "").toLowerCase();
-  return (
-    normalized === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
-    normalized === "0x0000000000000000000000000000000000000000"
-  );
-}
-
 function addressTail(address?: string) {
   const normalized = (address ?? "").toLowerCase();
   if (!normalized.startsWith("0x")) return normalized;
@@ -1100,7 +1128,7 @@ export function SwapAssetSelector({
   onDone,
   allowUnified = false,
   preserveSelectedBelowMinimum = false,
-  showBelowMinimumInline = false,
+  showBelowMinimumInline = true,
   allowSelectedTokenRemoval = false,
   hideCustomTab = false,
   autoSelectFilterTabs = false,
@@ -1240,19 +1268,68 @@ export function SwapAssetSelector({
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
 
-    const baseTokens = (
-      staticOptions
-        ? staticOptions.filter(isSwapSupportedToken)
-        : swapBalance
-          ? deriveTokenOptions(swapBalance, swapSupportedChains)
-          : []
-    ).filter(
-      (token) =>
-        !isExcludedToken(token) && !isArcExcludedToken(token.contractAddress)
+    const isAllowedArcToken = (token: SwapTokenOption) => {
+      return !isArcErc20Usdc(token);
+    };
+
+    const catalog = (staticOptions ?? []).filter(
+      (t) => isSwapSupportedToken(t) && isAllowedArcToken(t)
     );
 
+    const userTokenOptions = swapBalance
+      ? deriveTokenOptions(swapBalance, swapSupportedChains)
+      : [];
+
+    const userBalanceMap = new Map<string, SwapTokenOption>();
+    for (const u of userTokenOptions) {
+      if (isArcExcludedToken(u.contractAddress)) continue;
+      if (!isAllowedArcToken(u)) continue;
+      const key = `${u.chainId ?? 0}-${normalizeTokenAddress(u.contractAddress)}`;
+      userBalanceMap.set(key, u);
+    }
+
+    const mergedMap = new Map<string, SwapTokenOption>();
+    const seenUserKeys = new Set<string>();
+
+    for (const c of catalog) {
+      if (isArcExcludedToken(c.contractAddress)) continue;
+      if (isExcludedToken(c)) continue;
+      if (!isAllowedArcToken(c)) continue;
+
+      const key = `${c.chainId ?? 0}-${normalizeTokenAddress(c.contractAddress)}`;
+      const userToken = userBalanceMap.get(key);
+      if (userToken) {
+        mergedMap.set(key, {
+          ...c,
+          ...userToken,
+          hasBalance: true,
+        });
+        seenUserKeys.add(key);
+      } else {
+        mergedMap.set(key, {
+          ...c,
+          balance: "0",
+          balanceInFiat: "$0.00",
+          totalBalance: "0",
+          totalBalanceInFiat: "$0.00",
+          hasBalance: false,
+        });
+      }
+    }
+
+    for (const [key, u] of userBalanceMap) {
+      if (!seenUserKeys.has(key) && !isExcludedToken(u)) {
+        mergedMap.set(key, {
+          ...u,
+          hasBalance: true,
+        });
+      }
+    }
+
+    const baseTokens = Array.from(mergedMap.values());
+
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
-      return sortTokensByUsdBalance(baseTokens);
+      return sortTokensWithBalancesFirst(baseTokens);
     }
 
     const merged = [...baseTokens];
@@ -1267,6 +1344,8 @@ export function SwapAssetSelector({
 
     for (const selectedToken of selectedSourceTokens) {
       if (isExcludedToken(selectedToken)) continue;
+      if (isArcExcludedToken(selectedToken.contractAddress)) continue;
+      if (!isAllowedArcToken(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
       );
@@ -1275,15 +1354,15 @@ export function SwapAssetSelector({
       }
     }
 
-    return sortTokensByUsdBalance(merged.filter(isSwapSupportedToken));
+    return sortTokensWithBalancesFirst(merged.filter(isSwapSupportedToken));
   }, [
+    isExcludedToken,
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
     activeSelectedTokens,
-    isExcludedToken,
+    staticOptions,
     swapBalance,
     swapSupportedChains,
-    staticOptions,
   ]);
 
   const getFilterTabTokens = useCallback(
@@ -1368,7 +1447,7 @@ export function SwapAssetSelector({
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
     let result = allTokens.filter(
-      (t) => !isArcExcludedToken(t.contractAddress)
+      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
     );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
@@ -1536,7 +1615,23 @@ export function SwapAssetSelector({
           );
           if (aScore !== bScore) return aScore - bScore;
         }
-        return b.totalFiat - a.totalFiat;
+        const aHasBal = a.totalFiat > 0 || a.totalBalRaw > 0;
+        const bHasBal = b.totalFiat > 0 || b.totalBalRaw > 0;
+        if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
+        if (aHasBal && bHasBal) {
+          const fiatDelta = b.totalFiat - a.totalFiat;
+          if (fiatDelta !== 0) return fiatDelta;
+          if (b.totalBalRaw !== a.totalBalRaw)
+            return b.totalBalRaw - a.totalBalRaw;
+        }
+        const aFirstToken = a.tokens[0];
+        const bFirstToken = b.tokens[0];
+        const chainDelta = compareChainsBySwapDisplayOrder(
+          aFirstToken,
+          bFirstToken
+        );
+        if (chainDelta !== 0) return chainDelta;
+        return a.symbol.localeCompare(b.symbol);
       });
   }, [
     filtered,
@@ -1820,7 +1915,7 @@ export function SwapAssetSelector({
               {token.chainName || "Unknown chain"}
             </span>
           </span>
-          {!needsWalletConnection && (
+          {!needsWalletConnection && tokenHasBalance(token) && (
             <span
               style={{
                 color: "#1F1F1F",
@@ -2006,7 +2101,7 @@ export function SwapAssetSelector({
                   }}
                 />
               </div>
-            ) : (
+            ) : tokenHasBalance(token) ? (
               <>
                 <span
                   style={{
@@ -2028,7 +2123,7 @@ export function SwapAssetSelector({
                   ≈ {getTotalBalanceInFiat(token)}
                 </span>
               </>
-            )}
+            ) : null}
           </div>
         )}
       </button>
@@ -2245,35 +2340,36 @@ export function SwapAssetSelector({
               gap: isDesktop ? 8 : 6,
             }}
           >
-            {!needsWalletConnection && (
-              <div
-                style={{
-                  alignItems: "flex-end",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <span
+            {!needsWalletConnection &&
+              (group.totalFiat > 0 || group.totalBalRaw > 0) && (
+                <div
                   style={{
-                    color: "#161615",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: isDesktop ? 14 : 12,
-                    fontWeight: 500,
+                    alignItems: "flex-end",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  {group.totalBalStr}
-                </span>
-                <span
-                  style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: isDesktop ? 13 : 11,
-                  }}
-                >
-                  ≈ {group.totalFiatStr}
-                </span>
-              </div>
-            )}
+                  <span
+                    style={{
+                      color: "#161615",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: isDesktop ? 14 : 12,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {group.totalBalStr}
+                  </span>
+                  <span
+                    style={{
+                      color: "#848483",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: isDesktop ? 13 : 11,
+                    }}
+                  >
+                    ≈ {group.totalFiatStr}
+                  </span>
+                </div>
+              )}
             <div
               onClick={(e) => {
                 toggleGroup(group.symbol, e);
@@ -2404,7 +2500,22 @@ export function SwapAssetSelector({
             const scoreDelta = getRowSearchScore(a) - getRowSearchScore(b);
             if (scoreDelta !== 0) return scoreDelta;
           }
+          const aHasBal =
+            a.sortFiat > 0 ||
+            (a.kind === "token"
+              ? tokenHasBalance(a.token)
+              : a.group.totalFiat > 0 || a.group.totalBalRaw > 0);
+          const bHasBal =
+            b.sortFiat > 0 ||
+            (b.kind === "token"
+              ? tokenHasBalance(b.token)
+              : b.group.totalFiat > 0 || b.group.totalBalRaw > 0);
+          if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
           if (a.sortFiat !== b.sortFiat) return b.sortFiat - a.sortFiat;
+          const aToken = a.kind === "token" ? a.token : a.group.tokens[0];
+          const bToken = b.kind === "token" ? b.token : b.group.tokens[0];
+          const chainDelta = compareChainsBySwapDisplayOrder(aToken, bToken);
+          if (chainDelta !== 0) return chainDelta;
           return a.sortLabel.localeCompare(b.sortLabel);
         });
 

@@ -1541,6 +1541,9 @@ export function SwapIdleForm({
   };
 
   const warningMessage = React.useMemo(() => {
+    if (isQuoteLoading || isReceiveAmountLoading) {
+      return null;
+    }
     const hasAnySourceAmountExceeded = sourceRowsToRender.some(
       ({ token, index }) => isSourceRowAmountExceeded(token, index)
     );
@@ -1564,6 +1567,8 @@ export function SwapIdleForm({
     }
     return null;
   }, [
+    isQuoteLoading,
+    isReceiveAmountLoading,
     sourceRowsToRender,
     amount,
     fromTokens,
@@ -1585,7 +1590,11 @@ export function SwapIdleForm({
     const isRowHovered = hoveredRow === index;
     const hasMoreThanThreeAssets = isMultiAssetMode && totalAssetCount > 3;
     const isAmountExceeded = isSourceRowAmountExceeded(token, index);
-    const isInputErrored = isAmountExceeded && focusedRow !== index;
+    const isInputErrored =
+      !isQuoteLoading &&
+      !isReceiveAmountLoading &&
+      isAmountExceeded &&
+      focusedRow !== index;
 
     return (
       <div
@@ -2390,129 +2399,130 @@ export function SwapIdleForm({
         )}
 
         {/* Warning Container */}
-        {(warningMessage ||
-          (missingUsd && parseDecimal(missingUsd)?.gt(0))) && (
-          <div
-            style={{
-              alignItems: "center",
-              background: "#FFF7ED",
-              borderRadius: "12px",
-              boxSizing: "border-box",
-              color: "#E06A26",
-              display: "flex",
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontSize: "13px",
-              fontStyle: "normal",
-              fontWeight: 500,
-              gap: "8px",
-              lineHeight: "130%",
-              marginTop: "4px",
-              maxWidth: "100%",
-              padding: "8px 12px",
-              width: "100%",
-              animation:
-                "nexusBannerSlideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
-              transition: "all 0.25s cubic-bezier(0.2, 0, 0, 1)",
-            }}
-          >
+        {!(isQuoteLoading || isReceiveAmountLoading) &&
+          (warningMessage ||
+            (missingUsd && parseDecimal(missingUsd)?.gt(0))) && (
             <div
               style={{
                 alignItems: "center",
+                background: "#FFF7ED",
+                borderRadius: "12px",
+                boxSizing: "border-box",
+                color: "#E06A26",
                 display: "flex",
-                flexShrink: 0,
-                height: "16px",
-                justifyContent: "center",
-                width: "16px",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "13px",
+                fontStyle: "normal",
+                fontWeight: 500,
+                gap: "8px",
+                lineHeight: "130%",
+                marginTop: "4px",
+                maxWidth: "100%",
+                padding: "8px 12px",
+                width: "100%",
+                animation:
+                  "nexusBannerSlideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "all 0.25s cubic-bezier(0.2, 0, 0, 1)",
               }}
             >
-              <svg
-                fill="none"
-                height="16"
-                viewBox="0 0 16 16"
-                width="16"
-                xmlns="http://www.w3.org/2000/svg"
+              <div
+                style={{
+                  alignItems: "center",
+                  display: "flex",
+                  flexShrink: 0,
+                  height: "16px",
+                  justifyContent: "center",
+                  width: "16px",
+                }}
               >
-                <circle
-                  cx="8"
-                  cy="8"
-                  r="7"
-                  stroke="#E06A26"
-                  strokeWidth="1.3"
-                />
-                <line
-                  stroke="#E06A26"
-                  strokeLinecap="round"
-                  strokeWidth="1.3"
-                  x1="8"
-                  x2="8"
-                  y1="5"
-                  y2="8.5"
-                />
-                <circle cx="8" cy="11.25" fill="#E06A26" r="0.75" />
-              </svg>
+                <svg
+                  fill="none"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="7"
+                    stroke="#E06A26"
+                    strokeWidth="1.3"
+                  />
+                  <line
+                    stroke="#E06A26"
+                    strokeLinecap="round"
+                    strokeWidth="1.3"
+                    x1="8"
+                    x2="8"
+                    y1="5"
+                    y2="8.5"
+                  />
+                  <circle cx="8" cy="11.25" fill="#E06A26" r="0.75" />
+                </svg>
+              </div>
+              {missingUsd && parseDecimal(missingUsd)?.gt(0) ? (
+                <span style={{ color: "#E06A26" }}>
+                  You're{" "}
+                  <strong style={{ fontWeight: 700, color: "#E06A26" }}>
+                    ${Number(missingUsd).toFixed(2)}
+                  </strong>{" "}
+                  short.{" "}
+                  {!isMultiAssetMode && onToggleMultiAssetMode ? (
+                    <>
+                      Switch to{" "}
+                      <button
+                        onClick={onToggleMultiAssetMode}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#006BF4",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                          fontWeight: 700,
+                          padding: 0,
+                          textDecoration: "underline",
+                        }}
+                        type="button"
+                      >
+                        Multi-assets Mode
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Add Assets
+                      {onRestoreAuto ? (
+                        <>
+                          {" "}
+                          OR switch to{" "}
+                          <button
+                            onClick={onRestoreAuto}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#006BF4",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              fontSize: "inherit",
+                              fontWeight: 700,
+                              padding: 0,
+                              textDecoration: "underline",
+                            }}
+                            type="button"
+                          >
+                            AUTO
+                          </button>
+                        </>
+                      ) : null}
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span>{warningMessage}</span>
+              )}
             </div>
-            {missingUsd && parseDecimal(missingUsd)?.gt(0) ? (
-              <span style={{ color: "#E06A26" }}>
-                You're{" "}
-                <strong style={{ fontWeight: 700, color: "#E06A26" }}>
-                  ${Number(missingUsd).toFixed(2)}
-                </strong>{" "}
-                short.{" "}
-                {!isMultiAssetMode && onToggleMultiAssetMode ? (
-                  <>
-                    Switch to{" "}
-                    <button
-                      onClick={onToggleMultiAssetMode}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#006BF4",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        fontSize: "inherit",
-                        fontWeight: 700,
-                        padding: 0,
-                        textDecoration: "underline",
-                      }}
-                      type="button"
-                    >
-                      Multi-assets Mode
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    Add Assets
-                    {onRestoreAuto ? (
-                      <>
-                        {" "}
-                        OR switch to{" "}
-                        <button
-                          onClick={onRestoreAuto}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: "#006BF4",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: "inherit",
-                            fontWeight: 700,
-                            padding: 0,
-                            textDecoration: "underline",
-                          }}
-                          type="button"
-                        >
-                          AUTO
-                        </button>
-                      </>
-                    ) : null}
-                  </>
-                )}
-              </span>
-            ) : (
-              <span>{warningMessage}</span>
-            )}
-          </div>
-        )}
+          )}
 
         {/* Multi-asset bottom bar: Total and Clear All / Add Asset */}
         {isMultiAssetMode && (

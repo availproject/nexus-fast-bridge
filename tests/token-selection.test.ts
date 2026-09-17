@@ -3,7 +3,13 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isAmountAboveUsableBalance } from "../packages/fast-bridge-app/src/components/nexus/balance-utils";
-import type { SwapTokenOption } from "../packages/fast-bridge-app/src/components/nexus-one/components/swap-asset-selector";
+import type { UserAsset } from "../packages/fast-bridge-app/src/components/nexus/nexus-provider";
+import {
+  deriveTokenOptions,
+  type SwapTokenOption,
+  sortTokensWithBalancesFirst,
+  tokenHasBalance,
+} from "../packages/fast-bridge-app/src/components/nexus-one/components/swap-asset-selector";
 import { SwapIdleForm } from "../packages/fast-bridge-app/src/components/nexus-one/components/swap-idle-form";
 import {
   isSameTokenOption,
@@ -11,6 +17,10 @@ import {
   retainTokenSelection,
   reverseTokenSelection,
 } from "../packages/fast-bridge-app/src/components/nexus-one/token-selection";
+import {
+  ARC_CHAIN_ID,
+  ZERO_ADDRESS,
+} from "../packages/fast-bridge-app/src/components/nexus-one/utils/arc-tokens";
 
 const source: SwapTokenOption = {
   chainId: 1,
@@ -274,4 +284,128 @@ test("selecting matching asset deselects unified source token", () => {
   assert.equal(multiResult.sources.length, 1);
   assert.equal(multiResult.sources[0].sourceTokens?.length, 1);
   assert.equal(multiResult.sources[0].sourceTokens?.[0].chainId, 10);
+});
+
+test("sortTokensWithBalancesFirst sorts tokens with balance first by USD descending then remaining tokens", () => {
+  const tokenWithHighBalance: SwapTokenOption = {
+    chainId: 1,
+    symbol: "ETH",
+    name: "Ether",
+    contractAddress: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    decimals: 18,
+    balance: "1.0",
+    totalBalance: "1.0",
+    balanceInFiat: "$2500.00",
+    totalBalanceInFiat: "$2500.00",
+    hasBalance: true,
+  };
+  const tokenWithLowBalance: SwapTokenOption = {
+    chainId: 8453,
+    symbol: "USDC",
+    name: "USD Coin",
+    contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    decimals: 6,
+    balance: "50.0",
+    totalBalance: "50.0",
+    balanceInFiat: "$50.00",
+    totalBalanceInFiat: "$50.00",
+    hasBalance: true,
+  };
+  const tokenWithZeroBalance1: SwapTokenOption = {
+    chainId: 1,
+    symbol: "DAI",
+    name: "Dai",
+    contractAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    decimals: 18,
+    balance: "0",
+    totalBalance: "0",
+    balanceInFiat: "$0.00",
+    totalBalanceInFiat: "$0.00",
+    hasBalance: false,
+  };
+  const tokenWithZeroBalance2: SwapTokenOption = {
+    chainId: 42_161,
+    symbol: "ARB",
+    name: "Arbitrum",
+    contractAddress: "0x912CE59144191C1204E64559FE8253a0e49E6548",
+    decimals: 18,
+    balance: "0",
+    totalBalance: "0",
+    balanceInFiat: "$0.00",
+    totalBalanceInFiat: "$0.00",
+    hasBalance: false,
+  };
+
+  assert.equal(tokenHasBalance(tokenWithHighBalance), true);
+  assert.equal(tokenHasBalance(tokenWithLowBalance), true);
+  assert.equal(tokenHasBalance(tokenWithZeroBalance1), false);
+  assert.equal(tokenHasBalance(tokenWithZeroBalance2), false);
+
+  const unsorted = [
+    tokenWithZeroBalance1,
+    tokenWithLowBalance,
+    tokenWithZeroBalance2,
+    tokenWithHighBalance,
+  ];
+
+  const sorted = sortTokensWithBalancesFirst(unsorted);
+
+  // Both tokens with balance must come before tokens with 0 balance
+  assert.equal(sorted[0].symbol, "ETH");
+  assert.equal(sorted[1].symbol, "USDC");
+  assert.equal(sorted[2].hasBalance, false);
+  assert.equal(sorted[3].hasBalance, false);
+});
+
+test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native USDC and other tokens", () => {
+  const fakeUserAssets: UserAsset[] = [
+    {
+      symbol: "USDC",
+      name: "USD Coin",
+      decimals: 18,
+      breakdown: [
+        {
+          chain: { id: ARC_CHAIN_ID, name: "Arc" },
+          contractAddress: "0x0000000000000000000000000000000000000000",
+          balance: "100.0",
+          totalBalance: "100.0",
+          balanceInFiat: "$100.00",
+          symbol: "USDC",
+        },
+        {
+          // Non-zero address duplicate or bridge token on Arc - should be ignored
+          chain: { id: ARC_CHAIN_ID, name: "Arc" },
+          contractAddress: "0x3600000000000000000000000000000000000000",
+          balance: "50.0",
+          totalBalance: "50.0",
+          balanceInFiat: "$50.00",
+          symbol: "USDC",
+        },
+        {
+          // Non-USDC token on Arc - should be preserved!
+          chain: { id: ARC_CHAIN_ID, name: "Arc" },
+          contractAddress: "0x1111111111111111111111111111111111111111",
+          balance: "2.0",
+          totalBalance: "2.0",
+          balanceInFiat: "$2.00",
+          symbol: "ARC",
+        },
+      ],
+    },
+  ];
+
+  const derived = deriveTokenOptions(fakeUserAssets, null);
+  const arcTokens = derived.filter((t) => t.chainId === ARC_CHAIN_ID);
+
+  // Both native USDC and other tokens on Arc are allowed, only ERC20 USDC is hidden
+  assert.equal(arcTokens.length, 2);
+  const nativeUsdc = arcTokens.find((t) => t.symbol === "USDC");
+  assert.ok(nativeUsdc);
+  assert.equal(nativeUsdc.contractAddress, ZERO_ADDRESS);
+  const otherToken = arcTokens.find((t) => t.symbol === "ARC");
+  assert.ok(otherToken);
+  assert.equal(
+    otherToken.contractAddress,
+    "0x1111111111111111111111111111111111111111"
+  );
 });

@@ -34,7 +34,7 @@ export const isArcNativeUsdc = (
     token.contractAddress.toLowerCase() === ZERO_ADDRESS ||
     token.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  return isUsdcSymbol || isNativeAddress;
+  return isUsdcSymbol && isNativeAddress;
 };
 
 export const getArcChainMeta = () => ({
@@ -59,6 +59,27 @@ export const getArcNativeTokenOption = (): SwapTokenOption => {
     symbol: "USDC",
     priceUSD: "1.00",
   };
+};
+
+export const isArcErc20Usdc = (
+  token?: {
+    chainId?: number;
+    symbol?: string;
+    contractAddress?: string;
+  } | null
+): boolean => {
+  if (!token) return false;
+  const isArc =
+    token.chainId === ARC_CHAIN_ID || token.chainId === SUPPORTED_CHAINS.ARC;
+  if (!isArc) return false;
+  const isUsdc = token.symbol?.toUpperCase() === "USDC";
+  if (!isUsdc) return false;
+  const address = (token.contractAddress ?? "").toLowerCase();
+  const isNative =
+    !address ||
+    address === ZERO_ADDRESS ||
+    address === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+  return !isNative;
 };
 
 export const getArcReceiveTokenOptions = (): SwapTokenOption[] => [

@@ -30,9 +30,14 @@ import { nexusOneTheme } from "../theme";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
+  isArcErc20Usdc,
   isArcExcludedToken,
-  isArcNativeUsdc,
+  ZERO_ADDRESS,
 } from "../utils/arc-tokens";
+import {
+  SWAP_CHAIN_DISPLAY_ORDER,
+  sortChainIdsBySwapDisplayOrder,
+} from "../utils/chain-order";
 import {
   CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
@@ -44,9 +49,7 @@ import {
   getTokenSearchRank,
   RadioDot,
   SelectionControl,
-  SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
-  sortChainIdsBySwapDisplayOrder,
 } from "./swap-asset-selector";
 
 interface ReceiveAssetSelectorProps {
@@ -586,7 +589,16 @@ export const getAllReceiveTokenOptions = async (
     };
     for (const t of chains[chainIdStr]) {
       if (!t.address || !t.symbol) continue;
-      if (isArcExcludedToken(t.address)) continue;
+      if (
+        isArcExcludedToken(t.address) ||
+        isArcErc20Usdc({
+          chainId,
+          symbol: t.symbol,
+          contractAddress: t.address,
+        })
+      ) {
+        continue;
+      }
       allParsed.push({
         contractAddress: t.address,
         symbol: t.symbol,
@@ -611,8 +623,11 @@ export const getAllReceiveTokenOptions = async (
     const address =
       token.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        ? "0x0000000000000000000000000000000000000000"
+        ? ZERO_ADDRESS
         : token.contractAddress.toLowerCase();
+    if (isArcErc20Usdc(token)) {
+      continue;
+    }
     const key = `${token.chainId ?? 0}-${address}`;
     const existing = tokensByKey.get(key);
     tokensByKey.set(key, {
@@ -932,7 +947,16 @@ export function ReceiveAssetSelector({
           };
           for (const t of chains[chainIdStr]) {
             if (!t.address || !t.symbol) continue;
-            if (isArcExcludedToken(t.address)) continue;
+            if (
+              isArcExcludedToken(t.address) ||
+              isArcErc20Usdc({
+                chainId,
+                symbol: t.symbol,
+                contractAddress: t.address,
+              })
+            ) {
+              continue;
+            }
             allParsed.push({
               contractAddress: t.address,
               symbol: t.symbol,
@@ -958,8 +982,11 @@ export function ReceiveAssetSelector({
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-              ? "0x0000000000000000000000000000000000000000"
+              ? ZERO_ADDRESS
               : token.contractAddress.toLowerCase();
+          if (isArcErc20Usdc(token)) {
+            continue;
+          }
           const key = `${token.chainId ?? 0}-${address}`;
           const existing = tokensByKey.get(key);
           tokensByKey.set(key, {
@@ -1028,7 +1055,9 @@ export function ReceiveAssetSelector({
         (t) => getTokenSearchRank(t, deferredQuery) !== null
       );
     }
-    result = result.filter((t) => !isArcExcludedToken(t.contractAddress));
+    result = result.filter(
+      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
+    );
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter(
