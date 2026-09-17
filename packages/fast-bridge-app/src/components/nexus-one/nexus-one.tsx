@@ -3299,27 +3299,13 @@ function NexusOneInner({
   const [toToken, setToToken] = useState<SwapTokenOption | undefined>(
     undefined
   );
-  const [disconnectedAvailableTokens, setDisconnectedAvailableTokens] =
-    useState<SwapTokenOption[]>([]);
+  const [availableTokens, setAvailableTokens] = useState<SwapTokenOption[]>([]);
   useEffect(() => {
     let active = true;
     void getAllReceiveTokenOptions(swapSupportedChainsAndTokens).then(
       (tokens) => {
         if (active && tokens.length > 0) {
-          const isNativeAddr = (address?: string) =>
-            !address ||
-            address.toLowerCase() ===
-              "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
-            address.toLowerCase() ===
-              "0x0000000000000000000000000000000000000000";
-          const filtered = tokens.filter((token) => {
-            const sym = token.symbol.toUpperCase();
-            const isUsdc = sym === "USDC" || sym === "USDC.E";
-            const isUsdt = sym === "USDT";
-            const isNative = isNativeAddr(token.contractAddress);
-            return isUsdc || isUsdt || isNative;
-          });
-          setDisconnectedAvailableTokens(filtered);
+          setAvailableTokens(tokens);
         }
       }
     );
@@ -3327,6 +3313,7 @@ function NexusOneInner({
       active = false;
     };
   }, [swapSupportedChainsAndTokens]);
+  const disconnectedAvailableTokens = availableTokens;
 
   const previousOwnerAddressRef = useRef<string | undefined>(ownerAddress);
 
@@ -13681,9 +13668,7 @@ function NexusOneInner({
                 showBelowMinimumInline={true}
                 showRestoreAuto={sourcePickerDraftTouched}
                 staticOptions={
-                  !ownerAddress || !swapBalance || swapBalance.length === 0
-                    ? disconnectedAvailableTokens
-                    : undefined
+                  availableTokens.length > 0 ? availableTokens : undefined
                 }
                 swapBalance={swapBalance}
                 swapSupportedChains={swapSupportedChainsAndTokens}

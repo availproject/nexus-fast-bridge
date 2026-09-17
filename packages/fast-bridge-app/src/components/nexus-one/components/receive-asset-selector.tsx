@@ -31,8 +31,12 @@ import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
   isArcExcludedToken,
-  isArcNativeUsdc,
+  ZERO_ADDRESS,
 } from "../utils/arc-tokens";
+import {
+  SWAP_CHAIN_DISPLAY_ORDER,
+  sortChainIdsBySwapDisplayOrder,
+} from "../utils/chain-order";
 import {
   CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
@@ -44,9 +48,7 @@ import {
   getTokenSearchRank,
   RadioDot,
   SelectionControl,
-  SWAP_CHAIN_DISPLAY_ORDER,
   type SwapTokenOption,
-  sortChainIdsBySwapDisplayOrder,
 } from "./swap-asset-selector";
 
 interface ReceiveAssetSelectorProps {
@@ -580,6 +582,9 @@ export const getAllReceiveTokenOptions = async (
     if (!isSwapSupportedBySdkChainList(chainId, swapSupportedChains)) {
       continue;
     }
+    if (chainId === ARC_CHAIN_ID || chainId === SUPPORTED_CHAINS.ARC) {
+      continue;
+    }
     const chainMeta = CHAIN_METADATA[chainId] || {
       name: getShortChainName(chainId, `Chain ${chainId}`),
       logo: "",
@@ -611,8 +616,15 @@ export const getAllReceiveTokenOptions = async (
     const address =
       token.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        ? "0x0000000000000000000000000000000000000000"
+        ? ZERO_ADDRESS
         : token.contractAddress.toLowerCase();
+    if (
+      (token.chainId === ARC_CHAIN_ID ||
+        token.chainId === SUPPORTED_CHAINS.ARC) &&
+      (address !== ZERO_ADDRESS || token.symbol.toUpperCase() !== "USDC")
+    ) {
+      continue;
+    }
     const key = `${token.chainId ?? 0}-${address}`;
     const existing = tokensByKey.get(key);
     tokensByKey.set(key, {
@@ -926,6 +938,9 @@ export function ReceiveAssetSelector({
           ) {
             continue;
           }
+          if (chainId === ARC_CHAIN_ID || chainId === SUPPORTED_CHAINS.ARC) {
+            continue;
+          }
           const meta = chainMetaMap.get(chainId) || {
             name: getShortChainName(chainId, `Chain ${chainId}`),
             logo: "",
@@ -958,8 +973,15 @@ export function ReceiveAssetSelector({
           const address =
             token.contractAddress.toLowerCase() ===
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-              ? "0x0000000000000000000000000000000000000000"
+              ? ZERO_ADDRESS
               : token.contractAddress.toLowerCase();
+          if (
+            (token.chainId === ARC_CHAIN_ID ||
+              token.chainId === SUPPORTED_CHAINS.ARC) &&
+            (address !== ZERO_ADDRESS || token.symbol.toUpperCase() !== "USDC")
+          ) {
+            continue;
+          }
           const key = `${token.chainId ?? 0}-${address}`;
           const existing = tokensByKey.get(key);
           tokensByKey.set(key, {

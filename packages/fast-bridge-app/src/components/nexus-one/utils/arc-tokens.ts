@@ -34,7 +34,7 @@ export const isArcNativeUsdc = (
     token.contractAddress.toLowerCase() === ZERO_ADDRESS ||
     token.contractAddress.toLowerCase() ===
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-  return isUsdcSymbol || isNativeAddress;
+  return isUsdcSymbol && isNativeAddress;
 };
 
 export const getArcChainMeta = () => ({
