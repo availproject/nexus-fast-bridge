@@ -6,6 +6,8 @@ import { isAmountAboveUsableBalance } from "../packages/fast-bridge-app/src/comp
 import type { SwapTokenOption } from "../packages/fast-bridge-app/src/components/nexus-one/components/swap-asset-selector";
 import { SwapIdleForm } from "../packages/fast-bridge-app/src/components/nexus-one/components/swap-idle-form";
 import {
+  isSameTokenOption,
+  removeTokenFromSources,
   retainTokenSelection,
   reverseTokenSelection,
 } from "../packages/fast-bridge-app/src/components/nexus-one/token-selection";
@@ -135,13 +137,38 @@ test("reversal with an empty source input does not reuse a destination amount", 
   assert.equal(reversed.toToken?.userAmount, "");
 });
 
-test("incomplete, multi-source and unified routes cannot be reversed", () => {
+test("direction reversal works with only 1 asset selected on either side", () => {
+  // Only source selected -> moves to destination
+  const reversedFromSource = reverseTokenSelection({
+    fromTokens: [source],
+    toToken: undefined,
+  });
+  assert.ok(reversedFromSource);
+  assert.equal(reversedFromSource.fromTokens.length, 0);
+  assert.equal(reversedFromSource.toToken?.chainId, source.chainId);
+  assert.equal(reversedFromSource.toToken?.userAmount, "");
+
+  // Only destination selected -> moves to source
+  const reversedFromDest = reverseTokenSelection({
+    fromTokens: [],
+    toToken: destination,
+  });
+  assert.ok(reversedFromDest);
+  assert.equal(reversedFromDest.fromTokens.length, 1);
+  assert.equal(reversedFromDest.fromTokens[0].chainId, destination.chainId);
+  assert.equal(reversedFromDest.fromTokens[0].userAmount, "");
+  assert.equal(reversedFromDest.toToken, undefined);
+});
+
+test("empty, multi-source and unified routes cannot be reversed", () => {
   for (const selection of [
-    { fromTokens: [], toToken: destination },
-    { fromTokens: [source] },
+    { fromTokens: [] },
     { fromTokens: [source, destination], toToken: destination },
     { fromTokens: [{ ...source, isUnified: true }], toToken: destination },
-    { fromTokens: [source], toToken: { ...destination, chainId: undefined } },
+    { fromTokens: [{ ...source, isUnified: true }] },
+    { fromTokens: [], toToken: { ...destination, isUnified: true } },
+    { fromTokens: [{ ...source, chainId: undefined as any }] },
+    { fromTokens: [], toToken: { ...destination, chainId: undefined as any } },
   ]) {
     assert.equal(reverseTokenSelection(selection), undefined);
   }
@@ -166,4 +193,85 @@ test("the form exposes an accessible direction button only in single mode", () =
   assert.ok(single.includes('aria-label="Swap source and destination tokens"'));
   assert.ok(single.includes('disabled=""'));
   assert.ok(!multi.includes('aria-label="Swap source and destination tokens"'));
+});
+
+test("selecting source token on destination deselects it from source in single mode", () => {
+  const result = removeTokenFromSources([source], source, true);
+  assert.equal(result.removed, true);
+  assert.deepEqual(result.sources, []);
+});
+
+test("selecting source token on destination deselects it from source in multi mode", () => {
+  const tokenB: SwapTokenOption = {
+    ...source,
+    chainId: 10,
+    symbol: "OP",
+  };
+  const result = removeTokenFromSources([source, tokenB], source, false);
+  assert.equal(result.removed, true);
+  assert.equal(result.sources.length, 1);
+  assert.equal(result.sources[0].chainId, 10);
+});
+
+test("native token addresses match across empty, 0x000, and 0xeee representations", () => {
+  const nativeEmpty: SwapTokenOption = {
+    chainId: 42_161,
+    symbol: "ETH",
+    contractAddress: "",
+  };
+  const nativeZero: SwapTokenOption = {
+    chainId: 42_161,
+    symbol: "ETH",
+    contractAddress: "0x0000000000000000000000000000000000000000",
+  };
+  const nativeEee: SwapTokenOption = {
+    chainId: 42_161,
+    symbol: "ETH",
+    contractAddress: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  };
+
+  assert.equal(isSameTokenOption(nativeEmpty, nativeZero), true);
+  assert.equal(isSameTokenOption(nativeEmpty, nativeEee), true);
+  assert.equal(isSameTokenOption(nativeZero, nativeEee), true);
+
+  const result = removeTokenFromSources([nativeEmpty], nativeEee, true);
+  assert.equal(result.removed, true);
+  assert.deepEqual(result.sources, []);
+});
+
+test("selecting matching asset deselects unified source token", () => {
+  const unifiedUsdc: SwapTokenOption = {
+    symbol: "USDC",
+    isUnified: true,
+    unifiedSymbol: "USDC",
+    sourceTokens: [
+      {
+        chainId: 42_161,
+        symbol: "USDC",
+        contractAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      },
+      {
+        chainId: 10,
+        symbol: "USDC",
+        contractAddress: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      },
+    ],
+  };
+  const destArbUsdc: SwapTokenOption = {
+    chainId: 42_161,
+    symbol: "USDC",
+    contractAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  };
+
+  // Single mode deselects unified asset entirely
+  const singleResult = removeTokenFromSources([unifiedUsdc], destArbUsdc, true);
+  assert.equal(singleResult.removed, true);
+  assert.deepEqual(singleResult.sources, []);
+
+  // Multi mode removes matched token from unified sourceTokens
+  const multiResult = removeTokenFromSources([unifiedUsdc], destArbUsdc, false);
+  assert.equal(multiResult.removed, true);
+  assert.equal(multiResult.sources.length, 1);
+  assert.equal(multiResult.sources[0].sourceTokens?.length, 1);
+  assert.equal(multiResult.sources[0].sourceTokens?.[0].chainId, 10);
 });
