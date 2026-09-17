@@ -248,7 +248,4 @@ export const classifyIntentError = (error: unknown): ClassifiedIntentError => {
 
 export const formatClassifiedIntentError = (
   classified: ClassifiedIntentError
-) =>
-  classified.technicalDetails
-    ? `${classified.message}\n\nTechnical details\n${classified.technicalDetails}`
-    : classified.message;
+) => classified.message;
