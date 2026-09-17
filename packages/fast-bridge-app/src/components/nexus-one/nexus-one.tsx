@@ -103,7 +103,13 @@ import {
   type SwapIntentSource,
 } from "./components/swap-intent-preview";
 import { nexusOneTheme } from "./theme";
-import { retainTokenSelection, reverseTokenSelection } from "./token-selection";
+import {
+  clearTokenInput,
+  isSameTokenOption,
+  removeTokenFromSources,
+  retainTokenSelection,
+  reverseTokenSelection,
+} from "./token-selection";
 import {
   type NexusOneDepositConfig,
   type NexusOneDepositMetadata,
@@ -411,43 +417,9 @@ const sourceSelectionIncludesTokenChainPair = (
 
 const removeTokenChainPairFromSources = (
   sources: SwapTokenOption[],
-  token: SwapTokenOption
-) => {
-  let removed = false;
-  const remainingSources: SwapTokenOption[] = [];
-
-  for (const source of sources) {
-    if (source.isUnified && source.sourceTokens?.length) {
-      const remainingSourceTokens = source.sourceTokens.filter(
-        (sourceToken) => !isSameTokenChainPair(sourceToken, token)
-      );
-      if (remainingSourceTokens.length === source.sourceTokens.length) {
-        remainingSources.push(source);
-        continue;
-      }
-
-      removed = true;
-      if (remainingSourceTokens.length > 0) {
-        remainingSources.push({
-          ...source,
-          sourceTokens: remainingSourceTokens,
-        });
-      }
-      continue;
-    }
-
-    if (isSameTokenChainPair(source, token)) {
-      removed = true;
-    } else {
-      remainingSources.push(source);
-    }
-  }
-
-  return {
-    removed,
-    sources: removed ? remainingSources : sources,
-  };
-};
+  token: SwapTokenOption,
+  isSingleMode = false
+) => removeTokenFromSources(sources, token, isSingleMode);
 
 const getDepositConfigIdentity = (deposit?: NexusOneDepositMetadata | null) => {
   if (!deposit) return "";
@@ -3657,30 +3629,45 @@ function NexusOneInner({
     return EXACT_OUT_INPUT_DEBOUNCE_MS;
   }, []);
 
-  const closeDrawerToIdle = useCallback(() => {
-    const isDrawerStep =
-      swapStep === "choose-swap-asset" ||
-      swapStep === "choose-receive-asset" ||
-      swapStep === "enter-recipient";
+  const closeDrawerToIdle = useCallback(
+    (options?: { instant?: boolean }) => {
+      if (drawerCloseTimerRef.current) {
+        clearTimeout(drawerCloseTimerRef.current);
+        drawerCloseTimerRef.current = null;
+      }
 
-    if (!isDrawerStep) {
-      swapStepRef.current = "idle";
-      setSwapStep("idle");
-      return;
-    }
+      if (options?.instant) {
+        swapStepRef.current = "idle";
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
+        return;
+      }
 
-    if (drawerCloseTimerRef.current) {
-      clearTimeout(drawerCloseTimerRef.current);
-    }
+      const isDrawerStep =
+        swapStepRef.current === "choose-swap-asset" ||
+        swapStepRef.current === "choose-receive-asset" ||
+        swapStepRef.current === "enter-recipient" ||
+        swapStep === "choose-swap-asset" ||
+        swapStep === "choose-receive-asset" ||
+        swapStep === "enter-recipient";
 
-    setClosingDrawerStep(swapStep);
-    drawerCloseTimerRef.current = setTimeout(() => {
-      swapStepRef.current = "idle";
-      setSwapStep("idle");
-      setClosingDrawerStep(null);
-      drawerCloseTimerRef.current = null;
-    }, DRAWER_CLOSE_MS);
-  }, [swapStep]);
+      if (!isDrawerStep || swapStepRef.current === "idle") {
+        swapStepRef.current = "idle";
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
+        return;
+      }
+
+      setClosingDrawerStep(swapStep);
+      drawerCloseTimerRef.current = setTimeout(() => {
+        swapStepRef.current = "idle";
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
+        drawerCloseTimerRef.current = null;
+      }, DRAWER_CLOSE_MS);
+    },
+    [swapStep]
+  );
 
   const openDrawerStep = useCallback((nextStep: SwapStep) => {
     if (drawerCloseTimerRef.current) {
@@ -13306,7 +13293,8 @@ function NexusOneInner({
                 onSelect={(token) => {
                   const isSameAsDestination = Boolean(
                     toToken &&
-                      (sourceSelectionIncludesTokenChainPair(token, toToken) ||
+                      (isSameTokenOption(token, toToken) ||
+                        sourceSelectionIncludesTokenChainPair(token, toToken) ||
                         isSameTokenChainPair(token, toToken) ||
                         isSameTokenSelection(token, toToken))
                   );
@@ -13406,7 +13394,7 @@ function NexusOneInner({
                     });
                   }
                   if (!isSourcePickerMultiselect) {
-                    closeDrawerToIdle();
+                    closeDrawerToIdle({ instant: true });
                   }
                 }}
                 onSelectionChange={
@@ -13417,7 +13405,8 @@ function NexusOneInner({
                 onToggle={(token) => {
                   const isSameAsDestination = Boolean(
                     toToken &&
-                      (sourceSelectionIncludesTokenChainPair(token, toToken) ||
+                      (isSameTokenOption(token, toToken) ||
+                        sourceSelectionIncludesTokenChainPair(token, toToken) ||
                         isSameTokenChainPair(token, toToken) ||
                         isSameTokenSelection(token, toToken))
                   );
@@ -13786,10 +13775,12 @@ function NexusOneInner({
                   }
                   const sourceUpdate = removeTokenChainPairFromSources(
                     fromTokens,
-                    token
+                    token,
+                    !isMultiAssetMode
                   );
                   if (sourceUpdate.removed) {
                     setFromTokens(sourceUpdate.sources.map(clearTokenInput));
+                    setSourceSelectionTouched(true);
                     clearPendingSwapIntent();
                     setAmount("");
                     setReceiveAmountIssue(null);
@@ -13827,7 +13818,7 @@ function NexusOneInner({
                     }
                     setSwapType("exactOut");
                     setToToken(tokenWithBalance);
-                    closeDrawerToIdle();
+                    closeDrawerToIdle({ instant: true });
                     return;
                   }
                   if (tokenChanged || sourceUpdate.removed) {
@@ -13837,7 +13828,7 @@ function NexusOneInner({
                     setSwapType("exactIn");
                   }
                   setToToken(tokenWithBalance);
-                  closeDrawerToIdle();
+                  closeDrawerToIdle({ instant: true });
                 }}
                 selectedToken={toToken}
               />

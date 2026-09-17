@@ -1763,7 +1763,6 @@ export function ReceiveAssetSelector({
                         setSelectedTokenHash(hash);
                         setSelectedTokenFull(t);
                         onSelect(t);
-                        onBack();
                       }}
                       style={{
                         alignItems: "center",
