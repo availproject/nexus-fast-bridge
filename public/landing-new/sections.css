@@ -82,7 +82,7 @@
   gap: 50px;
   align-items: center;
   width: max-content;
-  animation: chains-scroll 40s linear infinite;
+  animation: chains-scroll 507s linear infinite;
 }
 
 @keyframes chains-scroll {
@@ -143,6 +143,9 @@
   height: 26px;
 }
 .chains-strip__logo img[alt="Citrea"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Arc"] {
   height: 26px;
 }
 

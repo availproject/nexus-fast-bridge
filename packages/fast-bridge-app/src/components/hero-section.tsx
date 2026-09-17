@@ -11,8 +11,7 @@ export default function HeroSection() {
         fontWeight: "100",
       }}
     >
-      Bridge your unified USDC/USDT balances across 12+ chains, to Avalanche,
-      instantly!
+      Bridge your unified USDC/USDT balances across 12+ chains, instantly!
     </div>
   );
 }

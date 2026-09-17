@@ -277,7 +277,7 @@ export default function AboutPage() {
 
           <h2>Supported networks, tokens and wallets</h2>
           <p>
-            FastBridge currently supports 12 EVM chains, with more being added
+            FastBridge currently supports 13 EVM chains, with more being added
             regularly. You can always check the bridge interface for the current
             full list or follow FastBridge on{" "}
             <a
@@ -294,9 +294,9 @@ export default function AboutPage() {
             <div>
               <dt>Chains</dt>
               <dd>
-                Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum, Optimism,
-                Base, Scroll, Polygon, BNB, HyperEVM, <strong>12 chains</strong>
-                , with more being added regularly.
+                Arc, Monad, MegaETH, Citrea, Arbitrum, Avalanche, Ethereum,
+                Optimism, Base, Scroll, Polygon, BNB, HyperEVM,{" "}
+                <strong>13 chains</strong>, with more being added regularly.
               </dd>
             </div>
             <div>

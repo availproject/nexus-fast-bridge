@@ -51,6 +51,22 @@ const BLOG_ITEMS = [
   },
 ];
 
+const CHAIN_LOGOS = [
+  { name: "Ethereum", file: "ethereum.png", w: 136, h: 34 },
+  { name: "Arc", file: "arc.svg", w: 500, h: 171 },
+  { name: "Arbitrum", file: "arbitrum.png", w: 169, h: 95 },
+  { name: "Optimism", file: "optimism.png", w: 121, h: 17 },
+  { name: "Avalanche", file: "avalanche.png", w: 148, h: 34 },
+  { name: "Polygon", file: "polygon.png", w: 109, h: 109 },
+  { name: "Hyperliquid", file: "hyperliquid.png", w: 166, h: 26 },
+  { name: "Base", file: "base.png", w: 85, h: 48 },
+  { name: "Scroll", file: "scroll.png", w: 122, h: 61 },
+  { name: "MegaETH", file: "megaeth.png", w: 182, h: 29 },
+  { name: "Monad", file: "monad.png", w: 151, h: 85 },
+  { name: "BNB Chain", file: "bnb-chain.png", w: 148, h: 26 },
+  { name: "Citrea", file: "citrea.png", w: 106, h: 26 },
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [cssLoaded] = useState(true);
@@ -620,34 +636,8 @@ export default function LandingPage() {
           data-reveal-child
         >
           <div className="chains-strip__track" ref={trackRef}>
-            {[
-              { name: "Ethereum", file: "ethereum.png", w: 136, h: 34 },
-              { name: "Arbitrum", file: "arbitrum.png", w: 169, h: 95 },
-              { name: "Optimism", file: "optimism.png", w: 121, h: 17 },
-              { name: "Avalanche", file: "avalanche.png", w: 148, h: 34 },
-              { name: "Polygon", file: "polygon.png", w: 109, h: 109 },
-              { name: "Hyperliquid", file: "hyperliquid.png", w: 166, h: 26 },
-              { name: "Base", file: "base.png", w: 85, h: 48 },
-              { name: "Scroll", file: "scroll.png", w: 122, h: 61 },
-              { name: "MegaETH", file: "megaeth.png", w: 182, h: 29 },
-              { name: "Monad", file: "monad.png", w: 151, h: 85 },
-              { name: "BNB Chain", file: "bnb-chain.png", w: 148, h: 26 },
-              { name: "Citrea", file: "citrea.png", w: 106, h: 26 },
-            ]
-              .concat([
-                { name: "Ethereum", file: "ethereum.png", w: 136, h: 34 },
-                { name: "Arbitrum", file: "arbitrum.png", w: 169, h: 95 },
-                { name: "Optimism", file: "optimism.png", w: 121, h: 17 },
-                { name: "Avalanche", file: "avalanche.png", w: 148, h: 34 },
-                { name: "Polygon", file: "polygon.png", w: 109, h: 109 },
-                { name: "Hyperliquid", file: "hyperliquid.png", w: 166, h: 26 },
-                { name: "Base", file: "base.png", w: 85, h: 48 },
-                { name: "Scroll", file: "scroll.png", w: 122, h: 61 },
-                { name: "MegaETH", file: "megaeth.png", w: 182, h: 29 },
-                { name: "Monad", file: "monad.png", w: 151, h: 85 },
-                { name: "BNB Chain", file: "bnb-chain.png", w: 148, h: 26 },
-                { name: "Citrea", file: "citrea.png", w: 106, h: 26 },
-              ])
+            {CHAIN_LOGOS.concat(CHAIN_LOGOS)
+              .concat(CHAIN_LOGOS)
               .map((logo, index) => (
                 <div
                   className="chains-strip__logo"
