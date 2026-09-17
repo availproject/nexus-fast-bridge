@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { classifyIntentError } from "./intent-error-classifier.ts";
+import {
+  classifyIntentError,
+  formatClassifiedIntentError,
+} from "./intent-error-classifier.ts";
 
 test("classifies structured SDK wallet errors without parsing the message", () => {
   const result = classifyIntentError({
@@ -25,4 +28,15 @@ test("classifies structured SDK user-action errors", () => {
 
   assert.equal(result.bucket, "user_rejected");
   assert.equal(result.message, "Transaction cancelled.");
+});
+
+test("keeps technical details out of the user-facing error message", () => {
+  const message = formatClassifiedIntentError({
+    bucket: "quote_provider",
+    message: "No provider can complete this route.",
+    retryable: false,
+    technicalDetails: "Middleware code: QUOTE_UNAVAILABLE",
+  });
+
+  assert.equal(message, "No provider can complete this route.");
 });
