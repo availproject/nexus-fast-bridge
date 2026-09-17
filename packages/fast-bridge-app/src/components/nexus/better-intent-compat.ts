@@ -232,12 +232,31 @@ export const isTokenSupportedForRole = (
   if (!chains || chainId === undefined) {
     return true;
   }
-  const token = tokenByAddress(chains, chainId, tokenAddress);
-  if (!token) {
+  const chain = chainById(chains, chainId);
+  const token = chain?.tokens.find((entry) =>
+    sameAddress(entry.address, tokenAddress)
+  );
+  if (!(chain && token)) {
     return false;
   }
-  const directional = role === "source" ? token.asSource : token.asDestination;
-  return (directional ?? token.providers).length > 0;
+
+  const chainDirectional =
+    role === "source" ? chain.asSource : chain.asDestination;
+  const tokenDirectional =
+    role === "source" ? token.asSource : token.asDestination;
+  const chainProviderIds = new Set(
+    (chainDirectional ?? chain.providers).map((provider) =>
+      typeof provider === "string" ? provider : provider.id
+    )
+  );
+  const tokenProviderIds = (tokenDirectional ?? token.providers).map(
+    (provider) => (typeof provider === "string" ? provider : provider.id)
+  );
+
+  // Route-constrained chain support comes from /chains, while token support
+  // comes from the combined SDK catalog. A token is selectable only when the
+  // same provider supports both the chain and token in the requested role.
+  return tokenProviderIds.some((provider) => chainProviderIds.has(provider));
 };
 
 export type GetRouteSupportedChains = (
