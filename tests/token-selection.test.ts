@@ -135,13 +135,38 @@ test("reversal with an empty source input does not reuse a destination amount", 
   assert.equal(reversed.toToken?.userAmount, "");
 });
 
-test("incomplete, multi-source and unified routes cannot be reversed", () => {
+test("direction reversal works with only 1 asset selected on either side", () => {
+  // Only source selected -> moves to destination
+  const reversedFromSource = reverseTokenSelection({
+    fromTokens: [source],
+    toToken: undefined,
+  });
+  assert.ok(reversedFromSource);
+  assert.equal(reversedFromSource.fromTokens.length, 0);
+  assert.equal(reversedFromSource.toToken?.chainId, source.chainId);
+  assert.equal(reversedFromSource.toToken?.userAmount, "");
+
+  // Only destination selected -> moves to source
+  const reversedFromDest = reverseTokenSelection({
+    fromTokens: [],
+    toToken: destination,
+  });
+  assert.ok(reversedFromDest);
+  assert.equal(reversedFromDest.fromTokens.length, 1);
+  assert.equal(reversedFromDest.fromTokens[0].chainId, destination.chainId);
+  assert.equal(reversedFromDest.fromTokens[0].userAmount, "");
+  assert.equal(reversedFromDest.toToken, undefined);
+});
+
+test("empty, multi-source and unified routes cannot be reversed", () => {
   for (const selection of [
-    { fromTokens: [], toToken: destination },
-    { fromTokens: [source] },
+    { fromTokens: [] },
     { fromTokens: [source, destination], toToken: destination },
     { fromTokens: [{ ...source, isUnified: true }], toToken: destination },
-    { fromTokens: [source], toToken: { ...destination, chainId: undefined } },
+    { fromTokens: [{ ...source, isUnified: true }] },
+    { fromTokens: [], toToken: { ...destination, isUnified: true } },
+    { fromTokens: [{ ...source, chainId: undefined as any }] },
+    { fromTokens: [], toToken: { ...destination, chainId: undefined as any } },
   ]) {
     assert.equal(reverseTokenSelection(selection), undefined);
   }
