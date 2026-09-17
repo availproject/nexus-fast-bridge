@@ -357,7 +357,7 @@ test("sortTokensWithBalancesFirst sorts tokens with balance first by USD descend
   assert.equal(sorted[3].hasBalance, false);
 });
 
-test("deriveTokenOptions strictly allows only native USDC (zero address) on Arc chain", () => {
+test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native USDC and other tokens", () => {
   const fakeUserAssets: UserAsset[] = [
     {
       symbol: "USDC",
@@ -382,9 +382,9 @@ test("deriveTokenOptions strictly allows only native USDC (zero address) on Arc 
           symbol: "USDC",
         },
         {
-          // Non-USDC token on Arc - should be ignored
+          // Non-USDC token on Arc - should be preserved!
           chain: { id: ARC_CHAIN_ID, name: "Arc" },
-          contractAddress: "0x0000000000000000000000000000000000000000",
+          contractAddress: "0x1111111111111111111111111111111111111111",
           balance: "2.0",
           totalBalance: "2.0",
           balanceInFiat: "$2.00",
@@ -397,8 +397,15 @@ test("deriveTokenOptions strictly allows only native USDC (zero address) on Arc 
   const derived = deriveTokenOptions(fakeUserAssets, null);
   const arcTokens = derived.filter((t) => t.chainId === ARC_CHAIN_ID);
 
-  // Exactly 1 Arc token allowed, and it must be native USDC with ZERO_ADDRESS
-  assert.equal(arcTokens.length, 1);
-  assert.equal(arcTokens[0].symbol, "USDC");
-  assert.equal(arcTokens[0].contractAddress, ZERO_ADDRESS);
+  // Both native USDC and other tokens on Arc are allowed, only ERC20 USDC is hidden
+  assert.equal(arcTokens.length, 2);
+  const nativeUsdc = arcTokens.find((t) => t.symbol === "USDC");
+  assert.ok(nativeUsdc);
+  assert.equal(nativeUsdc.contractAddress, ZERO_ADDRESS);
+  const otherToken = arcTokens.find((t) => t.symbol === "ARC");
+  assert.ok(otherToken);
+  assert.equal(
+    otherToken.contractAddress,
+    "0x1111111111111111111111111111111111111111"
+  );
 });

@@ -41,6 +41,7 @@ import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
+  isArcErc20Usdc,
   isArcExcludedToken,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
@@ -152,7 +153,15 @@ export function deriveTokenOptions(
       const isArc =
         bd.chain?.id === SUPPORTED_CHAINS.ARC || bd.chain?.id === ARC_CHAIN_ID;
       const isArcUsdc = (bd.symbol ?? asset.symbol)?.toUpperCase() === "USDC";
-      if (isArc && !isArcUsdc) {
+      if (
+        isArc &&
+        isArcUsdc &&
+        isArcErc20Usdc({
+          chainId: bd.chain?.id,
+          symbol: bd.symbol ?? asset.symbol,
+          contractAddress: bd.contractAddress,
+        })
+      ) {
         continue;
       }
       const chainMeta = bd.chain?.id ? CHAIN_METADATA[bd.chain.id] : undefined;
@@ -162,13 +171,15 @@ export function deriveTokenOptions(
         (bd as any).priceUSD ??
         (bd as any).priceUsd ??
         (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
-      const contractAddress = isArc ? ZERO_ADDRESS : bd.contractAddress;
+      const contractAddress =
+        isArc && isArcUsdc ? ZERO_ADDRESS : bd.contractAddress;
       tokens.push({
         contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
-        decimals: isArc ? 18 : (bd.decimals ?? asset.decimals ?? 18),
+        decimals:
+          isArc && isArcUsdc ? 18 : (bd.decimals ?? asset.decimals ?? 18),
         ...toTokenOptionBalances(bd),
         hasBalance: true,
         priceUSD: priceUsd > 0 ? priceUsd : 0,
@@ -1258,16 +1269,7 @@ export function SwapAssetSelector({
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
 
     const isAllowedArcToken = (token: SwapTokenOption) => {
-      if (
-        token.chainId !== ARC_CHAIN_ID &&
-        token.chainId !== SUPPORTED_CHAINS.ARC
-      ) {
-        return true;
-      }
-      return (
-        normalizeTokenAddress(token.contractAddress) === ZERO_ADDRESS &&
-        token.symbol.toUpperCase() === "USDC"
-      );
+      return !isArcErc20Usdc(token);
     };
 
     const catalog = (staticOptions ?? []).filter(
@@ -1445,11 +1447,7 @@ export function SwapAssetSelector({
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
     let result = allTokens.filter(
-      (t) =>
-        !isArcExcludedToken(t.contractAddress) &&
-        ((t.chainId !== ARC_CHAIN_ID && t.chainId !== SUPPORTED_CHAINS.ARC) ||
-          (normalizeTokenAddress(t.contractAddress) === ZERO_ADDRESS &&
-            t.symbol.toUpperCase() === "USDC"))
+      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
     );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
