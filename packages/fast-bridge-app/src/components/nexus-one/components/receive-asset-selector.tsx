@@ -45,6 +45,10 @@ import {
   getCitreaReceiveTokenOptions,
 } from "../utils/citrea-tokens";
 import {
+  fetchRelayCurrenciesForChains,
+  mergeRelayTokensIntoLifi,
+} from "../utils/relay-tokens";
+import {
   formatMiddleTruncatedAddress,
   getTokenSearchRank,
   RadioDot,
@@ -222,12 +226,13 @@ const LEGACY_RECEIVE_TOKEN_STORAGE_KEYS = [
   "nexus_receive_tokens_time_v1",
   "nexus_receive_tokens_cache_v2",
   "nexus_receive_tokens_time_v2",
+  "liquest-receive-tokens-v1",
 ] as const;
 const LEGACY_RECEIVE_TOKEN_STORAGE_PREFIX = "nexus_receive_tokens_";
 const RECEIVE_TOKEN_DB_NAME = "nexus-fastbridge-cache";
 const RECEIVE_TOKEN_DB_VERSION = 1;
 const RECEIVE_TOKEN_STORE_NAME = "api-responses";
-const RECEIVE_TOKEN_CACHE_KEY = "liquest-receive-tokens-v1";
+const RECEIVE_TOKEN_CACHE_KEY = "nexus-receive-tokens-v2";
 
 type PersistedReceiveTokens = {
   data: RawReceiveTokensData;
@@ -449,9 +454,10 @@ export const getCachedReceiveTokenMatch = (
 const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
   let data: RawReceiveTokensData = EMPTY_RECEIVE_TOKENS_DATA;
   try {
-    const [resAll, resStables] = await Promise.all([
+    const [resAll, resStables, relayTokensByChain] = await Promise.all([
       fetch("https://li.quest/v1/tokens"),
       fetch("https://li.quest/v1/tokens?tags=stablecoin"),
+      fetchRelayCurrenciesForChains(SWAP_CHAIN_DISPLAY_ORDER),
     ]);
 
     let allTokens: RawReceiveTokensData["tokens"] = {};
@@ -472,6 +478,8 @@ const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
         resAll.statusText
       );
     }
+
+    allTokens = mergeRelayTokensIntoLifi(allTokens, relayTokensByChain);
 
     const stableSymbols = new Set<string>();
     if (resStables.ok) {
@@ -503,7 +511,7 @@ const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
     };
   } catch (error) {
     console.error(
-      "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest:",
+      "[preloadReceiveTokens] Failed to fetch/parse tokens from li.quest / relay:",
       error
     );
   }

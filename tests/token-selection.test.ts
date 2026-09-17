@@ -21,6 +21,7 @@ import {
   ARC_CHAIN_ID,
   ZERO_ADDRESS,
 } from "../packages/fast-bridge-app/src/components/nexus-one/utils/arc-tokens";
+import { mergeRelayTokensIntoLifi } from "../packages/fast-bridge-app/src/components/nexus-one/utils/relay-tokens";
 
 const source: SwapTokenOption = {
   chainId: 1,
@@ -407,5 +408,104 @@ test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native U
   assert.equal(
     otherToken.contractAddress,
     "0x1111111111111111111111111111111111111111"
+  );
+});
+
+test("mergeRelayTokensIntoLifi aggressively deduplicates tokens and only adds missing ones while excluding Arc ERC20 USDC", () => {
+  const lifiTokens = {
+    "1": [
+      {
+        address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        symbol: "ETH",
+        name: "Ether",
+        decimals: 18,
+      },
+      {
+        address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        symbol: "USDC",
+        name: "USD Coin",
+        decimals: 6,
+      },
+    ],
+    "5042": [
+      {
+        address: "0x171A4217b86A807A64eB94757Db6849fb4bDbAA0",
+        symbol: "cirBTC",
+        name: "cirBTC",
+        decimals: 8,
+      },
+    ],
+  };
+
+  const relayTokensByChain = {
+    1: [
+      // Duplicate native ETH with 0x0 address - should be deduplicated against 0xeee
+      {
+        address: "0x0000000000000000000000000000000000000000",
+        symbol: "ETH",
+        name: "Ether",
+        decimals: 18,
+      },
+      // Duplicate USDC with uppercase address - should be deduplicated
+      {
+        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        symbol: "USDC",
+        name: "USD Coin",
+        decimals: 6,
+      },
+      // New token on chain 1 - should be added
+      {
+        address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        symbol: "USDT",
+        name: "Tether USD",
+        decimals: 6,
+      },
+    ],
+    5042: [
+      // Arc ERC20 USDC (0x3600...) - MUST be excluded
+      {
+        address: "0x3600000000000000000000000000000000000000",
+        symbol: "USDC",
+        name: "USD Coin",
+        decimals: 6,
+      },
+      // Arc ERC20 USDC with different non-native address - MUST be excluded
+      {
+        address: "0xb67f50fde86e09b5da963c4251cbd4788b151ed5",
+        symbol: "USDC",
+        name: "FatCatBatRatWifHat",
+        decimals: 18,
+      },
+      // Arc other ERC20 token (ARGUSCAT) - MUST be added
+      {
+        address: "0x57d4ed2dcdb2d34814330d280a4d7179b179b9c4",
+        symbol: "ARGUSCAT",
+        name: "ArgusCat",
+        decimals: 18,
+      },
+      // Arc other ERC20 token (WETH) - MUST be added
+      {
+        address: "0x128cc466b61f542da60c70e3aa11c10e19b84edb",
+        symbol: "WETH",
+        name: "Wrapped Ether",
+        decimals: 18,
+      },
+    ],
+  };
+
+  const merged = mergeRelayTokensIntoLifi(lifiTokens, relayTokensByChain);
+
+  // Chain 1: had 2 tokens, 1 new added (USDT), duplicates skipped -> total 3
+  assert.equal(merged["1"].length, 3);
+  assert.ok(merged["1"].find((t) => t.symbol === "USDT"));
+
+  // Chain 5042: had 1 token (cirBTC), 2 new added (ARGUSCAT, WETH), ERC20 USDCs excluded -> total 3
+  assert.equal(merged["5042"].length, 3);
+  assert.ok(merged["5042"].find((t) => t.symbol === "cirBTC"));
+  assert.ok(merged["5042"].find((t) => t.symbol === "ARGUSCAT"));
+  assert.ok(merged["5042"].find((t) => t.symbol === "WETH"));
+  assert.equal(
+    merged["5042"].find((t) => t.symbol === "USDC"),
+    undefined
   );
 });
