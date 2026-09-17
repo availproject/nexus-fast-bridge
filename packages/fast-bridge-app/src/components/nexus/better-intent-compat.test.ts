@@ -7,6 +7,7 @@ import {
   formatIntentProviderName,
   isBetterIntentProvider,
   isExternalIntentProvider,
+  isTokenSupportedForRole,
   normalizeIntentQuote,
 } from "./better-intent-compat.ts";
 
@@ -64,6 +65,77 @@ test("preserves commitment and structured errors in adapted step events", () => 
     error: event.errorDetails,
     errorDetails: event.errorDetails,
   });
+});
+
+test("requires chain and token provider support to intersect for the requested role", () => {
+  const tokenAddress = "0x0000000000000000000000000000000000000001";
+  const catalog = [
+    {
+      id: 10,
+      providers: ["mayan", "relay"],
+      asSource: ["relay"],
+      asDestination: ["mayan"],
+      tokens: [
+        {
+          address: tokenAddress,
+          contractAddress: tokenAddress,
+          providers: [{ id: "mayan" }, { id: "relay" }],
+          asSource: [{ id: "relay" }],
+          asDestination: [{ id: "relay" }],
+        },
+      ],
+    },
+  ] as any;
+
+  assert.equal(
+    isTokenSupportedForRole(catalog, "source", 10, tokenAddress),
+    true
+  );
+  assert.equal(
+    isTokenSupportedForRole(catalog, "destination", 10, tokenAddress),
+    false
+  );
+
+  catalog[0].tokens[0].asDestination = [{ id: "mayan" }];
+  assert.equal(
+    isTokenSupportedForRole(catalog, "destination", 10, tokenAddress),
+    true
+  );
+});
+
+test("respects explicit empty directional support and rejects missing tokens", () => {
+  const tokenAddress = "0x0000000000000000000000000000000000000001";
+  const catalog = [
+    {
+      id: 10,
+      providers: ["mayan"],
+      asSource: [],
+      asDestination: ["mayan"],
+      tokens: [
+        {
+          address: tokenAddress,
+          contractAddress: tokenAddress,
+          providers: [{ id: "mayan" }],
+          asSource: [{ id: "mayan" }],
+          asDestination: [{ id: "mayan" }],
+        },
+      ],
+    },
+  ] as any;
+
+  assert.equal(
+    isTokenSupportedForRole(catalog, "source", 10, tokenAddress),
+    false
+  );
+  assert.equal(
+    isTokenSupportedForRole(
+      catalog,
+      "destination",
+      10,
+      "0x0000000000000000000000000000000000000002"
+    ),
+    false
+  );
 });
 
 test("does not invent one source-token total for mixed-token intents", () => {
