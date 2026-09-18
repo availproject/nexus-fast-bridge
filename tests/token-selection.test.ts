@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isAmountAboveUsableBalance } from "../packages/fast-bridge-app/src/components/nexus/balance-utils";
 import type { UserAsset } from "../packages/fast-bridge-app/src/components/nexus/nexus-provider";
+import { getCachedReceiveTokenMatch } from "../packages/fast-bridge-app/src/components/nexus-one/components/receive-asset-selector";
 import {
   deriveTokenOptions,
   type SwapTokenOption,
@@ -508,4 +509,30 @@ test("mergeRelayTokensIntoLifi aggressively deduplicates tokens and only adds mi
     merged["5042"].find((t) => t.symbol === "USDC"),
     undefined
   );
+});
+
+test("getCachedReceiveTokenMatch handles tokens other than USDC without ReferenceError", () => {
+  // Non-USDC token (e.g. USDT, ETH) should not throw ReferenceError
+  const ethToken: SwapTokenOption = {
+    chainId: 1,
+    symbol: "ETH",
+    name: "Ethereum",
+    contractAddress: "0x0000000000000000000000000000000000000000",
+    decimals: 18,
+  };
+  assert.doesNotThrow(() => {
+    getCachedReceiveTokenMatch(ethToken);
+  });
+
+  // Arc native USDC check
+  const arcNativeUsdcToken: SwapTokenOption = {
+    chainId: ARC_CHAIN_ID,
+    symbol: "USDC",
+    name: "USD Coin",
+    contractAddress: ZERO_ADDRESS,
+    decimals: 18,
+  };
+  assert.doesNotThrow(() => {
+    getCachedReceiveTokenMatch(arcNativeUsdcToken);
+  });
 });
