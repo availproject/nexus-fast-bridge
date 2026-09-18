@@ -32,6 +32,7 @@ import {
   getArcNativeTokenOption,
   isArcErc20Usdc,
   isArcExcludedToken,
+  isArcNativeUsdc,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
