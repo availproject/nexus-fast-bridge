@@ -119,3 +119,38 @@ test("bridge completion waits for destination confirmation before showing receip
     "completed"
   );
 });
+
+test("fastbridge success and failure telemetry allow undefined rff_id on destination or source swaps", async () => {
+  const { trackFastBridgeSuccess, trackFastBridgeFail } = await import(
+    "../packages/fast-bridge-app/src/lib/telemetry"
+  );
+
+  // Should not throw when intentId is undefined (destination swap or source swap without intent ID)
+  assert.doesNotThrow(() => {
+    trackFastBridgeSuccess({
+      success_type: "transaction_success",
+      wallet_address: "0x1234567890123456789012345678901234567890",
+      quote_id: "quote-123",
+      source_tokens_count: 1,
+      chain_id_list: [8453],
+      destination_chain_id: 8453,
+      rff_id: undefined,
+      tx_hash: "0xabc",
+      duration_seconds: 5,
+    });
+  });
+
+  assert.doesNotThrow(() => {
+    trackFastBridgeFail({
+      failure_type: "step_failure",
+      reason: "Step failed",
+      wallet_address: "0x1234567890123456789012345678901234567890",
+      quote_id: "quote-123",
+      source_tokens_count: 1,
+      chain_id_list: [8453],
+      destination_chain_id: 8453,
+      rff_id: undefined,
+      tx_hash: undefined,
+    });
+  });
+});

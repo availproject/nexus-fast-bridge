@@ -9322,12 +9322,13 @@ function NexusOneInner({
         let finalExplorerUrl: string | null =
           explorerUrlsRef.current.destinationExplorerUrl ||
           explorerUrlsRef.current.sourceExplorerUrl;
+        let result: any = null;
 
         if (hasCustomSwapRecipient && resolvedRecipientAddress) {
           const sdkWithOptionalTransfer = nexusSDK as any;
 
           if (typeof sdkWithOptionalTransfer.swapAndTransfer === "function") {
-            const result = await sdkWithOptionalTransfer.swapAndTransfer(
+            result = await sdkWithOptionalTransfer.swapAndTransfer(
               {
                 mode: "exactIn",
                 recipient: resolvedRecipientAddress as `0x${string}`,
@@ -9368,7 +9369,7 @@ function NexusOneInner({
               "[nexusSDK.swapWithExactIn payload]",
               exactInSwapPayload
             );
-            const result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
+            result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
               hooks: {
                 onIntent: (data) =>
                   handleSwapIntentCallback(data, runId, quoteInputKey),
@@ -9411,7 +9412,7 @@ function NexusOneInner({
         } else {
           // Start exact-in swap — the intent hook will fire and populate preview
           console.log("[nexusSDK.swapWithExactIn payload]", exactInSwapPayload);
-          const result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
+          result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
             hooks: {
               onIntent: (data) =>
                 handleSwapIntentCallback(data, runId, quoteInputKey),
@@ -9453,14 +9454,58 @@ function NexusOneInner({
             explorerUrlsRef.current.sourceExplorerUrl;
           const resolvedIntentExplorerUrl =
             intentExplorerUrl || intentUrlRef.current;
+          const resolvedIntentId =
+            intentId ??
+            extractIntentIdFromUrl(resolvedIntentExplorerUrl) ??
+            currentSwapEntry?.intentId;
           finishCurrentSwapHistoryEntry("fulfilled", {
             finalExplorerUrl: resolvedFinalExplorerUrl,
             ...(resolvedIntentExplorerUrl
               ? { intentExplorerUrl: resolvedIntentExplorerUrl }
               : {}),
-            ...(intentId ? { intentId } : {}),
+            ...(resolvedIntentId !== undefined
+              ? { intentId: resolvedIntentId }
+              : {}),
           });
           onComplete?.();
+          const chainIdList = Array.from(
+            new Set(
+              [...fromTokens.map((t) => t.chainId), toToken?.chainId].filter(
+                (c): c is number => typeof c === "number"
+              )
+            )
+          );
+          const rffId =
+            resolvedIntentId !== undefined
+              ? String(resolvedIntentId)
+              : extractIntentIdFromUrl(resolvedIntentExplorerUrl) !== undefined
+                ? String(extractIntentIdFromUrl(resolvedIntentExplorerUrl))
+                : currentSwapEntry?.intentId !== undefined
+                  ? String(currentSwapEntry.intentId)
+                  : undefined;
+          const txHash =
+            resolvedFinalExplorerUrl ||
+            (result ? getSdkTransactionHash(result) : undefined) ||
+            undefined;
+
+          trackFastBridgeSuccess({
+            success_type: "transaction_success",
+            wallet_address: ownerAddress,
+            quote_id: quoteIdRef.current,
+            source_tokens_count: fromTokens.length,
+            chain_id_list: chainIdList,
+            destination_chain_id: toToken?.chainId ?? 0,
+            rff_id: rffId,
+            tx_hash: txHash,
+            duration_seconds: currentSwapStartedAtRef.current
+              ? Math.max(
+                  1,
+                  Math.round(
+                    (Date.now() - currentSwapStartedAtRef.current) / 1000
+                  )
+                )
+              : undefined,
+          });
           setSwapStep("success");
         }
       } else {
@@ -9491,6 +9536,12 @@ function NexusOneInner({
         );
 
         resetExplorerUrls();
+        let intentExplorerUrl: string | null = null;
+        let intentId: number | undefined = currentSwapEntry?.intentId;
+        let finalExplorerUrl: string | null =
+          explorerUrlsRef.current.destinationExplorerUrl ||
+          explorerUrlsRef.current.sourceExplorerUrl;
+        let result: any = null;
 
         const fromSourcesPayload = buildFromSourcesPayload(
           getExactOutSourceTokens()
@@ -9541,7 +9592,7 @@ function NexusOneInner({
 
         if (executeConfig) {
           const sdkWithOptionalTransfer = nexusSDK as any;
-          const result =
+          result =
             (activeMode === "send" || hasCustomSwapRecipient) &&
             typeof sdkWithOptionalTransfer.swapAndTransfer === "function"
               ? await sdkWithOptionalTransfer.swapAndTransfer(
@@ -9588,15 +9639,15 @@ function NexusOneInner({
             throw new Error("Swap failed");
           }
           const executeTxHash = getSdkTransactionHash(result);
-          const intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+          intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
             appConfig.nexusNetwork,
             result,
             swapResult
           );
-          const intentId =
+          intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
-          const finalExplorerUrl =
+          finalExplorerUrl =
             getSdkExplorerUrl(result) ||
             getExplorerTxUrl(
               toToken.chainId,
@@ -9751,22 +9802,22 @@ function NexusOneInner({
             "[nexusSDK.swapWithExactIn payload]",
             exactOutInSwapPayload
           );
-          const result = await nexusSDK.swapWithExactIn(exactOutInSwapPayload, {
+          result = await nexusSDK.swapWithExactIn(exactOutInSwapPayload, {
             hooks: {
               onIntent: (data) =>
                 handleSwapIntentCallback(data, runId, quoteInputKey),
             },
             onEvent,
           });
-          const intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
+          intentExplorerUrl = getSdkIntentExplorerUrlForNetwork(
             appConfig.nexusNetwork,
             result
           );
-          const intentId =
+          intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
-          const finalExplorerUrl =
+          finalExplorerUrl =
             getSdkExplorerUrl(result) ||
             getExplorerTxUrl(
               toToken.chainId,
@@ -9788,7 +9839,28 @@ function NexusOneInner({
           swapRunIdRef.current === runId &&
           swapStepRef.current === "progress"
         ) {
-          finishCurrentSwapHistoryEntry("fulfilled");
+          const resolvedFinalExplorerUrl =
+            finalExplorerUrl ||
+            explorerUrlsRef.current.destinationExplorerUrl ||
+            explorerUrlsRef.current.sourceExplorerUrl;
+          const resolvedIntentExplorerUrl =
+            intentExplorerUrl || intentUrlRef.current;
+          const resolvedIntentId =
+            intentId ??
+            extractIntentIdFromUrl(resolvedIntentExplorerUrl) ??
+            currentSwapEntry?.intentId;
+
+          finishCurrentSwapHistoryEntry("fulfilled", {
+            ...(resolvedFinalExplorerUrl
+              ? { finalExplorerUrl: resolvedFinalExplorerUrl }
+              : {}),
+            ...(resolvedIntentExplorerUrl
+              ? { intentExplorerUrl: resolvedIntentExplorerUrl }
+              : {}),
+            ...(resolvedIntentId !== undefined
+              ? { intentId: resolvedIntentId }
+              : {}),
+          });
           onComplete?.();
           const chainIdList = Array.from(
             new Set(
@@ -9797,6 +9869,19 @@ function NexusOneInner({
               )
             )
           );
+          const rffId =
+            resolvedIntentId !== undefined
+              ? String(resolvedIntentId)
+              : extractIntentIdFromUrl(resolvedIntentExplorerUrl) !== undefined
+                ? String(extractIntentIdFromUrl(resolvedIntentExplorerUrl))
+                : currentSwapEntry?.intentId !== undefined
+                  ? String(currentSwapEntry.intentId)
+                  : undefined;
+          const txHash =
+            resolvedFinalExplorerUrl ||
+            (result ? getSdkTransactionHash(result) : undefined) ||
+            undefined;
+
           trackFastBridgeSuccess({
             success_type: "transaction_success",
             wallet_address: ownerAddress,
@@ -9804,13 +9889,8 @@ function NexusOneInner({
             source_tokens_count: fromTokens.length,
             chain_id_list: chainIdList,
             destination_chain_id: toToken?.chainId ?? 0,
-            rff_id:
-              intentId ??
-              extractIntentIdFromUrl(intentExplorerUrl) ??
-              currentSwapEntry?.intentId ??
-              undefined,
-            tx_hash:
-              finalExplorerUrl ?? getSdkTransactionHash(result) ?? undefined,
+            rff_id: rffId,
+            tx_hash: txHash,
             duration_seconds: currentSwapStartedAtRef.current
               ? Math.max(
                   1,
@@ -10006,9 +10086,11 @@ function NexusOneInner({
           chain_id_list: chainIdList,
           destination_chain_id: toToken?.chainId ?? 0,
           rff_id:
-            extractIntentIdFromUrl(intentUrlRef.current) ??
-            currentSwapEntry?.intentId ??
-            undefined,
+            extractIntentIdFromUrl(intentUrlRef.current) !== undefined
+              ? String(extractIntentIdFromUrl(intentUrlRef.current))
+              : currentSwapEntry?.intentId !== undefined
+                ? String(currentSwapEntry.intentId)
+                : undefined,
           tx_hash:
             getPlanStepTransactionHash(
               failedProgressEvent?.rawEvent,
@@ -10058,9 +10140,11 @@ function NexusOneInner({
           chain_id_list: chainIdList,
           destination_chain_id: toToken?.chainId ?? 0,
           rff_id:
-            extractIntentIdFromUrl(intentUrlRef.current) ??
-            currentSwapEntry?.intentId ??
-            undefined,
+            extractIntentIdFromUrl(intentUrlRef.current) !== undefined
+              ? String(extractIntentIdFromUrl(intentUrlRef.current))
+              : currentSwapEntry?.intentId !== undefined
+                ? String(currentSwapEntry.intentId)
+                : undefined,
           tx_hash: explorerUrlsRef.current.destinationExplorerUrl ?? undefined,
         });
 

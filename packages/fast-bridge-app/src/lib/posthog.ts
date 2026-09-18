@@ -23,6 +23,11 @@ export function initPostHog(options?: {
 
   console.log("[PostHog] Initializing with host:", apiHost);
 
+  if (typeof posthog?.init !== "function") {
+    isInitialized = true;
+    return;
+  }
+
   posthog.init(apiKey, {
     api_host: apiHost,
     person_profiles: "identified_only",
@@ -64,7 +69,9 @@ export function trackBridgeSubmit(
     "[PostHog] Capturing event: nexus_fast_bridge_demo_submit",
     properties
   );
-  posthog.capture("nexus_fast_bridge_demo_submit", properties);
+  if (typeof posthog?.capture === "function") {
+    posthog.capture("nexus_fast_bridge_demo_submit", properties);
+  }
 }
 
 /**
@@ -80,5 +87,7 @@ export function capture(
   }
 
   console.log("[PostHog] Capturing event:", event, properties);
-  posthog.capture(event, properties);
+  if (typeof posthog?.capture === "function") {
+    posthog.capture(event, properties);
+  }
 }
