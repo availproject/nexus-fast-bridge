@@ -30,14 +30,14 @@ The SDK resolves the canary configuration to
 
 | FastBridge use | SDK method | Better Intent endpoint | Expected result |
 | --- | --- | --- | --- |
-| Initialize chains | `initialize`, `getSupportedChains` | `/api/v1/better-intent/chains` | Intent-capable chains and their tokens |
-| Token catalog | SDK initialization | Derived from `/api/v1/better-intent/chains` | Provider-backed assets grouped across chains |
-| Constrained selectors | `getSupportedChainsForRoute` | `/api/v1/better-intent/chains` with source/destination constraints | Directional provider availability for each chain and token |
-| Wallet balances | `getBalancesForBridge`, `getBalancesForSwap` | `/api/v1/better-intent/balances/:address` | Flat, usable wallet balances with token and chain identity |
-| Quote | `swapWithExactIn`, `swapWithExactOut`, bridge methods | `/api/v1/better-intent/quote` | Quote, fees, allowances, execution plan, and expiry |
-| Submit | SDK execution after approval and signature | `/api/v1/better-intent/submit` | Accepted intent ID and initial status |
-| Status | SDK execution polling | `/api/v1/better-intent/status/:intentId` | Intent lifecycle status and substatus |
-| History | `listIntents` | `/api/v1/better-intent/rffs` and `/rffs-external` | Combined Nexus and external-provider intent summaries |
+| Initialize chains | `initialize`, `getSupportedChains` | `/api/v1/intent/chains` | Intent-capable chains and their tokens |
+| Token catalog | SDK initialization | `/api/v1/intent/tokens` | Provider-backed assets grouped across chains |
+| Constrained selectors | `getSupportedChainsForRoute` | `/api/v1/intent/chains` with source/destination constraints | Directional provider availability for each chain and token |
+| Wallet balances | `getBalancesForBridge`, `getBalancesForSwap` | `/api/v1/intent/balances/:address` | Flat, usable wallet balances with token and chain identity |
+| Quote | `swapWithExactIn`, `swapWithExactOut`, bridge methods | `/api/v1/intent/quote` | Quote, USD values, fees, allowances, execution plan, and expiry |
+| Submit | SDK execution after approval and signature | `/api/v1/intent/submit` | Accepted intent ID and initial status |
+| Status | SDK execution polling | `/api/v1/intent/status/:intentId` | Intent lifecycle status and substatus |
+| History | `listIntents` | `/api/v1/intent/rffs` and `/rffs-external` | Combined Nexus and external-provider intent summaries |
 
 ## FastBridge compatibility layer
 
@@ -53,8 +53,8 @@ It performs display compatibility only:
   chain and token address.
 - Maps `IntentQuote` into the current confirmation-screen model.
 - Maps Better Intent `quote`, `step`, and `status` events into the existing progress UI.
-- Adds locally cached USD rates for receive value and estimated price impact. These estimates are
-  never sent to the SDK or backend.
+- Preserves middleware-provided USD values for source amounts, destination amounts, minimum output,
+  and fee components. Locally cached rates are only a fallback for older quote shapes.
 
 Routing, executable amounts, allowances, signing, submission, and polling remain owned by the SDK
 and Better Intent backend.
@@ -100,6 +100,18 @@ FastBridge handles this as follows:
 - Scroll is removed from `CHAIN_REGISTRY`, chain constants, wallet transports, landing assets, route
   generation, and Vercel rewrites, following the earlier Kaia removal. The `/scroll` route no longer
   exists because the middleware no longer serves the chain.
+
+## Middleware 1.11.4 compatibility
+
+Middleware 1.11.4 returns USD metadata alongside raw quote amounts. The SDK now exposes the values
+as decimal strings instead of discarding them, and FastBridge uses them directly:
+
+- `input[].amountUsd`, `depositFeeUsd`, and `totalRequiredUsd` are retained per source leg.
+- `output.amountUsd` and `minAmountOutUsd` drive receive value and minimum-output displays.
+- `fees.depositUsd`, `protocolUsd`, and `solverUsd` drive the fee breakdown.
+- Displayed total fee is `depositUsd + protocolUsd + solverUsd`. `fulfillmentUsd` is retained but is
+  not added separately because fulfillment represents the protocol and solver components.
+- Raw token-denominated fields remain available for execution context and backward compatibility.
 
 ## Current validation status
 

@@ -45,6 +45,8 @@ export interface SwapIntentDestination {
       symbol: string;
     };
   };
+  minAmount?: string;
+  minAmountUsd?: string;
   token: {
     contractAddress: string;
     decimals: number;
@@ -64,12 +66,17 @@ export interface SwapIntentData {
     bridge?:
       | {
           caGas?: string;
+          caGasUsd?: string;
           collection?: string;
+          fulfillmentUsd?: string;
           fulfilment?: string;
           gasSupplied?: string;
           protocol?: string;
+          protocolUsd?: string;
           solver?: string;
+          solverUsd?: string;
           total?: string;
+          totalUsd?: string;
         }
       | string
       | null;
@@ -963,21 +970,46 @@ export function SwapIntentPreview({
   );
   const bridgeFeeData =
     bridgeFees && typeof bridgeFees === "object" ? bridgeFees : undefined;
-  const bridgeTotalNumber =
-    typeof bridgeFees === "string"
+  const destinationTokenAmountForRate = parseDecimal(
+    normalizedIntentDest?.amount
+  );
+  const destinationUsdValueForRate = parseDecimal(normalizedIntentDest?.value);
+  const destinationUsdRateForFees =
+    destinationTokenAmountForRate?.gt(0) && destinationUsdValueForRate?.gt(0)
+      ? destinationUsdValueForRate.div(destinationTokenAmountForRate)
+      : undefined;
+  const feeInUsd = (usd: unknown, tokenAmount: unknown) => {
+    const quotedUsd = parseDecimal(usd);
+    if (quotedUsd !== undefined) return quotedUsd;
+    const raw = parseDecimal(tokenAmount);
+    if (!isBetterIntentQuote) return raw;
+    return destinationUsdRateForFees?.gt(0) && raw
+      ? raw.mul(destinationUsdRateForFees)
+      : undefined;
+  };
+  const bridgeTotalNumber = isBetterIntentQuote
+    ? (parseDecimal(bridgeFeeData?.totalUsd) ??
+      feeInUsd(undefined, bridgeFeeData?.total))
+    : typeof bridgeFees === "string"
       ? parseDecimal(bridgeFees)
       : parseDecimal(bridgeFeeData?.total);
   const collectionFeeNumber = parseDecimal(bridgeFeeData?.collection);
   const fulfilmentFeeNumber = parseDecimal(bridgeFeeData?.fulfilment);
   const executionGasFeeNumber =
-    parseDecimal(bridgeFeeData?.caGas) ??
+    feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas) ??
     (collectionFeeNumber !== undefined || fulfilmentFeeNumber !== undefined
       ? (collectionFeeNumber ?? new Decimal(0)).plus(
           fulfilmentFeeNumber ?? new Decimal(0)
         )
       : undefined);
-  const protocolFeeNumber = parseDecimal(bridgeFeeData?.protocol);
-  const solverFeeNumber = parseDecimal(bridgeFeeData?.solver);
+  const protocolFeeNumber = feeInUsd(
+    bridgeFeeData?.protocolUsd,
+    bridgeFeeData?.protocol
+  );
+  const solverFeeNumber = feeInUsd(
+    bridgeFeeData?.solverUsd,
+    bridgeFeeData?.solver
+  );
   const bridgeGasSuppliedNumber = parseDecimal(bridgeFeeData?.gasSupplied);
   const destinationGasValueNumber =
     parseDecimal(normalizedIntentDest?.gas?.value) ??

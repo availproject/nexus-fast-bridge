@@ -1366,6 +1366,15 @@ export function SwapIdleForm({
       return "--";
     }
     const rawBridge = intentData?.feesAndBuffer?.bridge;
+    const quotedBridgeTotalUsd =
+      rawBridge && typeof rawBridge === "object"
+        ? parseDecimal(rawBridge.totalUsd)
+        : undefined;
+    if (isBetterIntentFee && quotedBridgeTotalUsd?.gte(0)) {
+      return quotedBridgeTotalUsd.lt(0.01)
+        ? "0.00"
+        : quotedBridgeTotalUsd.toFixed(2);
+    }
     const bridgeTotal =
       typeof rawBridge === "string"
         ? parseDecimal(rawBridge)
@@ -1386,7 +1395,23 @@ export function SwapIdleForm({
     const bridgeFeeData =
       rawBridge && typeof rawBridge === "object" ? rawBridge : undefined;
 
-    const caGas = parseDecimal(bridgeFeeData?.caGas);
+    const isBetterIntentFee = isBetterIntentProvider(
+      intentData?.bridgeProvider
+    );
+    const destinationUsdRate = toToken
+      ? parseDecimal(getTokenUsdRate?.(toToken))
+      : undefined;
+    const feeInUsd = (usd: unknown, tokenAmount: unknown) => {
+      const quotedUsd = parseDecimal(usd);
+      if (quotedUsd !== undefined) return quotedUsd;
+      const raw = parseDecimal(tokenAmount);
+      if (!isBetterIntentFee) return raw;
+      return destinationUsdRate?.gt(0) && raw
+        ? raw.mul(destinationUsdRate)
+        : undefined;
+    };
+
+    const caGas = feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas);
     const collection = parseDecimal(bridgeFeeData?.collection);
     const fulfilment = parseDecimal(bridgeFeeData?.fulfilment);
     const destGasVal =
@@ -1400,26 +1425,15 @@ export function SwapIdleForm({
         : undefined) ??
       destGasVal;
 
-    const solverFee = parseDecimal(bridgeFeeData?.solver);
-    const protocolFee = parseDecimal(bridgeFeeData?.protocol);
-
-    const isBetterIntentFee = isBetterIntentProvider(
-      intentData?.bridgeProvider
+    const solverFee = feeInUsd(bridgeFeeData?.solverUsd, bridgeFeeData?.solver);
+    const protocolFee = feeInUsd(
+      bridgeFeeData?.protocolUsd,
+      bridgeFeeData?.protocol
     );
-    const destinationUsdRate = toToken
-      ? parseDecimal(getTokenUsdRate?.(toToken))
-      : undefined;
     const formatFeeStr = (dec: Decimal | undefined) => {
-      if (isBetterIntentFee && !destinationUsdRate?.gt(0)) {
-        return "--";
-      }
-      const usdValue =
-        isBetterIntentFee && destinationUsdRate?.gt(0) && dec
-          ? dec.mul(destinationUsdRate)
-          : dec;
-      if (!usdValue || usdValue.lte(0)) return "$0.00";
-      if (usdValue.lt(0.01)) return "<$0.01";
-      return `$${usdValue.toFixed(2)}`;
+      if (!dec || dec.lte(0)) return "$0.00";
+      if (dec.lt(0.01)) return "<$0.01";
+      return `$${dec.toFixed(2)}`;
     };
 
     return {

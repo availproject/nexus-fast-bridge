@@ -6968,6 +6968,12 @@ function NexusOneInner({
         const bridgeFees = sortedIntent.feesAndBuffer?.bridge;
         const bridgeFeeData =
           bridgeFees && typeof bridgeFees === "object" ? bridgeFees : undefined;
+        const isBetterIntentFee = isBetterIntentProvider(
+          sortedIntent.bridgeProvider
+        );
+        const quotedFeeTotalUsd = isBetterIntentFee
+          ? parseFiatNumber(bridgeFeeData?.totalUsd)
+          : undefined;
         const collectionFee = parseFiatNumber(bridgeFeeData?.collection);
         const fulfilmentFee = parseFiatNumber(bridgeFeeData?.fulfilment);
         const executionGasFee =
@@ -7010,10 +7016,7 @@ function NexusOneInner({
                 ? bridgeComponentsTotal
                 : destinationGasSuppliedFee));
 
-        if (bridgeTotal !== undefined) {
-          const isBetterIntentFee = isBetterIntentProvider(
-            sortedIntent.bridgeProvider
-          );
+        if (quotedFeeTotalUsd !== undefined || bridgeTotal !== undefined) {
           const destinationAmount = parseFiatNumber(
             sortedIntent.destination?.amount
           );
@@ -7024,11 +7027,13 @@ function NexusOneInner({
             destinationAmount?.gt(0) && destinationValue?.gt(0)
               ? destinationValue.div(destinationAmount)
               : getUsdRateForSymbol(sortedIntent.destination?.token?.symbol);
-          const feeTotalUsd = isBetterIntentFee
-            ? destinationUsdRate.gt(0)
-              ? bridgeTotal.mul(destinationUsdRate)
-              : undefined
-            : bridgeTotal;
+          const feeTotalUsd =
+            quotedFeeTotalUsd ??
+            (isBetterIntentFee
+              ? bridgeTotal && destinationUsdRate.gt(0)
+                ? bridgeTotal.mul(destinationUsdRate)
+                : undefined
+              : bridgeTotal);
           setIntentFeeUsd(
             feeTotalUsd
               ? feeTotalUsd.gt(0)
