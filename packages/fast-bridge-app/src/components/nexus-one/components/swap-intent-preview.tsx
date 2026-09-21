@@ -10,13 +10,13 @@ import { withBasePath } from "@/lib/utils";
 import type { SwapStepType } from "../../common/types/transaction-flow";
 import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
 import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
-import TransactionProgress from "../../swaps/components/transaction-progress";
 import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { AddressIdenticon } from "./address-identicon";
 import { IntentProviderBanner } from "./intent-provider-chip";
 import { type SwapTokenOption } from "./swap-asset-selector";
+import TransactionProgress from "./transaction-progress/transaction-progress";
 
 export interface SwapIntentSource {
   amount: string;

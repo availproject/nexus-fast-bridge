@@ -41,19 +41,12 @@
       }
     },
     {
-      "includes": ["public/landing-scripts/**"],
+      "includes": ["public/landing-new/**"],
       "linter": {
-        "rules": {
-          "complexity": {
-            "noForEach": "off"
-          },
-          "style": {
-            "useForOf": "off"
-          },
-          "suspicious": {
-            "noEmptyBlockStatements": "off"
-          }
-        }
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
       }
     },
     {
@@ -77,10 +70,7 @@
       }
     },
     {
-      "includes": [
-        "packages/fast-bridge-app/src/components/nexus-one/**",
-        "packages/fast-bridge-app/src/components/swaps/**"
-      ],
+      "includes": ["packages/fast-bridge-app/src/components/nexus-one/**"],
       "linter": {
         "rules": {
           "a11y": {

@@ -1,5 +1,5 @@
 import { type FC, useMemo } from "react";
-import type { BridgeStepType, SwapStepType } from "../../common";
+import type { BridgeStepType, SwapStepType } from "../../../common";
 import { StepFlow } from "./step-flow";
 
 export type DisplayStep = {

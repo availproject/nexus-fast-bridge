@@ -87,9 +87,7 @@ const metadata = {
     typeof window !== "undefined"
       ? window.location.origin
       : "https://fastbridge.availproject.org",
-  icons: [
-    "https://fastbridge.availproject.org/landing-assets/fastbridge-icon.svg",
-  ],
+  icons: ["https://fastbridge.availproject.org/fastbridge-icon.svg"],
 };
 
 export const wagmiAdapter = new WagmiAdapter({
