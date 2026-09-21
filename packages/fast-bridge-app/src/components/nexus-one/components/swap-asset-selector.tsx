@@ -88,8 +88,8 @@ export interface SwapTokenOption {
   chainName?: string;
   contractAddress: string;
   decimals: number;
-  hasBalance?: boolean;
   disabledReason?: string;
+  hasBalance?: boolean;
   isUnified?: boolean;
   logo?: string;
   name: string;

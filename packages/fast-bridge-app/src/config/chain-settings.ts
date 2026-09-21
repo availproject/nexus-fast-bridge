@@ -617,7 +617,6 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
     },
   },
 
-
   // ── BNB Smart Chain ─────────────────────────────────────────────────────
   "bnb-smart-chain": {
     slug: "bnb-smart-chain",

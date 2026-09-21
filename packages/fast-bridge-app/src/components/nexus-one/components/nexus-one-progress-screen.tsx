@@ -22,8 +22,8 @@ import {
   mergeExpectedIntentLegs,
 } from "../utils/better-intent-progress";
 import { resolveTokenVisuals } from "../utils/token-visuals";
-import { StatusAlert } from "./status-alerts";
 import { IntentProviderChip } from "./intent-provider-chip";
+import { StatusAlert } from "./status-alerts";
 import { type SwapTokenOption } from "./swap-asset-selector";
 import { type SwapIntentData } from "./swap-intent-preview";
 

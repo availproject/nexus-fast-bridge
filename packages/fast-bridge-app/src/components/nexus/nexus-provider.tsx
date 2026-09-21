@@ -103,6 +103,63 @@ const defaultConfig: Required<NexusProviderProps["config"]> = {
   debug: true,
 };
 
+type SourceBalance = ChainBalance & {
+  balanceInFiat?: number | string;
+  value?: number | string;
+};
+
+type TokenBalanceWithSources = Omit<TokenBalance, "chainBalances"> & {
+  balanceInFiat?: number | string;
+  breakdown?: SourceBalance[];
+  chainBalances?: SourceBalance[];
+  value?: number | string;
+};
+
+const sumSourceBalances = (sources: SourceBalance[]) =>
+  sources.reduce((sum, source) => {
+    const balance = Number.parseFloat(String(source.balance ?? "0"));
+    return Number.isFinite(balance) && balance > 0 ? sum + balance : sum;
+  }, 0);
+
+const getSourceBalanceChainId = (source: SourceBalance) =>
+  source.chain?.id ?? (source as SourceBalance & { chainId?: number }).chainId;
+
+const filterUnsupportedSwapSources = (
+  assets: TokenBalance[] | null,
+  swapSupportedChains?: SdkChainListWithSwapSupport
+): TokenBalance[] | null => {
+  if (!assets) {
+    return null;
+  }
+
+  return assets.flatMap((asset) => {
+    const assetWithSources = asset as TokenBalanceWithSources;
+    const sourceBalances =
+      assetWithSources.chainBalances ?? assetWithSources.breakdown ?? [];
+    const filteredSources = sourceBalances.filter((source) =>
+      isSwapSupportedBySdkChainList(
+        getSourceBalanceChainId(source),
+        swapSupportedChains
+      )
+    );
+
+    if (filteredSources.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        ...asset,
+        balance: String(sumSourceBalances(filteredSources)),
+        balanceInFiat: undefined,
+        breakdown: filteredSources,
+        chainBalances: filteredSources,
+        value: "0",
+      } as TokenBalance,
+    ];
+  });
+};
+
 const NEXUS_INIT_ERROR_MSG =
   "FastBridge couldn't finish connecting. Refresh the page and try again.";
 const BALANCES_ERROR_MSG =
