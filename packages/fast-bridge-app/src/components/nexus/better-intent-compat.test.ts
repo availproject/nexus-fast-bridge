@@ -3,6 +3,7 @@ import test from "node:test";
 import type { IntentEvent } from "@avail-project/nexus-core";
 import {
   adaptIntentEvent,
+  addIntentUsdValues,
   extractIntentIdFromUrl,
   formatIntentProviderName,
   isBetterIntentProvider,
@@ -149,30 +150,41 @@ test("does not invent one source-token total for mixed-token intents", () => {
         tokenAddress: "0x0000000000000000000000000000000000000000",
         tokenSymbol: "ETH",
         amountRaw: 1n,
+        amountUsd: "0.01",
         depositFeeRaw: 0n,
+        depositFeeUsd: "0",
         totalRequiredRaw: 1n,
+        totalRequiredUsd: "0.01",
       },
       {
         chainId: 10,
         tokenAddress: "0x0000000000000000000000000000000000000001",
         tokenSymbol: "USDC",
         amountRaw: 1n,
+        amountUsd: "0.000001",
         depositFeeRaw: 0n,
+        depositFeeUsd: "0",
         totalRequiredRaw: 1n,
+        totalRequiredUsd: "0.000001",
       },
     ],
     output: {
       chainId: 137,
       tokenAddress: "0x0000000000000000000000000000000000000002",
       amountRaw: 1n,
+      amountUsd: "0.000001",
       minAmountRaw: 1n,
+      minAmountUsd: "0.000001",
     },
     fees: {
       depositRaw: 0n,
+      depositUsd: "0.001",
       fulfillmentRaw: 0n,
+      fulfillmentUsd: "0.005",
       protocolRaw: 0n,
+      protocolUsd: "0.002",
       solverRaw: 0n,
-      caGasRaw: 0n,
+      solverUsd: "0.003",
     },
     expiresAt: 2_000_000_000,
     sourceVerdicts: [],
@@ -180,5 +192,30 @@ test("does not invent one source-token total for mixed-token intents", () => {
     plan: { steps: [] },
   } as any;
 
-  assert.equal(normalizeIntentQuote(quote, []).sourcesTotal, undefined);
+  const normalized = normalizeIntentQuote(quote, []);
+  assert.equal(normalized.sourcesTotal, undefined);
+  assert.equal(normalized.destination.value, "0.000001");
+  assert.equal(normalized.destination.minAmount, "0.000000000000000001");
+  assert.equal(normalized.destination.minAmountUsd, "0.000001");
+  assert.deepEqual(
+    normalized.sources.map((source) => source.value),
+    ["0.01", "0.000001"]
+  );
+  assert.deepEqual(normalized.feesAndBuffer.bridge, {
+    caGas: "0",
+    caGasUsd: "0.001",
+    fulfillmentUsd: "0.005",
+    protocol: "0",
+    protocolUsd: "0.002",
+    solver: "0",
+    solverUsd: "0.003",
+    total: "0",
+    totalUsd: "0.006",
+  });
+  const withFallbackRates = addIntentUsdValues(normalized, () => 99);
+  assert.equal(withFallbackRates.destination.value, "0.000001");
+  assert.deepEqual(
+    withFallbackRates.sources.map((source) => source.value),
+    ["0.01", "0.000001"]
+  );
 });

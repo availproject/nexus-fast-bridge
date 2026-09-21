@@ -92,6 +92,8 @@ export interface LegacyIntent {
   bridgeProvider: string | null;
   destination: {
     amount: string;
+    minAmount?: string;
+    minAmountUsd?: string;
     value?: string;
     chain: { id: number; logo: string; name: string };
     token: {
@@ -113,9 +115,14 @@ export interface LegacyIntent {
     buffer: string;
     bridge: {
       caGas: string;
+      caGasUsd?: string;
+      fulfillmentUsd?: string;
       protocol: string;
+      protocolUsd?: string;
       solver: string;
+      solverUsd?: string;
       total: string;
+      totalUsd?: string;
     };
   };
   sources: Array<{
@@ -146,9 +153,10 @@ export const addIntentUsdValues = (
     destination: {
       ...intent.destination,
       value:
-        destinationRate > 0 && Number.isFinite(destinationAmount)
+        intent.destination.value ??
+        (destinationRate > 0 && Number.isFinite(destinationAmount)
           ? String(destinationAmount * destinationRate)
-          : intent.destination.value,
+          : undefined),
     },
     // Better Intent fee fields are denominated in the destination token.
     // Keep them in that unit here so consumers can convert exactly once.
@@ -159,9 +167,10 @@ export const addIntentUsdValues = (
       return {
         ...source,
         value:
-          rate > 0 && Number.isFinite(amount)
+          source.value ??
+          (rate > 0 && Number.isFinite(amount)
             ? String(amount * rate)
-            : source.value,
+            : undefined),
       };
     }),
   };
@@ -330,6 +339,7 @@ export const normalizeIntentQuote = (
     const decimals = token?.decimals ?? outputDecimals;
     return {
       amount: formatUnits(entry.amountRaw, decimals),
+      value: entry.amountUsd,
       sourceIndex,
       chain: {
         id: entry.chainId,
@@ -364,11 +374,18 @@ export const normalizeIntentQuote = (
       : undefined;
   const displayedFeeTotalRaw =
     quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
+  const displayedFeeTotalUsd = new Decimal(quote.fees.depositUsd)
+    .plus(quote.fees.protocolUsd)
+    .plus(quote.fees.solverUsd)
+    .toString();
 
   return {
     bridgeProvider: quote.provider,
     destination: {
       amount: formatUnits(quote.output.amountRaw, outputDecimals),
+      minAmount: formatUnits(quote.output.minAmountRaw, outputDecimals),
+      minAmountUsd: quote.output.minAmountUsd,
+      value: quote.output.amountUsd,
       chain: {
         id: quote.output.chainId,
         logo: outputChain?.logo ?? "",
@@ -396,9 +413,14 @@ export const normalizeIntentQuote = (
         // source-side network fee is `depositRaw`; `caGasRaw` is not shown
         // separately because it can overlap other fee components.
         caGas: formatUnits(quote.fees.depositRaw, outputDecimals),
+        caGasUsd: quote.fees.depositUsd,
+        fulfillmentUsd: quote.fees.fulfillmentUsd,
         protocol: formatUnits(quote.fees.protocolRaw, outputDecimals),
+        protocolUsd: quote.fees.protocolUsd,
         solver: formatUnits(quote.fees.solverRaw, outputDecimals),
+        solverUsd: quote.fees.solverUsd,
         total: formatUnits(displayedFeeTotalRaw, outputDecimals),
+        totalUsd: displayedFeeTotalUsd,
       },
     },
     sources,

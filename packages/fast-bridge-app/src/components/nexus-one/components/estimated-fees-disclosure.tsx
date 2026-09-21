@@ -69,15 +69,28 @@ export function EstimatedFeesDisclosure({
       intentData?.bridgeProvider
     );
     const data = bridge && typeof bridge === "object" ? bridge : undefined;
+    const feeInUsd = (usd: unknown, tokenAmount: unknown) => {
+      const quotedUsd = parseDecimal(usd);
+      if (quotedUsd !== undefined) {
+        return quotedUsd;
+      }
+      const raw = parseDecimal(tokenAmount);
+      if (!isBetterIntentQuote) {
+        return raw;
+      }
+      return destinationUsdRate?.gt(0) && raw
+        ? raw.mul(destinationUsdRate)
+        : undefined;
+    };
     const collection = parseDecimal(data?.collection);
     const fulfilment = parseDecimal(data?.fulfilment);
     const executionGas =
-      parseDecimal(data?.caGas) ??
+      feeInUsd(data?.caGasUsd, data?.caGas) ??
       (collection || fulfilment
         ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
         : undefined);
-    const protocol = parseDecimal(data?.protocol);
-    const solver = parseDecimal(data?.solver);
+    const protocol = feeInUsd(data?.protocolUsd, data?.protocol);
+    const solver = feeInUsd(data?.solverUsd, data?.solver);
     const bridgeGasSupplied = parseDecimal(data?.gasSupplied);
     const destinationGasSupplied =
       bridgeGasSupplied ??
@@ -101,8 +114,9 @@ export function EstimatedFeesDisclosure({
       new Decimal(0)
     );
     const rawBridgeTotal =
+      (isBetterIntentQuote ? parseDecimal(data?.totalUsd) : undefined) ??
       (typeof bridge === "string" ? parseDecimal(bridge) : undefined) ??
-      parseDecimal(data?.total);
+      feeInUsd(undefined, data?.total);
     const bridgeTotal =
       rawBridgeTotal && !bridgeGasSupplied && destinationGasSupplied?.gt(0)
         ? rawBridgeTotal.plus(destinationGasSupplied)
@@ -123,9 +137,12 @@ export function EstimatedFeesDisclosure({
     return {
       rows,
       total,
-      totalIsUsd: Boolean(normalizedTotalUsd && isBetterIntentQuote),
+      totalIsUsd: Boolean(
+        isBetterIntentQuote &&
+          (normalizedTotalUsd !== undefined || data?.totalUsd !== undefined)
+      ),
     };
-  }, [destinationGasFeeUsd, intentData, totalFeeUsd]);
+  }, [destinationGasFeeUsd, destinationUsdRate, intentData, totalFeeUsd]);
 
   if (!feeSummary.total && feeSummary.rows.length === 0) {
     return null;
