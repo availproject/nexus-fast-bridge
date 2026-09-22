@@ -1,5 +1,5 @@
 import type {
-  IntentAllowanceHookData,
+  IntentAllowance,
   IntentBalance,
   IntentEvent,
   IntentHookData,
@@ -8,15 +8,22 @@ import type {
   IntentRouteConstraints,
   IntentSource,
   IntentStepError,
+  IntentToken,
   NexusClient,
 } from "@avail-project/nexus-core";
 import { formatUnits } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
 
 type SupportedChain = ReturnType<NexusClient["getSupportedChains"]>[number];
-type SupportedToken = SupportedChain["tokens"][number] & {
-  contractAddress: `0x${string}`;
+export type SupportedToken = IntentToken & {
+  contractAddress: string;
 };
+
+export interface IntentAllowanceHookData {
+  allow: () => Promise<void> | void;
+  allowances: IntentAllowance[];
+  deny: () => Promise<void> | void;
+}
 
 /** Providers the Better Intent middleware can name on a quote, status, or catalog entry. */
 export const BETTER_INTENT_PROVIDERS: readonly IntentProvider[] = [
@@ -61,7 +68,7 @@ export const extractIntentIdFromUrl = (url?: string | null) => {
 };
 
 export type SupportedChainsAndTokensResult = Array<
-  Omit<SupportedChain, "logo" | "tokens"> & {
+  Omit<SupportedChain, "logo"> & {
     logo: string;
     swapSupported: boolean;
     tokens: SupportedToken[];
@@ -210,26 +217,37 @@ const sameAddress = (left: string, right: string) =>
 const chainById = (chains: SupportedChainsAndTokensResult, chainId: number) =>
   chains.find((chain) => chain.id === chainId);
 
+type ProviderEntry = IntentProvider | { id: IntentProvider };
+
+const getProviderId = (provider: ProviderEntry): IntentProvider =>
+  typeof provider === "string" ? provider : provider.id;
+
+export type RawSupportedChainInput = SupportedChain & {
+  swapSupported?: boolean;
+  tokens?: IntentToken[];
+};
+
 const tokenByAddress = (
   chains: SupportedChainsAndTokensResult,
   chainId: number,
   address: string
 ) =>
-  chainById(chains, chainId)?.tokens.find((token) =>
-    sameAddress(token.address, address)
+  chainById(chains, chainId)?.tokens?.find((token) =>
+    sameAddress(token.contractAddress ?? token.address, address)
   );
 
 export const normalizeSupportedChains = (
-  chains: ReturnType<NexusClient["getSupportedChains"]>
+  chains: RawSupportedChainInput[] | null | undefined
 ): SupportedChainsAndTokensResult =>
-  chains.map((chain) => ({
+  (chains ?? []).map((chain) => ({
     ...chain,
     logo: chain.logo ?? "",
-    swapSupported: chain.capabilities.intent,
-    tokens: chain.tokens.map((token) => ({
-      ...token,
-      contractAddress: token.address,
-    })),
+    swapSupported: chain.capabilities?.intent ?? chain.swapSupported ?? false,
+    tokens:
+      chain.tokens?.map((token) => ({
+        ...token,
+        contractAddress: token.address,
+      })) ?? [],
   }));
 
 export const isTokenSupportedForRole = (
@@ -242,30 +260,41 @@ export const isTokenSupportedForRole = (
     return true;
   }
   const chain = chainById(chains, chainId);
-  const token = chain?.tokens.find((entry) =>
-    sameAddress(entry.address, tokenAddress)
-  );
-  if (!(chain && token)) {
+  if (!chain) {
     return false;
   }
 
   const chainDirectional =
     role === "source" ? chain.asSource : chain.asDestination;
+  const chainProviderIds = new Set(
+    (chainDirectional ?? chain.providers ?? []).map(getProviderId)
+  );
+
+  const tokens = chain.tokens ?? [];
+  const token = tokens.find((entry) =>
+    sameAddress(entry.contractAddress ?? entry.address, tokenAddress)
+  );
+
+  if (!token) {
+    if (tokens.length === 0) {
+      return chainProviderIds.size > 0;
+    }
+    return false;
+  }
+
   const tokenDirectional =
     role === "source" ? token.asSource : token.asDestination;
-  const chainProviderIds = new Set(
-    (chainDirectional ?? chain.providers).map((provider) =>
-      typeof provider === "string" ? provider : provider.id
-    )
-  );
-  const tokenProviderIds = (tokenDirectional ?? token.providers).map(
-    (provider) => (typeof provider === "string" ? provider : provider.id)
+  const tokenProviderIds = (tokenDirectional ?? token.providers ?? []).map(
+    getProviderId
   );
 
   // Route-constrained chain support comes from /chains, while token support
   // comes from the combined SDK catalog. A token is selectable only when the
   // same provider supports both the chain and token in the requested role.
-  return tokenProviderIds.some((provider) => chainProviderIds.has(provider));
+  return (
+    tokenProviderIds.length === 0 ||
+    tokenProviderIds.some((provider) => chainProviderIds.has(provider))
+  );
 };
 
 export type GetRouteSupportedChains = (

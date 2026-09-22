@@ -10,6 +10,7 @@ import {
   isExternalIntentProvider,
   isTokenSupportedForRole,
   normalizeIntentQuote,
+  normalizeSupportedChains,
 } from "./better-intent-compat.ts";
 
 test("extracts Better Intent hashes and legacy numeric explorer IDs", () => {
@@ -217,5 +218,47 @@ test("does not invent one source-token total for mixed-token intents", () => {
   assert.deepEqual(
     withFallbackRates.sources.map((source) => source.value),
     ["0.01", "0.000001"]
+  );
+});
+
+test("normalizes supported chains without tokens (Better Intent on-demand tokens)", () => {
+  const chainsWithoutTokens = [
+    {
+      id: 1,
+      name: "Ethereum",
+      logo: "https://example.com/eth.png",
+      swapSupported: true,
+      providers: ["nexus-v2", "mayan", "relay"],
+      asSource: ["nexus-v2", "mayan", "relay"],
+      asDestination: ["nexus-v2", "mayan", "relay"],
+      capabilities: { intent: true, execute: true },
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    },
+  ] as any;
+
+  const normalized = normalizeSupportedChains(chainsWithoutTokens);
+  assert.equal(normalized.length, 1);
+  assert.equal(normalized[0].id, 1);
+  assert.equal(normalized[0].swapSupported, true);
+  assert.deepEqual(normalized[0].tokens, []);
+
+  // When tokens array is empty, role support defaults to chain provider capability
+  assert.equal(
+    isTokenSupportedForRole(
+      normalized,
+      "source",
+      1,
+      "0x0000000000000000000000000000000000000000"
+    ),
+    true
+  );
+  assert.equal(
+    isTokenSupportedForRole(
+      normalized,
+      "destination",
+      1,
+      "0x0000000000000000000000000000000000000000"
+    ),
+    true
   );
 });
