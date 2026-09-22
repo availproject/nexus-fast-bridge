@@ -545,8 +545,14 @@ export const normalizeIntentQuote = (
         amount: "0",
         token: {
           contractAddress: "0x0000000000000000000000000000000000000000",
-          decimals: outputChain?.nativeCurrency.decimals ?? 18,
-          symbol: outputChain?.nativeCurrency.symbol ?? "",
+          decimals:
+            outputChain?.nativeCurrency?.decimals ??
+            CHAIN_METADATA[quote.output.chainId]?.nativeCurrency?.decimals ??
+            18,
+          symbol:
+            outputChain?.nativeCurrency?.symbol ??
+            CHAIN_METADATA[quote.output.chainId]?.nativeCurrency?.symbol ??
+            "",
         },
       },
     },
