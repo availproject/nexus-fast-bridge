@@ -262,3 +262,122 @@ test("normalizes supported chains without tokens (Better Intent on-demand tokens
     true
   );
 });
+
+test("normalizes USDC quote with correct 6 decimals even when chain catalog has no tokens", () => {
+  const quote = {
+    id: "0x1234",
+    provider: "nexus-v2",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 8453,
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        tokenSymbol: "USDC",
+        amountRaw: 2_000_000n,
+        amountUsd: "2.00",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 2_000_000n,
+        totalRequiredUsd: "2.00",
+      },
+    ],
+    output: {
+      chainId: 42_161,
+      tokenAddress: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+      amountRaw: 1_977_822n,
+      amountUsd: "1.98",
+      minAmountRaw: 1_970_000n,
+      minAmountUsd: "1.97",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 10_000n,
+      protocolUsd: "0.01",
+      solverRaw: 12_178n,
+      solverUsd: "0.01",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  // Chains passed without token catalog (as returned by getSupportedChains)
+  const chains = [
+    { id: 8453, name: "Base", logo: "", swapSupported: true, tokens: [] },
+    { id: 42_161, name: "Arbitrum", logo: "", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+
+  // Destination amount should format with 6 decimals (1.977822), NOT 18 decimals (0.000000000001977822)
+  assert.equal(normalized.destination.amount, "1.977822");
+  assert.equal(normalized.destination.minAmount, "1.97");
+  assert.equal(normalized.destination.token.decimals, 6);
+  assert.equal(normalized.destination.token.symbol, "USDC");
+
+  // Source amount should format with 6 decimals (2)
+  assert.equal(normalized.sources[0].amount, "2");
+  assert.equal(normalized.sources[0].token.decimals, 6);
+  assert.equal(normalized.sources[0].token.symbol, "USDC");
+
+  // Fees should also format with 6 decimals
+  assert.equal(normalized.feesAndBuffer.bridge.protocol, "0.01");
+  assert.equal(normalized.feesAndBuffer.bridge.solver, "0.012178");
+});
+
+test("normalizes Arc USDC quote with 18 decimals", () => {
+  const quote = {
+    id: "0x5678",
+    provider: "nexus-v2",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 8453,
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        tokenSymbol: "USDC",
+        amountRaw: 2_000_000n,
+        amountUsd: "2.00",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 2_000_000n,
+        totalRequiredUsd: "2.00",
+      },
+    ],
+    output: {
+      chainId: 5042,
+      tokenAddress: "0x0000000000000000000000000000000000000000",
+      amountRaw: 1_980_000_000_000_000_000n,
+      amountUsd: "1.98",
+      minAmountRaw: 1_970_000_000_000_000_000n,
+      minAmountUsd: "1.97",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  const chains = [
+    { id: 8453, name: "Base", logo: "", swapSupported: true, tokens: [] },
+    { id: 5042, name: "Arc", logo: "", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+  assert.equal(normalized.destination.amount, "1.98");
+  assert.equal(normalized.destination.token.decimals, 18);
+  assert.equal(normalized.destination.token.symbol, "USDC");
+});

@@ -2,6 +2,7 @@
 import {
   createNexusClient,
   type EthereumProvider,
+  type IntentBalance,
   type NexusClient,
   type NexusNetwork,
 } from "@avail-project/nexus-core";
@@ -14,6 +15,7 @@ import {
   type LegacyIntentHookData,
   normalizeIntentBalances,
   normalizeSupportedChains,
+  populateChainsWithTokens,
   type SupportedChainsAndTokensResult,
   type TokenBalance,
 } from "./better-intent-compat";
@@ -58,6 +60,35 @@ function getErrorCode(error: unknown, fallback: string): string | number {
     }
   }
   return fallback;
+}
+
+function parseCoinbaseRates(
+  rates: Record<string, string | number>
+): Record<string, number> {
+  const usdPerUnit: Record<string, number> = {};
+  for (const [symbol, value] of Object.entries(rates)) {
+    const unitsPerUsd = Number.parseFloat(String(value));
+    if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
+      usdPerUnit[normalizeTokenSymbol(symbol)] = 1 / unitsPerUsd;
+    }
+  }
+  return usdPerUnit;
+}
+
+function processSwapBalances(
+  rawBalances: IntentBalance[],
+  chains: SupportedChainsAndTokensResult | null,
+  normalizeFiat: (
+    assets: TokenBalance[] | null,
+    swapChains?: SdkChainListWithSwapSupport
+  ) => UserAsset[] | null
+): UserAsset[] | null {
+  const rawSwapBalance = normalizeIntentBalances(rawBalances, chains ?? []);
+  const filteredSwapBalance = filterUnsupportedSwapSources(
+    rawSwapBalance,
+    chains ?? []
+  );
+  return normalizeFiat(filteredSwapBalance, chains);
 }
 
 interface NexusContextType {
@@ -349,19 +380,29 @@ const NexusProvider = ({
     setSupportedChainsAndTokensState(list);
     setSwapSupportedChainsAndTokensState(swapList);
 
-    void getCoinbaseRates()
+    sdk
+      .getTokens({ limit: 1000 })
+      .then((tokenPage) => {
+        if (cancelled || !tokenPage?.tokens?.length || !list) {
+          return;
+        }
+        const enriched = populateChainsWithTokens(list, tokenPage.tokens);
+        supportedChainsAndTokens.current = enriched;
+        swapSupportedChainsAndTokens.current = enriched;
+        usdPeggedSymbols.current = buildUsdPeggedSymbolSet(enriched);
+        setSupportedChainsAndTokensState(enriched);
+        setSwapSupportedChainsAndTokensState(enriched);
+      })
+      .catch(() => {
+        // Ignored: known tokens and fallbacks provide metadata
+      });
+
+    getCoinbaseRates()
       .then((rates) => {
         if (cancelled) {
           return;
         }
-        const usdPerUnit: Record<string, number> = {};
-
-        for (const [symbol, value] of Object.entries(rates)) {
-          const unitsPerUsd = Number.parseFloat(String(value));
-          if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-            usdPerUnit[normalizeTokenSymbol(symbol)] = 1 / unitsPerUsd;
-          }
-        }
+        const usdPerUnit = parseCoinbaseRates(rates);
         exchangeRate.current = usdPerUnit;
         setExchangeRateState(usdPerUnit);
       })
@@ -492,9 +533,10 @@ const NexusProvider = ({
       swapSupportedChainsAndTokens.current = swapList ?? null;
       setSwapSupportedChainsAndTokensState(swapList ?? null);
 
-      const [bridgeAbleBalanceResult, swapBalanceResult, rates] =
+      const [tokensResult, bridgeAbleBalanceResult, swapBalanceResult, rates] =
         await withTimeout(
           Promise.allSettled([
+            activeSdk.getTokens({ limit: 1000 }).catch(() => null),
             Promise.resolve([]),
             activeSdk.getBalancesForSwap(),
             getCoinbaseRates(),
@@ -502,15 +544,25 @@ const NexusProvider = ({
           15_000
         );
 
-      if (rates?.status === "fulfilled") {
-        const usdPerUnit: Record<string, number> = {};
+      let currentList = list;
+      if (
+        tokensResult?.status === "fulfilled" &&
+        tokensResult.value?.tokens &&
+        currentList
+      ) {
+        currentList = populateChainsWithTokens(
+          currentList,
+          tokensResult.value.tokens
+        );
+        supportedChainsAndTokens.current = currentList;
+        swapSupportedChainsAndTokens.current = currentList;
+        usdPeggedSymbols.current = buildUsdPeggedSymbolSet(currentList);
+        setSupportedChainsAndTokensState(currentList);
+        setSwapSupportedChainsAndTokensState(currentList);
+      }
 
-        for (const [symbol, value] of Object.entries(rates.value)) {
-          const unitsPerUsd = Number.parseFloat(String(value));
-          if (Number.isFinite(unitsPerUsd) && unitsPerUsd > 0) {
-            usdPerUnit[normalizeTokenSymbol(symbol)] = 1 / unitsPerUsd;
-          }
-        }
+      if (rates?.status === "fulfilled") {
+        const usdPerUnit = parseCoinbaseRates(rates.value);
         exchangeRate.current = usdPerUnit;
         setExchangeRateState(usdPerUnit);
       }
@@ -518,27 +570,23 @@ const NexusProvider = ({
       if (bridgeAbleBalanceResult?.status === "fulfilled") {
         setBridgableBalance(
           normalizeUserAssetFiatValues(
-            normalizeIntentBalances(bridgeAbleBalanceResult.value, list)
+            normalizeIntentBalances(
+              bridgeAbleBalanceResult.value,
+              currentList ?? list
+            )
           )
         );
       }
 
       if (swapBalanceResult?.status === "fulfilled") {
-        const rawSwapBalance = normalizeIntentBalances(
+        const normalizedSwapBalance = processSwapBalances(
           swapBalanceResult.value,
-          swapList
-        );
-        const filteredSwapBalance = filterUnsupportedSwapSources(
-          rawSwapBalance,
-          swapList
-        );
-        const normalizedSwapBalance = normalizeUserAssetFiatValues(
-          filteredSwapBalance,
-          swapList
+          currentList ?? swapList,
+          normalizeUserAssetFiatValues
         );
         console.log(
           "[NexusProvider] getBalancesForSwap:init raw",
-          rawSwapBalance
+          swapBalanceResult.value
         );
         setSwapBalance(normalizedSwapBalance);
       } else {

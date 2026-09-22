@@ -13,6 +13,12 @@ import type {
 } from "@avail-project/nexus-core";
 import { formatUnits } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
+import {
+  CHAIN_METADATA,
+  SUPPORTED_CHAINS,
+  TOKEN_CONTRACT_ADDRESSES,
+  TOKEN_METADATA,
+} from "../common/utils/constant.ts";
 
 type SupportedChain = ReturnType<NexusClient["getSupportedChains"]>[number];
 export type SupportedToken = IntentToken & {
@@ -227,14 +233,105 @@ export type RawSupportedChainInput = SupportedChain & {
   tokens?: IntentToken[];
 };
 
-const tokenByAddress = (
+export interface KnownTokenInfo {
+  contractAddress: string;
+  decimals: number;
+  logo?: string;
+  name: string;
+  symbol: string;
+}
+
+export const findKnownToken = (
+  chainId: number | undefined,
+  address: string | undefined
+): KnownTokenInfo | undefined => {
+  if (!(chainId && address)) {
+    return undefined;
+  }
+
+  for (const [symbol, addressMap] of Object.entries(TOKEN_CONTRACT_ADDRESSES)) {
+    const knownAddress = addressMap[chainId];
+    if (knownAddress && sameAddress(knownAddress, address)) {
+      const meta = TOKEN_METADATA[symbol as keyof typeof TOKEN_METADATA];
+      const isArcUsdc = chainId === SUPPORTED_CHAINS.ARC && symbol === "USDC";
+      const decimals = isArcUsdc ? 18 : (meta?.decimals ?? 6);
+      return {
+        contractAddress: knownAddress,
+        decimals,
+        logo: meta?.logo,
+        name: meta?.name ?? symbol,
+        symbol,
+      };
+    }
+  }
+
+  if (
+    sameAddress(address, "0x0000000000000000000000000000000000000000") ||
+    sameAddress(address, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+  ) {
+    const chainMeta = CHAIN_METADATA[chainId];
+    if (chainMeta?.nativeCurrency) {
+      return {
+        contractAddress: address,
+        decimals: chainMeta.nativeCurrency.decimals ?? 18,
+        logo: chainMeta.logo,
+        name: chainMeta.nativeCurrency.name ?? chainMeta.nativeCurrency.symbol,
+        symbol: chainMeta.nativeCurrency.symbol,
+      };
+    }
+  }
+
+  return undefined;
+};
+
+export const tokenByAddress = (
   chains: SupportedChainsAndTokensResult,
   chainId: number,
   address: string
-) =>
+): SupportedToken | KnownTokenInfo | undefined =>
   chainById(chains, chainId)?.tokens?.find((token) =>
     sameAddress(token.contractAddress ?? token.address, address)
-  );
+  ) ?? findKnownToken(chainId, address);
+
+export const populateChainsWithTokens = (
+  chains: SupportedChainsAndTokensResult,
+  tokens: IntentToken[] | null | undefined
+): SupportedChainsAndTokensResult => {
+  if (!tokens || tokens.length === 0) {
+    return chains;
+  }
+  const tokensByChain = new Map<number, IntentToken[]>();
+  for (const token of tokens) {
+    const list = tokensByChain.get(token.chainId);
+    if (list) {
+      list.push(token);
+    } else {
+      tokensByChain.set(token.chainId, [token]);
+    }
+  }
+  return chains.map((chain) => {
+    const fetched = tokensByChain.get(chain.id);
+    if (!fetched || fetched.length === 0) {
+      return chain;
+    }
+    const existing = new Set(
+      chain.tokens.map((t) => (t.contractAddress ?? t.address).toLowerCase())
+    );
+    const merged = [...chain.tokens];
+    for (const token of fetched) {
+      if (!existing.has(token.address.toLowerCase())) {
+        merged.push({
+          ...token,
+          contractAddress: token.address,
+        });
+      }
+    }
+    return {
+      ...chain,
+      tokens: merged,
+    };
+  });
+};
 
 export const normalizeSupportedChains = (
   chains: RawSupportedChainInput[] | null | undefined
@@ -361,11 +458,29 @@ export const normalizeIntentQuote = (
     quote.output.chainId,
     quote.output.tokenAddress
   );
-  const outputDecimals = outputToken?.decimals ?? 18;
+  const inputSymbol = quote.input[0]?.tokenSymbol;
+  const knownInputMeta = inputSymbol
+    ? TOKEN_METADATA[inputSymbol as keyof typeof TOKEN_METADATA]
+    : undefined;
+  const isArcUsdcOutput =
+    quote.output.chainId === SUPPORTED_CHAINS.ARC &&
+    (outputToken?.symbol === "USDC" || inputSymbol === "USDC");
+  const outputDecimals =
+    outputToken?.decimals ??
+    (isArcUsdcOutput ? 18 : knownInputMeta?.decimals) ??
+    18;
   const sources = quote.input.map((entry, sourceIndex) => {
     const chain = chainById(chains, entry.chainId);
     const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
-    const decimals = token?.decimals ?? outputDecimals;
+    const knownMeta = entry.tokenSymbol
+      ? TOKEN_METADATA[entry.tokenSymbol as keyof typeof TOKEN_METADATA]
+      : undefined;
+    const isArcUsdcSource =
+      entry.chainId === SUPPORTED_CHAINS.ARC && entry.tokenSymbol === "USDC";
+    const decimals =
+      token?.decimals ??
+      (isArcUsdcSource ? 18 : knownMeta?.decimals) ??
+      outputDecimals;
     return {
       amount: formatUnits(entry.amountRaw, decimals),
       value: entry.amountUsd,
@@ -378,7 +493,7 @@ export const normalizeIntentQuote = (
       token: {
         contractAddress: entry.tokenAddress,
         decimals,
-        logo: token?.logo,
+        logo: token?.logo ?? knownMeta?.logo,
         symbol: entry.tokenSymbol,
       },
     };
@@ -423,8 +538,8 @@ export const normalizeIntentQuote = (
       token: {
         contractAddress: quote.output.tokenAddress,
         decimals: outputDecimals,
-        logo: outputToken?.logo,
-        symbol: outputToken?.symbol ?? "",
+        logo: outputToken?.logo ?? knownInputMeta?.logo,
+        symbol: outputToken?.symbol ?? inputSymbol ?? "",
       },
       gas: {
         amount: "0",
