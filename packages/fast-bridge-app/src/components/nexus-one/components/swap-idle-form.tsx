@@ -37,6 +37,7 @@ interface SwapIdleFormProps {
   isExpanded?: boolean;
   isLoadingBalances?: boolean;
   isMultiAssetMode?: boolean;
+  isPredictiveQuote?: boolean;
   isQuoteLoading?: boolean;
   isReceiveAmountLoading?: boolean;
   isReceiveUsdLoading?: boolean;
@@ -701,6 +702,7 @@ export function SwapIdleForm({
   onReverseTokens,
   showRestoreAuto = false,
   needsWalletConnection = false,
+  isPredictiveQuote = false,
   getTokenUsdRate,
 }: SwapIdleFormProps) {
   const [focusedPanel, setFocusedPanel] = useState<"send" | "receive" | null>(
@@ -1268,6 +1270,7 @@ export function SwapIdleForm({
     focusedPanel === "receive"
       ? receiveInputValue
       : formatAmountInputDisplay(receiveInputValue);
+  const isSkeletalText = Boolean(isPredictiveQuote && !needsWalletConnection);
   const receiveUsdRate = getReceiveUsdRate();
   const receiveTokenAmount = parseDecimal(receiveInputValue);
   const receiveUsdAmount = receiveQuoteUsd
@@ -1553,11 +1556,13 @@ export function SwapIdleForm({
     (hasReceiveAmount && hasReceiveToken && hasSendToken && hasSendAmount);
 
   const isFeesLoading = Boolean(
-    isQuoteLoading ||
-      isReceiveAmountLoading ||
-      isReceiveUsdLoading ||
-      sourceRouteStatus === "loading" ||
-      (isIntentActive && !intentData && !totalFeeUsd)
+    sourceRouteStatus !== "insufficient" &&
+      !sourceRouteMessage &&
+      (isQuoteLoading ||
+        isReceiveAmountLoading ||
+        isReceiveUsdLoading ||
+        sourceRouteStatus === "loading" ||
+        (isIntentActive && !intentData && !totalFeeUsd))
   );
 
   const isSourceRowAmountExceeded = (
@@ -1566,7 +1571,9 @@ export function SwapIdleForm({
   ): boolean => {
     const actualToken =
       token ??
-      (!isMultiAssetMode && fromTokens.length > 0 ? fromTokens[0] : null);
+      (!isMultiAssetMode && fromTokens.length > 0
+        ? fromTokens[0]
+        : (fromTokens[index] ?? null));
     if (!actualToken) return false;
     const rawInput =
       actualToken.userAmount ??
@@ -1576,16 +1583,16 @@ export function SwapIdleForm({
     if (!requested || requested.lte(0)) return false;
 
     if (actualToken.userAmountMode === "usd") {
-      const fiatBal = parseDecimal(actualToken.balanceInFiat);
-      return Boolean(fiatBal && requested.gt(fiatBal));
+      const fiatBal = parseDecimal(actualToken.balanceInFiat) ?? new Decimal(0);
+      return requested.gt(fiatBal);
     }
 
-    const tokenBal = parseDecimal(actualToken.balance);
-    return Boolean(tokenBal && requested.gt(tokenBal));
+    const tokenBal = parseDecimal(actualToken.balance) ?? new Decimal(0);
+    return requested.gt(tokenBal);
   };
 
   const warningMessage = React.useMemo(() => {
-    if (isQuoteLoading || isReceiveAmountLoading) {
+    if (needsWalletConnection) {
       return null;
     }
     const hasAnySourceAmountExceeded = sourceRowsToRender.some(
@@ -1611,8 +1618,7 @@ export function SwapIdleForm({
     }
     return null;
   }, [
-    isQuoteLoading,
-    isReceiveAmountLoading,
+    needsWalletConnection,
     sourceRowsToRender,
     amount,
     fromTokens,
@@ -1634,11 +1640,7 @@ export function SwapIdleForm({
     const isRowHovered = hoveredRow === index;
     const hasMoreThanThreeAssets = isMultiAssetMode && totalAssetCount > 3;
     const isAmountExceeded = isSourceRowAmountExceeded(token, index);
-    const isInputErrored =
-      !isQuoteLoading &&
-      !isReceiveAmountLoading &&
-      isAmountExceeded &&
-      focusedRow !== index;
+    const isInputErrored = !needsWalletConnection && isAmountExceeded;
 
     return (
       <div
@@ -2443,7 +2445,7 @@ export function SwapIdleForm({
         )}
 
         {/* Warning Container */}
-        {!(isQuoteLoading || isReceiveAmountLoading) &&
+        {!needsWalletConnection &&
           (warningMessage ||
             (missingUsd && parseDecimal(missingUsd)?.gt(0))) && (
             <div
@@ -2858,13 +2860,14 @@ export function SwapIdleForm({
               </div>
             ) : (
               <input
+                disabled={needsWalletConnection}
                 onBlur={() => setFocusedPanel(null)}
                 onChange={handleReceiveInput}
                 onFocus={() => setFocusedPanel("receive")}
                 placeholder={receiveAmountMode === "usd" ? "$0" : "0"}
                 style={{
                   boxSizing: "border-box",
-                  color: "#1F1F1F",
+                  color: isSkeletalText ? "#8E8E89" : "#1F1F1F",
                   fontFamily: '"Geist", system-ui, sans-serif',
                   fontSize: "clamp(22px, 5.5vw, 28px)",
                   fontStyle: "normal",
@@ -2873,11 +2876,22 @@ export function SwapIdleForm({
                   letterSpacing: "-0.28px",
                   background: "transparent",
                   border: "none",
-                  cursor: "text",
+                  cursor: needsWalletConnection ? "not-allowed" : "text",
                   outline: "none",
                   padding: 0,
                   width: "100%",
                   minWidth: 0,
+                  ...(isSkeletalText
+                    ? {
+                        backgroundImage:
+                          "linear-gradient(90deg, #8E8E89 0%, #D4D4D4 50%, #8E8E89 100%)",
+                        backgroundSize: "200% 100%",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        animation:
+                          "nexusSwapSkeletonShimmer 1.5s ease-in-out infinite",
+                      }
+                    : {}),
                 }}
                 type="text"
                 value={

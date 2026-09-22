@@ -3304,6 +3304,7 @@ function NexusOneInner({
         ? walletClientAddress
         : undefined;
   const historyStorageKey = getSwapHistoryStorageKey(ownerAddress);
+  const needsWalletConnection = !ownerAddress || !nexusSDK;
 
   // Global form state
   const [amount, setAmount] = useState("");
@@ -3350,6 +3351,12 @@ function NexusOneInner({
   const [swapType, setSwapType] = useState<SwapType>(() =>
     activeMode === "swap" && readSwapParam() === "out" ? "exactOut" : "exactIn"
   );
+
+  useEffect(() => {
+    if (needsWalletConnection && swapType !== "exactIn") {
+      setSwapType("exactIn");
+    }
+  }, [needsWalletConnection, swapType]);
   const isSwapExactOut = activeMode === "swap" && swapType === "exactOut";
   const isExactOutPaymentFlow =
     activeMode === "deposit" || activeMode === "send" || isSwapExactOut;
@@ -6950,7 +6957,9 @@ function NexusOneInner({
       cachePredictiveBaselineFromIntent(sortedIntent);
       setIntentData(sortedIntent);
       setIntentToAmount(sortedIntent.destination?.amount || undefined);
-      setSwapQuoteIssue(null);
+      if (!hasExactInSourceBalanceExceeded) {
+        setSwapQuoteIssue(null);
+      }
 
       if (
         isMultiAssetMode &&
@@ -9135,6 +9144,64 @@ function NexusOneInner({
     closeDrawerToIdle();
   };
 
+  const hasExactInSourceBalanceExceeded = useMemo(() => {
+    if (
+      activeMode !== "swap" &&
+      activeMode !== "send" &&
+      activeMode !== "deposit"
+    ) {
+      return false;
+    }
+    if (swapType !== "exactIn") return false;
+    if (fromTokens.length === 0) return false;
+
+    return fromTokens.some((token, index) => {
+      const raw =
+        token.userAmount || (!isMultiAssetMode && index === 0 ? amount : "");
+      if (!hasPositiveDecimalInput(raw)) return false;
+      const requested = parseFiatNumber(raw);
+      if (!requested || requested.lte(0)) return false;
+
+      return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
+    });
+  }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
+
+  const predictiveExactInQuote =
+    predictiveQuote?.mode === "exactIn" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
+      ? predictiveQuote
+      : null;
+  const predictiveExactOutQuote =
+    predictiveQuote?.mode === "exactOut" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
+      ? predictiveQuote
+      : null;
+
+  const insufficientSourceIssue = needsWalletConnection
+    ? null
+    : swapQuoteIssue?.type === "insufficientSources"
+      ? swapQuoteIssue
+      : hasExactInSourceBalanceExceeded
+        ? {
+            type: "insufficientSources" as const,
+            message:
+              "Cannot proceed with this swap due to insufficient balance on source",
+          }
+        : receiveAmountIssue?.type === "insufficientSources"
+          ? receiveAmountIssue
+          : predictiveExactOutQuote?.missingUsd &&
+              Number(predictiveExactOutQuote.missingUsd) > 0
+            ? {
+                type: "insufficientSources" as const,
+                message: !isMultiAssetMode
+                  ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
+                  : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
+                missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(
+                  2
+                ),
+              }
+            : null;
+
   /** Start swap flow — v2 SDK per-operation onIntent hooks populate preview. */
   const handleEnterPreview = async (options: { background?: boolean } = {}) => {
     const { background = false } = options;
@@ -9147,6 +9214,17 @@ function NexusOneInner({
       return;
     }
 
+    if (
+      !needsWalletConnection &&
+      (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
+      return;
+    }
+
     if (isExactOutFlow) {
       if (!hasPositiveDecimalInput(amount)) {
         return;
@@ -9156,15 +9234,6 @@ function NexusOneInner({
         setTxError(null);
         setSwapQuoteIssue(null);
       }
-      return;
-    }
-
-    if (!isExactOutFlow && hasExactInSourceBalanceExceeded && !background) {
-      clearPendingSwapIntent();
-      setSwapQuoteIssue({
-        type: "insufficientSources",
-        message: "Amount exceeds the usable source balance.",
-      });
       return;
     }
 
@@ -9188,7 +9257,9 @@ function NexusOneInner({
     }
 
     setTxError(null);
-    setSwapQuoteIssue(null);
+    if (!hasExactInSourceBalanceExceeded) {
+      setSwapQuoteIssue(null);
+    }
 
     if (
       !background &&
@@ -9660,10 +9731,7 @@ function NexusOneInner({
 
           if (cleanAmount.lte(0)) continue;
 
-          if (
-            !background &&
-            isAmountAboveUsableBalance(token, cleanAmount.toFixed())
-          ) {
+          if (isAmountAboveUsableBalance(token, cleanAmount.toFixed())) {
             throw new Error("Amount exceeds the usable source balance.");
           }
 
@@ -10683,14 +10751,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10746,8 +10820,11 @@ function NexusOneInner({
     fromTokensQuoteKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     recipientAddress,
     sourceSelectionRevision,
@@ -10770,14 +10847,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10834,8 +10917,11 @@ function NexusOneInner({
     depositQuoteAmountKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     sourceSelectionRevision,
     selectedOpportunityIdentity,
@@ -10857,14 +10943,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10914,8 +11006,11 @@ function NexusOneInner({
     activeQuoteInputKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     sourceSelectionRevision,
     swapStep,
@@ -11369,6 +11464,8 @@ function NexusOneInner({
         return;
       }
 
+      setSwapQuoteIssue(null);
+
       const receiveIssue = buildReceiveAmountIssue({
         inputAmount: sanitizedVal,
       });
@@ -11377,15 +11474,14 @@ function NexusOneInner({
         return;
       }
 
-      setSwapQuoteIssue(null);
       const shouldLoadQuote = Boolean(
         nexusSDK &&
           nextAmount?.gt(0) &&
           toToken &&
           (hasManualSourceSelection ||
             (immediatePrediction?.sources &&
-              immediatePrediction.sources.length > 0 &&
-              !immediatePrediction.missingUsd))
+              immediatePrediction.sources.length > 0) ||
+            fromTokens.length > 0)
       );
       clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
       if (shouldLoadQuote) {
@@ -11420,6 +11516,21 @@ function NexusOneInner({
             }))
           );
         }
+        return;
+      }
+
+      const isBalanceExceeded = fromTokens.some((token, index) => {
+        const raw =
+          token.userAmount ||
+          (!isMultiAssetMode && index === 0 ? sanitizedVal : "");
+        if (!hasPositiveDecimalInput(raw)) return false;
+        return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
+      });
+      if (isBalanceExceeded) {
+        clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+        setQuoteRefreshing(false);
+        setIntentLoading(false);
+        setReceiveMaxCalculating(false);
         return;
       }
 
@@ -11833,62 +11944,6 @@ function NexusOneInner({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-  const predictiveExactInQuote =
-    predictiveQuote?.mode === "exactIn" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
-      ? predictiveQuote
-      : null;
-  const predictiveExactOutQuote =
-    predictiveQuote?.mode === "exactOut" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
-      ? predictiveQuote
-      : null;
-
-  const hasExactInSourceBalanceExceeded = useMemo(() => {
-    if (
-      activeMode !== "swap" &&
-      activeMode !== "send" &&
-      activeMode !== "deposit"
-    ) {
-      return false;
-    }
-    if (swapType !== "exactIn") return false;
-    if (fromTokens.length === 0) return false;
-
-    return fromTokens.some((token, index) => {
-      const raw =
-        token.userAmount || (!isMultiAssetMode && index === 0 ? amount : "");
-      if (!hasPositiveDecimalInput(raw)) return false;
-      const requested = parseFiatNumber(raw);
-      if (!requested || requested.lte(0)) return false;
-
-      return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
-    });
-  }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
-
-  const insufficientSourceIssue =
-    swapQuoteIssue?.type === "insufficientSources"
-      ? swapQuoteIssue
-      : hasExactInSourceBalanceExceeded
-        ? {
-            type: "insufficientSources" as const,
-            message:
-              "Cannot proceed with this swap due to insufficient balance on source",
-          }
-        : receiveAmountIssue?.type === "insufficientSources"
-          ? receiveAmountIssue
-          : predictiveExactOutQuote?.missingUsd &&
-              Number(predictiveExactOutQuote.missingUsd) > 0
-            ? {
-                type: "insufficientSources" as const,
-                message: !isMultiAssetMode
-                  ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
-                  : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
-                missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(
-                  2
-                ),
-              }
-            : null;
   const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
@@ -11947,8 +12002,6 @@ function NexusOneInner({
   }, [nexusLoading, swapBalance, nexusInitError, ownerAddress]);
 
   const effectiveNexusInitError = nexusInitError || localInitError;
-
-  const needsWalletConnection = !ownerAddress || !nexusSDK;
   const isBalancesLoading =
     !needsWalletConnection &&
     (nexusLoading ||
@@ -12169,13 +12222,17 @@ function NexusOneInner({
   }, [needsWalletConnection, amount, toToken, fromTokens, getTokenUsdRate]);
 
   const idleReceiveQuoteAmount = needsWalletConnection
-    ? predictiveDisconnectedReceiveQuote?.toAmount
+    ? swapType === "exactIn"
+      ? predictiveDisconnectedReceiveQuote?.toAmount
+      : undefined
     : activeMode === "swap" && swapType === "exactIn"
       ? (intentToAmount ?? predictiveExactInQuote?.toAmount)
       : undefined;
 
   const idleReceiveQuoteUsd = needsWalletConnection
-    ? predictiveDisconnectedReceiveQuote?.toUsd
+    ? swapType === "exactIn"
+      ? predictiveDisconnectedReceiveQuote?.toUsd
+      : undefined
     : activeMode === "swap" && swapType === "exactIn"
       ? (previewToAmountUsd ?? predictiveExactInQuote?.toUsd)
       : previewToAmountUsd;
@@ -12423,27 +12480,47 @@ function NexusOneInner({
     predictiveExactOutQuote?.toUsd ??
     (sendAmountUsd > 0 ? sendAmountUsd.toFixed(2) : "0");
   const isIdleSwapQuoteLoading =
-    activeMode === "swap" &&
-    swapStep === "idle" &&
-    (quoteRefreshing || intentLoading);
+    !needsWalletConnection &&
+    (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+      ? false
+      : activeMode === "swap" &&
+        swapStep === "idle" &&
+        (quoteRefreshing || intentLoading);
+  const isPredictiveQuote = Boolean(
+    !needsWalletConnection &&
+      !hasExactInSourceBalanceExceeded &&
+      !insufficientSourceIssue &&
+      activeMode === "swap" &&
+      swapType === "exactIn" &&
+      (isIdleSwapQuoteLoading || quoteRefreshing || intentLoading) &&
+      idleReceiveQuoteAmount &&
+      !intentToAmount
+  );
   const isReceiveAmountLoading =
     !needsWalletConnection &&
+    !hasExactInSourceBalanceExceeded &&
+    !insufficientSourceIssue &&
     (receiveMaxCalculating ||
       (isIdleSwapQuoteLoading &&
         swapType === "exactIn" &&
         !idleReceiveQuoteAmount));
   const isReceiveUsdLoading =
     !needsWalletConnection &&
+    !hasExactInSourceBalanceExceeded &&
+    !insufficientSourceIssue &&
     (receiveMaxCalculating ||
       (isIdleSwapQuoteLoading &&
         swapType === "exactIn" &&
         !idleReceiveQuoteUsd));
   const hasQuoteRefreshCountdown =
-    (activeMode === "swap" ||
-      activeMode === "deposit" ||
-      activeMode === "send") &&
-    (hasCurrentQuoteIntent || quoteRefreshing || previewQuoteRefreshing) &&
-    (swapStep === "idle" || swapStep === "preview-intent");
+    !needsWalletConnection &&
+    (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+      ? false
+      : (activeMode === "swap" ||
+          activeMode === "deposit" ||
+          activeMode === "send") &&
+        (hasCurrentQuoteIntent || quoteRefreshing || previewQuoteRefreshing) &&
+        (swapStep === "idle" || swapStep === "preview-intent");
   const isRecipientDrawerClosing = closingDrawerStep === "enter-recipient";
   const isSwapAssetDrawerClosing = closingDrawerStep === "choose-swap-asset";
   const isReceiveAssetDrawerClosing =
@@ -13012,6 +13089,7 @@ function NexusOneInner({
                   intentData={intentData}
                   isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
+                  isPredictiveQuote={isPredictiveQuote}
                   isQuoteLoading={isIdleSwapQuoteLoading}
                   isReceiveAmountLoading={isReceiveAmountLoading}
                   isReceiveUsdLoading={isReceiveUsdLoading}

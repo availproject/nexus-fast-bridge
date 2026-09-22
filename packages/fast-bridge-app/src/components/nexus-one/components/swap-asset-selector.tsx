@@ -36,7 +36,6 @@ import {
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
 import type { SupportedChainsAndTokensResult } from "../../nexus/better-intent-compat";
-import { isTokenSupportedForRole } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   ARC_CHAIN_ID,
@@ -1327,17 +1326,7 @@ export function SwapAssetSelector({
       }
     }
 
-    const baseTokens = Array.from(mergedMap.values()).map((token) => ({
-      ...token,
-      disabledReason: isTokenSupportedForRole(
-        swapSupportedChains,
-        "source",
-        token.chainId,
-        token.contractAddress
-      )
-        ? undefined
-        : "Unavailable for this destination",
-    }));
+    const baseTokens = Array.from(mergedMap.values());
 
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
       return sortTokensWithBalancesFirst(baseTokens);
@@ -1857,8 +1846,7 @@ export function SwapAssetSelector({
 
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
-    const disabled =
-      isDisabledByUnified || locked || Boolean(token.disabledReason);
+    const disabled = isDisabledByUnified || locked;
     const handleTokenSelection = () => {
       if (disabled) return;
       if (isMulti) {
