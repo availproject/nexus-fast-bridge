@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import React, {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -40,8 +41,8 @@ import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
-  isArcErc20Usdc,
-  isArcExcludedToken,
+  isArcNativeUsdc,
+  isArcUnsupportedErc20Usdc,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -93,6 +94,7 @@ export interface SwapTokenOption {
   logo?: string;
   name: string;
   priceUSD?: number | string;
+  providers?: readonly string[];
   selectedPct?: number | null;
   sourceTokens?: SwapTokenOption[];
   symbol: string;
@@ -146,9 +148,6 @@ export function deriveTokenOptions(
       if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
         continue;
       }
-      if (isArcExcludedToken(bd.contractAddress)) {
-        continue;
-      }
       if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
       const isArc =
         bd.chain?.id === SUPPORTED_CHAINS.ARC || bd.chain?.id === ARC_CHAIN_ID;
@@ -156,7 +155,7 @@ export function deriveTokenOptions(
       if (
         isArc &&
         isArcUsdc &&
-        isArcErc20Usdc({
+        isArcUnsupportedErc20Usdc({
           chainId: bd.chain?.id,
           symbol: bd.symbol ?? asset.symbol,
           contractAddress: bd.contractAddress,
@@ -171,15 +170,19 @@ export function deriveTokenOptions(
         (bd as any).priceUSD ??
         (bd as any).priceUsd ??
         (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
-      const contractAddress =
-        isArc && isArcUsdc ? ZERO_ADDRESS : bd.contractAddress;
+      const contractAddress = bd.contractAddress;
       tokens.push({
         contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
-        decimals:
-          isArc && isArcUsdc ? 18 : (bd.decimals ?? asset.decimals ?? 18),
+        decimals: isArcNativeUsdc({
+          chainId: bd.chain?.id,
+          symbol: bd.symbol ?? asset.symbol,
+          contractAddress: bd.contractAddress,
+        })
+          ? 18
+          : (bd.decimals ?? asset.decimals ?? 18),
         ...toTokenOptionBalances(bd),
         hasBalance: true,
         priceUSD: priceUsd > 0 ? priceUsd : 0,
@@ -659,12 +662,12 @@ const STABLE_SYMBOL_KEYS = new Set(
 );
 
 const isStableToken = (token: SwapTokenOption) =>
-  !(token.chainId === ARC_CHAIN_ID && token.symbol.toUpperCase() === "USDC") &&
+  !isArcNativeUsdc(token) &&
   STABLE_SYMBOL_KEYS.has(normalizeTokenGroupSymbol(token.symbol));
 
 function isNativeToken(t: SwapTokenOption) {
   if (isNativeLikeAddress(t.contractAddress)) return true;
-  if (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC") {
+  if (isArcNativeUsdc(t)) {
     return true;
   }
 
@@ -1156,6 +1159,7 @@ export function SwapAssetSelector({
   const chainCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const normalizedInitialFilterTab =
     hideCustomTab && initialFilterTab === "custom" ? "all" : initialFilterTab;
   const [activeTab, setActiveTab] = useState<FilterTab>(
@@ -1264,13 +1268,14 @@ export function SwapAssetSelector({
     );
   }, [normalizedInitialFilterTab]);
 
-  const allTokens = useMemo<SwapTokenOption[]>(() => {
+  // Catalog merge: only re-runs when balance data or static options change.
+  // Intentionally does NOT depend on activeSelectedTokens so that token
+  // toggles in multi-mode don't rebuild the full merge map (O(N)).
+  const allTokensCatalog = useMemo<SwapTokenOption[]>(() => {
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
-
-    const isAllowedArcToken = (token: SwapTokenOption) => {
-      return !isArcErc20Usdc(token);
-    };
+    const isAllowedArcToken = (token: SwapTokenOption) =>
+      !isArcUnsupportedErc20Usdc(token);
 
     const catalog = (staticOptions ?? []).filter(
       (t) => isSwapSupportedToken(t) && isAllowedArcToken(t)
@@ -1282,7 +1287,6 @@ export function SwapAssetSelector({
 
     const userBalanceMap = new Map<string, SwapTokenOption>();
     for (const u of userTokenOptions) {
-      if (isArcExcludedToken(u.contractAddress)) continue;
       if (!isAllowedArcToken(u)) continue;
       const key = `${u.chainId ?? 0}-${normalizeTokenAddress(u.contractAddress)}`;
       userBalanceMap.set(key, u);
@@ -1292,7 +1296,6 @@ export function SwapAssetSelector({
     const seenUserKeys = new Set<string>();
 
     for (const c of catalog) {
-      if (isArcExcludedToken(c.contractAddress)) continue;
       if (isExcludedToken(c)) continue;
       if (!isAllowedArcToken(c)) continue;
 
@@ -1326,13 +1329,22 @@ export function SwapAssetSelector({
       }
     }
 
-    const baseTokens = Array.from(mergedMap.values());
+    return sortTokensWithBalancesFirst(Array.from(mergedMap.values()));
+  }, [isExcludedToken, staticOptions, swapBalance, swapSupportedChains]);
 
+  // Injects below-minimum selected tokens on top of the catalog.
+  // Only re-runs when selections change (not when balance data changes).
+  const allTokens = useMemo<SwapTokenOption[]>(() => {
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
-      return sortTokensWithBalancesFirst(baseTokens);
+      return allTokensCatalog;
     }
 
-    const merged = [...baseTokens];
+    const isSwapSupportedToken = (token: SwapTokenOption) =>
+      isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
+    const isAllowedArcToken = (token: SwapTokenOption) =>
+      !isArcUnsupportedErc20Usdc(token);
+
+    const merged = [...allTokensCatalog];
     const selectedSourceTokens = [
       ...activeSelectedTokens,
       ...lockedSelectedTokens,
@@ -1344,7 +1356,6 @@ export function SwapAssetSelector({
 
     for (const selectedToken of selectedSourceTokens) {
       if (isExcludedToken(selectedToken)) continue;
-      if (isArcExcludedToken(selectedToken.contractAddress)) continue;
       if (!isAllowedArcToken(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
@@ -1356,12 +1367,11 @@ export function SwapAssetSelector({
 
     return sortTokensWithBalancesFirst(merged.filter(isSwapSupportedToken));
   }, [
+    allTokensCatalog,
     isExcludedToken,
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
     activeSelectedTokens,
-    staticOptions,
-    swapBalance,
     swapSupportedChains,
   ]);
 
@@ -1446,23 +1456,64 @@ export function SwapAssetSelector({
 
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
-    let result = allTokens.filter(
-      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
-    );
+    let result = allTokens.filter((t) => !isArcUnsupportedErc20Usdc(t));
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
     }
-    if (query.trim()) {
+    if (deferredQuery.trim()) {
+      // Pre-compute search ranks once per token to avoid O(N log N) redundant
+      // calls to getTokenSearchRank inside the sort comparator.
+      const rankCache = new Map(
+        result.map((t) => [t, getTokenSearchRank(t, deferredQuery)] as const)
+      );
       result = result
-        .filter((t) => getTokenSearchRank(t, query) !== null)
-        .sort((a, b) => compareTokensBySearch(a, b, query));
+        .filter((t) => rankCache.get(t) !== null)
+        .sort((a, b) => {
+          const aRank = rankCache.get(a);
+          const bRank = rankCache.get(b);
+          const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
+          const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
+          if (aScore !== bScore) return aScore - bScore;
+
+          const aMatched = aRank?.matchedTerms ?? 0;
+          const bMatched = bRank?.matchedTerms ?? 0;
+          if (aMatched !== bMatched) return bMatched - aMatched;
+
+          const aHasBalance = tokenHasBalance(a);
+          const bHasBalance = tokenHasBalance(b);
+          if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
+
+          const aFiat = getTokenFiatValue(a);
+          const bFiat = getTokenFiatValue(b);
+          if (aFiat !== bFiat) return bFiat - aFiat;
+
+          const aBalance =
+            parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+          const bBalance =
+            parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+          const balanceDelta = bBalance.cmp(aBalance);
+          if (balanceDelta !== 0) return balanceDelta;
+
+          const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+          if (chainDelta !== 0) return chainDelta;
+
+          return `${a.symbol} ${a.chainName}`.localeCompare(
+            `${b.symbol} ${b.chainName}`
+          );
+        });
     }
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables") result = result.filter(isStableToken);
     else if (activeTab === "custom" && !autoSelectFilterTabs)
       result = result.filter((t) => !isNativeToken(t) && !isStableToken(t));
     return result;
-  }, [activeTab, allTokens, autoSelectFilterTabs, query, selectedChainFilter]);
+  }, [
+    activeTab,
+    allTokens,
+    autoSelectFilterTabs,
+    deferredQuery,
+    selectedChainFilter,
+  ]);
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
@@ -1506,13 +1557,18 @@ export function SwapAssetSelector({
         showBelowMinimumInline ||
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
-        isPrioritySearchMatch(t, query)
+        isPrioritySearchMatch(t, deferredQuery)
       )
         above.push(t);
       else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
-  }, [filtered, isTokenSelectedForVisibility, query, showBelowMinimumInline]);
+  }, [
+    deferredQuery,
+    filtered,
+    isTokenSelectedForVisibility,
+    showBelowMinimumInline,
+  ]);
 
   /* Group by symbol */
   const groupedFiltered = useMemo(() => {
@@ -1531,7 +1587,7 @@ export function SwapAssetSelector({
       if (!groups[key]) groups[key] = [];
       groups[key].push(token);
     }
-    return Object.values(groups)
+    const mappedGroups = Object.values(groups)
       .map((group) => {
         const sortedGroup = sortTokensByUsdBalance(group);
         let totalFiatVal = 0;
@@ -1577,7 +1633,7 @@ export function SwapAssetSelector({
         );
         const hasSelectedUnified = isUnifiedSelectedForVisibility(group.symbol);
         const hasPrioritySearchMatch = group.tokens.some((token) =>
-          isPrioritySearchMatch(token, query)
+          isPrioritySearchMatch(token, deferredQuery)
         );
         if (showBelowMinimumInline) {
           return true;
@@ -1594,56 +1650,62 @@ export function SwapAssetSelector({
           (token) =>
             getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
             isTokenSelectedForVisibility(token) ||
-            isPrioritySearchMatch(token, query)
+            isPrioritySearchMatch(token, deferredQuery)
         );
-      })
-      .sort((a, b) => {
-        if (query.trim()) {
-          const aScore = Math.min(
-            ...a.tokens.map(
-              (token) =>
-                getTokenSearchRank(token, query)?.score ??
-                Number.MAX_SAFE_INTEGER
-            )
-          );
-          const bScore = Math.min(
-            ...b.tokens.map(
-              (token) =>
-                getTokenSearchRank(token, query)?.score ??
-                Number.MAX_SAFE_INTEGER
-            )
-          );
-          if (aScore !== bScore) return aScore - bScore;
-        }
-        const aHasBal = a.totalFiat > 0 || a.totalBalRaw > 0;
-        const bHasBal = b.totalFiat > 0 || b.totalBalRaw > 0;
-        if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
-        if (aHasBal && bHasBal) {
-          const fiatDelta = b.totalFiat - a.totalFiat;
-          if (fiatDelta !== 0) return fiatDelta;
-          if (b.totalBalRaw !== a.totalBalRaw)
-            return b.totalBalRaw - a.totalBalRaw;
-        }
-        const aFirstToken = a.tokens[0];
-        const bFirstToken = b.tokens[0];
-        const chainDelta = compareChainsBySwapDisplayOrder(
-          aFirstToken,
-          bFirstToken
-        );
-        if (chainDelta !== 0) return chainDelta;
-        return a.symbol.localeCompare(b.symbol);
       });
+
+    // Pre-compute per-group search scores to avoid O(N log N) redundant
+    // getTokenSearchRank calls inside the sort comparator.
+    const groupSearchScoreCache = deferredQuery.trim()
+      ? new Map(
+          mappedGroups.map((g) => [
+            g,
+            Math.min(
+              ...g.tokens.map(
+                (t) =>
+                  getTokenSearchRank(t, deferredQuery)?.score ??
+                  Number.MAX_SAFE_INTEGER
+              )
+            ),
+          ])
+        )
+      : null;
+
+    return mappedGroups.sort((a, b) => {
+      if (deferredQuery.trim() && groupSearchScoreCache) {
+        const aScore = groupSearchScoreCache.get(a) ?? Number.MAX_SAFE_INTEGER;
+        const bScore = groupSearchScoreCache.get(b) ?? Number.MAX_SAFE_INTEGER;
+        if (aScore !== bScore) return aScore - bScore;
+      }
+      const aHasBal = a.totalFiat > 0 || a.totalBalRaw > 0;
+      const bHasBal = b.totalFiat > 0 || b.totalBalRaw > 0;
+      if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
+      if (aHasBal && bHasBal) {
+        const fiatDelta = b.totalFiat - a.totalFiat;
+        if (fiatDelta !== 0) return fiatDelta;
+        if (b.totalBalRaw !== a.totalBalRaw)
+          return b.totalBalRaw - a.totalBalRaw;
+      }
+      const aFirstToken = a.tokens[0];
+      const bFirstToken = b.tokens[0];
+      const chainDelta = compareChainsBySwapDisplayOrder(
+        aFirstToken,
+        bFirstToken
+      );
+      if (chainDelta !== 0) return chainDelta;
+      return a.symbol.localeCompare(b.symbol);
+    });
   }, [
     filtered,
     allowUnified,
     isTokenSelectedForVisibility,
     isUnifiedSelectedForVisibility,
-    query,
+    deferredQuery,
     showBelowMinimumInline,
   ]);
 
-  const INITIAL_BATCH_SIZE = 40;
-  const BATCH_INCREMENT = 40;
+  const INITIAL_BATCH_SIZE = 15;
+  const BATCH_INCREMENT = 25;
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
 
   useEffect(() => {
@@ -1651,7 +1713,7 @@ export function SwapAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, [query, activeTab, selectedChainFilter]);
+  }, [deferredQuery, activeTab, selectedChainFilter]);
 
   // Progressive background batch rendering without blocking the UI
   useEffect(() => {
@@ -2136,7 +2198,7 @@ export function SwapAssetSelector({
         showBelowMinimumInline ||
         getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(token) ||
-        isPrioritySearchMatch(token, query)
+        isPrioritySearchMatch(token, deferredQuery)
     );
 
   const getUnifiedGroupDisplayState = (group: (typeof groupedFiltered)[0]) => {
@@ -2440,107 +2502,129 @@ export function SwapAssetSelector({
         token: SwapTokenOption;
       };
 
-  const visibleAssetRows = isMulti
-    ? []
-    : groupedFiltered
-        .flatMap<VisibleAssetRow>((group) => {
-          if (!group.isUnifiedCandidate) {
-            return getVisibleIndividualTokens(group).map((token) => ({
-              key: `token-${token.contractAddress}-${token.chainId}`,
-              kind: "token",
-              sortFiat: getTokenFiatValue(token),
-              sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
-              token,
-            }));
-          }
+  const visibleAssetRows = useMemo(() => {
+    if (isMulti) return [] as VisibleAssetRow[];
+    const rows = groupedFiltered.flatMap<VisibleAssetRow>((group) => {
+      if (!group.isUnifiedCandidate) {
+        return getVisibleIndividualTokens(group).map((token) => ({
+          key: `token-${token.contractAddress}-${token.chainId}`,
+          kind: "token" as const,
+          sortFiat: getTokenFiatValue(token),
+          sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
+          token,
+        }));
+      }
 
-          const groupState = getUnifiedGroupDisplayState(group);
-          if (!groupState.hasVisibleRows) return [];
+      const groupState = getUnifiedGroupDisplayState(group);
+      if (!groupState.hasVisibleRows) return [] as VisibleAssetRow[];
 
-          const rows: VisibleAssetRow[] = [];
-          if (!groupState.shouldHideUnifiedRow) {
-            rows.push({
-              group,
-              key: `unified-${group.symbol}`,
-              kind: "group",
-              sortFiat: group.totalFiat,
-              sortLabel: `${group.symbol} Unified`,
-            });
-          }
-          if (!groupState.shouldHideIndividualRows) {
-            for (const token of groupState.individualTokens) {
-              rows.push({
-                key: `token-${token.contractAddress}-${token.chainId}`,
-                kind: "token",
-                sortFiat: getTokenFiatValue(token),
-                sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
-                token,
-              });
-            }
-          }
-          return rows;
-        })
-        .sort((a, b) => {
-          if (query.trim()) {
-            const getRowSearchScore = (row: VisibleAssetRow) => {
-              if (row.kind === "token") {
-                return (
-                  getTokenSearchRank(row.token, query)?.score ??
-                  Number.MAX_SAFE_INTEGER
-                );
-              }
-              return Math.min(
-                ...row.group.tokens.map(
-                  (token) =>
-                    getTokenSearchRank(token, query)?.score ??
-                    Number.MAX_SAFE_INTEGER
-                )
-              );
-            };
-            const scoreDelta = getRowSearchScore(a) - getRowSearchScore(b);
-            if (scoreDelta !== 0) return scoreDelta;
-          }
-          const aHasBal =
-            a.sortFiat > 0 ||
-            (a.kind === "token"
-              ? tokenHasBalance(a.token)
-              : a.group.totalFiat > 0 || a.group.totalBalRaw > 0);
-          const bHasBal =
-            b.sortFiat > 0 ||
-            (b.kind === "token"
-              ? tokenHasBalance(b.token)
-              : b.group.totalFiat > 0 || b.group.totalBalRaw > 0);
-          if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
-          if (a.sortFiat !== b.sortFiat) return b.sortFiat - a.sortFiat;
-          const aToken = a.kind === "token" ? a.token : a.group.tokens[0];
-          const bToken = b.kind === "token" ? b.token : b.group.tokens[0];
-          const chainDelta = compareChainsBySwapDisplayOrder(aToken, bToken);
-          if (chainDelta !== 0) return chainDelta;
-          return a.sortLabel.localeCompare(b.sortLabel);
+      const groupRows: VisibleAssetRow[] = [];
+      if (!groupState.shouldHideUnifiedRow) {
+        groupRows.push({
+          group,
+          key: `unified-${group.symbol}`,
+          kind: "group",
+          sortFiat: group.totalFiat,
+          sortLabel: `${group.symbol} Unified`,
         });
+      }
+      if (!groupState.shouldHideIndividualRows) {
+        for (const token of groupState.individualTokens) {
+          groupRows.push({
+            key: `token-${token.contractAddress}-${token.chainId}`,
+            kind: "token",
+            sortFiat: getTokenFiatValue(token),
+            sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
+            token,
+          });
+        }
+      }
+      return groupRows;
+    });
+
+    // Pre-compute search scores per row so the sort comparator avoids
+    // O(N log N) redundant getTokenSearchRank calls.
+    const rowScoreCache = deferredQuery.trim()
+      ? new Map(
+          rows.map((row) => [
+            row.key,
+            row.kind === "token"
+              ? (getTokenSearchRank(row.token, deferredQuery)?.score ??
+                Number.MAX_SAFE_INTEGER)
+              : Math.min(
+                  ...row.group.tokens.map(
+                    (t) =>
+                      getTokenSearchRank(t, deferredQuery)?.score ??
+                      Number.MAX_SAFE_INTEGER
+                  )
+                ),
+          ])
+        )
+      : null;
+
+    return rows.sort((a, b) => {
+      if (deferredQuery.trim() && rowScoreCache) {
+        const scoreDelta =
+          (rowScoreCache.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+          (rowScoreCache.get(b.key) ?? Number.MAX_SAFE_INTEGER);
+        if (scoreDelta !== 0) return scoreDelta;
+      }
+      const aHasBal =
+        a.sortFiat > 0 ||
+        (a.kind === "token"
+          ? tokenHasBalance(a.token)
+          : a.group.totalFiat > 0 || a.group.totalBalRaw > 0);
+      const bHasBal =
+        b.sortFiat > 0 ||
+        (b.kind === "token"
+          ? tokenHasBalance(b.token)
+          : b.group.totalFiat > 0 || b.group.totalBalRaw > 0);
+      if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
+      if (a.sortFiat !== b.sortFiat) return b.sortFiat - a.sortFiat;
+      const aToken = a.kind === "token" ? a.token : a.group.tokens[0];
+      const bToken = b.kind === "token" ? b.token : b.group.tokens[0];
+      const chainDelta = compareChainsBySwapDisplayOrder(aToken, bToken);
+      if (chainDelta !== 0) return chainDelta;
+      return a.sortLabel.localeCompare(b.sortLabel);
+    });
+  }, [
+    isMulti,
+    groupedFiltered,
+    deferredQuery,
+    activeSelectedTokens,
+    editingAssetIndex,
+    allowSelectedTokenRemoval,
+    showBelowMinimumInline,
+    preserveSelectedBelowMinimum,
+    lockedSelectedTokens,
+  ]);
 
   const isLoading = !staticOptions && swapBalance === null;
   const selectedAssetCount = activeSelectedTokens.length;
   const requiredUsdAmount = parseTokenAmount(requiredUsd);
-  const shouldCountSelectedUsd = (token: SwapTokenOption, value: Decimal) =>
-    value.gt(0) &&
-    (lockedSelectedTokens.some((locked) => sameTokenOption(locked, token)) ||
-      value.gte(MIN_FIAT_THRESHOLD));
-  const selectedUsdAmount = activeSelectedTokens.reduce((sum, token) => {
-    if (token.isUnified && token.sourceTokens?.length) {
-      return sum.plus(
-        token.sourceTokens.reduce((sourceSum, source) => {
-          const value =
-            parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
-          return shouldCountSelectedUsd(source, value)
-            ? sourceSum.plus(value)
-            : sourceSum;
-        }, new Decimal(0))
-      );
-    }
-    const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
-    return shouldCountSelectedUsd(token, value) ? sum.plus(value) : sum;
-  }, new Decimal(0));
+  const selectedUsdAmount = useMemo(
+    () =>
+      activeSelectedTokens.reduce((sum, token) => {
+        const countToken = (t: SwapTokenOption, value: Decimal) =>
+          value.gt(0) &&
+          (lockedSelectedTokens.some((locked) => sameTokenOption(locked, t)) ||
+            value.gte(MIN_FIAT_THRESHOLD));
+        if (token.isUnified && token.sourceTokens?.length) {
+          return sum.plus(
+            token.sourceTokens.reduce((sourceSum, source) => {
+              const value =
+                parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
+              return countToken(source, value)
+                ? sourceSum.plus(value)
+                : sourceSum;
+            }, new Decimal(0))
+          );
+        }
+        const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
+        return countToken(token, value) ? sum.plus(value) : sum;
+      }, new Decimal(0)),
+    [activeSelectedTokens, lockedSelectedTokens]
+  );
   const selectionDeficitUsdAmount =
     requiredUsdAmount && selectedUsdAmount.lt(requiredUsdAmount)
       ? requiredUsdAmount.minus(selectedUsdAmount)
@@ -3919,58 +4003,52 @@ export function SwapAssetSelector({
                     </button>
 
                     {/* Unique chains */}
-                    {chainOptions
-                      .filter((t) =>
-                        (t.chainName || "")
-                          .toLowerCase()
-                          .includes(chainQuery.toLowerCase())
-                      )
-                      .map((t) => (
-                        <button
-                          key={`chain-${t.chainId}`}
-                          onClick={() => {
-                            setSelectedChainFilter(t.chainId!);
-                            closeChainSelector();
-                          }}
+                    {filteredChainOptions.map((t) => (
+                      <button
+                        key={`chain-${t.chainId}`}
+                        onClick={() => {
+                          setSelectedChainFilter(t.chainId!);
+                          closeChainSelector();
+                        }}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 14px",
+                          backgroundColor: "transparent",
+                          border: "none",
+                          borderBottom: "1px solid #F0F0EF",
+                          cursor: "pointer",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <RadioDot
+                          selected={selectedChainFilter === t.chainId}
+                        />
+                        <img
+                          alt={t.chainName}
+                          src={t.chainLogo}
                           style={{
-                            width: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "8px 14px",
-                            backgroundColor: "transparent",
-                            border: "none",
-                            borderBottom: "1px solid #F0F0EF",
-                            cursor: "pointer",
-                            boxSizing: "border-box",
+                            marginLeft: 10,
+                            width: 28,
+                            height: 28,
+                            borderRadius: "999px",
+                            objectFit: "cover",
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontFamily: '"Geist", system-ui, sans-serif',
+                            fontSize: 14,
+                            fontWeight: 500,
+                            marginLeft: 10,
+                            color: "#161615",
                           }}
                         >
-                          <RadioDot
-                            selected={selectedChainFilter === t.chainId}
-                          />
-                          <img
-                            alt={t.chainName}
-                            src={t.chainLogo}
-                            style={{
-                              marginLeft: 10,
-                              width: 28,
-                              height: 28,
-                              borderRadius: "999px",
-                              objectFit: "cover",
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 14,
-                              fontWeight: 500,
-                              marginLeft: 10,
-                              color: "#161615",
-                            }}
-                          >
-                            {t.chainName}
-                          </span>
-                        </button>
-                      ))}
+                          {t.chainName}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

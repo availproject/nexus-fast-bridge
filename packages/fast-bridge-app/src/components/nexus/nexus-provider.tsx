@@ -15,7 +15,6 @@ import {
   type LegacyIntentHookData,
   normalizeIntentBalances,
   normalizeSupportedChains,
-  populateChainsWithTokens,
   type SupportedChainsAndTokensResult,
   type TokenBalance,
 } from "./better-intent-compat";
@@ -380,23 +379,6 @@ const NexusProvider = ({
     setSupportedChainsAndTokensState(list);
     setSwapSupportedChainsAndTokensState(swapList);
 
-    sdk
-      .getTokens({ limit: 1000 })
-      .then((tokenPage) => {
-        if (cancelled || !tokenPage?.tokens?.length || !list) {
-          return;
-        }
-        const enriched = populateChainsWithTokens(list, tokenPage.tokens);
-        supportedChainsAndTokens.current = enriched;
-        swapSupportedChainsAndTokens.current = enriched;
-        usdPeggedSymbols.current = buildUsdPeggedSymbolSet(enriched);
-        setSupportedChainsAndTokensState(enriched);
-        setSwapSupportedChainsAndTokensState(enriched);
-      })
-      .catch(() => {
-        // Ignored: known tokens and fallbacks provide metadata
-      });
-
     getCoinbaseRates()
       .then((rates) => {
         if (cancelled) {
@@ -533,10 +515,9 @@ const NexusProvider = ({
       swapSupportedChainsAndTokens.current = swapList ?? null;
       setSwapSupportedChainsAndTokensState(swapList ?? null);
 
-      const [tokensResult, bridgeAbleBalanceResult, swapBalanceResult, rates] =
+      const [bridgeAbleBalanceResult, swapBalanceResult, rates] =
         await withTimeout(
           Promise.allSettled([
-            activeSdk.getTokens({ limit: 1000 }).catch(() => null),
             Promise.resolve([]),
             activeSdk.getBalancesForSwap(),
             getCoinbaseRates(),
@@ -544,22 +525,7 @@ const NexusProvider = ({
           15_000
         );
 
-      let currentList = list;
-      if (
-        tokensResult?.status === "fulfilled" &&
-        tokensResult.value?.tokens &&
-        currentList
-      ) {
-        currentList = populateChainsWithTokens(
-          currentList,
-          tokensResult.value.tokens
-        );
-        supportedChainsAndTokens.current = currentList;
-        swapSupportedChainsAndTokens.current = currentList;
-        usdPeggedSymbols.current = buildUsdPeggedSymbolSet(currentList);
-        setSupportedChainsAndTokensState(currentList);
-        setSwapSupportedChainsAndTokensState(currentList);
-      }
+      const currentList = list;
 
       if (rates?.status === "fulfilled") {
         const usdPerUnit = parseCoinbaseRates(rates.value);
@@ -583,10 +549,6 @@ const NexusProvider = ({
           swapBalanceResult.value,
           currentList ?? swapList,
           normalizeUserAssetFiatValues
-        );
-        console.log(
-          "[NexusProvider] getBalancesForSwap:init raw",
-          swapBalanceResult.value
         );
         setSwapBalance(normalizedSwapBalance);
       } else {

@@ -359,7 +359,7 @@ test("sortTokensWithBalancesFirst sorts tokens with balance first by USD descend
   assert.equal(sorted[3].hasBalance, false);
 });
 
-test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native USDC and other tokens", () => {
+test("deriveTokenOptions preserves native and Relay-standard USDC on Arc", () => {
   const fakeUserAssets: UserAsset[] = [
     {
       symbol: "USDC",
@@ -375,7 +375,7 @@ test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native U
           symbol: "USDC",
         },
         {
-          // Non-zero address duplicate or bridge token on Arc - should be ignored
+          // Relay's standard Arc USDC representation must remain selectable.
           chain: { id: ARC_CHAIN_ID, name: "Arc" },
           contractAddress: "0x3600000000000000000000000000000000000000",
           balance: "50.0",
@@ -399,11 +399,16 @@ test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native U
   const derived = deriveTokenOptions(fakeUserAssets, null);
   const arcTokens = derived.filter((t) => t.chainId === ARC_CHAIN_ID);
 
-  // Both native USDC and other tokens on Arc are allowed, only ERC20 USDC is hidden
-  assert.equal(arcTokens.length, 2);
+  assert.equal(arcTokens.length, 3);
   const nativeUsdc = arcTokens.find((t) => t.symbol === "USDC");
   assert.ok(nativeUsdc);
   assert.equal(nativeUsdc.contractAddress, ZERO_ADDRESS);
+  const relayUsdc = arcTokens.find(
+    (t) =>
+      t.symbol === "USDC" &&
+      t.contractAddress === "0x3600000000000000000000000000000000000000"
+  );
+  assert.ok(relayUsdc);
   const otherToken = arcTokens.find((t) => t.symbol === "ARC");
   assert.ok(otherToken);
   assert.equal(
@@ -412,7 +417,7 @@ test("deriveTokenOptions hides only ERC20 USDC on Arc chain, preserving native U
   );
 });
 
-test("mergeRelayTokensIntoLifi aggressively deduplicates tokens and only adds missing ones while excluding Arc ERC20 USDC", () => {
+test("mergeRelayTokensIntoLifi preserves Relay-standard Arc USDC and excludes unknown Arc ERC20 USDC", () => {
   const lifiTokens = {
     "1": [
       {
@@ -463,7 +468,7 @@ test("mergeRelayTokensIntoLifi aggressively deduplicates tokens and only adds mi
       },
     ],
     5042: [
-      // Arc ERC20 USDC (0x3600...) - MUST be excluded
+      // Arc standard USDC representation - supported by Relay.
       {
         address: "0x3600000000000000000000000000000000000000",
         symbol: "USDC",
@@ -500,15 +505,17 @@ test("mergeRelayTokensIntoLifi aggressively deduplicates tokens and only adds mi
   assert.equal(merged["1"].length, 3);
   assert.ok(merged["1"].find((t) => t.symbol === "USDT"));
 
-  // Chain 5042: had 1 token (cirBTC), 2 new added (ARGUSCAT, WETH), ERC20 USDCs excluded -> total 3
-  assert.equal(merged["5042"].length, 3);
+  // Chain 5042: had 1 token (cirBTC), 3 new added (USDC, ARGUSCAT, WETH).
+  assert.equal(merged["5042"].length, 4);
   assert.ok(merged["5042"].find((t) => t.symbol === "cirBTC"));
+  assert.equal(
+    merged["5042"]
+      .find((t) => t.symbol === "USDC")
+      ?.providers?.includes("relay"),
+    true
+  );
   assert.ok(merged["5042"].find((t) => t.symbol === "ARGUSCAT"));
   assert.ok(merged["5042"].find((t) => t.symbol === "WETH"));
-  assert.equal(
-    merged["5042"].find((t) => t.symbol === "USDC"),
-    undefined
-  );
 });
 
 test("getCachedReceiveTokenMatch handles tokens other than USDC without ReferenceError", () => {

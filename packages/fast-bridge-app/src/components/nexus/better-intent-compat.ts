@@ -220,6 +220,13 @@ export interface LegacyAllowanceHookData {
 const sameAddress = (left: string, right: string) =>
   left.toLowerCase() === right.toLowerCase();
 
+const normalizeBalanceTokenAddress = (address: string) => {
+  const normalized = address.toLowerCase();
+  return normalized === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ? "0x0000000000000000000000000000000000000000"
+    : normalized;
+};
+
 const chainById = (chains: SupportedChainsAndTokensResult, chainId: number) =>
   chains.find((chain) => chain.id === chainId);
 
@@ -351,7 +358,8 @@ export const isTokenSupportedForRole = (
   chains: SupportedChainsAndTokensResult | null | undefined,
   role: "source" | "destination",
   chainId: number | undefined,
-  tokenAddress: string
+  tokenAddress: string,
+  providerHint?: readonly string[]
 ): boolean => {
   if (!chains || chainId === undefined) {
     return true;
@@ -366,6 +374,11 @@ export const isTokenSupportedForRole = (
   const chainProviderIds = new Set(
     (chainDirectional ?? chain.providers ?? []).map(getProviderId)
   );
+  const hintedProviderIds = new Set(
+    (providerHint ?? []).filter((provider): provider is IntentProvider =>
+      BETTER_INTENT_PROVIDERS.includes(provider as IntentProvider)
+    )
+  );
 
   const tokens = chain.tokens ?? [];
   const token = tokens.find((entry) =>
@@ -373,6 +386,11 @@ export const isTokenSupportedForRole = (
   );
 
   if (!token) {
+    if (hintedProviderIds.size > 0) {
+      return Array.from(hintedProviderIds).some((provider) =>
+        chainProviderIds.has(provider)
+      );
+    }
     if (tokens.length === 0) {
       return chainProviderIds.size > 0;
     }
@@ -411,7 +429,9 @@ export const normalizeIntentBalances = (
     const readable = formatUnits(entry.balanceRaw, entry.decimals);
     const chain = chainById(chains, entry.chainId);
     const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
-    const identity = `${entry.symbol.toUpperCase()}:${entry.decimals}`;
+    // Balances are token-specific. Symbol and decimals are display metadata
+    // and are not sufficient to distinguish two contracts or two chains.
+    const identity = `${entry.chainId}:${normalizeBalanceTokenAddress(entry.tokenAddress)}`;
     const chainBalance: ChainBalance = {
       balance: readable,
       value: String(entry.valueUsd ?? 0),
@@ -428,10 +448,12 @@ export const normalizeIntentBalances = (
     const existing = grouped.get(identity);
     if (existing) {
       existing.chainBalances.push(chainBalance);
-      existing.balance = String(Number(existing.balance) + Number(readable));
-      existing.value = String(
-        Number(existing.value) + Number(entry.valueUsd ?? 0)
-      );
+      existing.balance = new Decimal(existing.balance)
+        .plus(readable)
+        .toString();
+      existing.value = new Decimal(existing.value)
+        .plus(entry.valueUsd ?? 0)
+        .toString();
       continue;
     }
     grouped.set(identity, {

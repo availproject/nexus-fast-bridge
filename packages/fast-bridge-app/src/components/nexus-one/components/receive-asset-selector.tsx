@@ -34,9 +34,8 @@ import { nexusOneTheme } from "../theme";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
-  isArcErc20Usdc,
-  isArcExcludedToken,
   isArcNativeUsdc,
+  isArcUnsupportedErc20Usdc,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -430,7 +429,14 @@ export const getCachedReceiveTokenMatch = (
 
   const chainTokens = (
     rawTokensCache.tokens[String(token.chainId)] ?? []
-  ).filter((candidate) => !isArcExcludedToken(candidate.address));
+  ).filter(
+    (candidate) =>
+      !isArcUnsupportedErc20Usdc({
+        chainId: token.chainId,
+        symbol: candidate.symbol,
+        contractAddress: candidate.address,
+      })
+  );
   const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
   const addressMatch = chainTokens.find(
     (candidate) =>
@@ -604,8 +610,7 @@ export const getAllReceiveTokenOptions = async (
     for (const t of chains[chainIdStr]) {
       if (!t.address || !t.symbol) continue;
       if (
-        isArcExcludedToken(t.address) ||
-        isArcErc20Usdc({
+        isArcUnsupportedErc20Usdc({
           chainId,
           symbol: t.symbol,
           contractAddress: t.address,
@@ -620,6 +625,7 @@ export const getAllReceiveTokenOptions = async (
         logo: t.logoURI || "",
         decimals: t.decimals ?? 18,
         priceUSD: t.priceUSD,
+        providers: t.providers,
         chainId,
         chainName: chainMeta.name,
         chainLogo: chainMeta.logo,
@@ -639,7 +645,7 @@ export const getAllReceiveTokenOptions = async (
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         ? ZERO_ADDRESS
         : token.contractAddress.toLowerCase();
-    if (isArcErc20Usdc(token)) {
+    if (isArcUnsupportedErc20Usdc(token)) {
       continue;
     }
     const key = `${token.chainId ?? 0}-${address}`;
@@ -841,7 +847,8 @@ export function ReceiveAssetSelector({
           swapSupportedChainsAndTokens,
           "destination",
           token.chainId,
-          token.contractAddress
+          token.contractAddress,
+          token.providers
         )
       ) {
         return [];
@@ -854,7 +861,8 @@ export function ReceiveAssetSelector({
         routeSupportedChains,
         "destination",
         token.chainId,
-        token.contractAddress
+        token.contractAddress,
+        token.providers
       )
         ? undefined
         : "Unavailable for the selected source";
@@ -993,8 +1001,7 @@ export function ReceiveAssetSelector({
           for (const t of chains[chainIdStr]) {
             if (!t.address || !t.symbol) continue;
             if (
-              isArcExcludedToken(t.address) ||
-              isArcErc20Usdc({
+              isArcUnsupportedErc20Usdc({
                 chainId,
                 symbol: t.symbol,
                 contractAddress: t.address,
@@ -1009,6 +1016,7 @@ export function ReceiveAssetSelector({
               logo: t.logoURI || "",
               decimals: t.decimals ?? 18,
               priceUSD: t.priceUSD,
+              providers: t.providers,
               chainId,
               chainName: meta.name,
               chainLogo: meta.logo,
@@ -1029,7 +1037,7 @@ export function ReceiveAssetSelector({
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               ? ZERO_ADDRESS
               : token.contractAddress.toLowerCase();
-          if (isArcErc20Usdc(token)) {
+          if (isArcUnsupportedErc20Usdc(token)) {
             continue;
           }
           const key = `${token.chainId ?? 0}-${address}`;
@@ -1058,7 +1066,7 @@ export function ReceiveAssetSelector({
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     t.contractAddress.toLowerCase() ===
       "0x0000000000000000000000000000000000000000" ||
-    (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC");
+    isArcNativeUsdc(t);
 
   const excludedTokensMap = useMemo(() => {
     const set = new Set<string>();
@@ -1100,27 +1108,17 @@ export function ReceiveAssetSelector({
         (t) => getTokenSearchRank(t, deferredQuery) !== null
       );
     }
-    result = result.filter(
-      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
-    );
+    result = result.filter((t) => !isArcUnsupportedErc20Usdc(t));
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter(
-        (t) =>
-          dynamicStableSymbols.has(t.symbol) &&
-          !(t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC")
+        (t) => dynamicStableSymbols.has(t.symbol) && !isArcNativeUsdc(t)
       );
     else if (activeTab === "custom")
       result = result.filter(
         (token) =>
           !isNativeToken(token) &&
-          !(
-            dynamicStableSymbols.has(token.symbol) &&
-            !(
-              token.chainId === ARC_CHAIN_ID &&
-              token.symbol.toUpperCase() === "USDC"
-            )
-          )
+          !(dynamicStableSymbols.has(token.symbol) && !isArcNativeUsdc(token))
       );
 
     return result;
