@@ -174,6 +174,18 @@ export const TOKEN_METADATA = {
     symbol: "WBTC",
     logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/tokens/wbtc/logo.png",
   },
+  USDM: {
+    decimals: 18,
+    name: "Mountain USDM",
+    symbol: "USDM",
+    logo: "https://raw.githubusercontent.com/availproject/nexus-assets/refs/heads/main/tokens/usdm/logo.png",
+  },
+  USDS: {
+    decimals: 18,
+    name: "USDS",
+    symbol: "USDS",
+    logo: "https://assets.coingecko.com/coins/images/39926/standard/usds.webp?1726666683",
+  },
 } as const;
 
 export const SHORT_CHAIN_NAME: Record<number, string> = {
