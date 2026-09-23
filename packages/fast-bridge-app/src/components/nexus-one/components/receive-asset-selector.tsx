@@ -25,14 +25,17 @@ import {
   getTotalBalanceInFiat,
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
+import {
+  isTokenSupportedForRole,
+  type SupportedChainsAndTokensResult,
+} from "../../nexus/better-intent-compat";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
-  isArcErc20Usdc,
-  isArcExcludedToken,
   isArcNativeUsdc,
+  isArcUnsupportedErc20Usdc,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -62,6 +65,7 @@ interface ReceiveAssetSelectorProps {
   needsWalletConnection?: boolean;
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
+  routeSupportedChains?: SupportedChainsAndTokensResult | null;
   selectedToken?: SwapTokenOption;
 }
 
@@ -425,7 +429,14 @@ export const getCachedReceiveTokenMatch = (
 
   const chainTokens = (
     rawTokensCache.tokens[String(token.chainId)] ?? []
-  ).filter((candidate) => !isArcExcludedToken(candidate.address));
+  ).filter(
+    (candidate) =>
+      !isArcUnsupportedErc20Usdc({
+        chainId: token.chainId,
+        symbol: candidate.symbol,
+        contractAddress: candidate.address,
+      })
+  );
   const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
   const addressMatch = chainTokens.find(
     (candidate) =>
@@ -599,8 +610,7 @@ export const getAllReceiveTokenOptions = async (
     for (const t of chains[chainIdStr]) {
       if (!t.address || !t.symbol) continue;
       if (
-        isArcExcludedToken(t.address) ||
-        isArcErc20Usdc({
+        isArcUnsupportedErc20Usdc({
           chainId,
           symbol: t.symbol,
           contractAddress: t.address,
@@ -615,6 +625,7 @@ export const getAllReceiveTokenOptions = async (
         logo: t.logoURI || "",
         decimals: t.decimals ?? 18,
         priceUSD: t.priceUSD,
+        providers: t.providers,
         chainId,
         chainName: chainMeta.name,
         chainLogo: chainMeta.logo,
@@ -634,7 +645,7 @@ export const getAllReceiveTokenOptions = async (
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
         ? ZERO_ADDRESS
         : token.contractAddress.toLowerCase();
-    if (isArcErc20Usdc(token)) {
+    if (isArcUnsupportedErc20Usdc(token)) {
       continue;
     }
     const key = `${token.chainId ?? 0}-${address}`;
@@ -654,6 +665,7 @@ export function ReceiveAssetSelector({
   selectedToken,
   excludedTokens = [],
   needsWalletConnection = false,
+  routeSupportedChains,
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -825,15 +837,47 @@ export function ReceiveAssetSelector({
   }, [swapBalance, swapSupportedChainsAndTokens]);
 
   const tokensWithBalances = useMemo(() => {
-    return apiTokens.map((token) => {
+    if (!swapSupportedChainsAndTokens) {
+      return [];
+    }
+
+    return apiTokens.flatMap((token) => {
+      if (
+        !isTokenSupportedForRole(
+          swapSupportedChainsAndTokens,
+          "destination",
+          token.chainId,
+          token.contractAddress,
+          token.providers
+        )
+      ) {
+        return [];
+      }
+
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
-      return balance
-        ? { ...token, ...balance }
-        : { ...token, hasBalance: false };
+      const disabledReason = isTokenSupportedForRole(
+        routeSupportedChains,
+        "destination",
+        token.chainId,
+        token.contractAddress,
+        token.providers
+      )
+        ? undefined
+        : "Unavailable for the selected source";
+      return [
+        balance
+          ? { ...token, ...balance, disabledReason }
+          : { ...token, hasBalance: false, disabledReason },
+      ];
     });
-  }, [apiTokens, balanceMap]);
+  }, [
+    apiTokens,
+    balanceMap,
+    routeSupportedChains,
+    swapSupportedChainsAndTokens,
+  ]);
 
   useEffect(() => {
     const handleGlobalClick = () => setTooltipState(null);
@@ -957,8 +1001,7 @@ export function ReceiveAssetSelector({
           for (const t of chains[chainIdStr]) {
             if (!t.address || !t.symbol) continue;
             if (
-              isArcExcludedToken(t.address) ||
-              isArcErc20Usdc({
+              isArcUnsupportedErc20Usdc({
                 chainId,
                 symbol: t.symbol,
                 contractAddress: t.address,
@@ -973,6 +1016,7 @@ export function ReceiveAssetSelector({
               logo: t.logoURI || "",
               decimals: t.decimals ?? 18,
               priceUSD: t.priceUSD,
+              providers: t.providers,
               chainId,
               chainName: meta.name,
               chainLogo: meta.logo,
@@ -993,7 +1037,7 @@ export function ReceiveAssetSelector({
             "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               ? ZERO_ADDRESS
               : token.contractAddress.toLowerCase();
-          if (isArcErc20Usdc(token)) {
+          if (isArcUnsupportedErc20Usdc(token)) {
             continue;
           }
           const key = `${token.chainId ?? 0}-${address}`;
@@ -1022,7 +1066,7 @@ export function ReceiveAssetSelector({
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     t.contractAddress.toLowerCase() ===
       "0x0000000000000000000000000000000000000000" ||
-    (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC");
+    isArcNativeUsdc(t);
 
   const excludedTokensMap = useMemo(() => {
     const set = new Set<string>();
@@ -1064,27 +1108,17 @@ export function ReceiveAssetSelector({
         (t) => getTokenSearchRank(t, deferredQuery) !== null
       );
     }
-    result = result.filter(
-      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
-    );
+    result = result.filter((t) => !isArcUnsupportedErc20Usdc(t));
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter(
-        (t) =>
-          dynamicStableSymbols.has(t.symbol) &&
-          !(t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC")
+        (t) => dynamicStableSymbols.has(t.symbol) && !isArcNativeUsdc(t)
       );
     else if (activeTab === "custom")
       result = result.filter(
         (token) =>
           !isNativeToken(token) &&
-          !(
-            dynamicStableSymbols.has(token.symbol) &&
-            !(
-              token.chainId === ARC_CHAIN_ID &&
-              token.symbol.toUpperCase() === "USDC"
-            )
-          )
+          !(dynamicStableSymbols.has(token.symbol) && !isArcNativeUsdc(token))
       );
 
     return result;
@@ -1794,10 +1828,13 @@ export function ReceiveAssetSelector({
                   );
                   const hasBalance =
                     Number.isFinite(numericBalance) && numericBalance > 0;
+                  const disabled = Boolean(t.disabledReason);
                   return (
                     <button
+                      disabled={disabled}
                       key={hash}
                       onClick={() => {
+                        if (disabled) return;
                         setSelectedTokenHash(hash);
                         setSelectedTokenFull(t);
                         onSelect(t);
@@ -1808,11 +1845,12 @@ export function ReceiveAssetSelector({
                         border: "none",
                         borderBottom: "1px solid #F0F0EF",
                         boxSizing: "border-box",
-                        cursor: "pointer",
+                        cursor: disabled ? "not-allowed" : "pointer",
                         display: "flex",
                         justifyContent: "space-between",
                         padding: "10px 14px",
                         width: "100%",
+                        opacity: disabled ? 0.5 : 1,
                       }}
                       type="button"
                     >

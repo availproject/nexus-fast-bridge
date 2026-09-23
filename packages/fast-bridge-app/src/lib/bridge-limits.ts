@@ -20,14 +20,12 @@ export const GLOBAL_MAX_AMOUNT_BY_TOKEN_AND_CHAIN: Record<
   // USDC bridging to Citrea/Scroll/Arc:
   USDC: {
     [SUPPORTED_CHAINS.CITREA]: 500,
-    [SUPPORTED_CHAINS.SCROLL]: 500,
     [SUPPORTED_CHAINS.ARC]: 5000,
   },
-  // USDT bridging to Citrea/MegaETH/Scroll: $500 cap
+  // USDT bridging to Citrea/MegaETH: $500 cap
   USDT: {
     [SUPPORTED_CHAINS.CITREA]: 500,
     [SUPPORTED_CHAINS.MEGAETH]: 500,
-    [SUPPORTED_CHAINS.SCROLL]: 500,
   },
 };
 

@@ -19,7 +19,6 @@ import {
   monad,
   optimism,
   polygon,
-  scroll,
 } from "wagmi/chains";
 import rpcs from "@/config/rpcs.json";
 import type { AppConfig } from "@/types/runtime";
@@ -56,7 +55,6 @@ const staticTransports = {
   [optimism.id]: http(rpcConfig.optimism || undefined),
   [polygon.id]: http(rpcConfig.polygon || undefined),
   [avalanche.id]: http(rpcConfig.avalanche || undefined),
-  [scroll.id]: http(rpcConfig.scroll || undefined),
   [monad.id]: http(rpcConfig.monad || undefined),
   [megaeth.id]: http(rpcConfig.megaeth || undefined),
   [citrea.id]: http(rpcConfig.citrea || undefined),
@@ -72,7 +70,6 @@ const staticChains = [
   optimism,
   polygon,
   avalanche,
-  scroll,
   monad,
   megaeth,
   citrea,
@@ -90,9 +87,7 @@ const metadata = {
     typeof window !== "undefined"
       ? window.location.origin
       : "https://fastbridge.availproject.org",
-  icons: [
-    "https://fastbridge.availproject.org/landing-assets/fastbridge-icon.svg",
-  ],
+  icons: ["https://fastbridge.availproject.org/fastbridge-icon.svg"],
 };
 
 export const wagmiAdapter = new WagmiAdapter({

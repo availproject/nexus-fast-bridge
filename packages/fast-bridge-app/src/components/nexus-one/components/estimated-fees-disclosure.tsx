@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import type { SwapIntentData } from "./swap-intent-preview";
 
 interface FeeRow {
@@ -27,14 +28,24 @@ const parseDecimal = (value: unknown): Decimal | undefined => {
   }
 };
 
-const formatUsd = (value?: Decimal) => {
+const formatFee = (
+  value: Decimal | undefined,
+  destinationUsdRate?: Decimal,
+  requiresUsdConversion = false
+) => {
   if (!value) {
     return "--";
   }
-  if (value.gt(0) && value.lt(0.01)) {
+  if (requiresUsdConversion && !destinationUsdRate?.gt(0)) {
+    return "--";
+  }
+  const usdValue = destinationUsdRate?.gt(0)
+    ? value.mul(destinationUsdRate)
+    : value;
+  if (usdValue.gt(0) && usdValue.lt(0.01)) {
     return "<$0.01";
   }
-  return `$${value.toDecimalPlaces(2).toFixed()}`;
+  return `$${usdValue.toDecimalPlaces(2).toFixed()}`;
 };
 
 export function EstimatedFeesDisclosure({
@@ -43,18 +54,43 @@ export function EstimatedFeesDisclosure({
   totalFeeUsd,
 }: EstimatedFeesDisclosureProps) {
   const [open, setOpen] = useState(false);
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
+  const destinationAmount = parseDecimal(intentData?.destination?.amount);
+  const destinationValueUsd = parseDecimal(intentData?.destination?.value);
+  const destinationUsdRate =
+    destinationAmount?.gt(0) && destinationValueUsd?.gt(0)
+      ? destinationValueUsd.div(destinationAmount)
+      : undefined;
   const feeSummary = useMemo(() => {
     const bridge = intentData?.feesAndBuffer?.bridge;
+    const isBetterIntentQuote = isBetterIntentProvider(
+      intentData?.bridgeProvider
+    );
     const data = bridge && typeof bridge === "object" ? bridge : undefined;
+    const feeInUsd = (usd: unknown, tokenAmount: unknown) => {
+      const quotedUsd = parseDecimal(usd);
+      if (quotedUsd !== undefined) {
+        return quotedUsd;
+      }
+      const raw = parseDecimal(tokenAmount);
+      if (!isBetterIntentQuote) {
+        return raw;
+      }
+      return destinationUsdRate?.gt(0) && raw
+        ? raw.mul(destinationUsdRate)
+        : undefined;
+    };
     const collection = parseDecimal(data?.collection);
     const fulfilment = parseDecimal(data?.fulfilment);
     const executionGas =
-      parseDecimal(data?.caGas) ??
+      feeInUsd(data?.caGasUsd, data?.caGas) ??
       (collection || fulfilment
         ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
         : undefined);
-    const protocol = parseDecimal(data?.protocol);
-    const solver = parseDecimal(data?.solver);
+    const protocol = feeInUsd(data?.protocolUsd, data?.protocol);
+    const solver = feeInUsd(data?.solverUsd, data?.solver);
     const bridgeGasSupplied = parseDecimal(data?.gasSupplied);
     const destinationGasSupplied =
       bridgeGasSupplied ??
@@ -62,7 +98,10 @@ export function EstimatedFeesDisclosure({
       parseDecimal(destinationGasFeeUsd);
     const rows: FeeRow[] = data
       ? [
-          { label: "Execution Gas Fee", value: executionGas ?? new Decimal(0) },
+          {
+            label: isBetterIntentQuote ? "Network Fee" : "Execution Gas Fee",
+            value: executionGas ?? new Decimal(0),
+          },
           { label: "Protocol Fee", value: protocol ?? new Decimal(0) },
           { label: "Solver Fee", value: solver ?? new Decimal(0) },
           ...(destinationGasSupplied?.gt(0)
@@ -75,23 +114,35 @@ export function EstimatedFeesDisclosure({
       new Decimal(0)
     );
     const rawBridgeTotal =
+      (isBetterIntentQuote ? parseDecimal(data?.totalUsd) : undefined) ??
       (typeof bridge === "string" ? parseDecimal(bridge) : undefined) ??
-      parseDecimal(data?.total);
+      feeInUsd(undefined, data?.total);
     const bridgeTotal =
       rawBridgeTotal && !bridgeGasSupplied && destinationGasSupplied?.gt(0)
         ? rawBridgeTotal.plus(destinationGasSupplied)
         : rawBridgeTotal;
+    const normalizedTotalUsd = parseDecimal(totalFeeUsd);
     const total =
+      (normalizedTotalUsd && !isBetterIntentQuote
+        ? undefined
+        : normalizedTotalUsd) ??
       bridgeTotal ??
       (componentsTotal.gt(0) ? componentsTotal : undefined) ??
-      parseDecimal(totalFeeUsd) ??
+      normalizedTotalUsd ??
       parseDecimal(
         (intentData as { fees?: { total?: unknown } } | null)?.fees?.total
       ) ??
       destinationGasSupplied;
 
-    return { rows, total };
-  }, [destinationGasFeeUsd, intentData, totalFeeUsd]);
+    return {
+      rows,
+      total,
+      totalIsUsd: Boolean(
+        isBetterIntentQuote &&
+          (normalizedTotalUsd !== undefined || data?.totalUsd !== undefined)
+      ),
+    };
+  }, [destinationGasFeeUsd, destinationUsdRate, intentData, totalFeeUsd]);
 
   if (!feeSummary.total && feeSummary.rows.length === 0) {
     return null;
@@ -140,7 +191,11 @@ export function EstimatedFeesDisclosure({
               lineHeight: "20px",
             }}
           >
-            {formatUsd(feeSummary.total)}
+            {formatFee(
+              feeSummary.total,
+              feeSummary.totalIsUsd ? undefined : destinationUsdRate,
+              isBetterIntentQuote && !feeSummary.totalIsUsd
+            )}
           </span>
           <ChevronDown
             aria-hidden="true"
@@ -205,7 +260,11 @@ export function EstimatedFeesDisclosure({
                     fontSize: "12px",
                   }}
                 >
-                  {formatUsd(row.value)}
+                  {formatFee(
+                    row.value,
+                    destinationUsdRate,
+                    isBetterIntentQuote
+                  )}
                 </span>
               </div>
             ))}
