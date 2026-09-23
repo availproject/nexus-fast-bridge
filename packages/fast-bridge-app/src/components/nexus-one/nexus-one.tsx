@@ -5,6 +5,7 @@ import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -1010,49 +1011,9 @@ const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
     ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
     : null;
 
-const getBetterIntentMiddlewareBaseUrl = (network: unknown) =>
-  `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/middleware`;
-
-const resolveBetterIntentTransactionExplorerUrl = async (
-  network: unknown,
-  intentId?: string | null
-) => {
-  if (!intentId) return null;
-
-  try {
-    const response = await fetch(
-      `${getBetterIntentMiddlewareBaseUrl(network)}/api/v1/better-intent/rff/${intentId}`
-    );
-    if (!response.ok) return null;
-
-    const detail = await response.json();
-    const legs = Array.isArray(detail?.legs) ? detail.legs : [];
-    const transactionLeg = legs.find((leg: any) =>
-      getTransactionHash(leg?.txHash, leg?.transactionHash)
-    );
-    const txHash = getTransactionHash(
-      transactionLeg?.txHash,
-      transactionLeg?.transactionHash
-    );
-    const source = Array.isArray(detail?.request?.sources)
-      ? detail.request.sources[transactionLeg?.sourceIndex ?? 0]
-      : undefined;
-    const rawChainId = source?.chain_id ?? source?.chainId;
-    const chainId =
-      typeof rawChainId === "string" && rawChainId.startsWith("0x")
-        ? Number(BigInt(rawChainId))
-        : Number(rawChainId);
-
-    return Number.isSafeInteger(chainId) && txHash
-      ? getExplorerTxUrl(chainId, txHash)
-      : null;
-  } catch (error) {
-    console.warn("Could not resolve Better Intent transaction explorer URL", {
-      error,
-      intentId,
-    });
-    return null;
-  }
+type IntentExplorerUrls = {
+  sourceExplorerUrl: string | null;
+  destinationExplorerUrl: string | null;
 };
 
 const getObjectTransactionHash = (value: any) =>
@@ -1192,6 +1153,80 @@ const getSdkIntentExplorerUrlForNetwork = (
     network,
     getObjectIntentHash(swapResult) || getObjectIntentHash(result)
   );
+
+const getSdkIntentStatusExplorerUrls = (
+  result: any,
+  swapResult?: any
+): IntentExplorerUrls => {
+  const candidate = swapResult ?? result;
+  const legs = Array.isArray(candidate?.status?.legs)
+    ? candidate.status.legs
+    : Array.isArray(result?.status?.legs)
+      ? result.status.legs
+      : [];
+  const sourceExplorerUrl = legs
+    .map((leg: any) => getNonEmptyString(leg?.txExplorerUrl, leg?.explorerLink))
+    .find(isHttpUrl);
+  const destinationExplorerUrl = legs
+    .map((leg: any) =>
+      getNonEmptyString(leg?.protocolExplorerUrl, leg?.protocolExplorerLink)
+    )
+    .find(isHttpUrl);
+
+  return {
+    sourceExplorerUrl: sourceExplorerUrl ?? null,
+    destinationExplorerUrl: destinationExplorerUrl ?? null,
+  };
+};
+
+const getSdkIntentExplorerUrls = (
+  result: any,
+  swapResult: any,
+  destinationChainId?: number
+): IntentExplorerUrls => {
+  const statusUrls = getSdkIntentStatusExplorerUrls(result, swapResult);
+  const sourceTx = Array.isArray(result?.sourceTxs)
+    ? result.sourceTxs.find(
+        (transaction: any) =>
+          isHttpUrl(transaction?.txExplorerUrl) ||
+          getTransactionHash(transaction?.txHash)
+      )
+    : undefined;
+  const sourceSwap = Array.isArray(swapResult?.sourceSwaps)
+    ? swapResult.sourceSwaps.find((swap: any) =>
+        getTransactionHash(swap?.txHash)
+      )
+    : undefined;
+  const destinationSwap = swapResult?.destinationSwap;
+  const sourceChainId = getFiniteNumber(
+    sourceTx?.chain?.id,
+    sourceTx?.chainId,
+    sourceSwap?.chainId
+  );
+  const sourceHash = getTransactionHash(sourceTx?.txHash, sourceSwap?.txHash);
+  const destinationHash = getTransactionHash(
+    result?.execute?.txHash,
+    result?.executeResponse?.txHash,
+    destinationSwap?.txHash
+  );
+
+  return {
+    sourceExplorerUrl:
+      statusUrls.sourceExplorerUrl ??
+      getNonEmptyString(sourceTx?.txExplorerUrl) ??
+      getExplorerTxUrl(sourceChainId, sourceHash, sourceTx, sourceSwap),
+    destinationExplorerUrl:
+      statusUrls.destinationExplorerUrl ??
+      getNonEmptyString(result?.execute?.txExplorerUrl) ??
+      getNonEmptyString(result?.executeResponse?.txExplorerUrl) ??
+      getExplorerTxUrl(
+        getFiniteNumber(destinationSwap?.chainId, destinationChainId),
+        destinationHash,
+        result,
+        destinationSwap
+      ),
+  };
+};
 
 function MiniLogo({
   src,
@@ -2004,64 +2039,36 @@ const summarizeSdkProgressStep = (
 });
 
 const logSdkSwapEvent = (
-  label: string,
-  event: any,
-  meta?: Record<string, unknown>
+  _label: string,
+  _event: any,
+  _meta?: Record<string, unknown>
 ) => {
-  if (label === "onEvent" && event?.state === "wallet_prompted") {
-    console.log("[NEXUS WALLET PROMPTED]", event);
-  }
-  console.log(`[NexusOne SDK][swap] ${label}`, {
-    event,
-    eventType: getSdkEventType(event),
-    ...meta,
-  });
+  // Dev logging removed — was blocking the main thread on every SDK event.
 };
 
 const logSdkIntentEvent = (
-  label: string,
-  data: any,
-  meta?: Record<string, unknown>
+  _label: string,
+  _data: any,
+  _meta?: Record<string, unknown>
 ) => {
-  console.log(`[NexusOne SDK][intent] ${label}`, {
-    hasAllow: typeof data?.allow === "function",
-    hasDeny: typeof data?.deny === "function",
-    hasRefresh: typeof data?.refresh === "function",
-    intent: data?.intent,
-    raw: data,
-    ...meta,
-  });
+  // Dev logging removed — was blocking the main thread on every intent update.
 };
 
 const logSwapPlanSteps = (
-  eventType: "plan_preview" | "plan_confirmed",
-  stepList: Array<SwapStepType | BridgeStepType>,
-  rawSteps: unknown
+  _eventType: "plan_preview" | "plan_confirmed",
+  _stepList: Array<SwapStepType | BridgeStepType>,
+  _rawSteps: unknown
 ) => {
-  console.log(`[NexusOne SDK][swap] ${eventType} step list`, {
-    count: stepList.length,
-    eventType,
-    rawSteps,
-    steps: stepList.map((step, index) => summarizeSdkProgressStep(step, index)),
-  });
+  // Dev logging removed.
 };
 
 const logSwapPlanProgress = (
-  event: any,
-  step: SwapStepType | BridgeStepType,
-  eventName: string,
-  completed: boolean
+  _event: any,
+  _step: SwapStepType | BridgeStepType,
+  _eventName: string,
+  _completed: boolean
 ) => {
-  console.log("[NexusOne SDK][swap] plan_progress", {
-    completed,
-    eventName,
-    eventType: getSdkEventType(event),
-    normalizedStep: summarizeSdkProgressStep(step),
-    rawEvent: event,
-    rawStep: event?.step,
-    state: event?.state,
-    stepType: event?.stepType,
-  });
+  // Dev logging removed.
 };
 
 const getFailureMessageForProgressStep = (
@@ -2715,6 +2722,40 @@ function SwapReceiptPanel({
             </a>
           </div>
         )}
+        {entry.sourceExplorerUrl &&
+          entry.sourceExplorerUrl !== entry.finalExplorerUrl && (
+            <div
+              style={{
+                alignItems: "center",
+                borderTop: "1px solid #F5F5F5",
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "13px 16px",
+              }}
+            >
+              <span
+                style={{
+                  color: "#848483",
+                  fontFamily: uiFont,
+                  fontSize: "14px",
+                }}
+              >
+                Source Transaction
+              </span>
+              <a
+                href={entry.sourceExplorerUrl}
+                rel="noopener noreferrer"
+                style={{
+                  color: "#006BF4",
+                  fontFamily: uiFont,
+                  fontSize: "14px",
+                }}
+                target="_blank"
+              >
+                View Explorer ↗
+              </a>
+            </div>
+          )}
         {entry.finalExplorerUrl && (
           <div
             style={{
@@ -3276,13 +3317,6 @@ function NexusOneInner({
   const isControlledOpen = controlledOpen !== undefined;
   const isModalOpen = isControlledOpen ? controlledOpen : internalOpen;
 
-  // Preload receive tokens once SDK is available
-  useEffect(() => {
-    if (nexusSDK) {
-      preloadReceiveTokens();
-    }
-  }, [nexusSDK]);
-
   const { connector, status: walletStatus } = useAccount();
   const {
     connectors,
@@ -3304,6 +3338,7 @@ function NexusOneInner({
         ? walletClientAddress
         : undefined;
   const historyStorageKey = getSwapHistoryStorageKey(ownerAddress);
+  const needsWalletConnection = !ownerAddress || !nexusSDK;
 
   // Global form state
   const [amount, setAmount] = useState("");
@@ -3350,6 +3385,12 @@ function NexusOneInner({
   const [swapType, setSwapType] = useState<SwapType>(() =>
     activeMode === "swap" && readSwapParam() === "out" ? "exactOut" : "exactIn"
   );
+
+  useEffect(() => {
+    if (needsWalletConnection && swapType !== "exactIn") {
+      setSwapType("exactIn");
+    }
+  }, [needsWalletConnection, swapType]);
   const isSwapExactOut = activeMode === "swap" && swapType === "exactOut";
   const isExactOutPaymentFlow =
     activeMode === "deposit" || activeMode === "send" || isSwapExactOut;
@@ -3407,13 +3448,17 @@ function NexusOneInner({
     useState<SupportedChainsAndTokensResult | null>(null);
   const [destinationOptionCatalog, setDestinationOptionCatalog] =
     useState<SupportedChainsAndTokensResult | null>(null);
+  const sourceCatalogRequestIdRef = useRef(0);
+  const destinationCatalogRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!(nexusSDK && toToken?.chainId && toToken.contractAddress)) {
+      sourceCatalogRequestIdRef.current += 1;
       setSourceOptionCatalog(null);
       return;
     }
     let active = true;
+    const requestId = ++sourceCatalogRequestIdRef.current;
     const timer = setTimeout(() => {
       const readableAmount = isSwapExactOut ? amount.trim() : "";
       let amountRaw: bigint | undefined;
@@ -3434,13 +3479,14 @@ function NexusOneInner({
         ],
       })
         .then((catalog) => {
-          if (active) setSourceOptionCatalog(catalog);
+          if (active && requestId === sourceCatalogRequestIdRef.current) {
+            setSourceOptionCatalog(catalog);
+          }
         })
         .catch((error) => {
           console.error("Failed to load constrained source catalog", error);
-          // A failed constrained lookup must not fall back to the unrestricted
-          // catalog, which could expose sources incompatible with this output.
-          if (active) setSourceOptionCatalog([]);
+          // Preserve the last successful catalog. A transient route failure
+          // must not turn every source into a forbidden option.
         });
     }, 250);
     return () => {
@@ -3454,10 +3500,12 @@ function NexusOneInner({
       (token) => token.chainId && token.contractAddress
     );
     if (!(nexusSDK && concreteSources.length > 0)) {
+      destinationCatalogRequestIdRef.current += 1;
       setDestinationOptionCatalog(null);
       return;
     }
     let active = true;
+    const requestId = ++destinationCatalogRequestIdRef.current;
     const timer = setTimeout(() => {
       const readableAmounts = concreteSources.map(
         (token) =>
@@ -3491,15 +3539,17 @@ function NexusOneInner({
           : sources,
       })
         .then((catalog) => {
-          if (active) setDestinationOptionCatalog(catalog);
+          if (active && requestId === destinationCatalogRequestIdRef.current) {
+            setDestinationOptionCatalog(catalog);
+          }
         })
         .catch((error) => {
           console.error(
             "Failed to load constrained destination catalog",
             error
           );
-          // Fail closed: null means unrestricted to selector consumers.
-          if (active) setDestinationOptionCatalog([]);
+          // Preserve the last successful catalog. A transient route failure
+          // must not turn every destination into a forbidden option.
         });
     }, 250);
     return () => {
@@ -3508,6 +3558,8 @@ function NexusOneInner({
     };
   }, [amount, fromTokens, getRouteSupportedChains, isSwapExactOut, nexusSDK]);
   useEffect(() => {
+    if (swapStep !== "choose-swap-asset") return;
+
     let active = true;
     void getAllReceiveTokenOptions(swapSupportedChainsAndTokens).then(
       (tokens) => {
@@ -3519,7 +3571,7 @@ function NexusOneInner({
     return () => {
       active = false;
     };
-  }, [swapSupportedChainsAndTokens]);
+  }, [swapStep, swapSupportedChainsAndTokens]);
   const disconnectedAvailableTokens = availableTokens;
 
   const previousOwnerAddressRef = useRef<string | undefined>(ownerAddress);
@@ -3798,9 +3850,6 @@ function NexusOneInner({
 
   useEffect(() => {
     swapStepRef.current = swapStep;
-    console.info("[NexusOne SDK][swap] Screen state changed", {
-      swapStep,
-    });
   }, [swapStep]);
 
   useEffect(() => {
@@ -3877,7 +3926,13 @@ function NexusOneInner({
     }
     setClosingDrawerStep(null);
     swapStepRef.current = nextStep;
-    setSwapStep(nextStep);
+    // Use startTransition so the browser can commit the opening CSS animation
+    // frame before React mounts the heavy drawer content (SwapAssetSelector,
+    // ReceiveAssetSelector, etc.). Without this, both compete for the main
+    // thread and the animation drops frames / feels instant-but-janky.
+    startTransition(() => {
+      setSwapStep(nextStep);
+    });
   }, []);
 
   const syncRootContentHeight = useCallback((animate = false) => {
@@ -6345,19 +6400,6 @@ function NexusOneInner({
     const availableUsd = getExactOutAvailableSourceUsd();
     const exactInSourceDeficitUsd = getExactInSourceDeficitUsd();
 
-    console.log("[InsufficientSources Debug]", {
-      rawError: error,
-      errorText,
-      errorDetails: details,
-      requiredFromError: requiredFromError?.toString(),
-      availableFromError: availableFromError?.toString(),
-      exactInSourceDeficitUsd: exactInSourceDeficitUsd?.toString(),
-      requestedUsd: requestedUsd?.toString(),
-      availableUsd: availableUsd?.toString(),
-      singleModeAmount: amount,
-      fromToken: fromTokens[0],
-    });
-
     let missingUsd =
       swapType === "exactIn"
         ? exactInSourceDeficitUsd && exactInSourceDeficitUsd.gt(0)
@@ -6950,7 +6992,9 @@ function NexusOneInner({
       cachePredictiveBaselineFromIntent(sortedIntent);
       setIntentData(sortedIntent);
       setIntentToAmount(sortedIntent.destination?.amount || undefined);
-      setSwapQuoteIssue(null);
+      if (!hasExactInSourceBalanceExceeded) {
+        setSwapQuoteIssue(null);
+      }
 
       if (
         isMultiAssetMode &&
@@ -9135,6 +9179,64 @@ function NexusOneInner({
     closeDrawerToIdle();
   };
 
+  const hasExactInSourceBalanceExceeded = useMemo(() => {
+    if (
+      activeMode !== "swap" &&
+      activeMode !== "send" &&
+      activeMode !== "deposit"
+    ) {
+      return false;
+    }
+    if (swapType !== "exactIn") return false;
+    if (fromTokens.length === 0) return false;
+
+    return fromTokens.some((token, index) => {
+      const raw =
+        token.userAmount || (!isMultiAssetMode && index === 0 ? amount : "");
+      if (!hasPositiveDecimalInput(raw)) return false;
+      const requested = parseFiatNumber(raw);
+      if (!requested || requested.lte(0)) return false;
+
+      return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
+    });
+  }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
+
+  const predictiveExactInQuote =
+    predictiveQuote?.mode === "exactIn" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
+      ? predictiveQuote
+      : null;
+  const predictiveExactOutQuote =
+    predictiveQuote?.mode === "exactOut" &&
+    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
+      ? predictiveQuote
+      : null;
+
+  const insufficientSourceIssue = needsWalletConnection
+    ? null
+    : swapQuoteIssue?.type === "insufficientSources"
+      ? swapQuoteIssue
+      : hasExactInSourceBalanceExceeded
+        ? {
+            type: "insufficientSources" as const,
+            message:
+              "Cannot proceed with this swap due to insufficient balance on source",
+          }
+        : receiveAmountIssue?.type === "insufficientSources"
+          ? receiveAmountIssue
+          : predictiveExactOutQuote?.missingUsd &&
+              Number(predictiveExactOutQuote.missingUsd) > 0
+            ? {
+                type: "insufficientSources" as const,
+                message: !isMultiAssetMode
+                  ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
+                  : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
+                missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(
+                  2
+                ),
+              }
+            : null;
+
   /** Start swap flow — v2 SDK per-operation onIntent hooks populate preview. */
   const handleEnterPreview = async (options: { background?: boolean } = {}) => {
     const { background = false } = options;
@@ -9147,6 +9249,17 @@ function NexusOneInner({
       return;
     }
 
+    if (
+      !needsWalletConnection &&
+      (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+      setIntentLoading(false);
+      setQuoteRefreshing(false);
+      setReceiveMaxCalculating(false);
+      return;
+    }
+
     if (isExactOutFlow) {
       if (!hasPositiveDecimalInput(amount)) {
         return;
@@ -9156,15 +9269,6 @@ function NexusOneInner({
         setTxError(null);
         setSwapQuoteIssue(null);
       }
-      return;
-    }
-
-    if (!isExactOutFlow && hasExactInSourceBalanceExceeded && !background) {
-      clearPendingSwapIntent();
-      setSwapQuoteIssue({
-        type: "insufficientSources",
-        message: "Amount exceeds the usable source balance.",
-      });
       return;
     }
 
@@ -9188,7 +9292,9 @@ function NexusOneInner({
     }
 
     setTxError(null);
-    setSwapQuoteIssue(null);
+    if (!hasExactInSourceBalanceExceeded) {
+      setSwapQuoteIssue(null);
+    }
 
     if (
       !background &&
@@ -9660,10 +9766,7 @@ function NexusOneInner({
 
           if (cleanAmount.lte(0)) continue;
 
-          if (
-            !background &&
-            isAmountAboveUsableBalance(token, cleanAmount.toFixed())
-          ) {
+          if (isAmountAboveUsableBalance(token, cleanAmount.toFixed())) {
             throw new Error("Amount exceeds the usable source balance.");
           }
 
@@ -9741,10 +9844,6 @@ function NexusOneInner({
               });
             }
           } else {
-            console.log(
-              "[nexusSDK.swapWithExactIn payload]",
-              exactInSwapPayload
-            );
             result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
               hooks: {
                 onIntent: (data) =>
@@ -9787,7 +9886,6 @@ function NexusOneInner({
           }
         } else {
           // Start exact-in swap — the intent hook will fire and populate preview
-          console.log("[nexusSDK.swapWithExactIn payload]", exactInSwapPayload);
           result = await nexusSDK.swapWithExactIn(exactInSwapPayload, {
             hooks: {
               onIntent: (data) =>
@@ -9806,30 +9904,39 @@ function NexusOneInner({
           const isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
-          const providerTransactionExplorerUrl = isExternalProviderIntent
-            ? await resolveBetterIntentTransactionExplorerUrl(
-                appConfig.nexusNetwork,
-                intentId
-              )
-            : null;
+          const intentExplorerUrls = getSdkIntentExplorerUrls(
+            result,
+            swapResult,
+            toToken.chainId
+          );
           const resultFinalExplorerUrl =
-            providerTransactionExplorerUrl ||
+            intentExplorerUrls.destinationExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
             ) ||
-            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result)) ||
+            intentExplorerUrls.sourceExplorerUrl;
           if (isExternalProviderIntent) {
             intentExplorerUrl = null;
+            intentUrlRef.current = null;
+            patchCurrentSwapHistoryEntry({ intentExplorerUrl: null });
           }
           finalExplorerUrl = resultFinalExplorerUrl || finalExplorerUrl;
+          if (intentExplorerUrls.sourceExplorerUrl) {
+            mergeExplorerUrls({
+              sourceExplorerUrl: intentExplorerUrls.sourceExplorerUrl,
+            });
+          }
+          if (intentExplorerUrls.destinationExplorerUrl) {
+            mergeExplorerUrls({
+              destinationExplorerUrl: intentExplorerUrls.destinationExplorerUrl,
+            });
+          }
           if (resultFinalExplorerUrl) {
             setTransferExplorerUrl(resultFinalExplorerUrl);
-            mergeExplorerUrls({
-              destinationExplorerUrl: resultFinalExplorerUrl,
-            });
           }
         }
 
@@ -9933,7 +10040,7 @@ function NexusOneInner({
 
         resetExplorerUrls();
         let intentExplorerUrl: string | null = null;
-        let intentId: number | undefined = currentSwapEntry?.intentId;
+        let intentId: string | undefined = currentSwapEntry?.intentId;
         let finalExplorerUrl: string | null =
           explorerUrlsRef.current.destinationExplorerUrl ||
           explorerUrlsRef.current.sourceExplorerUrl;
@@ -10048,26 +10155,40 @@ function NexusOneInner({
           const isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
-          const providerTransactionExplorerUrl = isExternalProviderIntent
-            ? await resolveBetterIntentTransactionExplorerUrl(
-                appConfig.nexusNetwork,
-                intentId
-              )
-            : null;
+          const intentExplorerUrls = getSdkIntentExplorerUrls(
+            result,
+            swapResult,
+            toToken.chainId
+          );
+          if (isExternalProviderIntent) {
+            intentExplorerUrl = null;
+            intentUrlRef.current = null;
+            patchCurrentSwapHistoryEntry({ intentExplorerUrl: null });
+          }
           finalExplorerUrl =
-            providerTransactionExplorerUrl ||
+            intentExplorerUrls.destinationExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               executeTxHash,
               result,
               swapResult
             ) ||
-            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result)) ||
+            intentExplorerUrls.sourceExplorerUrl;
+          if (intentExplorerUrls.sourceExplorerUrl) {
+            mergeExplorerUrls({
+              sourceExplorerUrl: intentExplorerUrls.sourceExplorerUrl,
+            });
+          }
+          if (intentExplorerUrls.destinationExplorerUrl) {
+            mergeExplorerUrls({
+              destinationExplorerUrl: intentExplorerUrls.destinationExplorerUrl,
+            });
+          }
           if (finalExplorerUrl) {
             if (activeMode === "send" || hasCustomSwapRecipient) {
               setTransferExplorerUrl(finalExplorerUrl);
             }
-            mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
@@ -10077,142 +10198,19 @@ function NexusOneInner({
             ...(intentId ? { intentId } : {}),
           });
         } else {
-          const activePredictiveOut =
-            predictiveQuote?.mode === "exactOut" ? predictiveQuote : null;
-          const isExplicit = Boolean(
-            sourceSelectionTouched &&
-              exactOutQuoteSourceModeRef.current !== "all" &&
-              fromTokens.length > 0
-          );
-          const immediatePredictiveOut = buildImmediatePredictiveExactOutQuote(
-            isExplicit ? fromTokens : [],
-            true
-          );
-          if (
-            immediatePredictiveOut?.missingUsd &&
-            Number(immediatePredictiveOut.missingUsd) > 0.01
-          ) {
-            setIntentLoading(false);
-            setQuoteRefreshing(false);
-            setReceiveMaxCalculating(false);
-            const msg = !isMultiAssetMode
-              ? `You're $${immediatePredictiveOut.missingUsd} short. Switch to Multi-assets Mode`
-              : `You're $${immediatePredictiveOut.missingUsd} short. Add Assets`;
-            setSwapQuoteIssue({
-              type: "insufficientSources",
-              message: msg,
-              missingUsd: immediatePredictiveOut.missingUsd,
-            } as any);
-            return;
-          }
-          if (
-            !isMultiAssetMode &&
-            immediatePredictiveOut?.hasUncoveredSourceAmount
-          ) {
-            setIntentLoading(false);
-            setQuoteRefreshing(false);
-            setReceiveMaxCalculating(false);
-            return;
-          }
-          const exactOutSources = !isMultiAssetMode
-            ? (() => {
-                if (
-                  immediatePredictiveOut?.sources &&
-                  immediatePredictiveOut.sources.length > 0
-                ) {
-                  return [immediatePredictiveOut.sources[0]];
-                }
-                const sourceToken = fromTokens[0];
-                if (!sourceToken) return [];
-                const rate = getTokenUsdRate(sourceToken);
-                const destRate = getTokenUsdRate(toToken);
-                const destAmount = parseFiatNumber(amount) ?? new Decimal(0);
-                const destUsd = destAmount.mul(destRate.gt(0) ? destRate : 1);
-                const sourceAmount = rate.gt(0)
-                  ? destUsd.div(rate)
-                  : destAmount;
-                return [
-                  {
-                    ...sourceToken,
-                    userAmount: sourceAmount
-                      .toDecimalPlaces(
-                        sourceToken.decimals || 18,
-                        Decimal.ROUND_DOWN
-                      )
-                      .toFixed(),
-                    userAmountMode: "token" as const,
-                    userAmountUsd: destUsd.toFixed(2),
-                  },
-                ];
-              })()
-            : isExplicit
-              ? immediatePredictiveOut?.sources &&
-                immediatePredictiveOut.sources.length > 0
-                ? immediatePredictiveOut.sources
-                : fromTokens
-              : immediatePredictiveOut?.sources &&
-                  immediatePredictiveOut.sources.length > 0
-                ? immediatePredictiveOut.sources
-                : activePredictiveOut?.sources &&
-                    activePredictiveOut.sources.length > 0
-                  ? activePredictiveOut.sources
-                  : fromTokens;
-          const exactOutFromPayload: {
-            chainId: number;
-            tokenAddress: `0x${string}`;
-            amountRaw: bigint;
-          }[] = [];
-
-          for (const token of exactOutSources) {
-            const cleanAmount =
-              parseFiatNumber(token.userAmount) ?? new Decimal(0);
-            if (cleanAmount.gt(0)) {
-              const safeTokenAmountStr = cleanAmount
-                .toDecimalPlaces(
-                  Math.max(0, token.decimals || 18),
-                  Decimal.ROUND_DOWN
-                )
-                .toFixed();
-              exactOutFromPayload.push({
-                chainId: token.chainId!,
-                tokenAddress: token.contractAddress as `0x${string}`,
-                amountRaw: parseUnits(safeTokenAmountStr, token.decimals || 18),
-              });
-            }
-          }
-
-          if (exactOutFromPayload.length === 0) {
-            if (background) {
-              setIntentLoading(false);
-              setQuoteRefreshing(false);
-              setReceiveMaxCalculating(false);
-              setSwapQuoteIssue({
-                type: "insufficientSources",
-                message:
-                  "There isn't enough usable balance for this swap. Reduce the amount or choose another source asset.",
-              } as any);
-              return;
-            }
-            setTxError(
-              "There isn't enough usable balance for this swap. Reduce the amount or choose another source asset."
-            );
-            setIntentLoading(false);
-            setQuoteRefreshing(false);
-            setReceiveMaxCalculating(false);
-            return;
-          }
-
-          const exactOutInSwapPayload = {
-            sources: exactOutFromPayload,
+          // Regular swap exact-output mode must leave source amounts to the
+          // SDK. Supplying estimated source amounts here turns the
+          // request into exact-input semantics and can over- or under-fund it.
+          const exactOutSwapPayload = {
             toChainId: toToken.chainId!,
-            toTokenAddress: toToken.contractAddress as `0x${string}`,
+            toTokenAddress: isArcNativeUsdc(toToken)
+              ? ("0x0000000000000000000000000000000000000000" as `0x${string}`)
+              : (toToken.contractAddress as `0x${string}`),
+            toAmountRaw: amountBigInt,
+            ...fromSourcesPayload,
           };
 
-          console.log(
-            "[nexusSDK.swapWithExactIn payload]",
-            exactOutInSwapPayload
-          );
-          result = await nexusSDK.swapWithExactIn(exactOutInSwapPayload, {
+          result = await nexusSDK.swapWithExactOut(exactOutSwapPayload, {
             hooks: {
               onIntent: (data) =>
                 handleSwapIntentCallback(data, runId, quoteInputKey),
@@ -10230,23 +10228,38 @@ function NexusOneInner({
           const isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
-          const providerTransactionExplorerUrl = isExternalProviderIntent
-            ? await resolveBetterIntentTransactionExplorerUrl(
-                appConfig.nexusNetwork,
-                intentId
-              )
-            : null;
+          const intentExplorerUrls = getSdkIntentExplorerUrls(
+            result,
+            swapResult,
+            toToken.chainId
+          );
           finalExplorerUrl =
-            providerTransactionExplorerUrl ||
+            intentExplorerUrls.destinationExplorerUrl ||
             getExplorerTxUrl(
               toToken.chainId,
               getSdkTransactionHash(result),
               result,
               swapResult
             ) ||
-            (isExternalProviderIntent ? null : getSdkExplorerUrl(result));
+            (isExternalProviderIntent ? null : getSdkExplorerUrl(result)) ||
+            intentExplorerUrls.sourceExplorerUrl;
+          if (isExternalProviderIntent) {
+            intentExplorerUrl = null;
+            intentUrlRef.current = null;
+            patchCurrentSwapHistoryEntry({ intentExplorerUrl: null });
+          }
+          if (intentExplorerUrls.sourceExplorerUrl) {
+            mergeExplorerUrls({
+              sourceExplorerUrl: intentExplorerUrls.sourceExplorerUrl,
+            });
+          }
+          if (intentExplorerUrls.destinationExplorerUrl) {
+            mergeExplorerUrls({
+              destinationExplorerUrl: intentExplorerUrls.destinationExplorerUrl,
+            });
+          }
           if (finalExplorerUrl) {
-            mergeExplorerUrls({ destinationExplorerUrl: finalExplorerUrl });
+            setTransferExplorerUrl(finalExplorerUrl);
           }
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
@@ -10683,14 +10696,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10746,8 +10765,11 @@ function NexusOneInner({
     fromTokensQuoteKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     recipientAddress,
     sourceSelectionRevision,
@@ -10770,14 +10792,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10834,8 +10862,11 @@ function NexusOneInner({
     depositQuoteAmountKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     sourceSelectionRevision,
     selectedOpportunityIdentity,
@@ -10857,14 +10888,20 @@ function NexusOneInner({
     }
 
     if (hasReceiveAmountQuoteIssue) {
-      clearPendingSwapIntent(true);
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
       return;
     }
 
-    if (hasInsufficientSourcesQuoteIssue) {
+    if (
+      !needsWalletConnection &&
+      (hasInsufficientSourcesQuoteIssue ||
+        hasExactInSourceBalanceExceeded ||
+        Boolean(insufficientSourceIssue))
+    ) {
+      clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
       setIntentLoading(false);
       setQuoteRefreshing(false);
       setReceiveMaxCalculating(false);
@@ -10914,8 +10951,11 @@ function NexusOneInner({
     activeQuoteInputKey,
     getQuoteRequestDelay,
     hasCurrentQuoteIntent,
+    hasExactInSourceBalanceExceeded,
     hasInsufficientSourcesQuoteIssue,
     hasReceiveAmountQuoteIssue,
+    insufficientSourceIssue,
+    needsWalletConnection,
     nexusSDK,
     sourceSelectionRevision,
     swapStep,
@@ -11369,6 +11409,8 @@ function NexusOneInner({
         return;
       }
 
+      setSwapQuoteIssue(null);
+
       const receiveIssue = buildReceiveAmountIssue({
         inputAmount: sanitizedVal,
       });
@@ -11377,15 +11419,14 @@ function NexusOneInner({
         return;
       }
 
-      setSwapQuoteIssue(null);
       const shouldLoadQuote = Boolean(
         nexusSDK &&
           nextAmount?.gt(0) &&
           toToken &&
           (hasManualSourceSelection ||
             (immediatePrediction?.sources &&
-              immediatePrediction.sources.length > 0 &&
-              !immediatePrediction.missingUsd))
+              immediatePrediction.sources.length > 0) ||
+            fromTokens.length > 0)
       );
       clearPendingSwapIntent(true, { keepQuoteRefreshing: shouldLoadQuote });
       if (shouldLoadQuote) {
@@ -11420,6 +11461,21 @@ function NexusOneInner({
             }))
           );
         }
+        return;
+      }
+
+      const isBalanceExceeded = fromTokens.some((token, index) => {
+        const raw =
+          token.userAmount ||
+          (!isMultiAssetMode && index === 0 ? sanitizedVal : "");
+        if (!hasPositiveDecimalInput(raw)) return false;
+        return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
+      });
+      if (isBalanceExceeded) {
+        clearPendingSwapIntent(true, { keepQuoteRefreshing: false });
+        setQuoteRefreshing(false);
+        setIntentLoading(false);
+        setReceiveMaxCalculating(false);
         return;
       }
 
@@ -11833,62 +11889,6 @@ function NexusOneInner({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
-  const predictiveExactInQuote =
-    predictiveQuote?.mode === "exactIn" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey("swap", "exactIn")
-      ? predictiveQuote
-      : null;
-  const predictiveExactOutQuote =
-    predictiveQuote?.mode === "exactOut" &&
-    predictiveQuote.key === getPredictiveQuoteCacheKey(activeMode, "exactOut")
-      ? predictiveQuote
-      : null;
-
-  const hasExactInSourceBalanceExceeded = useMemo(() => {
-    if (
-      activeMode !== "swap" &&
-      activeMode !== "send" &&
-      activeMode !== "deposit"
-    ) {
-      return false;
-    }
-    if (swapType !== "exactIn") return false;
-    if (fromTokens.length === 0) return false;
-
-    return fromTokens.some((token, index) => {
-      const raw =
-        token.userAmount || (!isMultiAssetMode && index === 0 ? amount : "");
-      if (!hasPositiveDecimalInput(raw)) return false;
-      const requested = parseFiatNumber(raw);
-      if (!requested || requested.lte(0)) return false;
-
-      return isAmountAboveUsableBalance(token, raw, token.userAmountMode);
-    });
-  }, [activeMode, swapType, fromTokens, isMultiAssetMode, amount]);
-
-  const insufficientSourceIssue =
-    swapQuoteIssue?.type === "insufficientSources"
-      ? swapQuoteIssue
-      : hasExactInSourceBalanceExceeded
-        ? {
-            type: "insufficientSources" as const,
-            message:
-              "Cannot proceed with this swap due to insufficient balance on source",
-          }
-        : receiveAmountIssue?.type === "insufficientSources"
-          ? receiveAmountIssue
-          : predictiveExactOutQuote?.missingUsd &&
-              Number(predictiveExactOutQuote.missingUsd) > 0
-            ? {
-                type: "insufficientSources" as const,
-                message: !isMultiAssetMode
-                  ? `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Switch to Multi-assets Mode`
-                  : `You're $${Number(predictiveExactOutQuote.missingUsd).toFixed(2)} short. Add Assets`,
-                missingUsd: Number(predictiveExactOutQuote.missingUsd).toFixed(
-                  2
-                ),
-              }
-            : null;
   const blockingQuoteIssue = insufficientSourceIssue ?? receiveAmountIssue;
   const hasCurrentRunnableIntent = hasCurrentQuoteIntent;
   const hasIntentSources = Boolean((intentData?.sources ?? []).length > 0);
@@ -11947,8 +11947,6 @@ function NexusOneInner({
   }, [nexusLoading, swapBalance, nexusInitError, ownerAddress]);
 
   const effectiveNexusInitError = nexusInitError || localInitError;
-
-  const needsWalletConnection = !ownerAddress || !nexusSDK;
   const isBalancesLoading =
     !needsWalletConnection &&
     (nexusLoading ||
@@ -12169,13 +12167,17 @@ function NexusOneInner({
   }, [needsWalletConnection, amount, toToken, fromTokens, getTokenUsdRate]);
 
   const idleReceiveQuoteAmount = needsWalletConnection
-    ? predictiveDisconnectedReceiveQuote?.toAmount
+    ? swapType === "exactIn"
+      ? predictiveDisconnectedReceiveQuote?.toAmount
+      : undefined
     : activeMode === "swap" && swapType === "exactIn"
       ? (intentToAmount ?? predictiveExactInQuote?.toAmount)
       : undefined;
 
   const idleReceiveQuoteUsd = needsWalletConnection
-    ? predictiveDisconnectedReceiveQuote?.toUsd
+    ? swapType === "exactIn"
+      ? predictiveDisconnectedReceiveQuote?.toUsd
+      : undefined
     : activeMode === "swap" && swapType === "exactIn"
       ? (previewToAmountUsd ?? predictiveExactInQuote?.toUsd)
       : previewToAmountUsd;
@@ -12423,27 +12425,47 @@ function NexusOneInner({
     predictiveExactOutQuote?.toUsd ??
     (sendAmountUsd > 0 ? sendAmountUsd.toFixed(2) : "0");
   const isIdleSwapQuoteLoading =
-    activeMode === "swap" &&
-    swapStep === "idle" &&
-    (quoteRefreshing || intentLoading);
+    !needsWalletConnection &&
+    (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+      ? false
+      : activeMode === "swap" &&
+        swapStep === "idle" &&
+        (quoteRefreshing || intentLoading);
+  const isPredictiveQuote = Boolean(
+    !needsWalletConnection &&
+      !hasExactInSourceBalanceExceeded &&
+      !insufficientSourceIssue &&
+      activeMode === "swap" &&
+      swapType === "exactIn" &&
+      (isIdleSwapQuoteLoading || quoteRefreshing || intentLoading) &&
+      idleReceiveQuoteAmount &&
+      !intentToAmount
+  );
   const isReceiveAmountLoading =
     !needsWalletConnection &&
+    !hasExactInSourceBalanceExceeded &&
+    !insufficientSourceIssue &&
     (receiveMaxCalculating ||
       (isIdleSwapQuoteLoading &&
         swapType === "exactIn" &&
         !idleReceiveQuoteAmount));
   const isReceiveUsdLoading =
     !needsWalletConnection &&
+    !hasExactInSourceBalanceExceeded &&
+    !insufficientSourceIssue &&
     (receiveMaxCalculating ||
       (isIdleSwapQuoteLoading &&
         swapType === "exactIn" &&
         !idleReceiveQuoteUsd));
   const hasQuoteRefreshCountdown =
-    (activeMode === "swap" ||
-      activeMode === "deposit" ||
-      activeMode === "send") &&
-    (hasCurrentQuoteIntent || quoteRefreshing || previewQuoteRefreshing) &&
-    (swapStep === "idle" || swapStep === "preview-intent");
+    !needsWalletConnection &&
+    (hasExactInSourceBalanceExceeded || Boolean(insufficientSourceIssue))
+      ? false
+      : (activeMode === "swap" ||
+          activeMode === "deposit" ||
+          activeMode === "send") &&
+        (hasCurrentQuoteIntent || quoteRefreshing || previewQuoteRefreshing) &&
+        (swapStep === "idle" || swapStep === "preview-intent");
   const isRecipientDrawerClosing = closingDrawerStep === "enter-recipient";
   const isSwapAssetDrawerClosing = closingDrawerStep === "choose-swap-asset";
   const isReceiveAssetDrawerClosing =
@@ -13012,6 +13034,7 @@ function NexusOneInner({
                   intentData={intentData}
                   isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
+                  isPredictiveQuote={isPredictiveQuote}
                   isQuoteLoading={isIdleSwapQuoteLoading}
                   isReceiveAmountLoading={isReceiveAmountLoading}
                   isReceiveUsdLoading={isReceiveUsdLoading}

@@ -9,6 +9,7 @@ import {
   isBetterIntentProvider,
   isExternalIntentProvider,
   isTokenSupportedForRole,
+  normalizeIntentBalances,
   normalizeIntentQuote,
   normalizeSupportedChains,
 } from "./better-intent-compat.ts";
@@ -140,6 +141,38 @@ test("respects explicit empty directional support and rejects missing tokens", (
   );
 });
 
+test("allows a provider-tagged token when the route catalog omits its token list", () => {
+  const catalog = [
+    {
+      id: 5042,
+      providers: ["relay"],
+      asDestination: ["relay"],
+      tokens: [],
+    },
+  ] as any;
+
+  assert.equal(
+    isTokenSupportedForRole(
+      catalog,
+      "destination",
+      5042,
+      "0x3600000000000000000000000000000000000000",
+      ["relay"]
+    ),
+    true
+  );
+  assert.equal(
+    isTokenSupportedForRole(
+      catalog,
+      "destination",
+      5042,
+      "0xb67f50fde86e09b5da963c4251cbd4788b151ed5",
+      ["nexus-v2"]
+    ),
+    false
+  );
+});
+
 test("does not invent one source-token total for mixed-token intents", () => {
   const quote = {
     id: `0x${"11".repeat(32)}`,
@@ -260,6 +293,58 @@ test("normalizes supported chains without tokens (Better Intent on-demand tokens
       "0x0000000000000000000000000000000000000000"
     ),
     true
+  );
+});
+
+test("keeps balances separate by chain and contract address", () => {
+  const chains = [
+    { id: 1, name: "Ethereum", logo: "", tokens: [] },
+    { id: 10, name: "Optimism", logo: "", tokens: [] },
+  ] as any;
+  const balances = [
+    {
+      chainId: 1,
+      tokenAddress: "0x0000000000000000000000000000000000000001",
+      symbol: "USDC",
+      decimals: 6,
+      balanceRaw: 1_000_000n,
+      valueUsd: "1",
+      usable: true,
+    },
+    {
+      chainId: 1,
+      tokenAddress: "0x0000000000000000000000000000000000000002",
+      symbol: "USDC",
+      decimals: 6,
+      balanceRaw: 2_000_000n,
+      valueUsd: "2",
+      usable: true,
+    },
+    {
+      chainId: 10,
+      tokenAddress: "0x0000000000000000000000000000000000000001",
+      symbol: "USDC",
+      decimals: 6,
+      balanceRaw: 3_000_000n,
+      valueUsd: "3",
+      usable: true,
+    },
+  ] as any;
+
+  const normalized = normalizeIntentBalances(balances, chains);
+
+  assert.equal(normalized.length, 3);
+  assert.deepEqual(
+    normalized.map((asset) => [
+      asset.chainBalances[0]?.chain.id,
+      asset.chainBalances[0]?.contractAddress,
+      asset.balance,
+    ]),
+    [
+      [1, balances[0].tokenAddress, "1"],
+      [1, balances[1].tokenAddress, "2"],
+      [10, balances[2].tokenAddress, "3"],
+    ]
   );
 });
 

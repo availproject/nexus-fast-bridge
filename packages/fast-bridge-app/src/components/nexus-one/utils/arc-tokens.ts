@@ -10,13 +10,9 @@ import type { SwapTokenOption } from "../components/swap-asset-selector";
 
 export const ARC_CHAIN_ID = SUPPORTED_CHAINS.ARC;
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-export const ARC_EXCLUDED_TOKEN_ADDRESS =
+/** Arc's standard USDC contract representation used by Relay. */
+export const ARC_RELAY_USDC_ADDRESS =
   "0x3600000000000000000000000000000000000000".toLowerCase();
-
-export const isArcExcludedToken = (address?: string): boolean => {
-  if (!address) return false;
-  return address.toLowerCase() === ARC_EXCLUDED_TOKEN_ADDRESS;
-};
 
 export const isArcNativeUsdc = (
   token?: {
@@ -81,6 +77,25 @@ export const isArcErc20Usdc = (
     address === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
   return !isNative;
 };
+
+export const isArcRelayUsdc = (
+  token?: {
+    chainId?: number;
+    symbol?: string;
+    contractAddress?: string;
+  } | null
+): boolean =>
+  isArcErc20Usdc(token) &&
+  token?.contractAddress?.toLowerCase() === ARC_RELAY_USDC_ADDRESS;
+
+/** Reject unknown Arc ERC-20 USDC contracts while allowing Relay's canonical token. */
+export const isArcUnsupportedErc20Usdc = (
+  token?: {
+    chainId?: number;
+    symbol?: string;
+    contractAddress?: string;
+  } | null
+): boolean => isArcErc20Usdc(token) && !isArcRelayUsdc(token);
 
 export const getArcReceiveTokenOptions = (): SwapTokenOption[] => [
   getArcNativeTokenOption(),

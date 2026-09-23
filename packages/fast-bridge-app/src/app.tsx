@@ -75,7 +75,7 @@ function FastBridgeAppFooter() {
             alt="Avail"
             className="fastbridge-footer-avail-logo"
             height={108}
-            src="/landing-assets/avail-logo.png"
+            src="/avail-logo.png"
             width={332}
           />
         </div>
