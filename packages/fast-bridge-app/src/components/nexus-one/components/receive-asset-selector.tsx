@@ -717,7 +717,7 @@ export function ReceiveAssetSelector({
     },
     []
   );
-  const [visibleCount, setVisibleCount] = useState(30);
+  const [visibleCount, setVisibleCount] = useState(40);
   const [tooltipState, setTooltipState] = useState<{
     hash: string;
     x: number;
@@ -1139,45 +1139,9 @@ export function ReceiveAssetSelector({
     }
   }, [deferredQuery, activeTab, selectedChainFilter]);
 
-  // Progressive background batch rendering without blocking the UI
-  useEffect(() => {
-    if (visibleCount >= sortedFiltered.length) return;
-
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const scheduleNextBatch = () => {
-      setVisibleCount((prev) => Math.min(sortedFiltered.length, prev + 40));
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = (
-        window as unknown as {
-          requestIdleCallback: (
-            cb: () => void,
-            opts?: { timeout: number }
-          ) => number;
-        }
-      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
-    } else {
-      timerId = setTimeout(scheduleNextBatch, 50);
-    }
-
-    return () => {
-      if (
-        idleId !== null &&
-        typeof window !== "undefined" &&
-        "cancelIdleCallback" in window
-      ) {
-        (
-          window as unknown as { cancelIdleCallback: (id: number) => void }
-        ).cancelIdleCallback(idleId);
-      }
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    };
-  }, [visibleCount, sortedFiltered.length]);
+  // Lazy loading is handled by the onScroll sentinel on the list container.
+  // No unconditional pre-batching here — that would silently render all rows
+  // right after open and eliminate the benefit of visibleCount slicing.
 
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth >= 768 : true

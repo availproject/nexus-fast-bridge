@@ -1112,6 +1112,315 @@ function sameContractAddress(a?: string, b?: string) {
   return addressTail(normalizedA) === addressTail(normalizedB);
 }
 
+// Pure normalizer — lives at module scope so it has a stable identity.
+// Passing an inline arrow as a prop to React.memo components defeats memoization.
+const normalizeNativeAddress = (addr: string): string =>
+  addr.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ? "0x0000000000000000000000000000000000000000"
+    : addr;
+
+/* ── Memoized single-chain token row ── */
+// Keeping this as a proper React.memo component (not an inline closure) is
+// critical for selection performance. When the user toggles a token the parent
+// re-renders with a new draftSelectedTokens array, but React.memo lets all
+// unaffected rows bail out early — only the toggled row re-renders, so the
+// checkmark/uncheckmark appears on the next paint frame instead of after all
+// 40+ rows finish a synchronous re-render.
+interface SwapTokenRowProps {
+  copiedTokenAddress: string | null;
+  disabled: boolean;
+  handleCopyTokenAddress: (
+    e: React.MouseEvent,
+    addr: string,
+    chainId: number | undefined
+  ) => void;
+  indent: boolean;
+  isBalanceLoading: boolean;
+  isDesktop: boolean;
+  isDisabledByUnified: boolean;
+  isMulti: boolean;
+  needsWalletConnection: boolean;
+  onSelect: () => void;
+  selectedInCurrent: boolean;
+  token: SwapTokenOption;
+}
+
+const SwapTokenRow = React.memo(function SwapTokenRow({
+  copiedTokenAddress,
+  disabled,
+  handleCopyTokenAddress,
+  indent,
+  isBalanceLoading,
+  isDesktop,
+  isDisabledByUnified,
+  isMulti,
+  needsWalletConnection,
+  onSelect,
+  selectedInCurrent,
+  token,
+}: SwapTokenRowProps) {
+  if (indent) {
+    return (
+      <button
+        disabled={disabled}
+        onClick={onSelect}
+        style={{
+          alignItems: "center",
+          backgroundColor: "transparent",
+          border: "none",
+          boxSizing: "border-box",
+          cursor: disabled ? "not-allowed" : "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          minHeight: "42px",
+          opacity: isDisabledByUnified ? 0.5 : 1,
+          padding: "8px 0",
+          width: "100%",
+        }}
+      >
+        <span
+          style={{
+            alignItems: "center",
+            display: "flex",
+            gap: "12px",
+            minWidth: 0,
+          }}
+        >
+          <SelectionControl multi={isMulti} selected={selectedInCurrent} />
+          <TokenLogo
+            backgroundColor="#F0F0EF"
+            color="#5B5B5A"
+            fontSize={8}
+            size={18}
+            src={token.chainLogo}
+            symbol={token.chainName || token.symbol}
+          />
+          <span
+            style={{
+              color: "#1F1F1F",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "14px",
+              fontWeight: 500,
+              lineHeight: "20px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {token.chainName || "Unknown chain"}
+          </span>
+        </span>
+        {!needsWalletConnection && tokenHasBalance(token) && (
+          <span
+            style={{
+              color: "#1F1F1F",
+              flexShrink: 0,
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: "14px",
+              fontVariantNumeric: "tabular-nums",
+              fontWeight: 500,
+              lineHeight: "20px",
+            }}
+          >
+            {formatTokenAmountDisplay(getTotalBalance(token))}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      className="nexus-asset-row"
+      disabled={disabled}
+      onClick={onSelect}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: isDesktop ? "10px 14px" : "8px 10px",
+        paddingLeft: isDesktop ? "14px" : "10px",
+        backgroundColor: "transparent",
+        border: "none",
+        cursor: disabled ? "not-allowed" : "pointer",
+        borderBottom: "1px solid #F0F0EF",
+        boxSizing: "border-box",
+        opacity: isDisabledByUnified ? 0.5 : 1,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: isDesktop ? 12 : 8,
+        }}
+      >
+        <SelectionControl multi={isMulti} selected={selectedInCurrent} />
+        <div
+          style={{
+            flexShrink: 0,
+            height: isDesktop ? 40 : 30,
+            position: "relative",
+            width: isDesktop ? 40 : 30,
+          }}
+        >
+          <TokenLogo
+            size={isDesktop ? 40 : 30}
+            src={token.logo}
+            symbol={token.symbol}
+          />
+          {token.chainLogo && (
+            <img
+              alt={token.chainName || ""}
+              src={token.chainLogo}
+              style={{
+                border: "2px solid #FFFFFE",
+                borderRadius: "999px",
+                bottom: isDesktop ? -6 : -4,
+                height: isDesktop ? 18 : 14,
+                objectFit: "cover",
+                position: "absolute",
+                right: isDesktop ? -6 : -4,
+                width: isDesktop ? 18 : 14,
+                zIndex: 2,
+              }}
+            />
+          )}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontWeight: 500,
+              fontSize: isDesktop ? 15 : 13,
+              color: "#161615",
+            }}
+          >
+            {token.symbol}
+          </span>
+          {token.chainName && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span
+                style={{
+                  color: "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "20px",
+                }}
+              >
+                {token.chainName}
+              </span>
+              {token.contractAddress && (
+                <span
+                  onClick={(e) =>
+                    handleCopyTokenAddress(
+                      e,
+                      token.contractAddress,
+                      token.chainId
+                    )
+                  }
+                  style={{
+                    color: "#8E8E89",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "14px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "20px",
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                  title="Click to copy token address"
+                >
+                  {copiedTokenAddress ===
+                  `${token.chainId}:${normalizeNativeAddress(token.contractAddress)}`
+                    ? "Copied!"
+                    : formatMiddleTruncatedAddress(
+                        normalizeNativeAddress(token.contractAddress)
+                      )}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {needsWalletConnection ? null : (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+          }}
+        >
+          {isBalanceLoading ? (
+            <div
+              style={{
+                alignItems: "flex-end",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#E8E8E7",
+                  borderRadius: 4,
+                  height: 14,
+                  width: 55,
+                }}
+              />
+              <div
+                className="nexus-balance-skeleton"
+                style={{
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+                  backgroundColor: "#F0F0EF",
+                  borderRadius: 4,
+                  height: 12,
+                  width: 35,
+                }}
+              />
+            </div>
+          ) : tokenHasBalance(token) ? (
+            <>
+              <span
+                style={{
+                  color: "#161615",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: isDesktop ? 14 : 12,
+                  fontWeight: 500,
+                }}
+              >
+                {formatBalanceWithSymbol(token)}
+              </span>
+              <span
+                style={{
+                  color: "#848483",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: isDesktop ? 13 : 11,
+                }}
+              >
+                ≈ {getTotalBalanceInFiat(token)}
+              </span>
+            </>
+          ) : null}
+        </div>
+      )}
+    </button>
+  );
+});
+
 export function SwapAssetSelector({
   title,
   swapBalance,
@@ -1172,11 +1481,6 @@ export function SwapAssetSelector({
   const [copiedTokenAddress, setCopiedTokenAddress] = useState<string | null>(
     null
   );
-
-  const normalizeNativeAddress = (addr: string): string =>
-    addr.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      ? "0x0000000000000000000000000000000000000000"
-      : addr;
 
   const handleCopyTokenAddress = useCallback(
     (e: React.MouseEvent, addr: string, chainId: number) => {
@@ -1653,47 +1957,9 @@ export function SwapAssetSelector({
     }
   }, [query, activeTab, selectedChainFilter]);
 
-  // Progressive background batch rendering without blocking the UI
-  useEffect(() => {
-    if (visibleCount >= groupedFiltered.length) return;
-
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const scheduleNextBatch = () => {
-      setVisibleCount((prev) =>
-        Math.min(groupedFiltered.length, prev + BATCH_INCREMENT)
-      );
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = (
-        window as unknown as {
-          requestIdleCallback: (
-            cb: () => void,
-            opts?: { timeout: number }
-          ) => number;
-        }
-      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
-    } else {
-      timerId = setTimeout(scheduleNextBatch, 50);
-    }
-
-    return () => {
-      if (
-        idleId !== null &&
-        typeof window !== "undefined" &&
-        "cancelIdleCallback" in window
-      ) {
-        (
-          window as unknown as { cancelIdleCallback: (id: number) => void }
-        ).cancelIdleCallback(idleId);
-      }
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    };
-  }, [visibleCount, groupedFiltered.length]);
+  // Lazy loading is handled by the onScroll sentinel on the list container.
+  // No unconditional pre-batching here — that would silently render all rows
+  // right after open and eliminate the benefit of visibleCount slicing.
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -1803,39 +2069,79 @@ export function SwapAssetSelector({
     onClearSelection?.();
   };
 
-  const handleMultiTokenToggle = (token: SwapTokenOption) => {
-    if (onToggle) {
-      onToggle(token);
-      return;
-    }
+  const handleMultiTokenToggle = useCallback(
+    (token: SwapTokenOption) => {
+      if (onToggle) {
+        onToggle(token);
+        return;
+      }
 
-    if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
-      onToggle?.(token);
-      return;
-    }
+      if (!autoSelectFilterTabs || !isMulti || !onSelectionChange) {
+        onToggle?.(token);
+        return;
+      }
 
-    setActiveTab("custom");
-    const current = mergeTokenOptions(
+      setActiveTab("custom");
+      const current = mergeTokenOptions(
+        activeSelectedTokens,
+        lockedSelectedTokens
+      );
+      const targets =
+        token.isUnified && token.sourceTokens?.length
+          ? token.sourceTokens
+          : [token];
+      const unlockedTargets = targets.filter(
+        (target) => !isLockedToken(target)
+      );
+      if (unlockedTargets.length === 0) return;
+
+      const allTargetsSelected = unlockedTargets.every((target) =>
+        current.some((item) => sameTokenOption(item, target))
+      );
+      const next = allTargetsSelected
+        ? removeTokenOptions(current, unlockedTargets)
+        : mergeTokenOptions(current, unlockedTargets);
+      emitSelectionChange(next);
+    },
+    [
+      onToggle,
+      autoSelectFilterTabs,
+      isMulti,
+      onSelectionChange,
       activeSelectedTokens,
-      lockedSelectedTokens
-    );
-    const targets =
-      token.isUnified && token.sourceTokens?.length
-        ? token.sourceTokens
-        : [token];
-    const unlockedTargets = targets.filter((target) => !isLockedToken(target));
-    if (unlockedTargets.length === 0) return;
-
-    const allTargetsSelected = unlockedTargets.every((target) =>
-      current.some((item) => sameTokenOption(item, target))
-    );
-    const next = allTargetsSelected
-      ? removeTokenOptions(current, unlockedTargets)
-      : mergeTokenOptions(current, unlockedTargets);
-    emitSelectionChange(next);
-  };
+      lockedSelectedTokens,
+      isLockedToken,
+      emitSelectionChange,
+    ]
+  );
 
   /* ── Render a single-chain token row ── */
+  // useCallback keeps the handler reference stable so SwapTokenRow.memo can bail out.
+  const makeTokenSelectionHandler = useCallback(
+    (token: SwapTokenOption, selectedInCurrent: boolean, disabled: boolean) =>
+      () => {
+        if (disabled) return;
+        if (isMulti) {
+          handleMultiTokenToggle(token);
+        } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
+          onToggle(token);
+        } else {
+          setDraftSelectedTokens([token]);
+          onSelect(token);
+          onBack();
+        }
+      },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      isMulti,
+      allowSelectedTokenRemoval,
+      onToggle,
+      onSelect,
+      onBack,
+      handleMultiTokenToggle,
+    ]
+  );
+
   const renderTokenRow = (
     token: SwapTokenOption,
     indent = false,
@@ -1847,286 +2153,28 @@ export function SwapAssetSelector({
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
     const disabled = isDisabledByUnified || locked;
-    const handleTokenSelection = () => {
-      if (disabled) return;
-      if (isMulti) {
-        handleMultiTokenToggle(token);
-      } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
-        onToggle(token);
-      } else {
-        setDraftSelectedTokens([token]);
-        onSelect(token);
-        onBack();
-      }
-    };
-
-    if (indent) {
-      return (
-        <button
-          disabled={disabled}
-          key={`${token.contractAddress}-${token.chainId}`}
-          onClick={handleTokenSelection}
-          style={{
-            alignItems: "center",
-            backgroundColor: "transparent",
-            border: "none",
-            boxSizing: "border-box",
-            cursor: disabled ? "not-allowed" : "pointer",
-            display: "flex",
-            justifyContent: "space-between",
-            minHeight: "42px",
-            opacity: isDisabledByUnified ? 0.5 : 1,
-            padding: "8px 0",
-            width: "100%",
-          }}
-        >
-          <span
-            style={{
-              alignItems: "center",
-              display: "flex",
-              gap: "12px",
-              minWidth: 0,
-            }}
-          >
-            <SelectionControl
-              multi={Boolean(isMulti)}
-              selected={selectedInCurrent}
-            />
-            <TokenLogo
-              backgroundColor="#F0F0EF"
-              color="#5B5B5A"
-              fontSize={8}
-              size={18}
-              src={token.chainLogo}
-              symbol={token.chainName || token.symbol}
-            />
-            <span
-              style={{
-                color: "#1F1F1F",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
-                fontWeight: 500,
-                lineHeight: "20px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {token.chainName || "Unknown chain"}
-            </span>
-          </span>
-          {!needsWalletConnection && tokenHasBalance(token) && (
-            <span
-              style={{
-                color: "#1F1F1F",
-                flexShrink: 0,
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "14px",
-                fontVariantNumeric: "tabular-nums",
-                fontWeight: 500,
-                lineHeight: "20px",
-              }}
-            >
-              {formatTokenAmountDisplay(getTotalBalance(token))}
-            </span>
-          )}
-        </button>
-      );
-    }
+    const handleTokenSelection = makeTokenSelectionHandler(
+      token,
+      selectedInCurrent,
+      disabled
+    );
 
     return (
-      <button
-        className="nexus-asset-row"
+      <SwapTokenRow
+        copiedTokenAddress={copiedTokenAddress}
         disabled={disabled}
+        handleCopyTokenAddress={handleCopyTokenAddress}
+        indent={indent}
+        isBalanceLoading={isBalanceLoading}
+        isDesktop={isDesktop}
+        isDisabledByUnified={isDisabledByUnified}
+        isMulti={Boolean(isMulti)}
         key={`${token.contractAddress}-${token.chainId}`}
-        onClick={handleTokenSelection}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: isDesktop ? "10px 14px" : "8px 10px",
-          paddingLeft: isDesktop ? "14px" : "10px",
-          backgroundColor: "transparent",
-          border: "none",
-          cursor: disabled ? "not-allowed" : "pointer",
-          borderBottom: "1px solid #F0F0EF",
-          boxSizing: "border-box",
-          opacity: isDisabledByUnified ? 0.5 : 1,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: isDesktop ? 12 : 8,
-          }}
-        >
-          <SelectionControl
-            multi={Boolean(isMulti)}
-            selected={selectedInCurrent}
-          />
-          <div
-            style={{
-              flexShrink: 0,
-              height: isDesktop ? 40 : 30,
-              position: "relative",
-              width: isDesktop ? 40 : 30,
-            }}
-          >
-            <TokenLogo
-              size={isDesktop ? 40 : 30}
-              src={token.logo}
-              symbol={token.symbol}
-            />
-            {token.chainLogo && (
-              <img
-                alt={token.chainName || ""}
-                src={token.chainLogo}
-                style={{
-                  border: "2px solid #FFFFFE",
-                  borderRadius: "999px",
-                  bottom: isDesktop ? -6 : -4,
-                  height: isDesktop ? 18 : 14,
-                  objectFit: "cover",
-                  position: "absolute",
-                  right: isDesktop ? -6 : -4,
-                  width: isDesktop ? 18 : 14,
-                  zIndex: 2,
-                }}
-              />
-            )}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontWeight: 500,
-                fontSize: isDesktop ? 15 : 13,
-                color: "#161615",
-              }}
-            >
-              {token.symbol}
-            </span>
-            {token.chainName && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span
-                  style={{
-                    color: "#1F1F1F",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "14px",
-                    fontStyle: "normal",
-                    fontWeight: 400,
-                    lineHeight: "20px",
-                  }}
-                >
-                  {token.chainName}
-                </span>
-                {token.contractAddress && (
-                  <span
-                    onClick={(e) =>
-                      handleCopyTokenAddress(
-                        e,
-                        token.contractAddress,
-                        token.chainId
-                      )
-                    }
-                    style={{
-                      color: "#8E8E89",
-                      fontFamily: '"Geist", system-ui, sans-serif',
-                      fontSize: "14px",
-                      fontStyle: "normal",
-                      fontWeight: 400,
-                      lineHeight: "20px",
-                      cursor: "pointer",
-                      userSelect: "none",
-                    }}
-                    title="Click to copy token address"
-                  >
-                    {copiedTokenAddress ===
-                    `${token.chainId}:${normalizeNativeAddress(token.contractAddress)}`
-                      ? "Copied!"
-                      : formatMiddleTruncatedAddress(
-                          normalizeNativeAddress(token.contractAddress)
-                        )}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        {needsWalletConnection ? null : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-            }}
-          >
-            {isBalanceLoading ? (
-              <div
-                style={{
-                  alignItems: "flex-end",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                }}
-              >
-                <div
-                  className="nexus-balance-skeleton"
-                  style={{
-                    animation:
-                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                    backgroundColor: "#E8E8E7",
-                    borderRadius: 4,
-                    height: 14,
-                    width: 55,
-                  }}
-                />
-                <div
-                  className="nexus-balance-skeleton"
-                  style={{
-                    animation:
-                      "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                    backgroundColor: "#F0F0EF",
-                    borderRadius: 4,
-                    height: 12,
-                    width: 35,
-                  }}
-                />
-              </div>
-            ) : tokenHasBalance(token) ? (
-              <>
-                <span
-                  style={{
-                    color: "#161615",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: isDesktop ? 14 : 12,
-                    fontWeight: 500,
-                  }}
-                >
-                  {formatBalanceWithSymbol(token)}
-                </span>
-                <span
-                  style={{
-                    color: "#848483",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: isDesktop ? 13 : 11,
-                  }}
-                >
-                  ≈ {getTotalBalanceInFiat(token)}
-                </span>
-              </>
-            ) : null}
-          </div>
-        )}
-      </button>
+        needsWalletConnection={needsWalletConnection}
+        onSelect={handleTokenSelection}
+        selectedInCurrent={selectedInCurrent}
+        token={token}
+      />
     );
   };
 

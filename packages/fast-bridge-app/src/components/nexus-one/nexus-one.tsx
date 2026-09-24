@@ -5,6 +5,7 @@ import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {
+  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -3640,16 +3641,23 @@ function NexusOneInner({
 
       if (!isDrawerStep || swapStepRef.current === "idle") {
         swapStepRef.current = "idle";
-        setSwapStep("idle");
-        setClosingDrawerStep(null);
+        startTransition(() => {
+          setSwapStep("idle");
+          setClosingDrawerStep(null);
+        });
         return;
       }
 
-      setClosingDrawerStep(swapStep);
+      // Start the CSS close animation immediately, then clean up state after.
+      startTransition(() => {
+        setClosingDrawerStep(swapStep);
+      });
       drawerCloseTimerRef.current = setTimeout(() => {
         swapStepRef.current = "idle";
-        setSwapStep("idle");
-        setClosingDrawerStep(null);
+        startTransition(() => {
+          setSwapStep("idle");
+          setClosingDrawerStep(null);
+        });
         drawerCloseTimerRef.current = null;
       }, DRAWER_CLOSE_MS);
     },
@@ -3661,9 +3669,14 @@ function NexusOneInner({
       clearTimeout(drawerCloseTimerRef.current);
       drawerCloseTimerRef.current = null;
     }
-    setClosingDrawerStep(null);
+    // Update the ref immediately so any synchronous reads get the new step,
+    // but defer the React state update so the browser can paint the button
+    // press / ripple before doing the expensive nexus-one re-render.
     swapStepRef.current = nextStep;
-    setSwapStep(nextStep);
+    startTransition(() => {
+      setClosingDrawerStep(null);
+      setSwapStep(nextStep);
+    });
   }, []);
 
   const syncRootContentHeight = useCallback((animate = false) => {
