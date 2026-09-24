@@ -1140,9 +1140,31 @@ interface SwapTokenRowProps {
   isDisabledByUnified: boolean;
   isMulti: boolean;
   needsWalletConnection: boolean;
-  onSelect: () => void;
+  onSelect: (
+    token: SwapTokenOption,
+    selectedInCurrent: boolean,
+    disabled: boolean
+  ) => void;
   selectedInCurrent: boolean;
   token: SwapTokenOption;
+}
+
+function areSwapTokenRowPropsEqual(
+  prev: SwapTokenRowProps,
+  next: SwapTokenRowProps
+): boolean {
+  return (
+    prev.selectedInCurrent === next.selectedInCurrent &&
+    prev.disabled === next.disabled &&
+    prev.isDisabledByUnified === next.isDisabledByUnified &&
+    prev.isBalanceLoading === next.isBalanceLoading &&
+    prev.isDesktop === next.isDesktop &&
+    prev.isMulti === next.isMulti &&
+    prev.indent === next.indent &&
+    prev.needsWalletConnection === next.needsWalletConnection &&
+    prev.copiedTokenAddress === next.copiedTokenAddress &&
+    prev.token === next.token
+  );
 }
 
 const SwapTokenRow = React.memo(function SwapTokenRow({
@@ -1159,11 +1181,14 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
   selectedInCurrent,
   token,
 }: SwapTokenRowProps) {
+  const handleClick = () => {
+    onSelect(token, selectedInCurrent, disabled);
+  };
   if (indent) {
     return (
       <button
         disabled={disabled}
-        onClick={onSelect}
+        onClick={handleClick}
         style={{
           alignItems: "center",
           backgroundColor: "transparent",
@@ -1233,7 +1258,7 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
     <button
       className="nexus-asset-row"
       disabled={disabled}
-      onClick={onSelect}
+      onClick={handleClick}
       style={{
         width: "100%",
         display: "flex",
@@ -1419,7 +1444,7 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
       )}
     </button>
   );
-});
+}, areSwapTokenRowPropsEqual);
 
 export function SwapAssetSelector({
   title,
@@ -2116,30 +2141,37 @@ export function SwapAssetSelector({
   );
 
   /* ── Render a single-chain token row ── */
-  // useCallback keeps the handler reference stable so SwapTokenRow.memo can bail out.
-  const makeTokenSelectionHandler = useCallback(
-    (token: SwapTokenOption, selectedInCurrent: boolean, disabled: boolean) =>
-      () => {
-        if (disabled) return;
-        if (isMulti) {
-          handleMultiTokenToggle(token);
-        } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
-          onToggle(token);
-        } else {
-          setDraftSelectedTokens([token]);
-          onSelect(token);
-          onBack();
-        }
-      },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      isMulti,
-      allowSelectedTokenRemoval,
-      onToggle,
-      onSelect,
-      onBack,
-      handleMultiTokenToggle,
-    ]
+  // Mutable ref preserves latest handler closures without invalidating callback identity.
+  const selectionHandlerRef = useRef<
+    (
+      token: SwapTokenOption,
+      selectedInCurrent: boolean,
+      disabled: boolean
+    ) => void
+  >(() => {});
+
+  selectionHandlerRef.current = (
+    token: SwapTokenOption,
+    selectedInCurrent: boolean,
+    disabled: boolean
+  ) => {
+    if (disabled) return;
+    if (isMulti) {
+      handleMultiTokenToggle(token);
+    } else if (allowSelectedTokenRemoval && selectedInCurrent && onToggle) {
+      onToggle(token);
+    } else {
+      setDraftSelectedTokens([token]);
+      onSelect(token);
+      onBack();
+    }
+  };
+
+  const handleRowSelect = useCallback(
+    (token: SwapTokenOption, selectedInCurrent: boolean, disabled: boolean) => {
+      selectionHandlerRef.current(token, selectedInCurrent, disabled);
+    },
+    []
   );
 
   const renderTokenRow = (
@@ -2153,11 +2185,6 @@ export function SwapAssetSelector({
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
     const disabled = isDisabledByUnified || locked;
-    const handleTokenSelection = makeTokenSelectionHandler(
-      token,
-      selectedInCurrent,
-      disabled
-    );
 
     return (
       <SwapTokenRow
@@ -2171,7 +2198,7 @@ export function SwapAssetSelector({
         isMulti={Boolean(isMulti)}
         key={`${token.contractAddress}-${token.chainId}`}
         needsWalletConnection={needsWalletConnection}
-        onSelect={handleTokenSelection}
+        onSelect={handleRowSelect}
         selectedInCurrent={selectedInCurrent}
         token={token}
       />

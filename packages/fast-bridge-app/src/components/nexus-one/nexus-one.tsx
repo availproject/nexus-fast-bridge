@@ -3626,8 +3626,10 @@ function NexusOneInner({
 
       if (options?.instant) {
         swapStepRef.current = "idle";
-        setSwapStep("idle");
-        setClosingDrawerStep(null);
+        startTransition(() => {
+          setSwapStep("idle");
+          setClosingDrawerStep(null);
+        });
         return;
       }
 
