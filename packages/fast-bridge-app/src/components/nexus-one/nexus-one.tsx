@@ -5,7 +5,6 @@ import { ERROR_CODES, type EthereumProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { AlertCircle, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import React, {
-  startTransition,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -3626,10 +3625,8 @@ function NexusOneInner({
 
       if (options?.instant) {
         swapStepRef.current = "idle";
-        startTransition(() => {
-          setSwapStep("idle");
-          setClosingDrawerStep(null);
-        });
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
         return;
       }
 
@@ -3643,23 +3640,17 @@ function NexusOneInner({
 
       if (!isDrawerStep || swapStepRef.current === "idle") {
         swapStepRef.current = "idle";
-        startTransition(() => {
-          setSwapStep("idle");
-          setClosingDrawerStep(null);
-        });
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
         return;
       }
 
       // Start the CSS close animation immediately, then clean up state after.
-      startTransition(() => {
-        setClosingDrawerStep(swapStep);
-      });
+      setClosingDrawerStep(swapStep);
       drawerCloseTimerRef.current = setTimeout(() => {
         swapStepRef.current = "idle";
-        startTransition(() => {
-          setSwapStep("idle");
-          setClosingDrawerStep(null);
-        });
+        setSwapStep("idle");
+        setClosingDrawerStep(null);
         drawerCloseTimerRef.current = null;
       }, DRAWER_CLOSE_MS);
     },
@@ -3671,14 +3662,9 @@ function NexusOneInner({
       clearTimeout(drawerCloseTimerRef.current);
       drawerCloseTimerRef.current = null;
     }
-    // Update the ref immediately so any synchronous reads get the new step,
-    // but defer the React state update so the browser can paint the button
-    // press / ripple before doing the expensive nexus-one re-render.
     swapStepRef.current = nextStep;
-    startTransition(() => {
-      setClosingDrawerStep(null);
-      setSwapStep(nextStep);
-    });
+    setClosingDrawerStep(null);
+    setSwapStep(nextStep);
   }, []);
 
   const syncRootContentHeight = useCallback((animate = false) => {
@@ -3692,18 +3678,6 @@ function NexusOneInner({
 
     if (rootContentHeightRef.current === nextHeight) {
       setHasMeasuredRootContent(true);
-      if (animate) {
-        setShouldAnimateRootHeight(true);
-        if (rootHeightTransitionTimerRef.current) {
-          clearTimeout(rootHeightTransitionTimerRef.current);
-          rootHeightTransitionTimerRef.current = null;
-        }
-        rootHeightTransitionTimerRef.current = setTimeout(() => {
-          setShouldAnimateRootHeight(false);
-          setIsRootHeightLockedForTransition(false);
-          rootHeightTransitionTimerRef.current = null;
-        }, ROOT_HEIGHT_TRANSITION_MS);
-      }
       return;
     }
 
@@ -3736,7 +3710,7 @@ function NexusOneInner({
         window.cancelAnimationFrame(frame);
       }
       frame = window.requestAnimationFrame(() => {
-        syncRootContentHeight(true);
+        syncRootContentHeight(false);
       });
     });
 
@@ -8344,20 +8318,14 @@ function NexusOneInner({
 
       const mergedTokens = applyPreservedUserAmounts(tokens);
 
-      setSourcePickerDraftSelection(mergedTokens);
+      sourcePickerDraftTokensRef.current = mergedTokens;
       sourcePickerDraftTouchedRef.current = true;
       sourcePickerDraftModeRef.current = "selected";
-      setSourcePickerDraftTouched(true);
       if (activeMode === "deposit") {
         sourcePickerDraftDepositFilterRef.current = "custom";
       }
     },
-    [
-      activeMode,
-      applyPreservedUserAmounts,
-      isSourcePickerMultiselect,
-      setSourcePickerDraftSelection,
-    ]
+    [activeMode, applyPreservedUserAmounts, isSourcePickerMultiselect]
   );
 
   const handleSourcePickerFilterTabSelect = useCallback(
@@ -13350,7 +13318,9 @@ function NexusOneInner({
               position: "fixed",
               right: 0,
               top: 0,
+              transform: "translateZ(0)",
               WebkitBackdropFilter: "blur(8px)",
+              willChange: "opacity",
               zIndex: 9999999,
             }}
           >
@@ -13371,9 +13341,9 @@ function NexusOneInner({
                 maxWidth: "840px",
                 minWidth: "280px",
                 overflow: "hidden",
+                transform: "translateZ(0)",
                 width: "100%",
-                transition:
-                  "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1)",
+                willChange: "transform, opacity",
               }}
             >
               <SwapAssetSelector
@@ -13531,268 +13501,291 @@ function NexusOneInner({
                     ? handleSourcePickerDraftSelectionChange
                     : undefined
                 }
-                onToggle={(token) => {
-                  const isSameAsDestination = Boolean(
-                    toToken &&
-                      (isSameTokenOption(token, toToken) ||
-                        sourceSelectionIncludesTokenChainPair(token, toToken) ||
-                        isSameTokenChainPair(token, toToken) ||
-                        isSameTokenSelection(token, toToken))
-                  );
-                  if (
-                    editingAssetIndex !== null &&
-                    !isSourcePickerMultiselect
-                  ) {
-                    const baseList = fromTokens;
-                    const next = [...baseList];
-                    const targetIndex = editingAssetIndex;
-                    const existingToken =
-                      targetIndex < next.length ? next[targetIndex] : undefined;
-                    const tokenChanged =
-                      Boolean(
-                        existingToken?.symbol || existingToken?.contractAddress
-                      ) && !isSameTokenSelection(existingToken, token);
-                    const preservedAmount =
-                      tokenChanged || isSameAsDestination
-                        ? ""
-                        : existingToken?.userAmount ||
-                          (targetIndex === 0 ? amount : "");
-                    const newToken = {
-                      ...token,
-                      userAmount: preservedAmount,
-                      userAmountUsd:
-                        tokenChanged || isSameAsDestination
-                          ? undefined
-                          : token.userAmountUsd,
-                      selectedPct:
-                        tokenChanged || isSameAsDestination
-                          ? null
-                          : token.selectedPct,
-                    };
-
-                    if (!isMultiAssetMode) {
-                      next.length = 0;
-                      next.push(newToken);
-                    } else if (targetIndex < next.length) {
-                      next[targetIndex] = newToken;
-                    } else {
-                      next.push(newToken);
-                    }
-
-                    if (isSameAsDestination) {
-                      setToToken(undefined);
-                      setDestinationBalance(null);
-                      clearPendingSwapIntent();
-                      setAmount("");
-                      setReceiveAmountIssue(null);
-                      setMaxCalculationPercent(null);
-                      tokenUserAmountsRef.current.clear();
-                    }
-
-                    setFromTokens(next);
-                    if (swapType === "exactIn" && !isSameAsDestination) {
-                      const totalSendVal = next.reduce((sum, t) => {
-                        const num = Number(t.userAmount || 0);
-                        return sum + (Number.isFinite(num) ? num : 0);
-                      }, 0);
-                      setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
-                    }
-                    return;
-                  }
-
-                  const prev = isSourcePickerMultiselect
-                    ? (sourcePickerDraftTokens ?? sourcePickerSelectedTokens)
-                    : fromTokens;
-                  if (!isSourcePickerMultiselect) {
-                    clearPendingSwapIntent();
-                  }
-                  const nextTokens = (() => {
-                    const isSameSelection = (
-                      a: SwapTokenOption,
-                      b: SwapTokenOption
-                    ) => {
-                      if (a.isUnified || b.isUnified) {
-                        return Boolean(
-                          a.isUnified &&
-                            b.isUnified &&
-                            a.unifiedSymbol === b.unifiedSymbol
+                onToggle={
+                  isSourcePickerMultiselect
+                    ? undefined
+                    : (token) => {
+                        const isSameAsDestination = Boolean(
+                          toToken &&
+                            (isSameTokenOption(token, toToken) ||
+                              sourceSelectionIncludesTokenChainPair(
+                                token,
+                                toToken
+                              ) ||
+                              isSameTokenChainPair(token, toToken) ||
+                              isSameTokenSelection(token, toToken))
                         );
-                      }
-                      return (
-                        a.contractAddress.toLowerCase() ===
-                          b.contractAddress.toLowerCase() &&
-                        a.chainId === b.chainId
-                      );
-                    };
-                    const isExactOutSourcePicker = isSourcePickerMultiselect;
-                    const sourceTokens = token.sourceTokens ?? [];
-                    const isSameUnifiedGroup = (item: SwapTokenOption) =>
-                      Boolean(
-                        item.isUnified &&
-                          token.isUnified &&
-                          item.unifiedSymbol === token.unifiedSymbol
-                      );
-                    const withDefaultAmount = (item: SwapTokenOption) => {
-                      const existingInPrev = prev.find(
-                        (p) =>
-                          isSameSelection(p, item) ||
-                          (Boolean(p.contractAddress) &&
-                            Boolean(item.contractAddress) &&
-                            p.contractAddress.toLowerCase() ===
-                              item.contractAddress.toLowerCase() &&
-                            p.chainId === item.chainId)
-                      );
-                      if (existingInPrev && existingInPrev.userAmount) {
-                        return {
-                          ...item,
-                          userAmount: existingInPrev.userAmount,
-                          userAmountMode:
-                            existingInPrev.userAmountMode ??
-                            item.userAmountMode,
-                          selectedPct: existingInPrev.selectedPct,
-                        };
-                      }
-                      return {
-                        ...item,
-                        userAmount:
-                          activeMode === "swap" &&
-                          !isSwapExactOut &&
-                          prev.length === 0
-                            ? amount
-                            : (item.userAmount ?? ""),
-                      };
-                    };
-                    if (token.isUnified && sourceTokens.length > 0) {
-                      const isSameGroupToken = (item: SwapTokenOption) =>
-                        Boolean(
-                          !item.isUnified &&
-                            sourceTokens.some(
-                              (s) =>
-                                s.chainId === item.chainId &&
-                                s.contractAddress.toLowerCase() ===
-                                  item.contractAddress.toLowerCase()
-                            )
-                        );
-                      const areAllChildrenSelected = sourceTokens.every(
-                        (source) =>
-                          prev.some(
-                            (item) =>
-                              !item.isUnified &&
-                              item.chainId === source.chainId &&
-                              item.contractAddress.toLowerCase() ===
-                                source.contractAddress.toLowerCase()
-                          )
-                      );
-                      const isUnifiedTokenSelected = prev.some(
-                        (item) =>
-                          item.isUnified &&
-                          (
-                            item.unifiedSymbol ??
-                            item.symbol ??
+                        if (
+                          editingAssetIndex !== null &&
+                          !isSourcePickerMultiselect
+                        ) {
+                          const baseList = fromTokens;
+                          const next = [...baseList];
+                          const targetIndex = editingAssetIndex;
+                          const existingToken =
+                            targetIndex < next.length
+                              ? next[targetIndex]
+                              : undefined;
+                          const tokenChanged =
+                            Boolean(
+                              existingToken?.symbol ||
+                                existingToken?.contractAddress
+                            ) && !isSameTokenSelection(existingToken, token);
+                          const preservedAmount =
+                            tokenChanged || isSameAsDestination
+                              ? ""
+                              : existingToken?.userAmount ||
+                                (targetIndex === 0 ? amount : "");
+                          const newToken = {
+                            ...token,
+                            userAmount: preservedAmount,
+                            userAmountUsd:
+                              tokenChanged || isSameAsDestination
+                                ? undefined
+                                : token.userAmountUsd,
+                            selectedPct:
+                              tokenChanged || isSameAsDestination
+                                ? null
+                                : token.selectedPct,
+                          };
+
+                          if (!isMultiAssetMode) {
+                            next.length = 0;
+                            next.push(newToken);
+                          } else if (targetIndex < next.length) {
+                            next[targetIndex] = newToken;
+                          } else {
+                            next.push(newToken);
+                          }
+
+                          if (isSameAsDestination) {
+                            setToToken(undefined);
+                            setDestinationBalance(null);
+                            clearPendingSwapIntent();
+                            setAmount("");
+                            setReceiveAmountIssue(null);
+                            setMaxCalculationPercent(null);
+                            tokenUserAmountsRef.current.clear();
+                          }
+
+                          setFromTokens(next);
+                          if (swapType === "exactIn" && !isSameAsDestination) {
+                            const totalSendVal = next.reduce((sum, t) => {
+                              const num = Number(t.userAmount || 0);
+                              return sum + (Number.isFinite(num) ? num : 0);
+                            }, 0);
+                            setAmount(
+                              totalSendVal > 0 ? String(totalSendVal) : ""
+                            );
+                          }
+                          return;
+                        }
+
+                        const prev = isSourcePickerMultiselect
+                          ? (sourcePickerDraftTokens ??
+                            sourcePickerSelectedTokens)
+                          : fromTokens;
+                        if (!isSourcePickerMultiselect) {
+                          clearPendingSwapIntent();
+                        }
+                        const nextTokens = (() => {
+                          const isSameSelection = (
+                            a: SwapTokenOption,
+                            b: SwapTokenOption
+                          ) => {
+                            if (a.isUnified || b.isUnified) {
+                              return Boolean(
+                                a.isUnified &&
+                                  b.isUnified &&
+                                  a.unifiedSymbol === b.unifiedSymbol
+                              );
+                            }
+                            return (
+                              a.contractAddress.toLowerCase() ===
+                                b.contractAddress.toLowerCase() &&
+                              a.chainId === b.chainId
+                            );
+                          };
+                          const isExactOutSourcePicker =
+                            isSourcePickerMultiselect;
+                          const sourceTokens = token.sourceTokens ?? [];
+                          const isSameUnifiedGroup = (item: SwapTokenOption) =>
+                            Boolean(
+                              item.isUnified &&
+                                token.isUnified &&
+                                item.unifiedSymbol === token.unifiedSymbol
+                            );
+                          const withDefaultAmount = (item: SwapTokenOption) => {
+                            const existingInPrev = prev.find(
+                              (p) =>
+                                isSameSelection(p, item) ||
+                                (Boolean(p.contractAddress) &&
+                                  Boolean(item.contractAddress) &&
+                                  p.contractAddress.toLowerCase() ===
+                                    item.contractAddress.toLowerCase() &&
+                                  p.chainId === item.chainId)
+                            );
+                            if (existingInPrev && existingInPrev.userAmount) {
+                              return {
+                                ...item,
+                                userAmount: existingInPrev.userAmount,
+                                userAmountMode:
+                                  existingInPrev.userAmountMode ??
+                                  item.userAmountMode,
+                                selectedPct: existingInPrev.selectedPct,
+                              };
+                            }
+                            return {
+                              ...item,
+                              userAmount:
+                                activeMode === "swap" &&
+                                !isSwapExactOut &&
+                                prev.length === 0
+                                  ? amount
+                                  : (item.userAmount ?? ""),
+                            };
+                          };
+                          if (token.isUnified && sourceTokens.length > 0) {
+                            const isSameGroupToken = (item: SwapTokenOption) =>
+                              Boolean(
+                                !item.isUnified &&
+                                  sourceTokens.some(
+                                    (s) =>
+                                      s.chainId === item.chainId &&
+                                      s.contractAddress.toLowerCase() ===
+                                        item.contractAddress.toLowerCase()
+                                  )
+                              );
+                            const areAllChildrenSelected = sourceTokens.every(
+                              (source) =>
+                                prev.some(
+                                  (item) =>
+                                    !item.isUnified &&
+                                    item.chainId === source.chainId &&
+                                    item.contractAddress.toLowerCase() ===
+                                      source.contractAddress.toLowerCase()
+                                )
+                            );
+                            const isUnifiedTokenSelected = prev.some(
+                              (item) =>
+                                item.isUnified &&
+                                (
+                                  item.unifiedSymbol ??
+                                  item.symbol ??
+                                  ""
+                                ).toUpperCase() ===
+                                  (
+                                    token.unifiedSymbol ??
+                                    token.symbol ??
+                                    ""
+                                  ).toUpperCase()
+                            );
+
+                            const withoutGroup = prev.filter(
+                              (item) =>
+                                !isSameGroupToken(item) &&
+                                !(
+                                  item.isUnified &&
+                                  (
+                                    item.unifiedSymbol ??
+                                    item.symbol ??
+                                    ""
+                                  ).toUpperCase() ===
+                                    (
+                                      token.unifiedSymbol ??
+                                      token.symbol ??
+                                      ""
+                                    ).toUpperCase()
+                                )
+                            );
+
+                            if (
+                              areAllChildrenSelected ||
+                              isUnifiedTokenSelected
+                            ) {
+                              return withoutGroup;
+                            }
+
+                            return [
+                              ...withoutGroup,
+                              ...sourceTokens.map((source) =>
+                                withDefaultAmount(source)
+                              ),
+                            ];
+                          }
+
+                          const exists = prev.find((item) =>
+                            isSameSelection(item, token)
+                          );
+                          if (exists) {
+                            return prev.filter(
+                              (item) => !isSameSelection(item, token)
+                            );
+                          }
+
+                          const tokenGroupSymbol = (
+                            token.unifiedSymbol ??
+                            token.symbol ??
                             ""
-                          ).toUpperCase() ===
-                            (
-                              token.unifiedSymbol ??
-                              token.symbol ??
-                              ""
-                            ).toUpperCase()
-                      );
-
-                      const withoutGroup = prev.filter(
-                        (item) =>
-                          !isSameGroupToken(item) &&
-                          !(
-                            item.isUnified &&
-                            (
-                              item.unifiedSymbol ??
-                              item.symbol ??
-                              ""
-                            ).toUpperCase() ===
+                          ).toUpperCase();
+                          const withoutUnifiedGroup = prev.filter((item) => {
+                            if (
+                              item.isUnified &&
                               (
-                                token.unifiedSymbol ??
-                                token.symbol ??
+                                item.unifiedSymbol ??
+                                item.symbol ??
                                 ""
-                              ).toUpperCase()
-                          )
-                      );
+                              ).toUpperCase() === tokenGroupSymbol
+                            ) {
+                              return false;
+                            }
+                            return true;
+                          });
+                          return [
+                            ...withoutUnifiedGroup,
+                            withDefaultAmount(token),
+                          ];
+                        })();
 
-                      if (areAllChildrenSelected || isUnifiedTokenSelected) {
-                        return withoutGroup;
+                        setSourceSelectionTouched(true);
+                        sourcePickerDraftTouchedRef.current = true;
+                        setSourcePickerDraftTouched(true);
+                        setFromTokens(nextTokens);
+                        if (isSourcePickerMultiselect) {
+                          handleSourcePickerDraftSelectionChange(nextTokens);
+                        }
+                        if (isSameAsDestination) {
+                          setToToken(undefined);
+                          setDestinationBalance(null);
+                          clearPendingSwapIntent();
+                          setAmount("");
+                          setReceiveAmountIssue(null);
+                          setMaxCalculationPercent(null);
+                          tokenUserAmountsRef.current.clear();
+                        }
+                        const isReceiveEmptyOrZero =
+                          swapType === "exactOut" &&
+                          !hasPositiveDecimalInput(amount);
+
+                        if (isReceiveEmptyOrZero) {
+                          setSwapType("exactIn");
+                          setExactOutQuoteSourceModeValue("all");
+                        }
+
+                        if (
+                          !isSameAsDestination &&
+                          (swapType === "exactIn" || isReceiveEmptyOrZero)
+                        ) {
+                          const totalSendVal = nextTokens.reduce((sum, t) => {
+                            const num = Number(t.userAmount || 0);
+                            return sum + (Number.isFinite(num) ? num : 0);
+                          }, 0);
+                          setAmount(
+                            totalSendVal > 0 ? String(totalSendVal) : ""
+                          );
+                        }
                       }
-
-                      return [
-                        ...withoutGroup,
-                        ...sourceTokens.map((source) =>
-                          withDefaultAmount(source)
-                        ),
-                      ];
-                    }
-
-                    const exists = prev.find((item) =>
-                      isSameSelection(item, token)
-                    );
-                    if (exists) {
-                      return prev.filter(
-                        (item) => !isSameSelection(item, token)
-                      );
-                    }
-
-                    const tokenGroupSymbol = (
-                      token.unifiedSymbol ??
-                      token.symbol ??
-                      ""
-                    ).toUpperCase();
-                    const withoutUnifiedGroup = prev.filter((item) => {
-                      if (
-                        item.isUnified &&
-                        (
-                          item.unifiedSymbol ??
-                          item.symbol ??
-                          ""
-                        ).toUpperCase() === tokenGroupSymbol
-                      ) {
-                        return false;
-                      }
-                      return true;
-                    });
-                    return [...withoutUnifiedGroup, withDefaultAmount(token)];
-                  })();
-
-                  setSourceSelectionTouched(true);
-                  sourcePickerDraftTouchedRef.current = true;
-                  setSourcePickerDraftTouched(true);
-                  setFromTokens(nextTokens);
-                  if (isSourcePickerMultiselect) {
-                    handleSourcePickerDraftSelectionChange(nextTokens);
-                  }
-                  if (isSameAsDestination) {
-                    setToToken(undefined);
-                    setDestinationBalance(null);
-                    clearPendingSwapIntent();
-                    setAmount("");
-                    setReceiveAmountIssue(null);
-                    setMaxCalculationPercent(null);
-                    tokenUserAmountsRef.current.clear();
-                  }
-                  const isReceiveEmptyOrZero =
-                    swapType === "exactOut" && !hasPositiveDecimalInput(amount);
-
-                  if (isReceiveEmptyOrZero) {
-                    setSwapType("exactIn");
-                    setExactOutQuoteSourceModeValue("all");
-                  }
-
-                  if (
-                    !isSameAsDestination &&
-                    (swapType === "exactIn" || isReceiveEmptyOrZero)
-                  ) {
-                    const totalSendVal = nextTokens.reduce((sum, t) => {
-                      const num = Number(t.userAmount || 0);
-                      return sum + (Number.isFinite(num) ? num : 0);
-                    }, 0);
-                    setAmount(totalSendVal > 0 ? String(totalSendVal) : "");
-                  }
-                }}
+                }
                 preserveSelectedBelowMinimum={false}
                 requiredUsd={
                   activeMode === "deposit"
@@ -13860,7 +13853,9 @@ function NexusOneInner({
               position: "fixed",
               right: 0,
               top: 0,
+              transform: "translateZ(0)",
               WebkitBackdropFilter: "blur(8px)",
+              willChange: "opacity",
               zIndex: 9999999,
             }}
           >
@@ -13881,9 +13876,9 @@ function NexusOneInner({
                 maxWidth: "840px",
                 minWidth: "280px",
                 overflow: "hidden",
+                transform: "translateZ(0)",
                 width: "100%",
-                transition:
-                  "height 0.3s cubic-bezier(0.2, 0, 0, 1), max-height 0.3s cubic-bezier(0.2, 0, 0, 1)",
+                willChange: "transform, opacity",
               }}
             >
               <ReceiveAssetSelector
