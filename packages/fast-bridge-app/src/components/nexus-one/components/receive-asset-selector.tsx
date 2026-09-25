@@ -130,6 +130,8 @@ const TokenLogo = ({
   return (
     <img
       alt={token.symbol}
+      decoding="async"
+      loading="lazy"
       onError={() => setError(true)}
       src={token.logo}
       style={{
@@ -246,6 +248,8 @@ let rawTokensPromise: Promise<RawReceiveTokensData> | null = null;
 let rawTokensRefreshPromise: Promise<RawReceiveTokensData> | null = null;
 let receiveTokenDbPromise: Promise<IDBDatabase | null> | null = null;
 let legacyReceiveTokenStorageCleared = false;
+let cachedReceiveApiTokens: ReceiveTokenOption[] | null = null;
+let cachedReceiveStableSymbols: Set<string> | null = null;
 
 const clearLegacyReceiveTokenStorageCache = () => {
   if (legacyReceiveTokenStorageCleared || typeof window === "undefined") {
@@ -520,6 +524,89 @@ const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
   return data;
 };
 
+const normalizeNativeAddress = (addr?: string): string => {
+  if (!addr) return "";
+  const lower = addr.toLowerCase();
+  return lower === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ? "0x0000000000000000000000000000000000000000"
+    : addr;
+};
+
+export const parseRawReceiveTokens = (
+  data: RawReceiveTokensData,
+  sdkSwapSupportedChainIds?: Set<number> | null,
+  swapSupportedChains?: any,
+  chainMetaMap?: Map<number, { name: string; logo: string }>
+): ReceiveTokenOption[] => {
+  if (!data?.tokens) return [];
+  const allParsed: ReceiveTokenOption[] = [];
+  const chains = data.tokens || {};
+  for (const chainIdStr of Object.keys(chains)) {
+    const chainId = parseInt(chainIdStr, 10);
+    if (
+      sdkSwapSupportedChainIds
+        ? !sdkSwapSupportedChainIds.has(chainId)
+        : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
+    ) {
+      continue;
+    }
+    if (!isSwapSupportedBySdkChainList(chainId, swapSupportedChains)) {
+      continue;
+    }
+    const meta = chainMetaMap?.get(chainId) ||
+      CHAIN_METADATA[chainId] || {
+        name: getShortChainName(chainId, `Chain ${chainId}`),
+        logo: "",
+      };
+    for (const t of chains[chainIdStr]) {
+      if (!t.address || !t.symbol) continue;
+      if (
+        isArcExcludedToken(t.address) ||
+        isArcErc20Usdc({
+          chainId,
+          symbol: t.symbol,
+          contractAddress: t.address,
+        })
+      ) {
+        continue;
+      }
+      allParsed.push({
+        contractAddress: t.address,
+        symbol: t.symbol,
+        name: t.name || t.symbol,
+        logo: t.logoURI || "",
+        decimals: t.decimals ?? 18,
+        priceUSD: t.priceUSD,
+        chainId,
+        chainName: meta.name,
+        chainLogo: meta.logo,
+        balance: "0",
+        balanceInFiat: "$0.00",
+        verificationStatus: t.verificationStatus,
+      });
+    }
+  }
+  const tokensByKey = new Map<string, ReceiveTokenOption>();
+  for (const token of [
+    ...allParsed,
+    ...getCitreaReceiveTokenOptions(),
+    getArcNativeTokenOption(),
+  ]) {
+    const address = normalizeNativeAddress(token.contractAddress).toLowerCase();
+    if (isArcErc20Usdc(token)) {
+      continue;
+    }
+    const key = `${token.chainId ?? 0}-${address}`;
+    const existing = tokensByKey.get(key);
+    tokensByKey.set(key, {
+      ...existing,
+      ...token,
+      priceUSD: token.priceUSD ?? existing?.priceUSD,
+    });
+  }
+  return Array.from(tokensByKey.values());
+};
+
 const refreshReceiveTokens = (): Promise<RawReceiveTokensData> => {
   if (rawTokensRefreshPromise) {
     return rawTokensRefreshPromise;
@@ -533,6 +620,14 @@ const refreshReceiveTokens = (): Promise<RawReceiveTokensData> => {
     }
 
     rawTokensCache = data;
+    if (data.stableSymbols && Array.isArray(data.stableSymbols)) {
+      cachedReceiveStableSymbols = new Set([
+        ...Array.from(STABLE_SYMBOLS),
+        ...data.stableSymbols,
+        ...CITREA_STABLE_SYMBOLS,
+      ]);
+    }
+    cachedReceiveApiTokens = parseRawReceiveTokens(data);
     await persistReceiveTokens(data);
     return data;
   })();
@@ -556,6 +651,17 @@ export const preloadReceiveTokens = () => {
       const persistedData = await readPersistedReceiveTokens();
       if (persistedData) {
         rawTokensCache = persistedData;
+        if (
+          persistedData.stableSymbols &&
+          Array.isArray(persistedData.stableSymbols)
+        ) {
+          cachedReceiveStableSymbols = new Set([
+            ...Array.from(STABLE_SYMBOLS),
+            ...persistedData.stableSymbols,
+            ...CITREA_STABLE_SYMBOLS,
+          ]);
+        }
+        cachedReceiveApiTokens = parseRawReceiveTokens(persistedData);
         refreshReceiveTokens();
         return persistedData;
       }
@@ -578,75 +684,234 @@ export const getAllReceiveTokenOptions = async (
   if (!data?.tokens) return [];
   const sdkSwapSupportedChainIds =
     getSdkSwapSupportedChainIds(swapSupportedChains);
-  const allParsed: SwapTokenOption[] = [];
-  const chains = data.tokens || {};
-  for (const chainIdStr of Object.keys(chains)) {
-    const chainId = parseInt(chainIdStr, 10);
-    if (
-      sdkSwapSupportedChainIds
-        ? !sdkSwapSupportedChainIds.has(chainId)
-        : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
-    ) {
-      continue;
-    }
-    if (!isSwapSupportedBySdkChainList(chainId, swapSupportedChains)) {
-      continue;
-    }
-    const chainMeta = CHAIN_METADATA[chainId] || {
-      name: getShortChainName(chainId, `Chain ${chainId}`),
-      logo: "",
-    };
-    for (const t of chains[chainIdStr]) {
-      if (!t.address || !t.symbol) continue;
-      if (
-        isArcExcludedToken(t.address) ||
-        isArcErc20Usdc({
-          chainId,
-          symbol: t.symbol,
-          contractAddress: t.address,
-        })
-      ) {
-        continue;
-      }
-      allParsed.push({
-        contractAddress: t.address,
-        symbol: t.symbol,
-        name: t.name || t.symbol,
-        logo: t.logoURI || "",
-        decimals: t.decimals ?? 18,
-        priceUSD: t.priceUSD,
-        chainId,
-        chainName: chainMeta.name,
-        chainLogo: chainMeta.logo,
-        balance: "0",
-        balanceInFiat: "$0.00",
-      });
-    }
-  }
-  const tokensByKey = new Map<string, SwapTokenOption>();
-  for (const token of [
-    ...allParsed,
-    ...getCitreaReceiveTokenOptions(),
-    getArcNativeTokenOption(),
-  ]) {
-    const address =
-      token.contractAddress.toLowerCase() ===
-      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        ? ZERO_ADDRESS
-        : token.contractAddress.toLowerCase();
-    if (isArcErc20Usdc(token)) {
-      continue;
-    }
-    const key = `${token.chainId ?? 0}-${address}`;
-    const existing = tokensByKey.get(key);
-    tokensByKey.set(key, {
-      ...existing,
-      ...token,
-      priceUSD: token.priceUSD ?? existing?.priceUSD,
-    });
-  }
-  return Array.from(tokensByKey.values());
+  return parseRawReceiveTokens(
+    data,
+    sdkSwapSupportedChainIds,
+    swapSupportedChains
+  );
 };
+
+interface ReceiveTokenRowProps {
+  isBalanceLoading: boolean;
+  isCopied: boolean;
+  isSelected: boolean;
+  needsWalletConnection: boolean;
+  onCopyAddress: (e: React.MouseEvent, addr: string, chainId: number) => void;
+  onSelect: (token: ReceiveTokenOption) => void;
+  token: ReceiveTokenOption;
+}
+
+const areReceiveTokenRowPropsEqual = (
+  prev: ReceiveTokenRowProps,
+  next: ReceiveTokenRowProps
+) => {
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.isCopied === next.isCopied &&
+    prev.needsWalletConnection === next.needsWalletConnection &&
+    prev.isBalanceLoading === next.isBalanceLoading &&
+    prev.token === next.token &&
+    prev.onSelect === next.onSelect &&
+    prev.onCopyAddress === next.onCopyAddress
+  );
+};
+
+const ReceiveTokenRow = React.memo(function ReceiveTokenRow({
+  token,
+  isSelected,
+  isCopied,
+  needsWalletConnection,
+  isBalanceLoading,
+  onSelect,
+  onCopyAddress,
+}: ReceiveTokenRowProps) {
+  const numericBalance = Number.parseFloat(
+    String(token.balance ?? "0").replace(/[^0-9.]/g, "")
+  );
+  const hasBalance = Number.isFinite(numericBalance) && numericBalance > 0;
+  const normalizedAddr = token.contractAddress
+    ? normalizeNativeAddress(token.contractAddress)
+    : "";
+
+  return (
+    <button
+      onClick={() => onSelect(token)}
+      style={{
+        alignItems: "center",
+        backgroundColor: isSelected ? "#F4F7FE" : "transparent",
+        border: "none",
+        borderBottom: "1px solid #F0F0EF",
+        boxSizing: "border-box",
+        cursor: "pointer",
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "10px 14px",
+        width: "100%",
+      }}
+      type="button"
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <SelectionControl selected={isSelected} />
+        <div
+          style={{
+            flexShrink: 0,
+            height: 40,
+            position: "relative",
+            width: 40,
+          }}
+        >
+          <TokenLogo fontSize={16} size={40} token={token} />
+          {token.chainLogo && (
+            <img
+              alt={token.chainName}
+              src={token.chainLogo}
+              style={{
+                border: "2px solid #FFFFFE",
+                borderRadius: "999px",
+                bottom: -8,
+                height: 22,
+                position: "absolute",
+                right: -8,
+                width: 22,
+                zIndex: 2,
+              }}
+            />
+          )}
+        </div>
+        <div
+          style={{
+            alignItems: "flex-start",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <span
+            style={{
+              color: "#161615",
+              fontFamily: '"Geist", system-ui, sans-serif',
+              fontSize: 15,
+              fontWeight: 500,
+            }}
+          >
+            {token.symbol}
+          </span>
+          <div
+            style={{
+              alignItems: "center",
+              display: "flex",
+              gap: 4,
+            }}
+          >
+            <span
+              style={{
+                color: "#1F1F1F",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "14px",
+                fontStyle: "normal",
+                fontWeight: 400,
+                lineHeight: "20px",
+              }}
+            >
+              {token.chainName || "Unknown chain"}
+            </span>
+            {token.contractAddress && (
+              <span
+                onClick={(e) =>
+                  onCopyAddress(e, token.contractAddress, token.chainId ?? 0)
+                }
+                style={{
+                  color: "#8E8E89",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "14px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "20px",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+                title="Click to copy token address"
+              >
+                {isCopied
+                  ? "Copied!"
+                  : formatMiddleTruncatedAddress(normalizedAddr)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {needsWalletConnection ? null : isBalanceLoading ? (
+        <div
+          style={{
+            alignItems: "flex-end",
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          <div
+            className="nexus-balance-skeleton"
+            style={{
+              animation: "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+              backgroundColor: "#E8E8E7",
+              borderRadius: 4,
+              height: 14,
+              width: 55,
+            }}
+          />
+          <div
+            className="nexus-balance-skeleton"
+            style={{
+              animation: "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
+              backgroundColor: "#F0F0EF",
+              borderRadius: 4,
+              height: 12,
+              width: 35,
+            }}
+          />
+        </div>
+      ) : (
+        hasBalance && (
+          <div
+            style={{
+              alignItems: "flex-end",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <span
+              style={{
+                color: "#161615",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: 14,
+                fontWeight: 500,
+              }}
+            >
+              {formatTokenBalance(getTotalBalance(token), {
+                decimals: token.decimals,
+                symbol: token.symbol,
+              }) ?? `${getTotalBalance(token)} ${token.symbol}`}
+            </span>
+            <span
+              style={{
+                color: "#848483",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: 13,
+              }}
+            >
+              {getTotalBalanceInFiat(token)}
+            </span>
+          </div>
+        )
+      )}
+    </button>
+  );
+}, areReceiveTokenRowPropsEqual);
 
 export function ReceiveAssetSelector({
   onSelect,
@@ -696,11 +961,6 @@ export function ReceiveAssetSelector({
     null
   );
 
-  const normalizeNativeAddress = (addr: string): string =>
-    addr.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-      ? "0x0000000000000000000000000000000000000000"
-      : addr;
-
   const handleCopyTokenAddress = useCallback(
     (e: React.MouseEvent, addr: string, chainId: number) => {
       e.stopPropagation();
@@ -717,7 +977,51 @@ export function ReceiveAssetSelector({
     },
     []
   );
-  const [visibleCount, setVisibleCount] = useState(30);
+
+  const handleSelectToken = useCallback(
+    (t: ReceiveTokenOption) => {
+      const hash = `${t.chainId}-${t.contractAddress}`;
+      setSelectedTokenHash(hash);
+      setSelectedTokenFull(t);
+      onSelect(t);
+    },
+    [onSelect]
+  );
+
+  // Cross-reference map for chain names & logos, and balances
+  const chainMetaMap = useMemo(() => {
+    const map = new Map<number, { name: string; logo: string }>();
+    if (supportedChainsAndTokens) {
+      for (const c of supportedChainsAndTokens) {
+        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
+      }
+    }
+    if (swapSupportedChainsAndTokens) {
+      for (const c of swapSupportedChainsAndTokens) {
+        if (
+          !isSwapSupportedBySdkChainList(c.id, swapSupportedChainsAndTokens)
+        ) {
+          continue;
+        }
+        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
+      }
+    }
+    if (!map.has(CITREA_CHAIN_ID)) {
+      map.set(CITREA_CHAIN_ID, getCitreaChainMeta());
+    }
+    if (
+      !map.has(SUPPORTED_CHAINS.ARC) &&
+      CHAIN_METADATA[SUPPORTED_CHAINS.ARC]
+    ) {
+      map.set(SUPPORTED_CHAINS.ARC, {
+        name: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].name,
+        logo: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].logo,
+      });
+    }
+    return map;
+  }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);
+
+  const [visibleCount, setVisibleCount] = useState(20);
   const [tooltipState, setTooltipState] = useState<{
     hash: string;
     x: number;
@@ -734,10 +1038,26 @@ export function ReceiveAssetSelector({
     }
   }, [selectedToken]);
 
-  const [apiTokens, setApiTokens] = useState<ReceiveTokenOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dynamicStableSymbols, setDynamicStableSymbols] =
-    useState<Set<string>>(STABLE_SYMBOLS);
+  const [apiTokens, setApiTokens] = useState<ReceiveTokenOption[]>(() => {
+    if (cachedReceiveApiTokens && cachedReceiveApiTokens.length > 0) {
+      return cachedReceiveApiTokens;
+    }
+    if (rawTokensCache && hasReceiveTokens(rawTokensCache)) {
+      const parsed = parseRawReceiveTokens(
+        rawTokensCache,
+        sdkSwapSupportedChainIds,
+        swapSupportedChainsAndTokens,
+        chainMetaMap
+      );
+      cachedReceiveApiTokens = parsed;
+      return parsed;
+    }
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => apiTokens.length === 0);
+  const [dynamicStableSymbols, setDynamicStableSymbols] = useState<Set<string>>(
+    () => cachedReceiveStableSymbols ?? STABLE_SYMBOLS
+  );
 
   useEffect(() => {
     setPortalRoot(
@@ -845,39 +1165,6 @@ export function ReceiveAssetSelector({
     };
   }, [tooltipState]);
 
-  // Cross-reference map for chain names & logos, and balances
-  const chainMetaMap = useMemo(() => {
-    const map = new Map<number, { name: string; logo: string }>();
-    if (supportedChainsAndTokens) {
-      for (const c of supportedChainsAndTokens) {
-        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
-      }
-    }
-    if (swapSupportedChainsAndTokens) {
-      for (const c of swapSupportedChainsAndTokens) {
-        if (
-          !isSwapSupportedBySdkChainList(c.id, swapSupportedChainsAndTokens)
-        ) {
-          continue;
-        }
-        map.set(c.id, { name: getShortChainName(c.id, c.name), logo: c.logo });
-      }
-    }
-    if (!map.has(CITREA_CHAIN_ID)) {
-      map.set(CITREA_CHAIN_ID, getCitreaChainMeta());
-    }
-    if (
-      !map.has(SUPPORTED_CHAINS.ARC) &&
-      CHAIN_METADATA[SUPPORTED_CHAINS.ARC]
-    ) {
-      map.set(SUPPORTED_CHAINS.ARC, {
-        name: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].name,
-        logo: CHAIN_METADATA[SUPPORTED_CHAINS.ARC].logo,
-      });
-    }
-    return map;
-  }, [supportedChainsAndTokens, swapSupportedChainsAndTokens]);
-
   const chainFilterIds = useMemo(() => {
     const supportedIds: number[] | undefined = sdkSwapSupportedChainIds
       ? Array.from(sdkSwapSupportedChainIds)
@@ -916,95 +1203,33 @@ export function ReceiveAssetSelector({
     let active = true;
     const fetchTokens = async () => {
       try {
-        setIsLoading(true);
+        if (apiTokens.length === 0) {
+          setIsLoading(true);
+        }
         const data = await preloadReceiveTokens();
         if (!active) return;
         if (!data) return;
 
         if (data.stableSymbols && Array.isArray(data.stableSymbols)) {
-          setDynamicStableSymbols(
-            new Set([
-              ...Array.from(STABLE_SYMBOLS),
-              ...data.stableSymbols,
-              ...CITREA_STABLE_SYMBOLS,
-            ])
-          );
+          const nextSymbols = new Set([
+            ...Array.from(STABLE_SYMBOLS),
+            ...data.stableSymbols,
+            ...CITREA_STABLE_SYMBOLS,
+          ]);
+          cachedReceiveStableSymbols = nextSymbols;
+          setDynamicStableSymbols(nextSymbols);
         }
 
-        const allParsed: ReceiveTokenOption[] = [];
-        const chains = data.tokens || {};
-        for (const chainIdStr of Object.keys(chains)) {
-          const chainId = parseInt(chainIdStr, 10);
-          if (
-            sdkSwapSupportedChainIds
-              ? !sdkSwapSupportedChainIds.has(chainId)
-              : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
-          ) {
-            continue;
-          }
-          if (
-            !isSwapSupportedBySdkChainList(
-              chainId,
-              swapSupportedChainsAndTokens
-            )
-          ) {
-            continue;
-          }
-          const meta = chainMetaMap.get(chainId) || {
-            name: getShortChainName(chainId, `Chain ${chainId}`),
-            logo: "",
-          };
-          for (const t of chains[chainIdStr]) {
-            if (!t.address || !t.symbol) continue;
-            if (
-              isArcExcludedToken(t.address) ||
-              isArcErc20Usdc({
-                chainId,
-                symbol: t.symbol,
-                contractAddress: t.address,
-              })
-            ) {
-              continue;
-            }
-            allParsed.push({
-              contractAddress: t.address,
-              symbol: t.symbol,
-              name: t.name || t.symbol,
-              logo: t.logoURI || "",
-              decimals: t.decimals ?? 18,
-              priceUSD: t.priceUSD,
-              chainId,
-              chainName: meta.name,
-              chainLogo: meta.logo,
-              balance: "0",
-              balanceInFiat: "$0.00",
-              verificationStatus: t.verificationStatus,
-            });
-          }
+        const parsed = parseRawReceiveTokens(
+          data,
+          sdkSwapSupportedChainIds,
+          swapSupportedChainsAndTokens,
+          chainMetaMap
+        );
+        cachedReceiveApiTokens = parsed;
+        if (active) {
+          setApiTokens(parsed);
         }
-        const tokensByKey = new Map<string, ReceiveTokenOption>();
-        for (const token of [
-          ...allParsed,
-          ...getCitreaReceiveTokenOptions(),
-          getArcNativeTokenOption(),
-        ]) {
-          const address =
-            token.contractAddress.toLowerCase() ===
-            "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-              ? ZERO_ADDRESS
-              : token.contractAddress.toLowerCase();
-          if (isArcErc20Usdc(token)) {
-            continue;
-          }
-          const key = `${token.chainId ?? 0}-${address}`;
-          const existing = tokensByKey.get(key);
-          tokensByKey.set(key, {
-            ...existing,
-            ...token,
-            priceUSD: token.priceUSD ?? existing?.priceUSD,
-          });
-        }
-        setApiTokens(Array.from(tokensByKey.values()));
       } catch (err) {
         console.error("Failed to fetch receive tokens", err);
       } finally {
@@ -1015,7 +1240,12 @@ export function ReceiveAssetSelector({
     return () => {
       active = false;
     };
-  }, [chainMetaMap, sdkSwapSupportedChainIds, swapSupportedChainsAndTokens]);
+  }, [
+    chainMetaMap,
+    sdkSwapSupportedChainIds,
+    swapSupportedChainsAndTokens,
+    apiTokens.length,
+  ]);
 
   const isNativeToken = (t: SwapTokenOption) =>
     t.contractAddress.toLowerCase() ===
@@ -1098,37 +1328,57 @@ export function ReceiveAssetSelector({
   ]);
 
   const sortedFiltered = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      const aHasBalance = a.hasBalance === true;
-      const bHasBalance = b.hasBalance === true;
-      if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
+    if (filtered.length <= 1) return filtered;
 
-      const aFiat = parseFiatValue(a.balanceInFiat);
-      const bFiat = parseFiatValue(b.balanceInFiat);
-      if (aHasBalance && aFiat !== bFiat) return bFiat - aFiat;
-
-      if (!aHasBalance) {
-        const statusDifference =
-          getTokenVerificationRank(a.verificationStatus) -
-          getTokenVerificationRank(b.verificationStatus);
-        if (statusDifference !== 0) return statusDifference;
+    const hasQuery = Boolean(deferredQuery.trim());
+    const decorated = new Array(filtered.length);
+    for (let i = 0; i < filtered.length; i++) {
+      const t = filtered[i];
+      const hasBal = t.hasBalance === true ? 1 : 0;
+      const fiat = hasBal ? parseFiatValue(t.balanceInFiat) : 0;
+      const vRank = hasBal ? 0 : getTokenVerificationRank(t.verificationStatus);
+      let searchScore = Number.MAX_SAFE_INTEGER;
+      let matchedTerms = 0;
+      if (hasQuery) {
+        const rank = getTokenSearchRank(t, deferredQuery);
+        searchScore = rank?.score ?? Number.MAX_SAFE_INTEGER;
+        matchedTerms = rank?.matchedTerms ?? 0;
       }
+      const name = `${t.symbol || ""} ${t.chainName || ""}`.toLowerCase();
+      decorated[i] = {
+        fiat,
+        hasBal,
+        idx: i,
+        matchedTerms,
+        name,
+        searchScore,
+        token: t,
+        vRank,
+      };
+    }
 
-      if (deferredQuery.trim()) {
-        const aRank = getTokenSearchRank(a, deferredQuery);
-        const bRank = getTokenSearchRank(b, deferredQuery);
-        const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
-        const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
-        if (aScore !== bScore) return aScore - bScore;
-
-        const aMatched = aRank?.matchedTerms ?? 0;
-        const bMatched = bRank?.matchedTerms ?? 0;
-        if (aMatched !== bMatched) return bMatched - aMatched;
+    decorated.sort((a, b) => {
+      if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
+      if (a.hasBal && b.fiat !== a.fiat) return b.fiat - a.fiat;
+      if (!a.hasBal && a.vRank !== b.vRank) return a.vRank - b.vRank;
+      if (hasQuery) {
+        if (a.searchScore !== b.searchScore) {
+          return a.searchScore - b.searchScore;
+        }
+        if (a.matchedTerms !== b.matchedTerms) {
+          return b.matchedTerms - a.matchedTerms;
+        }
       }
-      return `${a.symbol} ${a.chainName}`.localeCompare(
-        `${b.symbol} ${b.chainName}`
-      );
+      if (a.name < b.name) return -1;
+      if (a.name > b.name) return 1;
+      return a.idx - b.idx;
     });
+
+    const result = new Array(filtered.length);
+    for (let i = 0; i < filtered.length; i++) {
+      result[i] = decorated[i].token;
+    }
+    return result;
   }, [filtered, deferredQuery]);
 
   // Reset visible count when filters change
@@ -1139,45 +1389,9 @@ export function ReceiveAssetSelector({
     }
   }, [deferredQuery, activeTab, selectedChainFilter]);
 
-  // Progressive background batch rendering without blocking the UI
-  useEffect(() => {
-    if (visibleCount >= sortedFiltered.length) return;
-
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const scheduleNextBatch = () => {
-      setVisibleCount((prev) => Math.min(sortedFiltered.length, prev + 40));
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = (
-        window as unknown as {
-          requestIdleCallback: (
-            cb: () => void,
-            opts?: { timeout: number }
-          ) => number;
-        }
-      ).requestIdleCallback(scheduleNextBatch, { timeout: 150 });
-    } else {
-      timerId = setTimeout(scheduleNextBatch, 50);
-    }
-
-    return () => {
-      if (
-        idleId !== null &&
-        typeof window !== "undefined" &&
-        "cancelIdleCallback" in window
-      ) {
-        (
-          window as unknown as { cancelIdleCallback: (id: number) => void }
-        ).cancelIdleCallback(idleId);
-      }
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    };
-  }, [visibleCount, sortedFiltered.length]);
+  // Lazy loading is handled by the onScroll sentinel on the list container.
+  // No unconditional pre-batching here — that would silently render all rows
+  // right after open and eliminate the benefit of visibleCount slicing.
 
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth >= 768 : true
@@ -1746,7 +1960,7 @@ export function ReceiveAssetSelector({
               const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
               if (scrollHeight - scrollTop - clientHeight < 300) {
                 setVisibleCount((prev) =>
-                  Math.min(sortedFiltered.length, prev + 40)
+                  Math.min(sortedFiltered.length, prev + 20)
                 );
               }
             }}
@@ -1789,202 +2003,20 @@ export function ReceiveAssetSelector({
                 {sortedFiltered.slice(0, visibleCount).map((t) => {
                   const hash = `${t.chainId}-${t.contractAddress}`;
                   const isSelected = selectedTokenHash === hash;
-                  const numericBalance = Number.parseFloat(
-                    String(t.balance ?? "0").replace(/[^0-9.]/g, "")
-                  );
-                  const hasBalance =
-                    Number.isFinite(numericBalance) && numericBalance > 0;
+                  const isCopied =
+                    copiedTokenAddress ===
+                    `${t.chainId}:${normalizeNativeAddress(t.contractAddress)}`;
                   return (
-                    <button
+                    <ReceiveTokenRow
+                      isBalanceLoading={isBalanceLoading}
+                      isCopied={isCopied}
+                      isSelected={isSelected}
                       key={hash}
-                      onClick={() => {
-                        setSelectedTokenHash(hash);
-                        setSelectedTokenFull(t);
-                        onSelect(t);
-                      }}
-                      style={{
-                        alignItems: "center",
-                        backgroundColor: isSelected ? "#F4F7FE" : "transparent",
-                        border: "none",
-                        borderBottom: "1px solid #F0F0EF",
-                        boxSizing: "border-box",
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "10px 14px",
-                        width: "100%",
-                      }}
-                      type="button"
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        <SelectionControl selected={isSelected} />
-                        <div
-                          style={{
-                            flexShrink: 0,
-                            height: 40,
-                            position: "relative",
-                            width: 40,
-                          }}
-                        >
-                          <TokenLogo fontSize={16} size={40} token={t} />
-                          {t.chainLogo && (
-                            <img
-                              alt={t.chainName}
-                              src={t.chainLogo}
-                              style={{
-                                border: "2px solid #FFFFFE",
-                                borderRadius: "999px",
-                                bottom: -8,
-                                height: 22,
-                                position: "absolute",
-                                right: -8,
-                                width: 22,
-                                zIndex: 2,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            alignItems: "flex-start",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: "#161615",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 15,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {t.symbol}
-                          </span>
-                          <div
-                            style={{
-                              alignItems: "center",
-                              display: "flex",
-                              gap: 4,
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#1F1F1F",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "14px",
-                                fontStyle: "normal",
-                                fontWeight: 400,
-                                lineHeight: "20px",
-                              }}
-                            >
-                              {t.chainName || "Unknown chain"}
-                            </span>
-                            {t.contractAddress && (
-                              <span
-                                onClick={(e) =>
-                                  handleCopyTokenAddress(
-                                    e,
-                                    t.contractAddress,
-                                    t.chainId
-                                  )
-                                }
-                                style={{
-                                  color: "#8E8E89",
-                                  fontFamily: '"Geist", system-ui, sans-serif',
-                                  fontSize: "14px",
-                                  fontStyle: "normal",
-                                  fontWeight: 400,
-                                  lineHeight: "20px",
-                                  cursor: "pointer",
-                                  userSelect: "none",
-                                }}
-                                title="Click to copy token address"
-                              >
-                                {copiedTokenAddress ===
-                                `${t.chainId}:${normalizeNativeAddress(t.contractAddress)}`
-                                  ? "Copied!"
-                                  : formatMiddleTruncatedAddress(
-                                      normalizeNativeAddress(t.contractAddress)
-                                    )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {needsWalletConnection ? null : isBalanceLoading ? (
-                        <div
-                          style={{
-                            alignItems: "flex-end",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                          }}
-                        >
-                          <div
-                            className="nexus-balance-skeleton"
-                            style={{
-                              animation:
-                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                              backgroundColor: "#E8E8E7",
-                              borderRadius: 4,
-                              height: 14,
-                              width: 55,
-                            }}
-                          />
-                          <div
-                            className="nexus-balance-skeleton"
-                            style={{
-                              animation:
-                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                              backgroundColor: "#F0F0EF",
-                              borderRadius: 4,
-                              height: 12,
-                              width: 35,
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        hasBalance && (
-                          <div
-                            style={{
-                              alignItems: "flex-end",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#161615",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: 14,
-                                fontWeight: 500,
-                              }}
-                            >
-                              {formatTokenBalance(getTotalBalance(t), {
-                                decimals: t.decimals,
-                                symbol: t.symbol,
-                              }) ?? `${getTotalBalance(t)} ${t.symbol}`}
-                            </span>
-                            <span
-                              style={{
-                                color: "#848483",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: 13,
-                              }}
-                            >
-                              {getTotalBalanceInFiat(t)}
-                            </span>
-                          </div>
-                        )
-                      )}
-                    </button>
+                      needsWalletConnection={needsWalletConnection}
+                      onCopyAddress={handleCopyTokenAddress}
+                      onSelect={handleSelectToken}
+                      token={t}
+                    />
                   );
                 })}
               </div>
