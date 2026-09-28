@@ -8,16 +8,8 @@ import {
 } from "../packages/fast-bridge-app/src/config/nexus-env";
 
 const ENV_KEYS = [
-  "VITE_NEXUS_NETWORK",
   "VITE_CONFIG_NEXUS_NETWORK",
-  "VITE_NETWORK",
-  "NEXUS_NETWORK",
-  "NETWORK",
-  "VITE_NEXUS_CHANNEL",
   "VITE_CONFIG_NEXUS_CHANNEL",
-  "VITE_CHANNEL",
-  "NEXUS_CHANNEL",
-  "CHANNEL",
 ] as const;
 
 const originalEnv: Record<string, string | undefined> = {};
@@ -44,25 +36,19 @@ test("resolveNexusNetwork defaults to mainnet when env vars are absent", () => {
   assert.equal(resolveNexusNetwork(), "mainnet");
 });
 
-test("resolveNexusNetwork resolves canary or testnet from environment variables", () => {
-  process.env.VITE_NEXUS_NETWORK = "canary";
+test("resolveNexusNetwork resolves canary or testnet from VITE_CONFIG_NEXUS_NETWORK", () => {
+  process.env.VITE_CONFIG_NEXUS_NETWORK = "canary";
   assert.equal(resolveNexusNetwork(), "canary");
 
-  Reflect.deleteProperty(process.env, "VITE_NEXUS_NETWORK");
   process.env.VITE_CONFIG_NEXUS_NETWORK = "testnet";
   assert.equal(resolveNexusNetwork(), "testnet");
 
-  Reflect.deleteProperty(process.env, "VITE_CONFIG_NEXUS_NETWORK");
-  process.env.VITE_NETWORK = "canary";
-  assert.equal(resolveNexusNetwork(), "canary");
-
-  Reflect.deleteProperty(process.env, "VITE_NETWORK");
-  process.env.NETWORK = "testnet";
-  assert.equal(resolveNexusNetwork(), "testnet");
+  process.env.VITE_CONFIG_NEXUS_NETWORK = "mainnet";
+  assert.equal(resolveNexusNetwork(), "mainnet");
 });
 
-test("resolveNexusNetwork prioritizes explicit argument over environment variables", () => {
-  process.env.VITE_NEXUS_NETWORK = "testnet";
+test("resolveNexusNetwork prioritizes explicit argument over environment variable", () => {
+  process.env.VITE_CONFIG_NEXUS_NETWORK = "testnet";
   assert.equal(resolveNexusNetwork("canary"), "canary");
 });
 
@@ -71,37 +57,28 @@ test("resolveNexusChannel defaults to stable when env vars are absent", () => {
   assert.equal(resolveNexusChannel(), "stable");
 });
 
-test("resolveNexusChannel resolves preview from environment variables", () => {
-  process.env.VITE_NEXUS_CHANNEL = "preview";
-  assert.equal(resolveNexusChannel(), "preview");
-
-  Reflect.deleteProperty(process.env, "VITE_NEXUS_CHANNEL");
+test("resolveNexusChannel resolves preview from VITE_CONFIG_NEXUS_CHANNEL", () => {
   process.env.VITE_CONFIG_NEXUS_CHANNEL = "preview";
   assert.equal(resolveNexusChannel(), "preview");
 
-  Reflect.deleteProperty(process.env, "VITE_CONFIG_NEXUS_CHANNEL");
-  process.env.VITE_CHANNEL = "preview";
-  assert.equal(resolveNexusChannel(), "preview");
-
-  Reflect.deleteProperty(process.env, "VITE_CHANNEL");
-  process.env.CHANNEL = "preview";
-  assert.equal(resolveNexusChannel(), "preview");
+  process.env.VITE_CONFIG_NEXUS_CHANNEL = "stable";
+  assert.equal(resolveNexusChannel(), "stable");
 });
 
 test("resolveNexusChannel is case-insensitive and trims whitespace", () => {
-  process.env.VITE_NEXUS_CHANNEL = "  PREVIEW  ";
+  process.env.VITE_CONFIG_NEXUS_CHANNEL = "  PREVIEW  ";
   assert.equal(resolveNexusChannel(), "preview");
 
-  process.env.VITE_NEXUS_CHANNEL = "  STABLE  ";
+  process.env.VITE_CONFIG_NEXUS_CHANNEL = "  STABLE  ";
   assert.equal(resolveNexusChannel(), "stable");
 });
 
 test("resolveNexusChannel falls back to stable when env var value is invalid", () => {
-  process.env.VITE_NEXUS_CHANNEL = "invalid_channel_name";
+  process.env.VITE_CONFIG_NEXUS_CHANNEL = "invalid_channel_name";
   assert.equal(resolveNexusChannel(), "stable");
 });
 
-test("resolveNexusChannel prioritizes explicit argument over environment variables", () => {
-  process.env.VITE_NEXUS_CHANNEL = "preview";
+test("resolveNexusChannel prioritizes explicit argument over environment variable", () => {
+  process.env.VITE_CONFIG_NEXUS_CHANNEL = "preview";
   assert.equal(resolveNexusChannel("stable"), "stable");
 });
