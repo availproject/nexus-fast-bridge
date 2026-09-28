@@ -14,6 +14,7 @@ export const SUPPORTED_CHAINS = {
   HYPEREVM: 999,
   CITREA: 4114,
   ARC: 5042,
+  ROBINHOOD: 4663,
   SEPOLIA: 11_155_111,
   BASE_SEPOLIA: 84_532,
   ARBITRUM_SEPOLIA: 421_614,
@@ -117,6 +118,13 @@ export const CHAIN_METADATA: Record<number, ChainMetadata> = {
     blockExplorerUrls: ["https://explorer.arc.io"],
     rpcUrls: ["https://rpc.mainnet.arc.io"],
   },
+  [SUPPORTED_CHAINS.ROBINHOOD]: {
+    logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/robinhood/logo.png",
+    name: "Robinhood",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
+    rpcUrls: ["https://rpcs.avail.so/robinhood"],
+  },
   // Testnets
   [SUPPORTED_CHAINS.SEPOLIA]: {
     logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/ethereum/logo.png",
@@ -181,6 +189,12 @@ export const TOKEN_METADATA = {
     symbol: "WBTC",
     logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/tokens/wbtc/logo.png",
   },
+  USDG: {
+    decimals: 6,
+    name: "Global Dollar",
+    symbol: "USDG",
+    logo: "https://raw.githubusercontent.com/availproject/nexus-assets/main/tokens/usdg/logo.png",
+  },
 } as const;
 
 export const SHORT_CHAIN_NAME: Record<number, string> = {
@@ -197,6 +211,7 @@ export const SHORT_CHAIN_NAME: Record<number, string> = {
   [SUPPORTED_CHAINS.HYPEREVM]: "HyperEVM",
   [SUPPORTED_CHAINS.CITREA]: "Citrea",
   [SUPPORTED_CHAINS.ARC]: "Arc",
+  [SUPPORTED_CHAINS.ROBINHOOD]: "Robinhood",
   // [SUPPORTED_CHAINS.TRON]: "Tron",
   [SUPPORTED_CHAINS.SEPOLIA]: "Sepolia",
   [SUPPORTED_CHAINS.BASE_SEPOLIA]: "Base Sepolia",
@@ -296,6 +311,7 @@ export const TOKEN_IMAGES: Record<string, string> = {
   USDT: "https://coin-images.coingecko.com/coins/images/35023/large/USDT.png",
   "USD₮0":
     "https://coin-images.coingecko.com/coins/images/35023/large/USDT.png",
+  USDG: "https://raw.githubusercontent.com/availproject/nexus-assets/main/tokens/usdg/logo.png",
   WETH: "https://assets.coingecko.com/coins/images/279/large/ethereum.png?1595348880",
 };
 
@@ -441,5 +457,11 @@ export const TOKEN_CONTRACT_ADDRESSES = {
   },
   USDM: {
     4326: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",
+  },
+  USDG: {
+    4663: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+  },
+  ETH: {
+    4663: "0x0000000000000000000000000000000000000000",
   },
 } as Record<string, Record<number, `0x${string}`>>;

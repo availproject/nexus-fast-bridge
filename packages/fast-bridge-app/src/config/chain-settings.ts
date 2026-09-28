@@ -914,6 +914,72 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       dialogShowCloseButton: true,
     },
   },
+
+  // ── Robinhood ───────────────────────────────────────────────────────────
+  robinhood: {
+    slug: "robinhood",
+    appConfig: {
+      chainId: 4663,
+      chainName: "Robinhood",
+      chainNativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+      chainRpcUrl: "https://rpcs.avail.so/robinhood",
+      chainBlockExplorerUrl: "https://robinhoodchain.blockscout.com",
+      chainTestnet: false,
+      useChainLogo: true,
+      chainIconUrl:
+        "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/robinhood/logo.png",
+      chainLogoUrl:
+        "https://raw.githubusercontent.com/availproject/nexus-assets/main/chains/robinhood/logo.png",
+      backgroundImageUrl: "",
+      chainGifUrl: "",
+      chainGifAlt: "Bridge to Robinhood",
+      heroText: "Move your assets to Robinhood faster than ever!",
+      appTitle: "Robinhood Fast Bridge",
+      appDescription: "Robinhood Fast Bridge",
+      primaryColor: "#00C805",
+      secondaryColor: "#ffffff",
+      nexusNetwork: "mainnet",
+      nexusSupportedChain: 4663,
+      nexusPrimaryToken: "ETH",
+      boxShadow:
+        "#FFFFFFE6 0px 1px 0px inset, #FFFFFF8C 0px 0px 0px 14px, #00C8050A 0px 2px 4px, #00C80529 0px 12px 24px, #00C80526 0px 32px 64px",
+      ribbonPng: "/landing-new/assets/chain-gradients/universal-ribbon.png",
+      meta: {
+        title:
+          "Bridge to Robinhood from Multiple Chains in One Transaction | FastBridge",
+        description:
+          "Bridge ETH and tokens to Robinhood Chain from Ethereum, Arbitrum, Base, and other EVM chains in one seamless transaction. FastBridge offers fast, low-fee cross-chain transfers to Robinhood.",
+        canonicalUrl: "https://fastbridge.availproject.org/robinhood",
+        imageUrl: LANDING_META_IMAGE_URL,
+        faviconUrl: "/avail_logo.svg",
+        themeColor: "#00C805",
+        backgroundColor: "#ffffff",
+      },
+    },
+    chainFeatures: {
+      supportedTokens: ["ETH", "USDG"],
+      slug: "robinhood",
+      buttonFg: "black",
+      analyticsFastBridgeKey: "robinhood",
+      maxBridgeAmount: 200,
+      maxBridgeAmountByDestinationChainId: {
+        [SUPPORTED_CHAINS.ROBINHOOD]: 200,
+      },
+      maxBridgeAmountByTokenAndChain: {
+        ETH: {
+          [SUPPORTED_CHAINS.ROBINHOOD]: 200,
+        },
+        USDG: {
+          [SUPPORTED_CHAINS.ROBINHOOD]: 200,
+        },
+      },
+      mapUsdmToUsdcBalance: true,
+      denyIntentOnReset: true,
+      tokenDenyListByChainId: {},
+      allowanceLogoOverrideByChainId: {},
+      dialogShowCloseButton: true,
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
