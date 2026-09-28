@@ -41,7 +41,7 @@ export default defineConfig({
       process: "vite-plugin-node-polyfills/shims/process",
     },
   },
-  envPrefix: ["VITE_"],
+  envPrefix: ["VITE_", "NETWORK", "CHANNEL", "NEXUS_"],
   build: {
     outDir: "apps/root/dist",
     emptyOutDir: true,

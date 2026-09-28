@@ -26,7 +26,13 @@ export interface AppEnv {
   readonly VITE_CONFIG_CHAIN_RPC_URL: string;
   readonly VITE_CONFIG_CHAIN_TESTNET: boolean;
   readonly VITE_CONFIG_CHAIN_USE_CHAIN_LOGO: boolean;
-  readonly VITE_CONFIG_NEXUS_NETWORK: "mainnet" | "testnet" | "devnet";
+  readonly VITE_CONFIG_NEXUS_CHANNEL?: "stable" | "preview" | string;
+  readonly VITE_CONFIG_NEXUS_NETWORK?:
+    | "mainnet"
+    | "testnet"
+    | "devnet"
+    | "canary"
+    | string;
   readonly VITE_CONFIG_NEXUS_PRIMARY_TOKEN: string;
   readonly VITE_CONFIG_NEXUS_SUPPORTED_CHAIN: number;
   readonly VITE_CONFIG_PRIMARY_COLOR: string;
@@ -35,15 +41,23 @@ export interface AppEnv {
 
 declare global {
   interface ImportMetaEnv extends AppEnv {
+    readonly CHANNEL?: "stable" | "preview" | string;
+    readonly NETWORK?: "mainnet" | "testnet" | "canary" | string;
+    readonly NEXUS_CHANNEL?: "stable" | "preview" | string;
+    readonly NEXUS_NETWORK?: "mainnet" | "testnet" | "canary" | string;
     readonly VITE_ARBITRUM_RPC: string;
     readonly VITE_AVALANCHE_RPC: string;
     readonly VITE_BASE: string;
     readonly VITE_BASE_RPC: string;
+    readonly VITE_CHANNEL?: "stable" | "preview" | string;
     readonly VITE_IS_APP_DOWN?: string;
     readonly VITE_KAIA_RPC: string;
     readonly VITE_MAINNET_RPC: string;
     readonly VITE_MEGAETH_RPC: string;
     readonly VITE_MONAD_RPC: string;
+    readonly VITE_NETWORK?: "mainnet" | "testnet" | "canary" | string;
+    readonly VITE_NEXUS_CHANNEL?: "stable" | "preview" | string;
+    readonly VITE_NEXUS_NETWORK?: "mainnet" | "testnet" | "canary" | string;
     readonly VITE_OPTIMISM_RPC: string;
     readonly VITE_POLYGON_RPC: string;
     readonly VITE_SCROLL_RPC: string;
