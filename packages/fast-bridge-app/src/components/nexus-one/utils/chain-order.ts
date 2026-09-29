@@ -3,8 +3,10 @@
 import { CHAIN_METADATA } from "../../common/utils/constant";
 
 export const SWAP_CHAIN_DISPLAY_ORDER = [
-  5042, // Arc
+  4114, // Citrea
+  4663, // Robinhood
   1, // Ethereum
+  5042, // Arc
   42161, // Arbitrum
   8453, // Base
   137, // Polygon
@@ -14,7 +16,6 @@ export const SWAP_CHAIN_DISPLAY_ORDER = [
   43114, // Avalanche
   143, // Monad
   4326, // MegaETH
-  4114, // Citrea
   534352, // Scroll
 ] as const;
 

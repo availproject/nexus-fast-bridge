@@ -19,6 +19,7 @@ import { PreviewPanel } from "./wallet-connect";
 const DESTINATION_TOKEN_BY_CHAIN_SLUG: Record<string, string> = {
   citrea: "ctUSD",
   megaeth: "USDM",
+  robinhood: "USDG",
 };
 
 interface ReceiveAsset {

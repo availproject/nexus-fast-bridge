@@ -649,6 +649,7 @@ const STABLE_SYMBOLS = new Set([
   "xDAI",
   "USD0",
   "USDM",
+  "USDG",
 ]);
 const normalizeTokenGroupSymbol = (symbol: string) =>
   symbol
