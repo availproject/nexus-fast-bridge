@@ -1,6 +1,11 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
-import { isArcErc20Usdc, isArcExcludedToken, ZERO_ADDRESS } from "./arc-tokens";
+import {
+  isArcErc20Usdc,
+  isArcExcludedToken,
+  isExcludedTokenAddress,
+  ZERO_ADDRESS,
+} from "./arc-tokens";
 
 export type RawReceiveToken = {
   address?: string;
@@ -133,7 +138,7 @@ export const mergeRelayTokensIntoLifi = (
       if (!token.address || !token.symbol) continue;
 
       if (
-        isArcExcludedToken(token.address) ||
+        isExcludedTokenAddress(token.address) ||
         isArcErc20Usdc({
           chainId,
           contractAddress: token.address,

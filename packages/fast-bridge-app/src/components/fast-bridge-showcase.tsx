@@ -89,7 +89,7 @@ function getPreferredDestinationPair(
 const FastBridgeShowcase = () => {
   const { address } = useAccount();
   const { open } = useAppKit();
-  const { appConfig, chainSlug, setChain } = useRuntime();
+  const { appConfig, chainFeatures, chainSlug, setChain } = useRuntime();
   const [params] = useState(() => readBridgeParams());
   const [receiveAssetOverride, setReceiveAssetOverride] =
     useState<ReceiveAsset | null>(null);
@@ -170,7 +170,7 @@ const FastBridgeShowcase = () => {
   return (
     <PreviewPanel>
       <div className="fastbridge-showcase-container">
-        {isAppRoute ? <ArcAppBanner /> : null}
+        {chainFeatures.showArcBanner ? <ArcAppBanner /> : null}
         <NexusOne
           config={nexusConfig}
           connectedAddress={address}

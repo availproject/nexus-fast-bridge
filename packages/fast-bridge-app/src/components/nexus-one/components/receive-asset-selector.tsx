@@ -33,6 +33,7 @@ import {
   isArcErc20Usdc,
   isArcExcludedToken,
   isArcNativeUsdc,
+  isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -429,7 +430,7 @@ export const getCachedReceiveTokenMatch = (
 
   const chainTokens = (
     rawTokensCache.tokens[String(token.chainId)] ?? []
-  ).filter((candidate) => !isArcExcludedToken(candidate.address));
+  ).filter((candidate) => !isExcludedTokenAddress(candidate.address));
   const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
   const addressMatch = chainTokens.find(
     (candidate) =>
@@ -561,7 +562,7 @@ export const parseRawReceiveTokens = (
     for (const t of chains[chainIdStr]) {
       if (!t.address || !t.symbol) continue;
       if (
-        isArcExcludedToken(t.address) ||
+        isExcludedTokenAddress(t.address) ||
         isArcErc20Usdc({
           chainId,
           symbol: t.symbol,
@@ -1295,7 +1296,7 @@ export function ReceiveAssetSelector({
       );
     }
     result = result.filter(
-      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
+      (t) => !isExcludedTokenAddress(t.contractAddress) && !isArcErc20Usdc(t)
     );
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")

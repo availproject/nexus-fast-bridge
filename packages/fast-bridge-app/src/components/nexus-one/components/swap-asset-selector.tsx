@@ -43,6 +43,7 @@ import {
   getArcNativeTokenOption,
   isArcErc20Usdc,
   isArcExcludedToken,
+  isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -146,7 +147,7 @@ export function deriveTokenOptions(
       if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
         continue;
       }
-      if (isArcExcludedToken(bd.contractAddress)) {
+      if (isExcludedTokenAddress(bd.contractAddress)) {
         continue;
       }
       if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
@@ -703,13 +704,15 @@ const modalHeightTransitionStyle = {
   interpolateSize: "allow-keywords",
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
+
 export {
+  compareChainsBySwapDisplayOrder,
   SWAP_CHAIN_DISPLAY_ORDER,
   SWAP_CHAIN_DISPLAY_ORDER_RANK,
   SWAP_CHAIN_DISPLAY_ORDER_SET,
   sortChainIdsBySwapDisplayOrder,
-  compareChainsBySwapDisplayOrder,
 };
+
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
   1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
 ]);
@@ -1684,7 +1687,7 @@ export function SwapAssetSelector({
 
     const userBalanceMap = new Map<string, SwapTokenOption>();
     for (const u of userTokenOptions) {
-      if (isArcExcludedToken(u.contractAddress)) continue;
+      if (isExcludedTokenAddress(u.contractAddress)) continue;
       if (!isAllowedArcToken(u)) continue;
       const key = `${u.chainId ?? 0}-${normalizeTokenAddress(u.contractAddress)}`;
       userBalanceMap.set(key, u);
@@ -1694,7 +1697,7 @@ export function SwapAssetSelector({
     const seenUserKeys = new Set<string>();
 
     for (const c of catalog) {
-      if (isArcExcludedToken(c.contractAddress)) continue;
+      if (isExcludedTokenAddress(c.contractAddress)) continue;
       if (isExcludedToken(c)) continue;
       if (!isAllowedArcToken(c)) continue;
 
@@ -1748,7 +1751,7 @@ export function SwapAssetSelector({
 
     for (const selectedToken of selectedSourceTokens) {
       if (isExcludedToken(selectedToken)) continue;
-      if (isArcExcludedToken(selectedToken.contractAddress)) continue;
+      if (isExcludedTokenAddress(selectedToken.contractAddress)) continue;
       if (!isArcErc20Usdc(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
@@ -1856,7 +1859,7 @@ export function SwapAssetSelector({
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
     let result = allTokens.filter(
-      (t) => !isArcExcludedToken(t.contractAddress) && !isArcErc20Usdc(t)
+      (t) => !isExcludedTokenAddress(t.contractAddress) && !isArcErc20Usdc(t)
     );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);

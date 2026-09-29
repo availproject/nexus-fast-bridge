@@ -4,7 +4,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { isAmountAboveUsableBalance } from "../packages/fast-bridge-app/src/components/nexus/balance-utils";
 import type { UserAsset } from "../packages/fast-bridge-app/src/components/nexus/nexus-provider";
-import { getCachedReceiveTokenMatch } from "../packages/fast-bridge-app/src/components/nexus-one/components/receive-asset-selector";
+import {
+  getCachedReceiveTokenMatch,
+  parseRawReceiveTokens,
+} from "../packages/fast-bridge-app/src/components/nexus-one/components/receive-asset-selector";
 import {
   deriveTokenOptions,
   type SwapTokenOption,
@@ -20,6 +23,7 @@ import {
 } from "../packages/fast-bridge-app/src/components/nexus-one/token-selection";
 import {
   ARC_CHAIN_ID,
+  isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../packages/fast-bridge-app/src/components/nexus-one/utils/arc-tokens";
 import { mergeRelayTokensIntoLifi } from "../packages/fast-bridge-app/src/components/nexus-one/utils/relay-tokens";
@@ -535,4 +539,113 @@ test("getCachedReceiveTokenMatch handles tokens other than USDC without Referenc
   assert.doesNotThrow(() => {
     getCachedReceiveTokenMatch(arcNativeUsdcToken);
   });
+});
+
+test("0x0A3B763d66c0e8c7555c986A3701E1DC1Bf3954F is hidden in both source and receive token options", () => {
+  const hiddenTokenAddress = "0x0A3B763d66c0e8c7555c986A3701E1DC1Bf3954F";
+  assert.equal(isExcludedTokenAddress(hiddenTokenAddress), true);
+  assert.equal(isExcludedTokenAddress(hiddenTokenAddress.toLowerCase()), true);
+  assert.equal(isExcludedTokenAddress(hiddenTokenAddress.toUpperCase()), true);
+
+  // 1. Source: deriveTokenOptions excludes it
+  const fakeUserAssets: UserAsset[] = [
+    {
+      symbol: "USDG",
+      name: "Global Dollar",
+      decimals: 6,
+      breakdown: [
+        {
+          chain: { id: 4663, name: "Robinhood" },
+          contractAddress: hiddenTokenAddress,
+          balance: "10.0",
+          totalBalance: "10.0",
+          balanceInFiat: "$10.00",
+          symbol: "USDG",
+        },
+        {
+          chain: { id: 4663, name: "Robinhood" },
+          contractAddress: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+          balance: "20.0",
+          totalBalance: "20.0",
+          balanceInFiat: "$20.00",
+          symbol: "USDG",
+        },
+      ],
+    },
+  ];
+
+  const derived = deriveTokenOptions(fakeUserAssets, null);
+  assert.equal(
+    derived.some(
+      (t) =>
+        t.contractAddress.toLowerCase() === hiddenTokenAddress.toLowerCase()
+    ),
+    false
+  );
+  assert.equal(
+    derived.some(
+      (t) =>
+        t.contractAddress.toLowerCase() ===
+        "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168".toLowerCase()
+    ),
+    true
+  );
+
+  // 2. Receive: parseRawReceiveTokens excludes it
+  const rawTokensData = {
+    tokens: {
+      "4663": [
+        {
+          address: hiddenTokenAddress,
+          symbol: "USDG",
+          name: "Global Dollar",
+          decimals: 6,
+        },
+        {
+          address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+          symbol: "USDG",
+          name: "Global Dollar",
+          decimals: 6,
+        },
+      ],
+    },
+  };
+
+  const parsedReceive = parseRawReceiveTokens(rawTokensData as any, null, null);
+  assert.equal(
+    parsedReceive.some(
+      (t) =>
+        t.contractAddress.toLowerCase() === hiddenTokenAddress.toLowerCase()
+    ),
+    false
+  );
+  assert.equal(
+    parsedReceive.some(
+      (t) =>
+        t.contractAddress.toLowerCase() ===
+        "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168".toLowerCase()
+    ),
+    true
+  );
+
+  // 3. Receive: mergeRelayTokensIntoLifi excludes it
+  const lifiTokens = { "4663": [] };
+  const relayTokens = {
+    4663: [
+      {
+        address: hiddenTokenAddress,
+        symbol: "USDG",
+        name: "Global Dollar",
+        decimals: 6,
+      },
+    ],
+  };
+  const mergedRelay = mergeRelayTokensIntoLifi(lifiTokens, relayTokens);
+  assert.equal(
+    (mergedRelay["4663"] ?? []).some(
+      (t) =>
+        (t.address ?? "").toLowerCase() === hiddenTokenAddress.toLowerCase()
+    ),
+    false
+  );
 });

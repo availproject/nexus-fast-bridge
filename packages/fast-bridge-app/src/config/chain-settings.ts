@@ -66,6 +66,7 @@ export const CHAIN_REGISTRY: Record<string, ChainSettings> = {
       showFluffeyMascot: false,
       showEthMascot: false,
       showPromoBanner: false,
+      showArcBanner: false,
       showSupportCta: true,
       supportCtaHref: "https://discord.com/invite/AvailProject",
       supportCtaLine1: "Need help?",
