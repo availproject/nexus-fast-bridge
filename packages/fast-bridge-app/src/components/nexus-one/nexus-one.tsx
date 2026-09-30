@@ -8963,6 +8963,20 @@ function NexusOneInner({
   // Handlers
   // ---------------------------------------------------------------------------
 
+  const resetInputsAfterSuccessfulExecution = () => {
+    setAmount("");
+    setRecipientAddress("");
+    setIsRecipientUserEdited(false);
+    setTxError(null);
+    setSwapQuoteIssue(null);
+    setReceiveAmountIssue(null);
+    setIntentToAmount(undefined);
+    setIntentFeeUsd(undefined);
+    setIntentData(null);
+    setPredictiveQuote(null);
+    clearSelectedSources();
+  };
+
   const handleDone = () => {
     const retained = retainTokenSelection(
       { fromTokens, toToken },

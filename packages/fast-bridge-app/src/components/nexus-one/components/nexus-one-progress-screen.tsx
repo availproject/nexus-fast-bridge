@@ -685,6 +685,14 @@ export const buildStatusRows = ({
     ? getStatusForStep(failedStep, mode, false)
     : null;
   const betterIntentFailureLabel = getBetterIntentFailureLabel(failedStep);
+  const refundEligibleFailure = Boolean(
+    events.some(
+      (e) =>
+        e.name?.toLowerCase().includes("refund") ||
+        (typeof (e.event as any)?.type === "string" &&
+          (e.event as any).type.toLowerCase().includes("refund"))
+    )
+  );
 
   // Track completed approvals
   let completedApprovalsCount = 0;

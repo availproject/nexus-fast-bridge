@@ -25,6 +25,10 @@ import {
   getTotalBalanceInFiat,
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
+import {
+  isTokenSupportedForRole,
+  type SupportedChainsAndTokensResult,
+} from "../../nexus/better-intent-compat";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
