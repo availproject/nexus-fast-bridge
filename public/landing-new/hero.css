@@ -66,9 +66,18 @@
   width: 100%;
   max-width: none;
   height: 100%;
+  /* Prevent iOS Safari from showing its native play button overlay */
+  pointer-events: none;
   object-fit: cover;
   object-position: center top;
   transform: translate(-50%, -50%);
+}
+
+.hero__video::-webkit-media-controls,
+.hero__video::-webkit-media-controls-enclosure,
+.hero__video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  appearance: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

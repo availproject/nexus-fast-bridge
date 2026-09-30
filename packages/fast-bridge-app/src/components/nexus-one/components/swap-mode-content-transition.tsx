@@ -21,7 +21,8 @@ export function SwapModeContentTransition({
     }
 
     const updateHeight = () => {
-      setContentHeight(Math.ceil(content.getBoundingClientRect().height));
+      const nextH = Math.ceil(content.getBoundingClientRect().height);
+      setContentHeight((prev) => (prev === nextH ? prev : nextH));
     };
 
     updateHeight();

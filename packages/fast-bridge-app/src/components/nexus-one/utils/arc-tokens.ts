@@ -13,6 +13,18 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 /** Arc's standard USDC contract representation used by Relay. */
 export const ARC_RELAY_USDC_ADDRESS =
   "0x3600000000000000000000000000000000000000".toLowerCase();
+export const EXCLUDED_TOKEN_ADDRESSES: ReadonlySet<string> = new Set([
+  "0x0A3B763d66c0e8c7555c986A3701E1DC1Bf3954F".toLowerCase(),
+]);
+
+export const isExcludedTokenAddress = (address?: string): boolean => {
+  if (!address) return false;
+  return EXCLUDED_TOKEN_ADDRESSES.has(address.toLowerCase());
+};
+
+export const isArcExcludedToken = (address?: string): boolean => {
+  return isExcludedTokenAddress(address);
+};
 
 export const isArcNativeUsdc = (
   token?: {
