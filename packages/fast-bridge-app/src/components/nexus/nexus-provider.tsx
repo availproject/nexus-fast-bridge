@@ -7,6 +7,11 @@ import {
   type NexusNetwork,
 } from "@avail-project/nexus-core";
 import { getCoinbaseRates } from "@avail-project/nexus-core/utils";
+import {
+  type NexusChannel,
+  resolveNexusChannel,
+  resolveNexusNetwork,
+} from "@/config/nexus-env";
 import { type NormalizedUserAsset, normalizeUserAssets } from "./balance-utils";
 import {
   type ChainBalance,
@@ -94,6 +99,7 @@ interface NexusContextType {
   allowance: RefObject<LegacyAllowanceHookData | null>;
   attachEventHooks: () => void;
   bridgableBalance: UserAsset[] | null;
+  channel?: NexusChannel;
   deinitializeNexus: () => Promise<void>;
   exchangeRate: Record<string, number> | null;
   fetchBridgableBalance: () => Promise<void>;
@@ -124,12 +130,14 @@ interface NexusProviderProps {
   children: React.ReactNode;
   config?: {
     network?: NexusNetwork;
+    channel?: NexusChannel;
     debug?: boolean;
   };
 }
 
 const defaultConfig: Required<NexusProviderProps["config"]> = {
-  network: "canary",
+  network: resolveNexusNetwork(),
+  channel: resolveNexusChannel(),
   debug: true,
 };
 
@@ -221,8 +229,12 @@ const NexusProvider = ({
   config = defaultConfig,
 }: NexusProviderProps) => {
   const stableConfig = useMemo(
-    () => ({ ...defaultConfig, ...config }),
-    [config]
+    () => ({
+      debug: config?.debug ?? true,
+      network: resolveNexusNetwork(config?.network),
+      channel: resolveNexusChannel(config?.channel),
+    }),
+    [config?.channel, config?.debug, config?.network]
   );
 
   const { address } = useAccount();
@@ -793,7 +805,8 @@ const NexusProvider = ({
       swapSupportedChainsAndTokens: swapSupportedChainsAndTokensState,
       bridgableBalance,
       swapBalance,
-      network: config?.network,
+      network: stableConfig.network,
+      channel: stableConfig.channel,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,
@@ -814,7 +827,8 @@ const NexusProvider = ({
       handleInit,
       bridgableBalance,
       swapBalance,
-      config,
+      stableConfig.channel,
+      stableConfig.network,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,
