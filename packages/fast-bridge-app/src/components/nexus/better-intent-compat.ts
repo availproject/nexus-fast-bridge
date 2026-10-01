@@ -89,6 +89,7 @@ export interface ChainBalance {
   symbol: string;
   universe: "EVM";
   value: string;
+  verified?: boolean;
 }
 
 export interface TokenBalance {
@@ -99,6 +100,7 @@ export interface TokenBalance {
   name: string;
   symbol: string;
   value: string;
+  verified?: boolean;
 }
 
 export interface LegacyIntent {
@@ -124,6 +126,7 @@ export interface LegacyIntent {
       };
     };
   };
+  executionWarnings?: IntentQuote["executionWarnings"];
   feesAndBuffer: {
     buffer: string;
     bridge: {
@@ -138,6 +141,7 @@ export interface LegacyIntent {
       totalUsd?: string;
     };
   };
+  isExecutable?: boolean;
   sources: Array<{
     amount: string;
     /** Stable index assigned by the Better Intent quote and used by status legs. */
@@ -192,7 +196,9 @@ export const addIntentUsdValues = (
 export interface LegacyIntentHookData {
   allow: () => void;
   deny: () => void;
+  readonly execution?: IntentHookData["execution"];
   intent: LegacyIntent;
+  readonly isExecutable?: boolean;
   refresh: (sources?: number[] | IntentSource[]) => Promise<LegacyIntent>;
 }
 
@@ -432,6 +438,11 @@ export const normalizeIntentBalances = (
     // Balances are token-specific. Symbol and decimals are display metadata
     // and are not sufficient to distinguish two contracts or two chains.
     const identity = `${entry.chainId}:${normalizeBalanceTokenAddress(entry.tokenAddress)}`;
+    const tokenVerified =
+      token && "verified" in token && typeof token.verified === "boolean"
+        ? token.verified
+        : true;
+    const isEntryVerified = entry.verified !== false && tokenVerified;
     const chainBalance: ChainBalance = {
       balance: readable,
       value: String(entry.valueUsd ?? 0),
@@ -444,6 +455,7 @@ export const normalizeIntentBalances = (
       contractAddress: entry.tokenAddress,
       decimals: entry.decimals,
       universe: "EVM",
+      verified: isEntryVerified,
     };
     const existing = grouped.get(identity);
     if (existing) {
@@ -454,6 +466,9 @@ export const normalizeIntentBalances = (
       existing.value = new Decimal(existing.value)
         .plus(entry.valueUsd ?? 0)
         .toString();
+      if (existing.verified !== undefined) {
+        existing.verified = existing.verified && isEntryVerified;
+      }
       continue;
     }
     grouped.set(identity, {
@@ -464,6 +479,7 @@ export const normalizeIntentBalances = (
       logo: token?.logo ?? entry.logo ?? "",
       name: entry.name,
       symbol: entry.symbol,
+      verified: isEntryVerified,
     });
   }
 
@@ -547,6 +563,8 @@ export const normalizeIntentQuote = (
 
   return {
     bridgeProvider: quote.provider,
+    executionWarnings: quote.executionWarnings,
+    isExecutable: quote.isExecutable,
     destination: {
       amount: formatUnits(quote.output.amountRaw, outputDecimals),
       minAmount: formatUnits(quote.output.minAmountRaw, outputDecimals),
@@ -622,6 +640,12 @@ export const adaptIntentHook = (
 ): LegacyIntentHookData => ({
   allow: data.allow,
   deny: data.deny,
+  get execution() {
+    return data.execution;
+  },
+  get isExecutable() {
+    return data.quote?.isExecutable;
+  },
   intent: normalizeIntentQuote(data.quote, chains),
   refresh: async (sources) =>
     normalizeIntentQuote(

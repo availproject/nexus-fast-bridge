@@ -3,6 +3,7 @@ import test from "node:test";
 import type { IntentEvent } from "@avail-project/nexus-core";
 import {
   adaptIntentEvent,
+  adaptIntentHook,
   addIntentUsdValues,
   extractIntentIdFromUrl,
   formatIntentProviderName,
@@ -465,4 +466,194 @@ test("normalizes Arc USDC quote with 18 decimals", () => {
   assert.equal(normalized.destination.amount, "1.98");
   assert.equal(normalized.destination.token.decimals, 18);
   assert.equal(normalized.destination.token.symbol, "USDC");
+});
+
+test("normalizes intent balances preserving verified and unverified status", () => {
+  const balances = [
+    {
+      balanceRaw: 9_000_000_000n,
+      chainId: 8453,
+      decimals: 9,
+      isNative: false,
+      name: "DAPPOS",
+      priceSource: "relay",
+      providers: [{ id: "relay" }],
+      symbol: "DOS",
+      tokenAddress: "0x3f6b9ae61c3db3846430e5ffdbf5044d823845ec",
+      usable: true,
+      valueUsd: 2.72,
+      verified: false,
+    },
+    {
+      balanceRaw: 100_000_000n,
+      chainId: 8453,
+      decimals: 6,
+      isNative: false,
+      name: "USD Coin",
+      priceSource: "nexus-v2",
+      providers: [{ id: "nexus-v2" }],
+      symbol: "USDC",
+      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      usable: true,
+      valueUsd: 100.0,
+      verified: true,
+    },
+  ] as any;
+
+  const chains = [
+    { id: 8453, logo: "", name: "Base", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentBalances(balances, chains);
+  const dos = normalized.find((b) => b.symbol === "DOS");
+  const usdc = normalized.find((b) => b.symbol === "USDC");
+
+  assert.equal(dos?.verified, false);
+  assert.equal(dos?.chainBalances[0]?.verified, false);
+  assert.equal(usdc?.verified, true);
+  assert.equal(usdc?.chainBalances[0]?.verified, true);
+});
+
+test("normalizes quote preserving isExecutable and executionWarnings", () => {
+  const quote = {
+    allowances: [],
+    executionWarnings: [
+      {
+        code: "INSUFFICIENT_BALANCE",
+        message: "Insufficient balance for source token",
+        shortfalls: [
+          {
+            actualRaw: 0n,
+            chainId: 8453,
+            requiredRaw: 10_000_000n,
+            tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          },
+        ],
+      },
+    ],
+    expiresAt: 2_000_000_000,
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    input: [
+      {
+        amountRaw: 10_000_000n,
+        amountUsd: "10.00",
+        chainId: 8453,
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        tokenSymbol: "USDC",
+        totalRequiredRaw: 10_000_000n,
+        totalRequiredUsd: "10.00",
+      },
+    ],
+    isExecutable: false,
+    output: {
+      amountRaw: 9_900_000n,
+      amountUsd: "9.90",
+      chainId: 10,
+      minAmountRaw: 9_800_000n,
+      minAmountUsd: "9.80",
+      tokenAddress: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+    },
+    plan: { steps: [] },
+    provider: "nexus-v2",
+    sourceVerdicts: [],
+    tradeType: "exact_in",
+  } as any;
+
+  const chains = [
+    { id: 8453, logo: "", name: "Base", swapSupported: true, tokens: [] },
+    { id: 10, logo: "", name: "Optimism", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+  assert.equal(normalized.isExecutable, false);
+  assert.equal(normalized.executionWarnings?.length, 1);
+  assert.equal(normalized.executionWarnings?.[0]?.code, "INSUFFICIENT_BALANCE");
+});
+
+test("adaptIntentHook exposes execution and isExecutable getters", () => {
+  let executionState: any = {
+    cause: "not-connected",
+    possible: false,
+  };
+  const mockHookData: any = {
+    allow: () => {
+      // test callback
+    },
+    deny: () => {
+      // test callback
+    },
+    get execution() {
+      return executionState;
+    },
+    quote: {
+      allowances: [],
+      expiresAt: 2_000_000_000,
+      fees: {
+        depositRaw: 0n,
+        depositUsd: "0",
+        fulfillmentRaw: 0n,
+        fulfillmentUsd: "0",
+        protocolRaw: 0n,
+        protocolUsd: "0",
+        solverRaw: 0n,
+        solverUsd: "0",
+      },
+      input: [
+        {
+          amountRaw: 10_000_000n,
+          amountUsd: "10.00",
+          chainId: 8453,
+          depositFeeRaw: 0n,
+          depositFeeUsd: "0",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          tokenSymbol: "USDC",
+          totalRequiredRaw: 10_000_000n,
+          totalRequiredUsd: "10.00",
+        },
+      ],
+      isExecutable: false,
+      output: {
+        amountRaw: 9_900_000n,
+        amountUsd: "9.90",
+        chainId: 10,
+        minAmountRaw: 9_800_000n,
+        minAmountUsd: "9.80",
+        tokenAddress: "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+      },
+      plan: { steps: [] },
+      provider: "nexus-v2",
+      sourceVerdicts: [],
+      tradeType: "exact_in",
+    },
+    refresh: async () => mockHookData.quote,
+  };
+
+  const chains = [
+    { id: 8453, logo: "", name: "Base", swapSupported: true, tokens: [] },
+    { id: 10, logo: "", name: "Optimism", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const adapted = adaptIntentHook(mockHookData, chains);
+  assert.equal(adapted.isExecutable, false);
+  assert.deepEqual(adapted.execution, {
+    cause: "not-connected",
+    possible: false,
+  });
+
+  // Update execution on mockHookData (simulate refresh / state update)
+  executionState = { possible: true };
+  mockHookData.quote.isExecutable = true;
+  assert.equal(adapted.isExecutable, true);
+  assert.deepEqual(adapted.execution, { possible: true });
 });

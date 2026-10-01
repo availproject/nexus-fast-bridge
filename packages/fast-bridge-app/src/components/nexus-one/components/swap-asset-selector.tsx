@@ -105,6 +105,7 @@ export interface SwapTokenOption {
   userAmount?: string;
   userAmountMode?: "token" | "usd";
   userAmountUsd?: string;
+  verified?: boolean;
 }
 
 interface SwapAssetSelectorProps {
@@ -196,6 +197,7 @@ export function deriveTokenOptions(
           chainMeta?.name ?? bd.chain?.name
         ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
+        verified: bd.verified ?? asset.verified ?? true,
       });
     }
   }
@@ -806,54 +808,10 @@ export const compareTokensWithBalancesFirst = (
   return 0;
 };
 
-export const sortTokensWithBalancesFirst = (tokens: SwapTokenOption[]) => {
-  if (tokens.length <= 1) return tokens;
-
-  const decorated = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    const hasBal =
-      t.hasBalance !== undefined ? t.hasBalance : tokenHasBalance(t);
-    const fiat = hasBal ? getTokenFiatValue(t) : 0;
-    const balNum = hasBal
-      ? Number(
-          String(t.totalBalance ?? t.balance ?? "").replace(/[^0-9.]/g, "") || 0
-        )
-      : 0;
-    const chainRank =
-      SWAP_CHAIN_DISPLAY_ORDER_RANK.get(t.chainId ?? -1) ?? 999999;
-    const name = `${t.symbol || ""} ${t.chainName || ""}`.toLowerCase();
-    decorated[i] = {
-      balNum,
-      chainRank,
-      fiat,
-      hasBal: hasBal ? 1 : 0,
-      idx: i,
-      name,
-      token: t,
-    };
-  }
-
-  decorated.sort((a, b) => {
-    if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
-    if (a.hasBal) {
-      if (b.fiat !== a.fiat) return b.fiat - a.fiat;
-      if (b.balNum !== a.balNum) return b.balNum - a.balNum;
-    }
-    if (a.chainRank !== b.chainRank) return a.chainRank - b.chainRank;
-    if (a.name < b.name) return -1;
-    if (a.name > b.name) return 1;
-    return a.idx - b.idx;
-  });
-
-  const result = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    result[i] = decorated[i].token;
-  }
-  return result;
-};
-
-export const sortTokensByUsdBalance = sortTokensWithBalancesFirst;
+export {
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+} from "../utils/token-sorting";
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -1292,6 +1250,25 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
           >
             {token.chainName || "Unknown chain"}
           </span>
+          {token.verified === false && (
+            <span
+              style={{
+                backgroundColor: "#FFFBEB",
+                border: "1px solid #FDE68A",
+                borderRadius: 4,
+                color: "#B45309",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "9px",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                lineHeight: "12px",
+                padding: "1px 4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Unverified
+            </span>
+          )}
         </span>
         {!needsWalletConnection && tokenHasBalance(token) && (
           <span
@@ -1378,16 +1355,37 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
             alignItems: "flex-start",
           }}
         >
-          <span
-            style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontWeight: 500,
-              fontSize: isDesktop ? 15 : 13,
-              color: "#161615",
-            }}
-          >
-            {token.symbol}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontWeight: 500,
+                fontSize: isDesktop ? 15 : 13,
+                color: "#161615",
+              }}
+            >
+              {token.symbol}
+            </span>
+            {token.verified === false && (
+              <span
+                style={{
+                  backgroundColor: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  borderRadius: 4,
+                  color: "#B45309",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: isDesktop ? 10 : 9,
+                  fontWeight: 600,
+                  letterSpacing: "0.02em",
+                  lineHeight: isDesktop ? "14px" : "12px",
+                  padding: "1px 5px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Unverified
+              </span>
+            )}
+          </div>
           {token.chainName && (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span
@@ -2053,7 +2051,9 @@ export function SwapAssetSelector({
         }
         searchScore = minScore;
       }
-      const hasBal = g.totalFiat > 0 || g.totalBalRaw > 0 ? 1 : 0;
+      const hasBal = g.totalFiat > 0 || g.totalBalRaw > 0;
+      const isGroupVerified = g.tokens.some((t) => t.verified !== false);
+      const tier = hasBal ? (isGroupVerified ? 0 : 1) : 2;
       const firstToken = g.tokens[0];
       const chainRank =
         SWAP_CHAIN_DISPLAY_ORDER_RANK.get(firstToken?.chainId ?? -1) ?? 999999;
@@ -2065,10 +2065,10 @@ export function SwapAssetSelector({
         chainRank,
         fiat: g.totalFiat,
         group: g,
-        hasBal,
         idx: i,
         searchScore,
         symbolLower,
+        tier,
       };
     }
 
@@ -2076,8 +2076,8 @@ export function SwapAssetSelector({
       if (hasQuery && a.searchScore !== b.searchScore) {
         return a.searchScore - b.searchScore;
       }
-      if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
-      if (a.hasBal) {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      if (a.tier === 0 || a.tier === 1) {
         if (b.fiat !== a.fiat) return b.fiat - a.fiat;
         if (b.bal !== a.bal) return b.bal - a.bal;
       }
@@ -2401,6 +2401,7 @@ export function SwapAssetSelector({
     const shouldHideIndividualRows =
       isUnifiedSelectedInGroup ||
       (!isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent));
+    const isGroupVerified = group.tokens.some((t) => t.verified !== false);
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
       ...sumTokenOptionBalances(group.tokens),
@@ -2413,6 +2414,7 @@ export function SwapAssetSelector({
       sourceTokens: group.tokens,
       symbol: group.symbol,
       unifiedSymbol: group.symbol as "USDC" | "USDT" | "ETH",
+      verified: isGroupVerified,
     };
 
     return {
@@ -2422,6 +2424,7 @@ export function SwapAssetSelector({
         (hasVisibleUnifiedRow || visibleTokensCount > 0),
       individualTokens,
       isExpanded,
+      isGroupVerified,
       isPartiallySelected,
       isUnifiedSelectedInGroup,
       shouldHideIndividualRows,
@@ -2548,6 +2551,25 @@ export function SwapAssetSelector({
                 >
                   UNIFIED
                 </span>
+                {!groupState.isGroupVerified && (
+                  <span
+                    style={{
+                      backgroundColor: "#FFFBEB",
+                      border: "1px solid #FDE68A",
+                      borderRadius: 4,
+                      color: "#B45309",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: isDesktop ? 10 : 9,
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                      lineHeight: isDesktop ? "14px" : "12px",
+                      padding: "1px 5px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Unverified
+                  </span>
+                )}
               </div>
               <ChainLogos isDesktop={isDesktop} tokens={group.tokens} />
             </div>
@@ -3665,6 +3687,26 @@ export function SwapAssetSelector({
                                     {token.symbol} on{" "}
                                     {token.chainName || "Unknown chain"}
                                   </span>
+                                  {token.verified === false && (
+                                    <span
+                                      style={{
+                                        backgroundColor: "#FFFBEB",
+                                        border: "1px solid #FDE68A",
+                                        borderRadius: "4px",
+                                        color: "#B45309",
+                                        fontFamily:
+                                          '"Geist", system-ui, sans-serif',
+                                        fontSize: 9,
+                                        fontWeight: 600,
+                                        letterSpacing: "0.02em",
+                                        lineHeight: "12px",
+                                        padding: "1px 4px",
+                                        textTransform: "uppercase",
+                                      }}
+                                    >
+                                      Unverified
+                                    </span>
+                                  )}
                                 </div>
                                 <span
                                   style={{

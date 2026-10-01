@@ -113,6 +113,7 @@ interface NexusContextType {
   network?: NexusNetwork;
   nexusInitError: string | null;
   nexusSDK: NexusClient | null;
+  readOnlySdk: NexusClient | null;
   resolveTokenUsdRate: (tokenSymbol: string) => Promise<number | null>;
   setAllowance: (data: LegacyAllowanceHookData | null) => void;
   setIntent: (data: LegacyIntentHookData | null) => void;
@@ -794,6 +795,7 @@ const NexusProvider = ({
   const value = useMemo(
     () => ({
       nexusSDK,
+      readOnlySdk: sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
@@ -820,6 +822,7 @@ const NexusProvider = ({
     }),
     [
       nexusSDK,
+      sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
