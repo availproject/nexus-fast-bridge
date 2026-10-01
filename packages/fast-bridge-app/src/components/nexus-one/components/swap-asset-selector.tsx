@@ -53,6 +53,20 @@ import {
   SWAP_CHAIN_DISPLAY_ORDER_SET,
   sortChainIdsBySwapDisplayOrder,
 } from "../utils/chain-order";
+import {
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+} from "../utils/token-sorting";
+
+export {
+  compareChainsBySwapDisplayOrder,
+  SWAP_CHAIN_DISPLAY_ORDER,
+  SWAP_CHAIN_DISPLAY_ORDER_RANK,
+  SWAP_CHAIN_DISPLAY_ORDER_SET,
+  sortChainIdsBySwapDisplayOrder,
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+};
 
 export function isNativeLikeAddress(address?: string) {
   const normalized = (address ?? "").toLowerCase();
@@ -713,45 +727,12 @@ const modalHeightTransitionStyle = {
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 
-export {
-  compareChainsBySwapDisplayOrder,
-  SWAP_CHAIN_DISPLAY_ORDER,
-  SWAP_CHAIN_DISPLAY_ORDER_RANK,
-  SWAP_CHAIN_DISPLAY_ORDER_SET,
-  sortChainIdsBySwapDisplayOrder,
-};
-
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
   1, 10, 56, 137, 143, 999, 4114, 8453, 42161, 43114, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const getTokenFiatValue = (
-  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
-) => {
-  const parsed = Number(
-    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
-  );
-  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
-};
-
-const formatBalanceWithSymbol = (
-  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
-) => {
-  const symbol = token.symbol?.trim() || "";
-  const balanceStr = getTotalBalance(token).trim();
-  let cleanBalance = balanceStr;
-  if (symbol) {
-    cleanBalance = balanceStr.replace(
-      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
-      ""
-    );
-  }
-  const formatted = formatTokenAmountDisplay(cleanBalance);
-  return symbol ? `${formatted} ${symbol}` : formatted;
-};
 
 const parseTokenAmount = (value: unknown) => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -767,51 +748,6 @@ const parseTokenAmount = (value: unknown) => {
     return undefined;
   }
 };
-
-export const tokenHasBalance = (token: SwapTokenOption): boolean => {
-  if (token.hasBalance !== undefined) return token.hasBalance;
-  if (getTokenFiatValue(token) > 0) return true;
-  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
-  return bal !== undefined && bal.gt(0);
-};
-
-export const compareTokensWithBalancesFirst = (
-  a: SwapTokenOption,
-  b: SwapTokenOption
-) => {
-  const aHasBalance = tokenHasBalance(a);
-  const bHasBalance = tokenHasBalance(b);
-
-  if (aHasBalance !== bHasBalance) {
-    return aHasBalance ? -1 : 1;
-  }
-
-  if (aHasBalance && bHasBalance) {
-    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
-    if (fiatDelta !== 0) return fiatDelta;
-
-    const aBalance =
-      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
-    const bBalance =
-      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
-    const balanceDelta = bBalance.cmp(aBalance);
-    if (balanceDelta !== 0) return balanceDelta;
-  }
-
-  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
-  if (chainDelta !== 0) return chainDelta;
-
-  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
-  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
-  if (aName < bName) return -1;
-  if (aName > bName) return 1;
-  return 0;
-};
-
-export {
-  sortTokensByUsdBalance,
-  sortTokensWithBalancesFirst,
-} from "../utils/token-sorting";
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -873,6 +809,71 @@ export const formatUsdBalanceLabel = (value: unknown) => {
   }
 
   return `$${addThousandsSeparators(amount.toDecimalPlaces(2).toFixed(2))}`;
+};
+
+const getTokenFiatValue = (
+  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
+) => {
+  const parsed = Number(
+    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
+  );
+  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+};
+
+const formatBalanceWithSymbol = (
+  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
+) => {
+  const symbol = token.symbol?.trim() || "";
+  const balanceStr = getTotalBalance(token).trim();
+  let cleanBalance = balanceStr;
+  if (symbol) {
+    cleanBalance = balanceStr.replace(
+      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
+      ""
+    );
+  }
+  const formatted = formatTokenAmountDisplay(cleanBalance);
+  return symbol ? `${formatted} ${symbol}` : formatted;
+};
+
+export const tokenHasBalance = (token: SwapTokenOption): boolean => {
+  if (token.hasBalance !== undefined) return token.hasBalance;
+  if (getTokenFiatValue(token) > 0) return true;
+  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
+  return bal !== undefined && bal.gt(0);
+};
+
+export const compareTokensWithBalancesFirst = (
+  a: SwapTokenOption,
+  b: SwapTokenOption
+) => {
+  const aHasBalance = tokenHasBalance(a);
+  const bHasBalance = tokenHasBalance(b);
+
+  if (aHasBalance !== bHasBalance) {
+    return aHasBalance ? -1 : 1;
+  }
+
+  if (aHasBalance && bHasBalance) {
+    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
+    if (fiatDelta !== 0) return fiatDelta;
+
+    const aBalance =
+      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+    const bBalance =
+      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+    const balanceDelta = bBalance.cmp(aBalance);
+    if (balanceDelta !== 0) return balanceDelta;
+  }
+
+  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+  if (chainDelta !== 0) return chainDelta;
+
+  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
+  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
+  if (aName < bName) return -1;
+  if (aName > bName) return 1;
+  return 0;
 };
 
 export const formatSelectedTokenBalanceLabel = (
