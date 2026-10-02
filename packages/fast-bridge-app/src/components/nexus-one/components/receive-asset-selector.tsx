@@ -463,6 +463,33 @@ export const getCachedReceiveTokenMatch = (
   };
 };
 
+export const getCachedTokenByAddress = (
+  chainId?: number,
+  address?: string
+): {
+  decimals: number;
+  logo?: string;
+  name?: string;
+  symbol?: string;
+} | null => {
+  if (!chainId || !address || !rawTokensCache) return null;
+  const chainTokens = (rawTokensCache.tokens[String(chainId)] ?? []).filter(
+    (candidate) => !isExcludedTokenAddress(candidate.address)
+  );
+  const tokenAddress = normalizeReceiveTokenAddress(address);
+  const match = chainTokens.find(
+    (candidate) =>
+      normalizeReceiveTokenAddress(candidate.address) === tokenAddress
+  );
+  if (!match) return null;
+  return {
+    decimals: match.decimals ?? 18,
+    logo: match.logoURI,
+    name: match.name,
+    symbol: match.symbol,
+  };
+};
+
 const fetchReceiveTokens = async (): Promise<RawReceiveTokensData> => {
   let data: RawReceiveTokensData = EMPTY_RECEIVE_TOKENS_DATA;
   try {

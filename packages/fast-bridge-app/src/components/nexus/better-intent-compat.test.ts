@@ -468,6 +468,243 @@ test("normalizes Arc USDC quote with 18 decimals", () => {
   assert.equal(normalized.destination.token.symbol, "USDC");
 });
 
+test("normalizes BNB USDC quote with 18 decimals", () => {
+  const quote = {
+    id: "0xbnb1",
+    provider: "mayan",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 1,
+        tokenAddress: "0x0000000000000000000000000000000000000000",
+        tokenSymbol: "ETH",
+        amountRaw: 800_000_000_000_000n,
+        amountUsd: "2.20",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 800_000_000_000_000n,
+        totalRequiredUsd: "2.20",
+      },
+    ],
+    output: {
+      chainId: 56,
+      tokenAddress: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      amountRaw: 2_174_187_317_466_660_000n,
+      amountUsd: "2.17",
+      minAmountRaw: 2_150_000_000_000_000_000n,
+      minAmountUsd: "2.15",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  const chains = [
+    { id: 1, name: "Ethereum", logo: "", swapSupported: true, tokens: [] },
+    { id: 56, name: "BNB", logo: "", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+  assert.equal(normalized.destination.amount, "2.17418731746666");
+  assert.equal(normalized.destination.minAmount, "2.15");
+  assert.equal(normalized.destination.token.decimals, 18);
+  assert.equal(normalized.destination.token.symbol, "USDC");
+});
+
+test("normalizes BNB USDT quote with 18 decimals", () => {
+  const quote = {
+    id: "0xbnb2",
+    provider: "mayan",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 8453,
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        tokenSymbol: "USDC",
+        amountRaw: 5_000_000n,
+        amountUsd: "5.00",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 5_000_000n,
+        totalRequiredUsd: "5.00",
+      },
+    ],
+    output: {
+      chainId: 56,
+      tokenAddress: "0x55d398326f99059fF775485246999027B3197955",
+      amountRaw: 4_980_000_000_000_000_000n,
+      amountUsd: "4.98",
+      minAmountRaw: 4_950_000_000_000_000_000n,
+      minAmountUsd: "4.95",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  const chains = [
+    { id: 8453, name: "Base", logo: "", swapSupported: true, tokens: [] },
+  ] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+  assert.equal(normalized.destination.amount, "4.98");
+  assert.equal(normalized.destination.token.decimals, 18);
+  assert.equal(normalized.destination.token.symbol, "USDT");
+});
+
+test("normalizes MegaETH USDM quote with 18 decimals even when input is 6-decimal USDC", () => {
+  const quote = {
+    id: "0xmega1",
+    provider: "relay",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 8453,
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        tokenSymbol: "USDC",
+        amountRaw: 10_000_000n,
+        amountUsd: "10.00",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 10_000_000n,
+        totalRequiredUsd: "10.00",
+      },
+    ],
+    output: {
+      chainId: 4326,
+      tokenAddress: "0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7",
+      amountRaw: 9_990_000_000_000_000_000n,
+      amountUsd: "9.99",
+      minAmountRaw: 9_950_000_000_000_000_000n,
+      minAmountUsd: "9.95",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  const chains = [] as any;
+
+  const normalized = normalizeIntentQuote(quote, chains);
+  assert.equal(normalized.destination.amount, "9.99");
+  assert.equal(normalized.destination.token.decimals, 18);
+  assert.equal(normalized.destination.token.symbol, "USDM");
+});
+
+test("resolves decimals via tokenResolver, balances, and toToken options", () => {
+  const quote = {
+    id: "0xresolver1",
+    provider: "relay",
+    tradeType: "exact_in",
+    input: [
+      {
+        chainId: 999,
+        tokenAddress: "0xcustomSourceAddress",
+        tokenSymbol: "CUSTOM_SRC",
+        amountRaw: 5_000_000_000_000_000_000n,
+        amountUsd: "5.00",
+        depositFeeRaw: 0n,
+        depositFeeUsd: "0",
+        totalRequiredRaw: 5_000_000_000_000_000_000n,
+        totalRequiredUsd: "5.00",
+      },
+    ],
+    output: {
+      chainId: 888,
+      tokenAddress: "0xcustomDestAddress",
+      amountRaw: 4_500_000_000_000_000_000n,
+      amountUsd: "4.50",
+      minAmountRaw: 4_400_000_000_000_000_000n,
+      minAmountUsd: "4.40",
+    },
+    fees: {
+      depositRaw: 0n,
+      depositUsd: "0",
+      fulfillmentRaw: 0n,
+      fulfillmentUsd: "0",
+      protocolRaw: 0n,
+      protocolUsd: "0",
+      solverRaw: 0n,
+      solverUsd: "0",
+    },
+    expiresAt: 2_000_000_000,
+    sourceVerdicts: [],
+    allowances: [],
+    plan: { steps: [] },
+  } as any;
+
+  // With tokenResolver providing decimals from LiFi/Relay API
+  const normalizedWithResolver = normalizeIntentQuote(quote, [], {
+    tokenResolver: (chainId, _address) => {
+      if (chainId === 888) {
+        return {
+          decimals: 18,
+          symbol: "RESOLVED_DEST",
+          name: "Resolved Destination",
+        };
+      }
+      if (chainId === 999) {
+        return {
+          decimals: 18,
+          symbol: "RESOLVED_SRC",
+          name: "Resolved Source",
+        };
+      }
+      return null;
+    },
+  });
+  assert.equal(normalizedWithResolver.destination.amount, "4.5");
+  assert.equal(normalizedWithResolver.destination.token.decimals, 18);
+  assert.equal(normalizedWithResolver.sources[0].amount, "5");
+  assert.equal(normalizedWithResolver.sources[0].token.decimals, 18);
+
+  // With toToken option providing decimals from selected token UI state
+  const normalizedWithToToken = normalizeIntentQuote(quote, [], {
+    toToken: {
+      chainId: 888,
+      contractAddress: "0xcustomDestAddress",
+      decimals: 18,
+      symbol: "SELECTED_TO",
+    },
+  });
+  assert.equal(normalizedWithToToken.destination.amount, "4.5");
+  assert.equal(normalizedWithToToken.destination.token.decimals, 18);
+  assert.equal(normalizedWithToToken.destination.token.symbol, "SELECTED_TO");
+});
+
 test("normalizes intent balances preserving verified and unverified status", () => {
   const balances = [
     {

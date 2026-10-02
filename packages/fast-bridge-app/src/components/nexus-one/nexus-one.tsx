@@ -73,6 +73,7 @@ import {
   adaptIntentHook,
   addIntentUsdValues,
   extractIntentIdFromUrl,
+  getKnownTokenDecimals,
   isBetterIntentProvider,
   isExternalIntentProvider,
   isTokenSupportedForRole,
@@ -98,6 +99,7 @@ import {
 import {
   getAllReceiveTokenOptions,
   getCachedReceiveTokenMatch,
+  getCachedTokenByAddress,
   preloadReceiveTokens,
   ReceiveAssetSelector,
 } from "./components/receive-asset-selector";
@@ -3644,7 +3646,13 @@ function NexusOneInner({
           ),
           decimals: isArcNativeUsdc(current)
             ? 18
-            : (loadedToken.decimals ?? current.decimals),
+            : (loadedToken.decimals ??
+              getKnownTokenDecimals(
+                current.chainId,
+                current.symbol,
+                current.contractAddress
+              ) ??
+              current.decimals),
           logo: loadedToken.logo || current.logo,
           name: loadedToken.name || current.name,
           priceUSD: loadedToken.priceUSD ?? current.priceUSD,
@@ -7122,7 +7130,17 @@ function NexusOneInner({
         ? (() => {
             const adapted = adaptIntentHook(
               data,
-              swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? []
+              swapSupportedChainsAndTokens ?? supportedChainsAndTokens ?? [],
+              {
+                toToken,
+                fromTokens,
+                balances: swapBalance,
+                tokenResolver: (chainId, address) => {
+                  const cached = getCachedTokenByAddress(chainId, address);
+                  if (cached) return cached;
+                  return undefined;
+                },
+              }
             );
             return {
               ...adapted,
@@ -9916,7 +9934,12 @@ function NexusOneInner({
 
             const destinationDecimals = isArcNativeUsdc(toToken)
               ? 18
-              : toToken.decimals || 18;
+              : (getKnownTokenDecimals(
+                  toToken?.chainId,
+                  toToken?.symbol,
+                  toToken?.contractAddress
+                ) ??
+                (toToken.decimals || 18));
 
             const transferAmountBigInt = parseUnits(
               transferAmount,
@@ -10056,7 +10079,12 @@ function NexusOneInner({
       } else {
         const destinationDecimals = isArcNativeUsdc(toToken)
           ? 18
-          : toToken.decimals || 18;
+          : (getKnownTokenDecimals(
+              toToken?.chainId,
+              toToken?.symbol,
+              toToken?.contractAddress
+            ) ??
+            (toToken.decimals || 18));
 
         const exactOutAmountString =
           activeMode === "deposit"

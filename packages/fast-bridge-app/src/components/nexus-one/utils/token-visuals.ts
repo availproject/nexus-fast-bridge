@@ -4,6 +4,7 @@ import {
   TOKEN_IMAGES,
   TOKEN_METADATA,
 } from "../../common/utils/constant";
+import { getKnownTokenDecimals } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import { getCachedReceiveTokenMatch } from "../components/receive-asset-selector";
 import type { SwapTokenOption } from "../components/swap-asset-selector";
@@ -229,7 +230,12 @@ export function resolveTokenVisuals(
         identity.contractAddress ?? selectedToken?.contractAddress,
     })
       ? 18
-      : (identity.decimals ??
+      : (getKnownTokenDecimals(
+          identity.chainId ?? selectedToken?.chainId,
+          identity.symbol ?? selectedToken?.symbol,
+          identity.contractAddress ?? selectedToken?.contractAddress
+        ) ??
+        identity.decimals ??
         selectedToken?.decimals ??
         balanceToken?.decimals ??
         lifiToken?.decimals),
