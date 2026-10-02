@@ -127,16 +127,20 @@ export const NexusContext = createContext<NexusContextType | undefined>(
   undefined
 );
 
-interface NexusProviderProps {
-  children: React.ReactNode;
-  config?: {
-    network?: NexusNetwork;
-    channel?: NexusChannel;
-    debug?: boolean;
-  };
+export type { NexusChannel } from "@/config/nexus-env";
+
+export interface NexusProviderConfig {
+  channel?: NexusChannel;
+  debug?: boolean;
+  network?: NexusNetwork;
 }
 
-const defaultConfig: Required<NexusProviderProps["config"]> = {
+interface NexusProviderProps {
+  children: React.ReactNode;
+  config?: NexusProviderConfig;
+}
+
+const defaultConfig: Required<NexusProviderConfig> = {
   network: resolveNexusNetwork(),
   channel: resolveNexusChannel(),
   debug: true,
@@ -283,9 +287,15 @@ const NexusProvider = ({
     let cancelled = false;
     setNexusInitError(null);
     console.log("NEXUS CONFIG", stableConfig);
-    const nextSdk = createNexusClient({
+    const createClient = createNexusClient as (
+      config: Parameters<typeof createNexusClient>[0] & {
+        channel?: NexusChannel;
+      }
+    ) => NexusClient;
+    const nextSdk = createClient({
       clientId: "nexus-fast-bridge",
       network: stableConfig.network,
+      channel: stableConfig.channel,
       debug: stableConfig.debug,
     });
 
@@ -599,9 +609,15 @@ const NexusProvider = ({
       setNexusInitError(null);
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
-        const nextSdk = createNexusClient({
+        const createClient = createNexusClient as (
+          config: Parameters<typeof createNexusClient>[0] & {
+            channel?: NexusChannel;
+          }
+        ) => NexusClient;
+        const nextSdk = createClient({
           clientId: "nexus-fast-bridge",
           network: stableConfig.network,
+          channel: stableConfig.channel,
           debug: stableConfig.debug,
         });
 
