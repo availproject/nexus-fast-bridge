@@ -2,22 +2,27 @@
 
 "use client";
 
+import type { IntentProvider } from "@avail-project/nexus-core";
 import Decimal from "decimal.js";
 import { ChevronDown, Info, Loader2 } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { withBasePath } from "@/lib/utils";
 import type { SwapStepType } from "../../common/types/transaction-flow";
 import { CHAIN_METADATA, getShortChainName } from "../../common/utils/constant";
-import TransactionProgress from "../../swaps/components/transaction-progress";
+import { isBetterIntentProvider } from "../../nexus/better-intent-compat";
 import { Button } from "../../ui/button";
 import { type NexusOneDepositMetadata, type NexusOneMode } from "../types";
 import { resolveTokenVisuals } from "../utils/token-visuals";
 import { AddressIdenticon } from "./address-identicon";
+import { IntentProviderBanner } from "./intent-provider-chip";
 import { type SwapTokenOption } from "./swap-asset-selector";
+import TransactionProgress from "./transaction-progress/transaction-progress";
 
 export interface SwapIntentSource {
   amount: string;
   chain: { id: number; logo: string; name: string };
+  /** Stable Better Intent quote index used to correlate per-leg status. */
+  sourceIndex?: number;
   token: {
     contractAddress: string;
     decimals: number;
@@ -40,6 +45,8 @@ export interface SwapIntentDestination {
       symbol: string;
     };
   };
+  minAmount?: string;
+  minAmountUsd?: string;
   token: {
     contractAddress: string;
     decimals: number;
@@ -49,26 +56,42 @@ export interface SwapIntentDestination {
   value?: string;
 }
 
-export type BridgeProvider = "nexus" | "mayan" | null;
+export type BridgeProvider = "nexus" | IntentProvider | null;
 
 export interface SwapIntentData {
   bridgeProvider?: BridgeProvider;
   destination: SwapIntentDestination;
+  executionWarnings?: Array<{
+    code: "INSUFFICIENT_BALANCE";
+    message: string;
+    shortfalls: Array<{
+      actualRaw: bigint;
+      chainId: number;
+      requiredRaw: bigint;
+      tokenAddress: string;
+    }>;
+  }>;
   feesAndBuffer?: {
     buffer?: string;
     bridge?:
       | {
           caGas?: string;
+          caGasUsd?: string;
           collection?: string;
+          fulfillmentUsd?: string;
           fulfilment?: string;
           gasSupplied?: string;
           protocol?: string;
+          protocolUsd?: string;
           solver?: string;
+          solverUsd?: string;
           total?: string;
+          totalUsd?: string;
         }
       | string
       | null;
   };
+  isExecutable?: boolean;
   sources: SwapIntentSource[];
 }
 
@@ -86,11 +109,14 @@ export interface SwapIntentPreviewProps {
   fromToken?: SwapTokenOption;
   fromTokens?: SwapTokenOption[];
   intentData?: SwapIntentData | null;
+  isExecutable?: boolean;
   isExecuting?: boolean;
   isLoading?: boolean;
   isRefreshing?: boolean;
   mode?: NexusOneMode;
+  needsWalletConnection?: boolean;
   onAccept: () => void;
+  onConnectWallet?: () => void;
   onReject: () => void;
   onTransitionChange?: (isTransitioning: boolean) => void;
   opportunity?: NexusOneDepositMetadata;
@@ -539,42 +565,6 @@ function InlineInfoTooltip({ message }: { message: string }) {
   );
 }
 
-function MayanPoweredBadge() {
-  return (
-    <div
-      style={{
-        alignItems: "center",
-        background: "#F3F6FF",
-        border: "1px solid #E8EEFF",
-        borderRadius: "8px",
-        color: brand,
-        display: "flex",
-        fontFamily,
-        fontSize: "12px",
-        fontWeight: 500,
-        gap: "4px",
-        lineHeight: "16px",
-        minHeight: "36px",
-        padding: "9px 12px",
-        width: "100%",
-      }}
-    >
-      <Info style={{ flexShrink: 0, height: 13, width: 13 }} />
-      <span style={{ flexShrink: 0 }}>This transaction is powered by</span>
-      <img
-        alt="Mayan"
-        src={withBasePath("/mayan_logo.svg")}
-        style={{
-          display: "block",
-          height: "20px",
-          objectFit: "contain",
-          width: "auto",
-        }}
-      />
-    </div>
-  );
-}
-
 function Row({
   title,
   subtitle,
@@ -729,7 +719,10 @@ export function SwapIntentPreview({
   activeMode,
   steps,
   explorerUrls,
+  isExecutable,
+  needsWalletConnection,
   onAccept,
+  onConnectWallet,
   onTransitionChange,
 }: SwapIntentPreviewProps) {
   const [showSourceDetails, setShowSourceDetails] = useState(false);
@@ -989,23 +982,51 @@ export function SwapIntentPreview({
     destinationUsdNumber.gt(0);
 
   const bridgeFees = intentData?.feesAndBuffer?.bridge;
+  const isBetterIntentQuote = isBetterIntentProvider(
+    intentData?.bridgeProvider
+  );
   const bridgeFeeData =
     bridgeFees && typeof bridgeFees === "object" ? bridgeFees : undefined;
-  const bridgeTotalNumber =
-    typeof bridgeFees === "string"
+  const destinationTokenAmountForRate = parseDecimal(
+    normalizedIntentDest?.amount
+  );
+  const destinationUsdValueForRate = parseDecimal(normalizedIntentDest?.value);
+  const destinationUsdRateForFees =
+    destinationTokenAmountForRate?.gt(0) && destinationUsdValueForRate?.gt(0)
+      ? destinationUsdValueForRate.div(destinationTokenAmountForRate)
+      : undefined;
+  const feeInUsd = (usd: unknown, tokenAmount: unknown) => {
+    const quotedUsd = parseDecimal(usd);
+    if (quotedUsd !== undefined) return quotedUsd;
+    const raw = parseDecimal(tokenAmount);
+    if (!isBetterIntentQuote) return raw;
+    return destinationUsdRateForFees?.gt(0) && raw
+      ? raw.mul(destinationUsdRateForFees)
+      : undefined;
+  };
+  const bridgeTotalNumber = isBetterIntentQuote
+    ? (parseDecimal(bridgeFeeData?.totalUsd) ??
+      feeInUsd(undefined, bridgeFeeData?.total))
+    : typeof bridgeFees === "string"
       ? parseDecimal(bridgeFees)
       : parseDecimal(bridgeFeeData?.total);
   const collectionFeeNumber = parseDecimal(bridgeFeeData?.collection);
   const fulfilmentFeeNumber = parseDecimal(bridgeFeeData?.fulfilment);
   const executionGasFeeNumber =
-    parseDecimal(bridgeFeeData?.caGas) ??
+    feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas) ??
     (collectionFeeNumber !== undefined || fulfilmentFeeNumber !== undefined
       ? (collectionFeeNumber ?? new Decimal(0)).plus(
           fulfilmentFeeNumber ?? new Decimal(0)
         )
       : undefined);
-  const protocolFeeNumber = parseDecimal(bridgeFeeData?.protocol);
-  const solverFeeNumber = parseDecimal(bridgeFeeData?.solver);
+  const protocolFeeNumber = feeInUsd(
+    bridgeFeeData?.protocolUsd,
+    bridgeFeeData?.protocol
+  );
+  const solverFeeNumber = feeInUsd(
+    bridgeFeeData?.solverUsd,
+    bridgeFeeData?.solver
+  );
   const bridgeGasSuppliedNumber = parseDecimal(bridgeFeeData?.gasSupplied);
   const destinationGasValueNumber =
     parseDecimal(normalizedIntentDest?.gas?.value) ??
@@ -1113,7 +1134,7 @@ export function SwapIntentPreview({
   const feeDetailRows = bridgeFeeData
     ? [
         {
-          label: "Execution Gas Fee",
+          label: isBetterIntentQuote ? "Network Fee" : "Execution Gas Fee",
           value: executionGasFeeNumber ?? new Decimal(0),
         },
         {
@@ -1467,13 +1488,32 @@ export function SwapIntentPreview({
     token: destinationVisuals.tokenLogo || "",
   };
 
-  const ctaLabel =
-    flowMode === "deposit"
-      ? "Deposit now"
-      : flowMode === "send" || hasRecipientTransfer
-        ? "Send now"
-        : "Swap now";
-  const shouldShowMayanBadge = intentData?.bridgeProvider === "mayan";
+  const isQuoteNonExecutable =
+    isExecutable === false || intentData?.isExecutable === false;
+  const ctaLabel = needsWalletConnection
+    ? "Connect wallet"
+    : isQuoteNonExecutable
+      ? "Insufficient balance"
+      : flowMode === "deposit"
+        ? "Deposit now"
+        : flowMode === "send" || hasRecipientTransfer
+          ? "Send now"
+          : "Swap now";
+
+  const isButtonDisabled =
+    isLoading ||
+    isRefreshing ||
+    isExecuting ||
+    quoteUnavailable ||
+    (!needsWalletConnection && isQuoteNonExecutable);
+
+  const handleButtonClick = () => {
+    if (needsWalletConnection) {
+      onConnectWallet?.();
+      return;
+    }
+    onAccept();
+  };
   const swapBufferRefundMessage = `Excess funds are refunded as USDC on ${destChainName || "the destination chain"}`;
 
   return (
@@ -1999,16 +2039,13 @@ export function SwapIntentPreview({
         </div>
       )}
 
-      {shouldShowMayanBadge && <MayanPoweredBadge />}
+      <IntentProviderBanner provider={intentData?.bridgeProvider} />
 
       <Button
-        disabled={isLoading || isRefreshing || isExecuting || quoteUnavailable}
-        onClick={onAccept}
+        disabled={isButtonDisabled}
+        onClick={handleButtonClick}
         style={{
-          background:
-            isLoading || isRefreshing || isExecuting || quoteUnavailable
-              ? "#CBCBCB"
-              : "#1F1F1F",
+          background: isButtonDisabled ? "#CBCBCB" : "#1F1F1F",
           borderRadius: "10px",
           boxShadow:
             "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 7px 18px",

@@ -25,6 +25,10 @@ import {
   getTotalBalanceInFiat,
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
+import {
+  isTokenSupportedForRole,
+  type SupportedChainsAndTokensResult,
+} from "../../nexus/better-intent-compat";
 import { useNexus } from "../../nexus/nexus-provider";
 import { nexusOneTheme } from "../theme";
 import {
@@ -33,6 +37,7 @@ import {
   isArcErc20Usdc,
   isArcExcludedToken,
   isArcNativeUsdc,
+  isArcUnsupportedErc20Usdc,
   isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
@@ -63,6 +68,7 @@ interface ReceiveAssetSelectorProps {
   needsWalletConnection?: boolean;
   onBack: () => void;
   onSelect: (token: SwapTokenOption) => void;
+  routeSupportedChains?: SupportedChainsAndTokensResult | null;
   selectedToken?: SwapTokenOption;
 }
 
@@ -454,6 +460,33 @@ export const getCachedReceiveTokenMatch = (
     name: matchedToken.name || token.name,
     priceUSD: matchedToken.priceUSD ?? token.priceUSD,
     symbol: matchedToken.symbol || token.symbol,
+  };
+};
+
+export const getCachedTokenByAddress = (
+  chainId?: number,
+  address?: string
+): {
+  decimals: number;
+  logo?: string;
+  name?: string;
+  symbol?: string;
+} | null => {
+  if (!chainId || !address || !rawTokensCache) return null;
+  const chainTokens = (rawTokensCache.tokens[String(chainId)] ?? []).filter(
+    (candidate) => !isExcludedTokenAddress(candidate.address)
+  );
+  const tokenAddress = normalizeReceiveTokenAddress(address);
+  const match = chainTokens.find(
+    (candidate) =>
+      normalizeReceiveTokenAddress(candidate.address) === tokenAddress
+  );
+  if (!match) return null;
+  return {
+    decimals: match.decimals ?? 18,
+    logo: match.logoURI,
+    name: match.name,
+    symbol: match.symbol,
   };
 };
 
@@ -920,6 +953,7 @@ export function ReceiveAssetSelector({
   selectedToken,
   excludedTokens = [],
   needsWalletConnection = false,
+  routeSupportedChains,
 }: ReceiveAssetSelectorProps) {
   const selectorRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -1146,15 +1180,47 @@ export function ReceiveAssetSelector({
   }, [swapBalance, swapSupportedChainsAndTokens]);
 
   const tokensWithBalances = useMemo(() => {
-    return apiTokens.map((token) => {
+    if (!swapSupportedChainsAndTokens) {
+      return [];
+    }
+
+    return apiTokens.flatMap((token) => {
+      if (
+        !isTokenSupportedForRole(
+          swapSupportedChainsAndTokens,
+          "destination",
+          token.chainId,
+          token.contractAddress,
+          token.providers
+        )
+      ) {
+        return [];
+      }
+
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
-      return balance
-        ? { ...token, ...balance }
-        : { ...token, hasBalance: false };
+      const disabledReason = isTokenSupportedForRole(
+        routeSupportedChains,
+        "destination",
+        token.chainId,
+        token.contractAddress,
+        token.providers
+      )
+        ? undefined
+        : "Unavailable for the selected source";
+      return [
+        balance
+          ? { ...token, ...balance, disabledReason }
+          : { ...token, hasBalance: false, disabledReason },
+      ];
     });
-  }, [apiTokens, balanceMap]);
+  }, [
+    apiTokens,
+    balanceMap,
+    routeSupportedChains,
+    swapSupportedChainsAndTokens,
+  ]);
 
   useEffect(() => {
     const handleGlobalClick = () => setTooltipState(null);

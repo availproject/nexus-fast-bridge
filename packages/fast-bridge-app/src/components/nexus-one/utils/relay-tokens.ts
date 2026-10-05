@@ -1,8 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 import {
-  isArcErc20Usdc,
-  isArcExcludedToken,
+  isArcUnsupportedErc20Usdc,
   isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "./arc-tokens";
@@ -13,6 +12,7 @@ export type RawReceiveToken = {
   logoURI?: string;
   name?: string;
   priceUSD?: number | string;
+  providers?: string[];
   symbol?: string;
   verificationStatus?: "flagged" | "unverified" | "verified";
 };
@@ -81,6 +81,7 @@ export const fetchRelayCurrenciesForChain = async (
         logoURI: item.metadata?.logoURI || "",
         name: item.name || item.symbol,
         symbol: item.symbol,
+        providers: ["relay"],
         verificationStatus: item.metadata?.verified ? "verified" : "unverified",
       });
     }
@@ -139,7 +140,7 @@ export const mergeRelayTokensIntoLifi = (
 
       if (
         isExcludedTokenAddress(token.address) ||
-        isArcErc20Usdc({
+        isArcUnsupportedErc20Usdc({
           chainId,
           contractAddress: token.address,
           symbol: token.symbol,
@@ -149,6 +150,16 @@ export const mergeRelayTokensIntoLifi = (
       }
 
       const normalized = normalizeReceiveTokenAddress(token.address);
+
+      const existingToken = existingTokens.find(
+        (candidate) =>
+          normalizeReceiveTokenAddress(candidate.address) === normalized
+      );
+      if (existingToken) {
+        existingToken.providers = Array.from(
+          new Set([...(existingToken.providers ?? []), "relay"])
+        );
+      }
 
       if (normalized === ZERO_ADDRESS) {
         if (
@@ -162,7 +173,10 @@ export const mergeRelayTokensIntoLifi = (
       }
 
       existingAddresses.add(normalized);
-      tokensToAdd.push(token);
+      tokensToAdd.push({
+        ...token,
+        providers: Array.from(new Set([...(token.providers ?? []), "relay"])),
+      });
     }
 
     if (tokensToAdd.length > 0) {
