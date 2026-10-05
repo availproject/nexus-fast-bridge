@@ -1,6 +1,7 @@
 // biome-ignore-all lint/suspicious/useNumberToFixedDigitsArgument: Decimal.toFixed() preserves every fractional digit; a digits argument would round balances.
-import type { ChainBalance, TokenBalance } from "@avail-project/nexus-core";
+
 import Decimal from "decimal.js";
+import type { ChainBalance, TokenBalance } from "./better-intent-compat";
 
 const BalanceDecimal = Decimal.clone({ precision: 80 });
 

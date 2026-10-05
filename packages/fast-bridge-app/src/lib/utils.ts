@@ -25,7 +25,3 @@ export function withBasePath(url: string | null | undefined): string {
 
   return `${normalizedBase}${normalizedUrl}`;
 }
-
-export function absoluteUrl(path: string) {
-  return `${process.env.NEXT_PUBLIC_BASE_URL}${path}`;
-}

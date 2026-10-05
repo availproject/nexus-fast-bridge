@@ -96,8 +96,12 @@ const sortSourcesByPriority = (
       balanceInFiat: parseNonNegativeNumber(breakdown.balanceInFiat),
       symbol: breakdown.symbol,
       tokenAddress: breakdown.contractAddress,
+      verified: breakdown.verified !== false,
     }))
     .sort((a, b) => {
+      if (a.verified !== b.verified) {
+        return a.verified ? -1 : 1;
+      }
       const priorityDiff =
         getSdkExactOutPriority(a, destination) -
         getSdkExactOutPriority(b, destination);

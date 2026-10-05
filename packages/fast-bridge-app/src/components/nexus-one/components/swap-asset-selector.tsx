@@ -2,7 +2,6 @@
 
 "use client";
 
-import type { SupportedChainsAndTokensResult } from "@avail-project/nexus-core";
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
 import {
@@ -37,12 +36,13 @@ import {
   sumTokenOptionBalances,
   toTokenOptionBalances,
 } from "../../nexus/balance-utils";
+import type { SupportedChainsAndTokensResult } from "../../nexus/better-intent-compat";
 import type { UserAsset } from "../../nexus/nexus-provider";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
-  isArcErc20Usdc,
-  isArcExcludedToken,
+  isArcNativeUsdc,
+  isArcUnsupportedErc20Usdc,
   isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
@@ -53,6 +53,20 @@ import {
   SWAP_CHAIN_DISPLAY_ORDER_SET,
   sortChainIdsBySwapDisplayOrder,
 } from "../utils/chain-order";
+import {
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+} from "../utils/token-sorting";
+
+export {
+  compareChainsBySwapDisplayOrder,
+  SWAP_CHAIN_DISPLAY_ORDER,
+  SWAP_CHAIN_DISPLAY_ORDER_RANK,
+  SWAP_CHAIN_DISPLAY_ORDER_SET,
+  sortChainIdsBySwapDisplayOrder,
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+};
 
 export function isNativeLikeAddress(address?: string) {
   const normalized = (address ?? "").toLowerCase();
@@ -89,11 +103,13 @@ export interface SwapTokenOption {
   chainName?: string;
   contractAddress: string;
   decimals: number;
+  disabledReason?: string;
   hasBalance?: boolean;
   isUnified?: boolean;
   logo?: string;
   name: string;
   priceUSD?: number | string;
+  providers?: readonly string[];
   selectedPct?: number | null;
   sourceTokens?: SwapTokenOption[];
   symbol: string;
@@ -103,6 +119,7 @@ export interface SwapTokenOption {
   userAmount?: string;
   userAmountMode?: "token" | "usd";
   userAmountUsd?: string;
+  verified?: boolean;
 }
 
 interface SwapAssetSelectorProps {
@@ -150,6 +167,9 @@ export function deriveTokenOptions(
       if (isExcludedTokenAddress(bd.contractAddress)) {
         continue;
       }
+      if (isExcludedTokenAddress(bd.contractAddress)) {
+        continue;
+      }
       if (Number.parseFloat(getTotalBalance(bd)) <= 0) continue;
       const isArc =
         bd.chain?.id === SUPPORTED_CHAINS.ARC || bd.chain?.id === ARC_CHAIN_ID;
@@ -157,7 +177,7 @@ export function deriveTokenOptions(
       if (
         isArc &&
         isArcUsdc &&
-        isArcErc20Usdc({
+        isArcUnsupportedErc20Usdc({
           chainId: bd.chain?.id,
           symbol: bd.symbol ?? asset.symbol,
           contractAddress: bd.contractAddress,
@@ -172,15 +192,19 @@ export function deriveTokenOptions(
         (bd as any).priceUSD ??
         (bd as any).priceUsd ??
         (balanceNum > 0 && fiatNum > 0 ? fiatNum / balanceNum : 0);
-      const contractAddress =
-        isArc && isArcUsdc ? ZERO_ADDRESS : bd.contractAddress;
+      const contractAddress = bd.contractAddress;
       tokens.push({
         contractAddress,
         symbol: bd.symbol ?? asset.symbol,
         name: bd.symbol ?? asset.symbol,
         logo: asset.logo ?? "",
-        decimals:
-          isArc && isArcUsdc ? 18 : (bd.decimals ?? asset.decimals ?? 18),
+        decimals: isArcNativeUsdc({
+          chainId: bd.chain?.id,
+          symbol: bd.symbol ?? asset.symbol,
+          contractAddress: bd.contractAddress,
+        })
+          ? 18
+          : (bd.decimals ?? asset.decimals ?? 18),
         ...toTokenOptionBalances(bd),
         hasBalance: true,
         priceUSD: priceUsd > 0 ? priceUsd : 0,
@@ -190,6 +214,7 @@ export function deriveTokenOptions(
           chainMeta?.name ?? bd.chain?.name
         ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
+        verified: bd.verified ?? asset.verified ?? true,
       });
     }
   }
@@ -663,12 +688,12 @@ const STABLE_SYMBOL_KEYS = new Set(
 );
 
 const isStableToken = (token: SwapTokenOption) =>
-  !(token.chainId === ARC_CHAIN_ID && token.symbol.toUpperCase() === "USDC") &&
+  !isArcNativeUsdc(token) &&
   STABLE_SYMBOL_KEYS.has(normalizeTokenGroupSymbol(token.symbol));
 
 function isNativeToken(t: SwapTokenOption) {
   if (isNativeLikeAddress(t.contractAddress)) return true;
-  if (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC") {
+  if (isArcNativeUsdc(t)) {
     return true;
   }
 
@@ -705,45 +730,12 @@ const modalHeightTransitionStyle = {
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 
-export {
-  compareChainsBySwapDisplayOrder,
-  SWAP_CHAIN_DISPLAY_ORDER,
-  SWAP_CHAIN_DISPLAY_ORDER_RANK,
-  SWAP_CHAIN_DISPLAY_ORDER_SET,
-  sortChainIdsBySwapDisplayOrder,
-};
-
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
-  1, 10, 56, 137, 143, 999, 4114, 8217, 8453, 42161, 43114, 534352, 4326,
+  1, 10, 56, 137, 143, 999, 4114, 8453, 42161, 43114, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const getTokenFiatValue = (
-  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
-) => {
-  const parsed = Number(
-    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
-  );
-  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
-};
-
-const formatBalanceWithSymbol = (
-  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
-) => {
-  const symbol = token.symbol?.trim() || "";
-  const balanceStr = getTotalBalance(token).trim();
-  let cleanBalance = balanceStr;
-  if (symbol) {
-    cleanBalance = balanceStr.replace(
-      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
-      ""
-    );
-  }
-  const formatted = formatTokenAmountDisplay(cleanBalance);
-  return symbol ? `${formatted} ${symbol}` : formatted;
-};
 
 const parseTokenAmount = (value: unknown) => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -759,95 +751,6 @@ const parseTokenAmount = (value: unknown) => {
     return undefined;
   }
 };
-
-export const tokenHasBalance = (token: SwapTokenOption): boolean => {
-  if (token.hasBalance !== undefined) return token.hasBalance;
-  if (getTokenFiatValue(token) > 0) return true;
-  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
-  return bal !== undefined && bal.gt(0);
-};
-
-export const compareTokensWithBalancesFirst = (
-  a: SwapTokenOption,
-  b: SwapTokenOption
-) => {
-  const aHasBalance = tokenHasBalance(a);
-  const bHasBalance = tokenHasBalance(b);
-
-  if (aHasBalance !== bHasBalance) {
-    return aHasBalance ? -1 : 1;
-  }
-
-  if (aHasBalance && bHasBalance) {
-    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
-    if (fiatDelta !== 0) return fiatDelta;
-
-    const aBalance =
-      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
-    const bBalance =
-      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
-    const balanceDelta = bBalance.cmp(aBalance);
-    if (balanceDelta !== 0) return balanceDelta;
-  }
-
-  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
-  if (chainDelta !== 0) return chainDelta;
-
-  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
-  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
-  if (aName < bName) return -1;
-  if (aName > bName) return 1;
-  return 0;
-};
-
-export const sortTokensWithBalancesFirst = (tokens: SwapTokenOption[]) => {
-  if (tokens.length <= 1) return tokens;
-
-  const decorated = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    const hasBal =
-      t.hasBalance !== undefined ? t.hasBalance : tokenHasBalance(t);
-    const fiat = hasBal ? getTokenFiatValue(t) : 0;
-    const balNum = hasBal
-      ? Number(
-          String(t.totalBalance ?? t.balance ?? "").replace(/[^0-9.]/g, "") || 0
-        )
-      : 0;
-    const chainRank =
-      SWAP_CHAIN_DISPLAY_ORDER_RANK.get(t.chainId ?? -1) ?? 999999;
-    const name = `${t.symbol || ""} ${t.chainName || ""}`.toLowerCase();
-    decorated[i] = {
-      balNum,
-      chainRank,
-      fiat,
-      hasBal: hasBal ? 1 : 0,
-      idx: i,
-      name,
-      token: t,
-    };
-  }
-
-  decorated.sort((a, b) => {
-    if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
-    if (a.hasBal) {
-      if (b.fiat !== a.fiat) return b.fiat - a.fiat;
-      if (b.balNum !== a.balNum) return b.balNum - a.balNum;
-    }
-    if (a.chainRank !== b.chainRank) return a.chainRank - b.chainRank;
-    if (a.name < b.name) return -1;
-    if (a.name > b.name) return 1;
-    return a.idx - b.idx;
-  });
-
-  const result = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    result[i] = decorated[i].token;
-  }
-  return result;
-};
-
-export const sortTokensByUsdBalance = sortTokensWithBalancesFirst;
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -909,6 +812,71 @@ export const formatUsdBalanceLabel = (value: unknown) => {
   }
 
   return `$${addThousandsSeparators(amount.toDecimalPlaces(2).toFixed(2))}`;
+};
+
+const getTokenFiatValue = (
+  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
+) => {
+  const parsed = Number(
+    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
+  );
+  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+};
+
+const formatBalanceWithSymbol = (
+  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
+) => {
+  const symbol = token.symbol?.trim() || "";
+  const balanceStr = getTotalBalance(token).trim();
+  let cleanBalance = balanceStr;
+  if (symbol) {
+    cleanBalance = balanceStr.replace(
+      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
+      ""
+    );
+  }
+  const formatted = formatTokenAmountDisplay(cleanBalance);
+  return symbol ? `${formatted} ${symbol}` : formatted;
+};
+
+export const tokenHasBalance = (token: SwapTokenOption): boolean => {
+  if (token.hasBalance !== undefined) return token.hasBalance;
+  if (getTokenFiatValue(token) > 0) return true;
+  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
+  return bal !== undefined && bal.gt(0);
+};
+
+export const compareTokensWithBalancesFirst = (
+  a: SwapTokenOption,
+  b: SwapTokenOption
+) => {
+  const aHasBalance = tokenHasBalance(a);
+  const bHasBalance = tokenHasBalance(b);
+
+  if (aHasBalance !== bHasBalance) {
+    return aHasBalance ? -1 : 1;
+  }
+
+  if (aHasBalance && bHasBalance) {
+    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
+    if (fiatDelta !== 0) return fiatDelta;
+
+    const aBalance =
+      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+    const bBalance =
+      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+    const balanceDelta = bBalance.cmp(aBalance);
+    if (balanceDelta !== 0) return balanceDelta;
+  }
+
+  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+  if (chainDelta !== 0) return chainDelta;
+
+  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
+  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
+  if (aName < bName) return -1;
+  if (aName > bName) return 1;
+  return 0;
 };
 
 export const formatSelectedTokenBalanceLabel = (
@@ -1286,6 +1254,25 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
           >
             {token.chainName || "Unknown chain"}
           </span>
+          {token.verified === false && (
+            <span
+              style={{
+                backgroundColor: "#FFFBEB",
+                border: "1px solid #FDE68A",
+                borderRadius: 4,
+                color: "#B45309",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "9px",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                lineHeight: "12px",
+                padding: "1px 4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Unverified
+            </span>
+          )}
         </span>
         {!needsWalletConnection && tokenHasBalance(token) && (
           <span
@@ -1372,16 +1359,37 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
             alignItems: "flex-start",
           }}
         >
-          <span
-            style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontWeight: 500,
-              fontSize: isDesktop ? 15 : 13,
-              color: "#161615",
-            }}
-          >
-            {token.symbol}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontWeight: 500,
+                fontSize: isDesktop ? 15 : 13,
+                color: "#161615",
+              }}
+            >
+              {token.symbol}
+            </span>
+            {token.verified === false && (
+              <span
+                style={{
+                  backgroundColor: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  borderRadius: 4,
+                  color: "#B45309",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: isDesktop ? 10 : 9,
+                  fontWeight: 600,
+                  letterSpacing: "0.02em",
+                  lineHeight: isDesktop ? "14px" : "12px",
+                  padding: "1px 5px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Unverified
+              </span>
+            )}
+          </div>
           {token.chainName && (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span
@@ -1674,7 +1682,7 @@ export function SwapAssetSelector({
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
 
     const isAllowedArcToken = (token: SwapTokenOption) => {
-      return !isArcErc20Usdc(token);
+      return !isArcUnsupportedErc20Usdc(token);
     };
 
     const catalog = (staticOptions ?? []).filter(
@@ -1752,7 +1760,7 @@ export function SwapAssetSelector({
     for (const selectedToken of selectedSourceTokens) {
       if (isExcludedToken(selectedToken)) continue;
       if (isExcludedTokenAddress(selectedToken.contractAddress)) continue;
-      if (!isArcErc20Usdc(selectedToken)) continue;
+      if (!isArcUnsupportedErc20Usdc(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
       );
@@ -1859,7 +1867,9 @@ export function SwapAssetSelector({
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
     let result = allTokens.filter(
-      (t) => !isExcludedTokenAddress(t.contractAddress) && !isArcErc20Usdc(t)
+      (t) =>
+        !isExcludedTokenAddress(t.contractAddress) &&
+        !isArcUnsupportedErc20Usdc(t)
     );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
@@ -2045,7 +2055,9 @@ export function SwapAssetSelector({
         }
         searchScore = minScore;
       }
-      const hasBal = g.totalFiat > 0 || g.totalBalRaw > 0 ? 1 : 0;
+      const hasBal = g.totalFiat > 0 || g.totalBalRaw > 0;
+      const isGroupVerified = g.tokens.some((t) => t.verified !== false);
+      const tier = hasBal ? (isGroupVerified ? 0 : 1) : 2;
       const firstToken = g.tokens[0];
       const chainRank =
         SWAP_CHAIN_DISPLAY_ORDER_RANK.get(firstToken?.chainId ?? -1) ?? 999999;
@@ -2057,10 +2069,10 @@ export function SwapAssetSelector({
         chainRank,
         fiat: g.totalFiat,
         group: g,
-        hasBal,
         idx: i,
         searchScore,
         symbolLower,
+        tier,
       };
     }
 
@@ -2068,8 +2080,8 @@ export function SwapAssetSelector({
       if (hasQuery && a.searchScore !== b.searchScore) {
         return a.searchScore - b.searchScore;
       }
-      if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
-      if (a.hasBal) {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      if (a.tier === 0 || a.tier === 1) {
         if (b.fiat !== a.fiat) return b.fiat - a.fiat;
         if (b.bal !== a.bal) return b.bal - a.bal;
       }
@@ -2393,6 +2405,7 @@ export function SwapAssetSelector({
     const shouldHideIndividualRows =
       isUnifiedSelectedInGroup ||
       (!isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent));
+    const isGroupVerified = group.tokens.some((t) => t.verified !== false);
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
       ...sumTokenOptionBalances(group.tokens),
@@ -2405,6 +2418,7 @@ export function SwapAssetSelector({
       sourceTokens: group.tokens,
       symbol: group.symbol,
       unifiedSymbol: group.symbol as "USDC" | "USDT" | "ETH",
+      verified: isGroupVerified,
     };
 
     return {
@@ -2414,6 +2428,7 @@ export function SwapAssetSelector({
         (hasVisibleUnifiedRow || visibleTokensCount > 0),
       individualTokens,
       isExpanded,
+      isGroupVerified,
       isPartiallySelected,
       isUnifiedSelectedInGroup,
       shouldHideIndividualRows,
@@ -2540,6 +2555,25 @@ export function SwapAssetSelector({
                 >
                   UNIFIED
                 </span>
+                {!groupState.isGroupVerified && (
+                  <span
+                    style={{
+                      backgroundColor: "#FFFBEB",
+                      border: "1px solid #FDE68A",
+                      borderRadius: 4,
+                      color: "#B45309",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: isDesktop ? 10 : 9,
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                      lineHeight: isDesktop ? "14px" : "12px",
+                      padding: "1px 5px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Unverified
+                  </span>
+                )}
               </div>
               <ChainLogos isDesktop={isDesktop} tokens={group.tokens} />
             </div>
@@ -3580,127 +3614,93 @@ export function SwapAssetSelector({
                       }}
                     >
                       <div style={{ minHeight: 0, overflow: "hidden" }}>
-                        {showBelowMin &&
-                          belowMin
-                            .slice(0, visibleBelowMinCount)
-                            .map((token, index) => (
+                        {belowMin.map((token, index) => (
+                          <div
+                            key={`${token.contractAddress}-${token.chainId}`}
+                            style={{
+                              alignItems: "center",
+                              borderTop:
+                                index === 0 ? "none" : "1px solid #F0F0EF",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              opacity: 0.58,
+                              padding: "8px 12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                alignItems: "center",
+                                display: "flex",
+                                gap: 9,
+                                minWidth: 0,
+                              }}
+                            >
                               <div
-                                key={`${token.contractAddress}-${token.chainId}`}
                                 style={{
-                                  alignItems: "center",
-                                  borderTop:
-                                    index === 0 ? "none" : "1px solid #F0F0EF",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  opacity: 0.58,
-                                  padding: "8px 12px",
+                                  flexShrink: 0,
+                                  height: 22,
+                                  position: "relative",
+                                  width: 22,
                                 }}
                               >
-                                <div
-                                  style={{
-                                    alignItems: "center",
-                                    display: "flex",
-                                    gap: 9,
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  <div
+                                <TokenLogo
+                                  backgroundColor="#C8C8C7"
+                                  fontSize={9}
+                                  size={22}
+                                  src={token.logo}
+                                  style={{ filter: "grayscale(0.2)" }}
+                                  symbol={token.symbol}
+                                />
+                                {token.chainLogo && (
+                                  <img
+                                    alt=""
+                                    src={token.chainLogo}
                                     style={{
-                                      flexShrink: 0,
-                                      height: 22,
-                                      position: "relative",
-                                      width: 22,
+                                      border: "1.5px solid #FFFFFE",
+                                      borderRadius: "999px",
+                                      bottom: -2,
+                                      filter: "grayscale(0.2)",
+                                      height: 10,
+                                      objectFit: "cover",
+                                      position: "absolute",
+                                      right: -2,
+                                      width: 10,
                                     }}
-                                  >
-                                    <TokenLogo
-                                      backgroundColor="#C8C8C7"
-                                      fontSize={9}
-                                      size={22}
-                                      src={token.logo}
-                                      style={{ filter: "grayscale(0.2)" }}
-                                      symbol={token.symbol}
-                                    />
-                                    {token.chainLogo && (
-                                      <img
-                                        alt=""
-                                        decoding="async"
-                                        loading="lazy"
-                                        src={token.chainLogo}
-                                        style={{
-                                          border: "1.5px solid #FFFFFE",
-                                          borderRadius: "999px",
-                                          bottom: -2,
-                                          filter: "grayscale(0.2)",
-                                          height: 10,
-                                          objectFit: "cover",
-                                          position: "absolute",
-                                          right: -2,
-                                          width: 10,
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                  <span
-                                    style={{
-                                      color: "#848483",
-                                      fontFamily:
-                                        '"Geist", system-ui, sans-serif',
-                                      fontSize: 12,
-                                      fontWeight: 500,
-                                      lineHeight: "18px",
-                                      minWidth: 0,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
-                                    {token.symbol} on{" "}
-                                    {token.chainName || "Unknown chain"}
-                                  </span>
-                                </div>
-                                <span
-                                  style={{
-                                    color: "#848483",
-                                    flexShrink: 0,
-                                    fontFamily:
-                                      '"Geist", system-ui, sans-serif',
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    lineHeight: "18px",
-                                    marginLeft: 12,
-                                  }}
-                                >
-                                  {getTotalBalanceInFiat(token)}
-                                </span>
+                                  />
+                                )}
                               </div>
-                            ))}
-                        {showBelowMin &&
-                          visibleBelowMinCount < belowMin.length && (
-                            <button
-                              onClick={() =>
-                                setVisibleBelowMinCount((c) =>
-                                  Math.min(belowMin.length, c + BATCH_INCREMENT)
-                                )
-                              }
+                              <span
+                                style={{
+                                  color: "#848483",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  lineHeight: "18px",
+                                  minWidth: 0,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {token.symbol} on{" "}
+                                {token.chainName || "Unknown chain"}
+                              </span>
+                            </div>
+                            <span
                               style={{
-                                background: "none",
-                                border: "none",
-                                color: "#006BF4",
-                                cursor: "pointer",
+                                color: "#848483",
+                                flexShrink: 0,
                                 fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "12px",
+                                fontSize: 12,
                                 fontWeight: 500,
-                                padding: "8px 12px",
-                                textAlign: "center",
-                                width: "100%",
+                                lineHeight: "18px",
+                                marginLeft: 12,
                               }}
-                              type="button"
                             >
-                              Load more tokens (
-                              {belowMin.length - visibleBelowMinCount}{" "}
-                              remaining)
-                            </button>
-                          )}
+                              {getTotalBalanceInFiat(token)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
