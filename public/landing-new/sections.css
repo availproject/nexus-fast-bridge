@@ -151,6 +151,9 @@
 .chains-strip__logo img[alt="Robinhood"] {
   height: 26px;
 }
+.chains-strip__logo img[alt="Arc"] {
+  height: 26px;
+}
 
 /* How it works + product card — see hiw.css (loaded on index.html and hiw.html) */
 
@@ -641,7 +644,8 @@
 @media (max-width: 460px) {
   .chains-strip {
     gap: 12px;
-    padding: 32px 32px 40px;
+    min-height: auto;
+    padding: 32px 32px 0;
   }
 
   .chains-strip__desc {

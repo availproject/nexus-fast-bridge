@@ -70,7 +70,7 @@ const BLOG_ITEMS = GUIDE_ITEMS;
 
 const CHAIN_LOGOS = [
   { name: "Ethereum", file: "ethereum.png", w: 136, h: 34 },
-  { name: "Arc", file: "arc.svg", w: 500, h: 171 },
+  { name: "Arc", file: "arc.svg", w: 76, h: 26 },
   { name: "Arbitrum", file: "arbitrum.png", w: 169, h: 95 },
   { name: "Optimism", file: "optimism.png", w: 121, h: 17 },
   { name: "Avalanche", file: "avalanche.png", w: 148, h: 34 },
