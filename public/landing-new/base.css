@@ -44,6 +44,7 @@ html,
 body {
   padding: 0;
   margin: 0;
+  /* clip avoids breaking position:sticky (hidden creates a scroll container) */
   overflow-x: clip;
   background: #fffffe;
 }
@@ -65,6 +66,12 @@ body {
   --footer-muted: #b5b5b5;
   --section-pad-x: 100px;
   --section-max: 1440px;
+
+  /* Branding assets — see assets/branding/branding-inventory.json */
+  --asset-logo-icon-white: url("assets/branding/logos/logo-icon-white.svg");
+  --asset-logo-icon-black: url("assets/branding/logos/logo-icon-black.svg");
+  --asset-hero-gradient: url("assets/branding/gradients/hero-gradient-v2.jpg");
+  --asset-hiw-bg: url("assets/branding/gradients/hiw-hero-bg.png");
 }
 
 body {
@@ -102,5 +109,134 @@ body {
 @media (max-width: 460px) {
   :root {
     --section-pad-x: 32px;
+  }
+}
+
+/* Announcement bar — Figma "recommended-swaps" (1339:28) */
+
+:root {
+  --announce-h: 46px;
+}
+
+.announce {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--announce-h);
+  background: var(--brand-white);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.08);
+}
+
+.announce__inner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 24px;
+  margin: 0;
+  font-family: "Geist", sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 22px;
+  color: #1f1f1f;
+  white-space: nowrap;
+}
+
+.announce__logo {
+  display: block;
+  flex-shrink: 0;
+  width: 48.94px;
+  height: 17px;
+}
+
+.announce__divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  margin: 0 8px;
+  background: #1f1f1f;
+}
+
+/* Live status pip — the only accent in the bar */
+.announce__dot {
+  position: relative;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  background: var(--brand-blue);
+  border-radius: 50%;
+}
+
+.announce__dot::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: var(--brand-blue);
+  border-radius: 50%;
+  animation: announce-pulse 2.4s ease-out infinite;
+}
+
+@keyframes announce-pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --announce-h: 42px;
+  }
+
+  .announce__inner {
+    gap: 6px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+
+  .announce__logo {
+    width: 43.2px;
+    height: 15px;
+  }
+
+  .announce__divider {
+    height: 18px;
+    margin: 0 6px;
+  }
+}
+
+@media (max-width: 460px) {
+  :root {
+    --announce-h: 38px;
+  }
+
+  .announce__inner {
+    gap: 5px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .announce__logo {
+    width: 37.4px;
+    height: 13px;
+  }
+
+  .announce__divider {
+    height: 15px;
+    margin: 0 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announce__dot::after {
+    animation: none;
   }
 }

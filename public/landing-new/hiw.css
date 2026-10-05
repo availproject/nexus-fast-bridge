@@ -11,7 +11,7 @@
   position: relative;
   width: 100%;
   max-width: var(--section-max);
-  height: 809px;
+  height: 839px; /* +30 with the steps (top 594) */
   margin: 0 auto;
   background: transparent;
   isolation: isolate;
@@ -37,7 +37,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center;
 }
 
 .hiw__curve-fill {
@@ -106,7 +106,8 @@
   z-index: 3;
   display: flex;
   justify-content: center;
-  width: 632px;
+  /* wide enough for the token picker in step 1; the card itself stays ~440px */
+  width: 780px;
   max-width: calc(100% - 2 * var(--section-pad-x));
   transform: translateX(-50%);
 }
@@ -115,7 +116,7 @@
 
 .hiw__steps {
   position: absolute;
-  top: 564px;
+  top: 594px;
   right: var(--section-pad-x);
   left: var(--section-pad-x);
   z-index: 4;
@@ -270,8 +271,8 @@
   position: relative;
   width: auto;
   max-width: 100%;
-  height: 600px;
-  aspect-ratio: 1256 / 1660;
+  height: 610px;
+  aspect-ratio: 2324 / 1840;
   overflow: visible;
   background: transparent;
 }
@@ -505,13 +506,26 @@
 /* ========== TABLET ≤768px ========== */
 
 @media (max-width: 768px) {
+  /* One-column grid: the gradient spans the title + widget rows, so the
+     steps row always starts below whichever is taller and never sits on
+     the dark curve. */
   .hiw__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
     padding-bottom: 0;
   }
 
   .hiw__gradient-wrap {
+    position: relative;
+    top: auto;
+    left: auto;
+    grid-row: 1 / 3;
+    grid-column: 1;
+    align-self: start;
+    justify-self: center;
     height: clamp(480px, 72vw, 564px);
+    transform: none;
   }
 
   .hiw__curve-fill {
@@ -530,6 +544,8 @@
     position: relative;
     top: auto;
     left: auto;
+    grid-row: 1;
+    grid-column: 1;
     max-width: none;
     padding: 48px var(--section-pad-x) 0;
     font-size: 48px;
@@ -546,8 +562,12 @@
     top: auto;
     left: auto;
     z-index: 2;
+    grid-row: 2;
+    grid-column: 1;
     width: min(96%, 560px);
-    margin: 10px auto 0;
+    /* Pull the steps up into the transparent shadow-padding at the bottom of
+       the widget video (which otherwise reads as dead space). */
+    margin: 10px auto -7vw;
     isolation: isolate;
     transform: none;
   }
@@ -555,7 +575,7 @@
   .hiw__widget {
     width: 100%;
     height: auto;
-    aspect-ratio: 1256 / 1660;
+    aspect-ratio: 2324 / 1840;
   }
 
   .hiw__widget-video {
@@ -580,12 +600,11 @@
     left: auto;
     z-index: 1;
     grid-template-columns: 1fr;
+    grid-row: 3;
+    grid-column: 1;
     gap: 32px;
     padding: 0 var(--section-pad-x) 64px;
-    /* Pull the steps up into the transparent shadow-padding at the bottom of
-       the widget video (which otherwise reads as dead space). Sized to stay
-       within that transparent zone so it never overlaps the card. */
-    margin-top: -7vw;
+    margin-top: 20px;
   }
 
   .hiw__steps > li {

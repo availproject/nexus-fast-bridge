@@ -5,6 +5,7 @@ import App from "./app";
 import AboutPage from "./components/about-page";
 import ContactPage from "./components/contact-page";
 import FAQPage from "./components/faq-page";
+import FastBridgeProductPage from "./components/fastbridge-page";
 import { GooglePageViewTracker } from "./components/google-page-view-tracker";
 import GuidesPage from "./components/guides-page";
 import GuideDetailPage from "./components/guides-page/guide-detail";
@@ -60,6 +61,8 @@ export function bootstrapApp() {
         <GooglePageViewTracker />
         <Routes>
           <Route element={<LandingPage />} path="/" />
+          <Route element={<FastBridgeProductPage />} path="/fastbridge" />
+          <Route element={<FastBridgeProductPage />} path="/fastbridge.html" />
           <Route element={<AboutPage />} path="/about" />
           <Route element={<AboutPage />} path="/about.html" />
           <Route element={<FAQPage />} path="/faqs" />

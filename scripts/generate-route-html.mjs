@@ -90,6 +90,22 @@ const STATIC_PAGES = [
     priority: "0.8",
   },
   {
+    slug: "fastbridge",
+    aliases: ["fastbridge.html"],
+    title: "FastBridge — Product Reference by Avail",
+    description:
+      "FastBridge is a unified, intent-based cross-chain bridge by Avail. The only bridge that natively supports multi-source transactions across all major EVM networks.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/fastbridge",
+    themeColor: "#19191A",
+    stylesheets: SEO_PAGE_STYLESHEETS,
+    componentPath:
+      "./packages/fast-bridge-app/src/components/fastbridge-page/index.tsx",
+    srcFile:
+      "packages/fast-bridge-app/src/components/fastbridge-page/index.tsx",
+    priority: "0.8",
+  },
+  {
     slug: "guides",
     title: "Cross-Chain Bridges Guide: How to Bridge Crypto | FastBridge",
     description:
@@ -478,6 +494,11 @@ function writePageHtmlFiles(page, baseHtml, renderedHtml) {
       console.log(
         "✅  Updated dist/index.html with pre-rendered metadata & content"
       );
+    } else if (slug.endsWith(".html")) {
+      const outFile = path.join(distDir, slug);
+      fs.writeFileSync(outFile, pageHtml, "utf-8");
+      generated++;
+      console.log(`✅  Generated ${slug}`);
     } else {
       const outDir = path.join(distDir, slug);
       fs.mkdirSync(outDir, { recursive: true });
