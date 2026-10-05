@@ -34,8 +34,11 @@ import { nexusOneTheme } from "../theme";
 import {
   ARC_CHAIN_ID,
   getArcNativeTokenOption,
+  isArcErc20Usdc,
+  isArcExcludedToken,
   isArcNativeUsdc,
   isArcUnsupportedErc20Usdc,
+  isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -433,14 +436,7 @@ export const getCachedReceiveTokenMatch = (
 
   const chainTokens = (
     rawTokensCache.tokens[String(token.chainId)] ?? []
-  ).filter(
-    (candidate) =>
-      !isArcUnsupportedErc20Usdc({
-        chainId: token.chainId,
-        symbol: candidate.symbol,
-        contractAddress: candidate.address,
-      })
-  );
+  ).filter((candidate) => !isExcludedTokenAddress(candidate.address));
   const tokenAddress = normalizeReceiveTokenAddress(token.contractAddress);
   const addressMatch = chainTokens.find(
     (candidate) =>
@@ -464,6 +460,33 @@ export const getCachedReceiveTokenMatch = (
     name: matchedToken.name || token.name,
     priceUSD: matchedToken.priceUSD ?? token.priceUSD,
     symbol: matchedToken.symbol || token.symbol,
+  };
+};
+
+export const getCachedTokenByAddress = (
+  chainId?: number,
+  address?: string
+): {
+  decimals: number;
+  logo?: string;
+  name?: string;
+  symbol?: string;
+} | null => {
+  if (!chainId || !address || !rawTokensCache) return null;
+  const chainTokens = (rawTokensCache.tokens[String(chainId)] ?? []).filter(
+    (candidate) => !isExcludedTokenAddress(candidate.address)
+  );
+  const tokenAddress = normalizeReceiveTokenAddress(address);
+  const match = chainTokens.find(
+    (candidate) =>
+      normalizeReceiveTokenAddress(candidate.address) === tokenAddress
+  );
+  if (!match) return null;
+  return {
+    decimals: match.decimals ?? 18,
+    logo: match.logoURI,
+    name: match.name,
+    symbol: match.symbol,
   };
 };
 
@@ -695,74 +718,11 @@ export const getAllReceiveTokenOptions = async (
   if (!data?.tokens) return [];
   const sdkSwapSupportedChainIds =
     getSdkSwapSupportedChainIds(swapSupportedChains);
-  const allParsed: SwapTokenOption[] = [];
-  const chains = data.tokens || {};
-  for (const chainIdStr of Object.keys(chains)) {
-    const chainId = parseInt(chainIdStr, 10);
-    if (
-      sdkSwapSupportedChainIds
-        ? !sdkSwapSupportedChainIds.has(chainId)
-        : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
-    ) {
-      continue;
-    }
-    if (!isSwapSupportedBySdkChainList(chainId, swapSupportedChains)) {
-      continue;
-    }
-    const chainMeta = CHAIN_METADATA[chainId] || {
-      name: getShortChainName(chainId, `Chain ${chainId}`),
-      logo: "",
-    };
-    for (const t of chains[chainIdStr]) {
-      if (!t.address || !t.symbol) continue;
-      if (
-        isArcUnsupportedErc20Usdc({
-          chainId,
-          symbol: t.symbol,
-          contractAddress: t.address,
-        })
-      ) {
-        continue;
-      }
-      allParsed.push({
-        contractAddress: t.address,
-        symbol: t.symbol,
-        name: t.name || t.symbol,
-        logo: t.logoURI || "",
-        decimals: t.decimals ?? 18,
-        priceUSD: t.priceUSD,
-        providers: t.providers,
-        chainId,
-        chainName: chainMeta.name,
-        chainLogo: chainMeta.logo,
-        balance: "0",
-        balanceInFiat: "$0.00",
-      });
-    }
-  }
-  const tokensByKey = new Map<string, SwapTokenOption>();
-  for (const token of [
-    ...allParsed,
-    ...getCitreaReceiveTokenOptions(),
-    getArcNativeTokenOption(),
-  ]) {
-    const address =
-      token.contractAddress.toLowerCase() ===
-      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        ? ZERO_ADDRESS
-        : token.contractAddress.toLowerCase();
-    if (isArcUnsupportedErc20Usdc(token)) {
-      continue;
-    }
-    const key = `${token.chainId ?? 0}-${address}`;
-    const existing = tokensByKey.get(key);
-    tokensByKey.set(key, {
-      ...existing,
-      ...token,
-      priceUSD: token.priceUSD ?? existing?.priceUSD,
-    });
-  }
-  return Array.from(tokensByKey.values());
+  return parseRawReceiveTokens(
+    data,
+    sdkSwapSupportedChainIds,
+    swapSupportedChains
+  );
 };
 
 interface ReceiveTokenRowProps {
@@ -1327,80 +1287,16 @@ export function ReceiveAssetSelector({
           setDynamicStableSymbols(nextSymbols);
         }
 
-        const allParsed: ReceiveTokenOption[] = [];
-        const chains = data.tokens || {};
-        for (const chainIdStr of Object.keys(chains)) {
-          const chainId = parseInt(chainIdStr, 10);
-          if (
-            sdkSwapSupportedChainIds
-              ? !sdkSwapSupportedChainIds.has(chainId)
-              : !SUPPORTED_RECEIVE_CHAIN_IDS.has(chainId)
-          ) {
-            continue;
-          }
-          if (
-            !isSwapSupportedBySdkChainList(
-              chainId,
-              swapSupportedChainsAndTokens
-            )
-          ) {
-            continue;
-          }
-          const meta = chainMetaMap.get(chainId) || {
-            name: getShortChainName(chainId, `Chain ${chainId}`),
-            logo: "",
-          };
-          for (const t of chains[chainIdStr]) {
-            if (!t.address || !t.symbol) continue;
-            if (
-              isArcUnsupportedErc20Usdc({
-                chainId,
-                symbol: t.symbol,
-                contractAddress: t.address,
-              })
-            ) {
-              continue;
-            }
-            allParsed.push({
-              contractAddress: t.address,
-              symbol: t.symbol,
-              name: t.name || t.symbol,
-              logo: t.logoURI || "",
-              decimals: t.decimals ?? 18,
-              priceUSD: t.priceUSD,
-              providers: t.providers,
-              chainId,
-              chainName: meta.name,
-              chainLogo: meta.logo,
-              balance: "0",
-              balanceInFiat: "$0.00",
-              verificationStatus: t.verificationStatus,
-            });
-          }
+        const parsed = parseRawReceiveTokens(
+          data,
+          sdkSwapSupportedChainIds,
+          swapSupportedChainsAndTokens,
+          chainMetaMap
+        );
+        cachedReceiveApiTokens = parsed;
+        if (active) {
+          setApiTokens(parsed);
         }
-        const tokensByKey = new Map<string, ReceiveTokenOption>();
-        for (const token of [
-          ...allParsed,
-          ...getCitreaReceiveTokenOptions(),
-          getArcNativeTokenOption(),
-        ]) {
-          const address =
-            token.contractAddress.toLowerCase() ===
-            "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-              ? ZERO_ADDRESS
-              : token.contractAddress.toLowerCase();
-          if (isArcUnsupportedErc20Usdc(token)) {
-            continue;
-          }
-          const key = `${token.chainId ?? 0}-${address}`;
-          const existing = tokensByKey.get(key);
-          tokensByKey.set(key, {
-            ...existing,
-            ...token,
-            priceUSD: token.priceUSD ?? existing?.priceUSD,
-          });
-        }
-        setApiTokens(Array.from(tokensByKey.values()));
       } catch (err) {
         console.error("Failed to fetch receive tokens", err);
       } finally {
@@ -1423,7 +1319,7 @@ export function ReceiveAssetSelector({
       "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" ||
     t.contractAddress.toLowerCase() ===
       "0x0000000000000000000000000000000000000000" ||
-    isArcNativeUsdc(t);
+    (t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC");
 
   const excludedTokensMap = useMemo(() => {
     const set = new Set<string>();
@@ -1465,17 +1361,27 @@ export function ReceiveAssetSelector({
         (t) => getTokenSearchRank(t, deferredQuery) !== null
       );
     }
-    result = result.filter((t) => !isArcUnsupportedErc20Usdc(t));
+    result = result.filter(
+      (t) => !isExcludedTokenAddress(t.contractAddress) && !isArcErc20Usdc(t)
+    );
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables")
       result = result.filter(
-        (t) => dynamicStableSymbols.has(t.symbol) && !isArcNativeUsdc(t)
+        (t) =>
+          dynamicStableSymbols.has(t.symbol) &&
+          !(t.chainId === ARC_CHAIN_ID && t.symbol.toUpperCase() === "USDC")
       );
     else if (activeTab === "custom")
       result = result.filter(
         (token) =>
           !isNativeToken(token) &&
-          !(dynamicStableSymbols.has(token.symbol) && !isArcNativeUsdc(token))
+          !(
+            dynamicStableSymbols.has(token.symbol) &&
+            !(
+              token.chainId === ARC_CHAIN_ID &&
+              token.symbol.toUpperCase() === "USDC"
+            )
+          )
       );
 
     return result;
@@ -2164,206 +2070,20 @@ export function ReceiveAssetSelector({
                 {sortedFiltered.slice(0, visibleCount).map((t) => {
                   const hash = `${t.chainId}-${t.contractAddress}`;
                   const isSelected = selectedTokenHash === hash;
-                  const numericBalance = Number.parseFloat(
-                    String(t.balance ?? "0").replace(/[^0-9.]/g, "")
-                  );
-                  const hasBalance =
-                    Number.isFinite(numericBalance) && numericBalance > 0;
-                  const disabled = Boolean(t.disabledReason);
+                  const isCopied =
+                    copiedTokenAddress ===
+                    `${t.chainId}:${normalizeNativeAddress(t.contractAddress)}`;
                   return (
-                    <button
-                      disabled={disabled}
+                    <ReceiveTokenRow
+                      isBalanceLoading={isBalanceLoading}
+                      isCopied={isCopied}
+                      isSelected={isSelected}
                       key={hash}
-                      onClick={() => {
-                        if (disabled) return;
-                        setSelectedTokenHash(hash);
-                        setSelectedTokenFull(t);
-                        onSelect(t);
-                      }}
-                      style={{
-                        alignItems: "center",
-                        backgroundColor: isSelected ? "#F4F7FE" : "transparent",
-                        border: "none",
-                        borderBottom: "1px solid #F0F0EF",
-                        boxSizing: "border-box",
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        padding: "10px 14px",
-                        width: "100%",
-                        opacity: disabled ? 0.5 : 1,
-                      }}
-                      type="button"
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        <SelectionControl selected={isSelected} />
-                        <div
-                          style={{
-                            flexShrink: 0,
-                            height: 40,
-                            position: "relative",
-                            width: 40,
-                          }}
-                        >
-                          <TokenLogo fontSize={16} size={40} token={t} />
-                          {t.chainLogo && (
-                            <img
-                              alt={t.chainName}
-                              src={t.chainLogo}
-                              style={{
-                                border: "2px solid #FFFFFE",
-                                borderRadius: "999px",
-                                bottom: -8,
-                                height: 22,
-                                position: "absolute",
-                                right: -8,
-                                width: 22,
-                                zIndex: 2,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div
-                          style={{
-                            alignItems: "flex-start",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: "#161615",
-                              fontFamily: '"Geist", system-ui, sans-serif',
-                              fontSize: 15,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {t.symbol}
-                          </span>
-                          <div
-                            style={{
-                              alignItems: "center",
-                              display: "flex",
-                              gap: 4,
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#1F1F1F",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "14px",
-                                fontStyle: "normal",
-                                fontWeight: 400,
-                                lineHeight: "20px",
-                              }}
-                            >
-                              {t.chainName || "Unknown chain"}
-                            </span>
-                            {t.contractAddress && (
-                              <span
-                                onClick={(e) =>
-                                  handleCopyTokenAddress(
-                                    e,
-                                    t.contractAddress,
-                                    t.chainId
-                                  )
-                                }
-                                style={{
-                                  color: "#8E8E89",
-                                  fontFamily: '"Geist", system-ui, sans-serif',
-                                  fontSize: "14px",
-                                  fontStyle: "normal",
-                                  fontWeight: 400,
-                                  lineHeight: "20px",
-                                  cursor: "pointer",
-                                  userSelect: "none",
-                                }}
-                                title="Click to copy token address"
-                              >
-                                {copiedTokenAddress ===
-                                `${t.chainId}:${normalizeNativeAddress(t.contractAddress)}`
-                                  ? "Copied!"
-                                  : formatMiddleTruncatedAddress(
-                                      normalizeNativeAddress(t.contractAddress)
-                                    )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {needsWalletConnection ? null : isBalanceLoading ? (
-                        <div
-                          style={{
-                            alignItems: "flex-end",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                          }}
-                        >
-                          <div
-                            className="nexus-balance-skeleton"
-                            style={{
-                              animation:
-                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                              backgroundColor: "#E8E8E7",
-                              borderRadius: 4,
-                              height: 14,
-                              width: 55,
-                            }}
-                          />
-                          <div
-                            className="nexus-balance-skeleton"
-                            style={{
-                              animation:
-                                "nexusSwapSkeletonShimmer 1.2s ease-in-out infinite",
-                              backgroundColor: "#F0F0EF",
-                              borderRadius: 4,
-                              height: 12,
-                              width: 35,
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        hasBalance && (
-                          <div
-                            style={{
-                              alignItems: "flex-end",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <span
-                              style={{
-                                color: "#161615",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: 14,
-                                fontWeight: 500,
-                              }}
-                            >
-                              {formatTokenBalance(getTotalBalance(t), {
-                                decimals: t.decimals,
-                                symbol: t.symbol,
-                              }) ?? `${getTotalBalance(t)} ${t.symbol}`}
-                            </span>
-                            <span
-                              style={{
-                                color: "#848483",
-                                fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: 13,
-                              }}
-                            >
-                              {getTotalBalanceInFiat(t)}
-                            </span>
-                          </div>
-                        )
-                      )}
-                    </button>
+                      needsWalletConnection={needsWalletConnection}
+                      onCopyAddress={handleCopyTokenAddress}
+                      onSelect={handleSelectToken}
+                      token={t}
+                    />
                   );
                 })}
               </div>

@@ -1,6 +1,7 @@
 // biome-ignore-all lint: NexusOne registry component from shadcn registry.
 
 "use client";
+
 import { formatTokenBalance } from "@avail-project/nexus-core/utils";
 import Decimal from "decimal.js";
 import {
@@ -16,7 +17,6 @@ import {
 } from "lucide-react";
 import React, {
   useCallback,
-  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -43,6 +43,7 @@ import {
   getArcNativeTokenOption,
   isArcNativeUsdc,
   isArcUnsupportedErc20Usdc,
+  isExcludedTokenAddress,
   ZERO_ADDRESS,
 } from "../utils/arc-tokens";
 import {
@@ -52,6 +53,20 @@ import {
   SWAP_CHAIN_DISPLAY_ORDER_SET,
   sortChainIdsBySwapDisplayOrder,
 } from "../utils/chain-order";
+import {
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+} from "../utils/token-sorting";
+
+export {
+  compareChainsBySwapDisplayOrder,
+  SWAP_CHAIN_DISPLAY_ORDER,
+  SWAP_CHAIN_DISPLAY_ORDER_RANK,
+  SWAP_CHAIN_DISPLAY_ORDER_SET,
+  sortChainIdsBySwapDisplayOrder,
+  sortTokensByUsdBalance,
+  sortTokensWithBalancesFirst,
+};
 
 export function isNativeLikeAddress(address?: string) {
   const normalized = (address ?? "").toLowerCase();
@@ -104,6 +119,7 @@ export interface SwapTokenOption {
   userAmount?: string;
   userAmountMode?: "token" | "usd";
   userAmountUsd?: string;
+  verified?: boolean;
 }
 
 interface SwapAssetSelectorProps {
@@ -146,6 +162,9 @@ export function deriveTokenOptions(
   for (const asset of swapBalance) {
     for (const bd of asset.breakdown ?? []) {
       if (!isSwapSupportedBySdkChainList(bd.chain?.id, swapSupportedChains)) {
+        continue;
+      }
+      if (isExcludedTokenAddress(bd.contractAddress)) {
         continue;
       }
       if (isExcludedTokenAddress(bd.contractAddress)) {
@@ -195,6 +214,7 @@ export function deriveTokenOptions(
           chainMeta?.name ?? bd.chain?.name
         ),
         chainLogo: chainMeta?.logo ?? bd.chain?.logo,
+        verified: bd.verified ?? asset.verified ?? true,
       });
     }
   }
@@ -710,45 +730,12 @@ const modalHeightTransitionStyle = {
 } as React.CSSProperties;
 const modalHeightTransition = `height ${MODAL_HEIGHT_TRANSITION_MS}ms ease, max-height ${MODAL_HEIGHT_TRANSITION_MS}ms ease`;
 
-export {
-  compareChainsBySwapDisplayOrder,
-  SWAP_CHAIN_DISPLAY_ORDER,
-  SWAP_CHAIN_DISPLAY_ORDER_RANK,
-  SWAP_CHAIN_DISPLAY_ORDER_SET,
-  sortChainIdsBySwapDisplayOrder,
-};
-
 const UNIFIED_MAINNET_CHAIN_IDS = new Set([
   1, 10, 56, 137, 143, 999, 4114, 8453, 42161, 43114, 4326,
 ]);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const getTokenFiatValue = (
-  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
-) => {
-  const parsed = Number(
-    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
-  );
-  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
-};
-
-const formatBalanceWithSymbol = (
-  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
-) => {
-  const symbol = token.symbol?.trim() || "";
-  const balanceStr = getTotalBalance(token).trim();
-  let cleanBalance = balanceStr;
-  if (symbol) {
-    cleanBalance = balanceStr.replace(
-      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
-      ""
-    );
-  }
-  const formatted = formatTokenAmountDisplay(cleanBalance);
-  return symbol ? `${formatted} ${symbol}` : formatted;
-};
 
 const parseTokenAmount = (value: unknown) => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -764,95 +751,6 @@ const parseTokenAmount = (value: unknown) => {
     return undefined;
   }
 };
-
-export const tokenHasBalance = (token: SwapTokenOption): boolean => {
-  if (token.hasBalance !== undefined) return token.hasBalance;
-  if (getTokenFiatValue(token) > 0) return true;
-  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
-  return bal !== undefined && bal.gt(0);
-};
-
-export const compareTokensWithBalancesFirst = (
-  a: SwapTokenOption,
-  b: SwapTokenOption
-) => {
-  const aHasBalance = tokenHasBalance(a);
-  const bHasBalance = tokenHasBalance(b);
-
-  if (aHasBalance !== bHasBalance) {
-    return aHasBalance ? -1 : 1;
-  }
-
-  if (aHasBalance && bHasBalance) {
-    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
-    if (fiatDelta !== 0) return fiatDelta;
-
-    const aBalance =
-      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
-    const bBalance =
-      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
-    const balanceDelta = bBalance.cmp(aBalance);
-    if (balanceDelta !== 0) return balanceDelta;
-  }
-
-  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
-  if (chainDelta !== 0) return chainDelta;
-
-  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
-  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
-  if (aName < bName) return -1;
-  if (aName > bName) return 1;
-  return 0;
-};
-
-export const sortTokensWithBalancesFirst = (tokens: SwapTokenOption[]) => {
-  if (tokens.length <= 1) return tokens;
-
-  const decorated = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i];
-    const hasBal =
-      t.hasBalance !== undefined ? t.hasBalance : tokenHasBalance(t);
-    const fiat = hasBal ? getTokenFiatValue(t) : 0;
-    const balNum = hasBal
-      ? Number(
-          String(t.totalBalance ?? t.balance ?? "").replace(/[^0-9.]/g, "") || 0
-        )
-      : 0;
-    const chainRank =
-      SWAP_CHAIN_DISPLAY_ORDER_RANK.get(t.chainId ?? -1) ?? 999999;
-    const name = `${t.symbol || ""} ${t.chainName || ""}`.toLowerCase();
-    decorated[i] = {
-      balNum,
-      chainRank,
-      fiat,
-      hasBal: hasBal ? 1 : 0,
-      idx: i,
-      name,
-      token: t,
-    };
-  }
-
-  decorated.sort((a, b) => {
-    if (a.hasBal !== b.hasBal) return b.hasBal - a.hasBal;
-    if (a.hasBal) {
-      if (b.fiat !== a.fiat) return b.fiat - a.fiat;
-      if (b.balNum !== a.balNum) return b.balNum - a.balNum;
-    }
-    if (a.chainRank !== b.chainRank) return a.chainRank - b.chainRank;
-    if (a.name < b.name) return -1;
-    if (a.name > b.name) return 1;
-    return a.idx - b.idx;
-  });
-
-  const result = new Array(tokens.length);
-  for (let i = 0; i < tokens.length; i++) {
-    result[i] = decorated[i].token;
-  }
-  return result;
-};
-
-export const sortTokensByUsdBalance = sortTokensWithBalancesFirst;
 
 export const formatTokenAmountDisplay = (value: unknown) => {
   const amount = parseTokenAmount(value) ?? new Decimal(0);
@@ -914,6 +812,71 @@ export const formatUsdBalanceLabel = (value: unknown) => {
   }
 
   return `$${addThousandsSeparators(amount.toDecimalPlaces(2).toFixed(2))}`;
+};
+
+const getTokenFiatValue = (
+  token: Pick<SwapTokenOption, "balanceInFiat" | "totalBalanceInFiat">
+) => {
+  const parsed = Number(
+    String(getTotalBalanceInFiat(token)).replace(/[^0-9.]/g, "") || 0
+  );
+  return isNaN(parsed) || !isFinite(parsed) ? 0 : parsed;
+};
+
+const formatBalanceWithSymbol = (
+  token: Pick<SwapTokenOption, "balance" | "totalBalance" | "symbol">
+) => {
+  const symbol = token.symbol?.trim() || "";
+  const balanceStr = getTotalBalance(token).trim();
+  let cleanBalance = balanceStr;
+  if (symbol) {
+    cleanBalance = balanceStr.replace(
+      new RegExp(`\\s*${escapeRegExp(symbol)}$`, "i"),
+      ""
+    );
+  }
+  const formatted = formatTokenAmountDisplay(cleanBalance);
+  return symbol ? `${formatted} ${symbol}` : formatted;
+};
+
+export const tokenHasBalance = (token: SwapTokenOption): boolean => {
+  if (token.hasBalance !== undefined) return token.hasBalance;
+  if (getTokenFiatValue(token) > 0) return true;
+  const bal = parseTokenAmount(token.totalBalance ?? token.balance);
+  return bal !== undefined && bal.gt(0);
+};
+
+export const compareTokensWithBalancesFirst = (
+  a: SwapTokenOption,
+  b: SwapTokenOption
+) => {
+  const aHasBalance = tokenHasBalance(a);
+  const bHasBalance = tokenHasBalance(b);
+
+  if (aHasBalance !== bHasBalance) {
+    return aHasBalance ? -1 : 1;
+  }
+
+  if (aHasBalance && bHasBalance) {
+    const fiatDelta = getTokenFiatValue(b) - getTokenFiatValue(a);
+    if (fiatDelta !== 0) return fiatDelta;
+
+    const aBalance =
+      parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
+    const bBalance =
+      parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
+    const balanceDelta = bBalance.cmp(aBalance);
+    if (balanceDelta !== 0) return balanceDelta;
+  }
+
+  const chainDelta = compareChainsBySwapDisplayOrder(a, b);
+  if (chainDelta !== 0) return chainDelta;
+
+  const aName = `${a.symbol} ${a.chainName}`.toLowerCase();
+  const bName = `${b.symbol} ${b.chainName}`.toLowerCase();
+  if (aName < bName) return -1;
+  if (aName > bName) return 1;
+  return 0;
 };
 
 export const formatSelectedTokenBalanceLabel = (
@@ -1291,6 +1254,25 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
           >
             {token.chainName || "Unknown chain"}
           </span>
+          {token.verified === false && (
+            <span
+              style={{
+                backgroundColor: "#FFFBEB",
+                border: "1px solid #FDE68A",
+                borderRadius: 4,
+                color: "#B45309",
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontSize: "9px",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                lineHeight: "12px",
+                padding: "1px 4px",
+                textTransform: "uppercase",
+              }}
+            >
+              Unverified
+            </span>
+          )}
         </span>
         {!needsWalletConnection && tokenHasBalance(token) && (
           <span
@@ -1377,16 +1359,37 @@ const SwapTokenRow = React.memo(function SwapTokenRow({
             alignItems: "flex-start",
           }}
         >
-          <span
-            style={{
-              fontFamily: '"Geist", system-ui, sans-serif',
-              fontWeight: 500,
-              fontSize: isDesktop ? 15 : 13,
-              color: "#161615",
-            }}
-          >
-            {token.symbol}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontFamily: '"Geist", system-ui, sans-serif',
+                fontWeight: 500,
+                fontSize: isDesktop ? 15 : 13,
+                color: "#161615",
+              }}
+            >
+              {token.symbol}
+            </span>
+            {token.verified === false && (
+              <span
+                style={{
+                  backgroundColor: "#FFFBEB",
+                  border: "1px solid #FDE68A",
+                  borderRadius: 4,
+                  color: "#B45309",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: isDesktop ? 10 : 9,
+                  fontWeight: 600,
+                  letterSpacing: "0.02em",
+                  lineHeight: isDesktop ? "14px" : "12px",
+                  padding: "1px 5px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Unverified
+              </span>
+            )}
+          </div>
           {token.chainName && (
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <span
@@ -1548,7 +1551,6 @@ export function SwapAssetSelector({
   const [hasUserTouchedSelection, setHasUserTouchedSelection] = useState(false);
   const effectiveShowRestoreAuto = showRestoreAuto || hasUserTouchedSelection;
   const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
   const normalizedInitialFilterTab =
     hideCustomTab && initialFilterTab === "custom" ? "all" : initialFilterTab;
   const [activeTab, setActiveTab] = useState<FilterTab>(
@@ -1675,14 +1677,13 @@ export function SwapAssetSelector({
     );
   }, [normalizedInitialFilterTab]);
 
-  // Catalog merge: only re-runs when balance data or static options change.
-  // Intentionally does NOT depend on activeSelectedTokens so that token
-  // toggles in multi-mode don't rebuild the full merge map (O(N)).
-  const allTokensCatalog = useMemo<SwapTokenOption[]>(() => {
+  const baseTokensSorted = useMemo<SwapTokenOption[]>(() => {
     const isSwapSupportedToken = (token: SwapTokenOption) =>
       isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
-    const isAllowedArcToken = (token: SwapTokenOption) =>
-      !isArcUnsupportedErc20Usdc(token);
+
+    const isAllowedArcToken = (token: SwapTokenOption) => {
+      return !isArcUnsupportedErc20Usdc(token);
+    };
 
     const catalog = (staticOptions ?? []).filter(
       (t) => isSwapSupportedToken(t) && isAllowedArcToken(t)
@@ -1694,6 +1695,7 @@ export function SwapAssetSelector({
 
     const userBalanceMap = new Map<string, SwapTokenOption>();
     for (const u of userTokenOptions) {
+      if (isExcludedTokenAddress(u.contractAddress)) continue;
       if (!isAllowedArcToken(u)) continue;
       const key = `${u.chainId ?? 0}-${normalizeTokenAddress(u.contractAddress)}`;
       userBalanceMap.set(key, u);
@@ -1703,6 +1705,7 @@ export function SwapAssetSelector({
     const seenUserKeys = new Set<string>();
 
     for (const c of catalog) {
+      if (isExcludedTokenAddress(c.contractAddress)) continue;
       if (isExcludedToken(c)) continue;
       if (!isAllowedArcToken(c)) continue;
 
@@ -1739,19 +1742,12 @@ export function SwapAssetSelector({
     return sortTokensWithBalancesFirst(Array.from(mergedMap.values()));
   }, [isExcludedToken, staticOptions, swapBalance, swapSupportedChains]);
 
-  // Injects below-minimum selected tokens on top of the catalog.
-  // Only re-runs when selections change (not when balance data changes).
   const allTokens = useMemo<SwapTokenOption[]>(() => {
     if (!preserveSelectedBelowMinimum && lockedSelectedTokens.length === 0) {
-      return allTokensCatalog;
+      return baseTokensSorted;
     }
 
-    const isSwapSupportedToken = (token: SwapTokenOption) =>
-      isSwapSupportedBySdkChainList(token.chainId, swapSupportedChains);
-    const isAllowedArcToken = (token: SwapTokenOption) =>
-      !isArcUnsupportedErc20Usdc(token);
-
-    const merged = [...allTokensCatalog];
+    const merged = [...baseTokensSorted];
     const selectedSourceTokens = [
       ...(preserveSelectedBelowMinimum ? activeSelectedTokens : []),
       ...lockedSelectedTokens,
@@ -1763,7 +1759,8 @@ export function SwapAssetSelector({
 
     for (const selectedToken of selectedSourceTokens) {
       if (isExcludedToken(selectedToken)) continue;
-      if (!isAllowedArcToken(selectedToken)) continue;
+      if (isExcludedTokenAddress(selectedToken.contractAddress)) continue;
+      if (!isArcUnsupportedErc20Usdc(selectedToken)) continue;
       const alreadyPresent = merged.some((token) =>
         sameTokenOption(token, selectedToken)
       );
@@ -1778,11 +1775,11 @@ export function SwapAssetSelector({
       )
     );
   }, [
-    allTokensCatalog,
+    baseTokensSorted,
     isExcludedToken,
     lockedSelectedTokens,
     preserveSelectedBelowMinimum,
-    activeSelectedTokens,
+    preserveSelectedBelowMinimum ? activeSelectedTokens : null,
     swapSupportedChains,
   ]);
 
@@ -1869,64 +1866,25 @@ export function SwapAssetSelector({
 
   /* Search + tab + chain filter */
   const filtered = useMemo(() => {
-    let result = allTokens.filter((t) => !isArcUnsupportedErc20Usdc(t));
+    let result = allTokens.filter(
+      (t) =>
+        !isExcludedTokenAddress(t.contractAddress) &&
+        !isArcUnsupportedErc20Usdc(t)
+    );
     if (selectedChainFilter !== null) {
       result = result.filter((t) => t.chainId === selectedChainFilter);
     }
-    if (deferredQuery.trim()) {
-      // Pre-compute search ranks once per token to avoid O(N log N) redundant
-      // calls to getTokenSearchRank inside the sort comparator.
-      const rankCache = new Map(
-        result.map((t) => [t, getTokenSearchRank(t, deferredQuery)] as const)
-      );
+    if (query.trim()) {
       result = result
-        .filter((t) => rankCache.get(t) !== null)
-        .sort((a, b) => {
-          const aRank = rankCache.get(a);
-          const bRank = rankCache.get(b);
-          const aScore = aRank?.score ?? Number.MAX_SAFE_INTEGER;
-          const bScore = bRank?.score ?? Number.MAX_SAFE_INTEGER;
-          if (aScore !== bScore) return aScore - bScore;
-
-          const aMatched = aRank?.matchedTerms ?? 0;
-          const bMatched = bRank?.matchedTerms ?? 0;
-          if (aMatched !== bMatched) return bMatched - aMatched;
-
-          const aHasBalance = tokenHasBalance(a);
-          const bHasBalance = tokenHasBalance(b);
-          if (aHasBalance !== bHasBalance) return aHasBalance ? -1 : 1;
-
-          const aFiat = getTokenFiatValue(a);
-          const bFiat = getTokenFiatValue(b);
-          if (aFiat !== bFiat) return bFiat - aFiat;
-
-          const aBalance =
-            parseTokenAmount(a.totalBalance ?? a.balance) ?? new Decimal(0);
-          const bBalance =
-            parseTokenAmount(b.totalBalance ?? b.balance) ?? new Decimal(0);
-          const balanceDelta = bBalance.cmp(aBalance);
-          if (balanceDelta !== 0) return balanceDelta;
-
-          const chainDelta = compareChainsBySwapDisplayOrder(a, b);
-          if (chainDelta !== 0) return chainDelta;
-
-          return `${a.symbol} ${a.chainName}`.localeCompare(
-            `${b.symbol} ${b.chainName}`
-          );
-        });
+        .filter((t) => getTokenSearchRank(t, query) !== null)
+        .sort((a, b) => compareTokensBySearch(a, b, query));
     }
     if (activeTab === "native") result = result.filter(isNativeToken);
     else if (activeTab === "stables") result = result.filter(isStableToken);
     else if (activeTab === "custom" && !autoSelectFilterTabs)
       result = result.filter((t) => !isNativeToken(t) && !isStableToken(t));
     return result;
-  }, [
-    activeTab,
-    allTokens,
-    autoSelectFilterTabs,
-    deferredQuery,
-    selectedChainFilter,
-  ]);
+  }, [activeTab, allTokens, autoSelectFilterTabs, query, selectedChainFilter]);
 
   const isTokenSelectedForVisibility = useCallback(
     (token: SwapTokenOption) => {
@@ -1970,18 +1928,13 @@ export function SwapAssetSelector({
         showBelowMinimumInline ||
         fiat >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(t) ||
-        isPrioritySearchMatch(t, deferredQuery)
+        isPrioritySearchMatch(t, query)
       )
         above.push(t);
       else below.push(t);
     }
     return { aboveMin: above, belowMin: below };
-  }, [
-    deferredQuery,
-    filtered,
-    isTokenSelectedForVisibility,
-    showBelowMinimumInline,
-  ]);
+  }, [filtered, isTokenSelectedForVisibility, query, showBelowMinimumInline]);
 
   /* Group by symbol */
   const groupedFiltered = useMemo(() => {
@@ -2065,7 +2018,7 @@ export function SwapAssetSelector({
         );
         const hasSelectedUnified = isUnifiedSelectedForVisibility(group.symbol);
         const hasPrioritySearchMatch = group.tokens.some((token) =>
-          isPrioritySearchMatch(token, deferredQuery)
+          isPrioritySearchMatch(token, query)
         );
         if (group.isUnifiedCandidate) {
           return (
@@ -2079,62 +2032,84 @@ export function SwapAssetSelector({
           (token) =>
             getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
             isTokenSelectedForVisibility(token) ||
-            isPrioritySearchMatch(token, deferredQuery)
+            isPrioritySearchMatch(token, query)
         );
       });
 
-    // Pre-compute per-group search scores to avoid O(N log N) redundant
-    // getTokenSearchRank calls inside the sort comparator.
-    const groupSearchScoreCache = deferredQuery.trim()
-      ? new Map(
-          mappedGroups.map((g) => [
-            g,
-            Math.min(
-              ...g.tokens.map(
-                (t) =>
-                  getTokenSearchRank(t, deferredQuery)?.score ??
-                  Number.MAX_SAFE_INTEGER
-              )
-            ),
-          ])
-        )
-      : null;
+    if (mappedGroups.length <= 1) {
+      return mappedGroups;
+    }
 
-    return mappedGroups.sort((a, b) => {
-      if (deferredQuery.trim() && groupSearchScoreCache) {
-        const aScore = groupSearchScoreCache.get(a) ?? Number.MAX_SAFE_INTEGER;
-        const bScore = groupSearchScoreCache.get(b) ?? Number.MAX_SAFE_INTEGER;
-        if (aScore !== bScore) return aScore - bScore;
+    const hasQuery = Boolean(query.trim());
+    const decoratedGroups = new Array(mappedGroups.length);
+    for (let i = 0; i < mappedGroups.length; i++) {
+      const g = mappedGroups[i];
+      let searchScore = Number.MAX_SAFE_INTEGER;
+      if (hasQuery) {
+        let minScore = Number.MAX_SAFE_INTEGER;
+        for (const token of g.tokens) {
+          const rank = getTokenSearchRank(token, query);
+          if (rank && rank.score < minScore) {
+            minScore = rank.score;
+          }
+        }
+        searchScore = minScore;
       }
-      const aHasBal = a.totalFiat > 0 || a.totalBalRaw > 0;
-      const bHasBal = b.totalFiat > 0 || b.totalBalRaw > 0;
-      if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
-      if (aHasBal && bHasBal) {
-        const fiatDelta = b.totalFiat - a.totalFiat;
-        if (fiatDelta !== 0) return fiatDelta;
-        if (b.totalBalRaw !== a.totalBalRaw)
-          return b.totalBalRaw - a.totalBalRaw;
+      const hasBal = g.totalFiat > 0 || g.totalBalRaw > 0;
+      const isGroupVerified = g.tokens.some((t) => t.verified !== false);
+      const tier = hasBal ? (isGroupVerified ? 0 : 1) : 2;
+      const firstToken = g.tokens[0];
+      const chainRank =
+        SWAP_CHAIN_DISPLAY_ORDER_RANK.get(firstToken?.chainId ?? -1) ?? 999999;
+      const chainName = (firstToken?.chainName ?? "").toLowerCase();
+      const symbolLower = g.symbol.toLowerCase();
+      decoratedGroups[i] = {
+        bal: g.totalBalRaw,
+        chainName,
+        chainRank,
+        fiat: g.totalFiat,
+        group: g,
+        idx: i,
+        searchScore,
+        symbolLower,
+        tier,
+      };
+    }
+
+    decoratedGroups.sort((a, b) => {
+      if (hasQuery && a.searchScore !== b.searchScore) {
+        return a.searchScore - b.searchScore;
       }
-      const aFirstToken = a.tokens[0];
-      const bFirstToken = b.tokens[0];
-      const chainDelta = compareChainsBySwapDisplayOrder(
-        aFirstToken,
-        bFirstToken
-      );
-      if (chainDelta !== 0) return chainDelta;
-      return a.symbol.localeCompare(b.symbol);
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      if (a.tier === 0 || a.tier === 1) {
+        if (b.fiat !== a.fiat) return b.fiat - a.fiat;
+        if (b.bal !== a.bal) return b.bal - a.bal;
+      }
+      if (a.chainRank !== b.chainRank) return a.chainRank - b.chainRank;
+      if (a.chainName !== b.chainName) {
+        return a.chainName < b.chainName ? -1 : 1;
+      }
+      if (a.symbolLower < b.symbolLower) return -1;
+      if (a.symbolLower > b.symbolLower) return 1;
+      return a.idx - b.idx;
     });
+
+    const result = new Array(decoratedGroups.length);
+    for (let i = 0; i < decoratedGroups.length; i++) {
+      result[i] = decoratedGroups[i].group;
+    }
+    return result;
   }, [
     filtered,
     allowUnified,
-    isTokenSelectedForVisibility,
-    isUnifiedSelectedForVisibility,
-    deferredQuery,
+    showBelowMinimumInline ? null : isTokenSelectedForVisibility,
+    showBelowMinimumInline ? null : isUnifiedSelectedForVisibility,
+    query,
     showBelowMinimumInline,
   ]);
 
   const INITIAL_BATCH_SIZE = 15;
-  const BATCH_INCREMENT = 25;
+  const BATCH_INCREMENT = 15;
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
   const [visibleBelowMinCount, setVisibleBelowMinCount] =
     useState(INITIAL_BATCH_SIZE);
@@ -2145,7 +2120,7 @@ export function SwapAssetSelector({
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
-  }, [deferredQuery, activeTab, selectedChainFilter]);
+  }, [query, activeTab, selectedChainFilter]);
 
   // Lazy loading is handled by the onScroll sentinel on the list container.
   // No unconditional pre-batching here — that would silently render all rows
@@ -2358,6 +2333,7 @@ export function SwapAssetSelector({
     const selectedInCurrent = isTokenSelectedInCurrentSlot(token);
     const locked = isLockedToken(token);
     const disabled = isDisabledByUnified || locked;
+
     return (
       <SwapTokenRow
         copiedTokenAddress={copiedTokenAddress}
@@ -2383,7 +2359,7 @@ export function SwapAssetSelector({
         showBelowMinimumInline ||
         getTokenFiatValue(token) >= MIN_FIAT_THRESHOLD ||
         isTokenSelectedForVisibility(token) ||
-        isPrioritySearchMatch(token, deferredQuery)
+        isPrioritySearchMatch(token, query)
     );
 
   const getUnifiedGroupDisplayState = (group: (typeof groupedFiltered)[0]) => {
@@ -2429,6 +2405,7 @@ export function SwapAssetSelector({
     const shouldHideIndividualRows =
       isUnifiedSelectedInGroup ||
       (!isMulti && (unifiedSelectedInOther || unifiedSelectedInCurrent));
+    const isGroupVerified = group.tokens.some((t) => t.verified !== false);
     const unifiedToken: SwapTokenOption = {
       ...group.tokens[0],
       ...sumTokenOptionBalances(group.tokens),
@@ -2441,6 +2418,7 @@ export function SwapAssetSelector({
       sourceTokens: group.tokens,
       symbol: group.symbol,
       unifiedSymbol: group.symbol as "USDC" | "USDT" | "ETH",
+      verified: isGroupVerified,
     };
 
     return {
@@ -2450,6 +2428,7 @@ export function SwapAssetSelector({
         (hasVisibleUnifiedRow || visibleTokensCount > 0),
       individualTokens,
       isExpanded,
+      isGroupVerified,
       isPartiallySelected,
       isUnifiedSelectedInGroup,
       shouldHideIndividualRows,
@@ -2576,6 +2555,25 @@ export function SwapAssetSelector({
                 >
                   UNIFIED
                 </span>
+                {!groupState.isGroupVerified && (
+                  <span
+                    style={{
+                      backgroundColor: "#FFFBEB",
+                      border: "1px solid #FDE68A",
+                      borderRadius: 4,
+                      color: "#B45309",
+                      fontFamily: '"Geist", system-ui, sans-serif',
+                      fontSize: isDesktop ? 10 : 9,
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                      lineHeight: isDesktop ? "14px" : "12px",
+                      padding: "1px 5px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Unverified
+                  </span>
+                )}
               </div>
               <ChainLogos isDesktop={isDesktop} tokens={group.tokens} />
             </div>
@@ -2672,145 +2670,33 @@ export function SwapAssetSelector({
     );
   };
 
-  type VisibleAssetRow =
-    | {
-        group: (typeof groupedFiltered)[0];
-        key: string;
-        kind: "group";
-        sortFiat: number;
-        sortLabel: string;
-      }
-    | {
-        key: string;
-        kind: "token";
-        sortFiat: number;
-        sortLabel: string;
-        token: SwapTokenOption;
-      };
-
-  const visibleAssetRows = useMemo(() => {
-    if (isMulti) return [] as VisibleAssetRow[];
-    const rows = groupedFiltered.flatMap<VisibleAssetRow>((group) => {
-      if (!group.isUnifiedCandidate) {
-        return getVisibleIndividualTokens(group).map((token) => ({
-          key: `token-${token.contractAddress}-${token.chainId}`,
-          kind: "token" as const,
-          sortFiat: getTokenFiatValue(token),
-          sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
-          token,
-        }));
-      }
-
-      const groupState = getUnifiedGroupDisplayState(group);
-      if (!groupState.hasVisibleRows) return [] as VisibleAssetRow[];
-
-      const groupRows: VisibleAssetRow[] = [];
-      if (!groupState.shouldHideUnifiedRow) {
-        groupRows.push({
-          group,
-          key: `unified-${group.symbol}`,
-          kind: "group",
-          sortFiat: group.totalFiat,
-          sortLabel: `${group.symbol} Unified`,
-        });
-      }
-      if (!groupState.shouldHideIndividualRows) {
-        for (const token of groupState.individualTokens) {
-          groupRows.push({
-            key: `token-${token.contractAddress}-${token.chainId}`,
-            kind: "token",
-            sortFiat: getTokenFiatValue(token),
-            sortLabel: `${token.symbol} ${token.chainName ?? ""}`,
-            token,
-          });
-        }
-      }
-      return groupRows;
-    });
-
-    // Pre-compute search scores per row so the sort comparator avoids
-    // O(N log N) redundant getTokenSearchRank calls.
-    const rowScoreCache = deferredQuery.trim()
-      ? new Map(
-          rows.map((row) => [
-            row.key,
-            row.kind === "token"
-              ? (getTokenSearchRank(row.token, deferredQuery)?.score ??
-                Number.MAX_SAFE_INTEGER)
-              : Math.min(
-                  ...row.group.tokens.map(
-                    (t) =>
-                      getTokenSearchRank(t, deferredQuery)?.score ??
-                      Number.MAX_SAFE_INTEGER
-                  )
-                ),
-          ])
-        )
-      : null;
-
-    return rows.sort((a, b) => {
-      if (deferredQuery.trim() && rowScoreCache) {
-        const scoreDelta =
-          (rowScoreCache.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
-          (rowScoreCache.get(b.key) ?? Number.MAX_SAFE_INTEGER);
-        if (scoreDelta !== 0) return scoreDelta;
-      }
-      const aHasBal =
-        a.sortFiat > 0 ||
-        (a.kind === "token"
-          ? tokenHasBalance(a.token)
-          : a.group.totalFiat > 0 || a.group.totalBalRaw > 0);
-      const bHasBal =
-        b.sortFiat > 0 ||
-        (b.kind === "token"
-          ? tokenHasBalance(b.token)
-          : b.group.totalFiat > 0 || b.group.totalBalRaw > 0);
-      if (aHasBal !== bHasBal) return aHasBal ? -1 : 1;
-      if (a.sortFiat !== b.sortFiat) return b.sortFiat - a.sortFiat;
-      const aToken = a.kind === "token" ? a.token : a.group.tokens[0];
-      const bToken = b.kind === "token" ? b.token : b.group.tokens[0];
-      const chainDelta = compareChainsBySwapDisplayOrder(aToken, bToken);
-      if (chainDelta !== 0) return chainDelta;
-      return a.sortLabel.localeCompare(b.sortLabel);
-    });
-  }, [
-    isMulti,
-    groupedFiltered,
-    deferredQuery,
-    activeSelectedTokens,
-    editingAssetIndex,
-    allowSelectedTokenRemoval,
-    showBelowMinimumInline,
-    preserveSelectedBelowMinimum,
-    lockedSelectedTokens,
-  ]);
-
   const isLoading = !staticOptions && swapBalance === null;
   const selectedAssetCount = activeSelectedTokens.length;
   const requiredUsdAmount = parseTokenAmount(requiredUsd);
-  const selectedUsdAmount = useMemo(
-    () =>
-      activeSelectedTokens.reduce((sum, token) => {
-        const countToken = (t: SwapTokenOption, value: Decimal) =>
-          value.gt(0) &&
-          (lockedSelectedTokens.some((locked) => sameTokenOption(locked, t)) ||
-            value.gte(MIN_FIAT_THRESHOLD));
-        if (token.isUnified && token.sourceTokens?.length) {
-          return sum.plus(
-            token.sourceTokens.reduce((sourceSum, source) => {
-              const value =
-                parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
-              return countToken(source, value)
-                ? sourceSum.plus(value)
-                : sourceSum;
-            }, new Decimal(0))
-          );
-        }
-        const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
-        return countToken(token, value) ? sum.plus(value) : sum;
-      }, new Decimal(0)),
-    [activeSelectedTokens, lockedSelectedTokens]
+  const shouldCountSelectedUsd = useCallback(
+    (token: SwapTokenOption, value: Decimal) =>
+      value.gt(0) &&
+      (lockedSelectedTokens.some((locked) => sameTokenOption(locked, token)) ||
+        value.gte(MIN_FIAT_THRESHOLD)),
+    [lockedSelectedTokens]
   );
+  const selectedUsdAmount = useMemo(() => {
+    return activeSelectedTokens.reduce((sum, token) => {
+      if (token.isUnified && token.sourceTokens?.length) {
+        return sum.plus(
+          token.sourceTokens.reduce((sourceSum, source) => {
+            const value =
+              parseTokenAmount(source.balanceInFiat) ?? new Decimal(0);
+            return shouldCountSelectedUsd(source, value)
+              ? sourceSum.plus(value)
+              : sourceSum;
+          }, new Decimal(0))
+        );
+      }
+      const value = parseTokenAmount(token.balanceInFiat) ?? new Decimal(0);
+      return shouldCountSelectedUsd(token, value) ? sum.plus(value) : sum;
+    }, new Decimal(0));
+  }, [activeSelectedTokens, shouldCountSelectedUsd]);
   const selectionDeficitUsdAmount =
     requiredUsdAmount && selectedUsdAmount.lt(requiredUsdAmount)
       ? requiredUsdAmount.minus(selectedUsdAmount)
@@ -3728,127 +3614,93 @@ export function SwapAssetSelector({
                       }}
                     >
                       <div style={{ minHeight: 0, overflow: "hidden" }}>
-                        {showBelowMin &&
-                          belowMin
-                            .slice(0, visibleBelowMinCount)
-                            .map((token, index) => (
+                        {belowMin.map((token, index) => (
+                          <div
+                            key={`${token.contractAddress}-${token.chainId}`}
+                            style={{
+                              alignItems: "center",
+                              borderTop:
+                                index === 0 ? "none" : "1px solid #F0F0EF",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              opacity: 0.58,
+                              padding: "8px 12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                alignItems: "center",
+                                display: "flex",
+                                gap: 9,
+                                minWidth: 0,
+                              }}
+                            >
                               <div
-                                key={`${token.contractAddress}-${token.chainId}`}
                                 style={{
-                                  alignItems: "center",
-                                  borderTop:
-                                    index === 0 ? "none" : "1px solid #F0F0EF",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  opacity: 0.58,
-                                  padding: "8px 12px",
+                                  flexShrink: 0,
+                                  height: 22,
+                                  position: "relative",
+                                  width: 22,
                                 }}
                               >
-                                <div
-                                  style={{
-                                    alignItems: "center",
-                                    display: "flex",
-                                    gap: 9,
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  <div
+                                <TokenLogo
+                                  backgroundColor="#C8C8C7"
+                                  fontSize={9}
+                                  size={22}
+                                  src={token.logo}
+                                  style={{ filter: "grayscale(0.2)" }}
+                                  symbol={token.symbol}
+                                />
+                                {token.chainLogo && (
+                                  <img
+                                    alt=""
+                                    src={token.chainLogo}
                                     style={{
-                                      flexShrink: 0,
-                                      height: 22,
-                                      position: "relative",
-                                      width: 22,
+                                      border: "1.5px solid #FFFFFE",
+                                      borderRadius: "999px",
+                                      bottom: -2,
+                                      filter: "grayscale(0.2)",
+                                      height: 10,
+                                      objectFit: "cover",
+                                      position: "absolute",
+                                      right: -2,
+                                      width: 10,
                                     }}
-                                  >
-                                    <TokenLogo
-                                      backgroundColor="#C8C8C7"
-                                      fontSize={9}
-                                      size={22}
-                                      src={token.logo}
-                                      style={{ filter: "grayscale(0.2)" }}
-                                      symbol={token.symbol}
-                                    />
-                                    {token.chainLogo && (
-                                      <img
-                                        alt=""
-                                        decoding="async"
-                                        loading="lazy"
-                                        src={token.chainLogo}
-                                        style={{
-                                          border: "1.5px solid #FFFFFE",
-                                          borderRadius: "999px",
-                                          bottom: -2,
-                                          filter: "grayscale(0.2)",
-                                          height: 10,
-                                          objectFit: "cover",
-                                          position: "absolute",
-                                          right: -2,
-                                          width: 10,
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                  <span
-                                    style={{
-                                      color: "#848483",
-                                      fontFamily:
-                                        '"Geist", system-ui, sans-serif',
-                                      fontSize: 12,
-                                      fontWeight: 500,
-                                      lineHeight: "18px",
-                                      minWidth: 0,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
-                                    {token.symbol} on{" "}
-                                    {token.chainName || "Unknown chain"}
-                                  </span>
-                                </div>
-                                <span
-                                  style={{
-                                    color: "#848483",
-                                    flexShrink: 0,
-                                    fontFamily:
-                                      '"Geist", system-ui, sans-serif',
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    lineHeight: "18px",
-                                    marginLeft: 12,
-                                  }}
-                                >
-                                  {getTotalBalanceInFiat(token)}
-                                </span>
+                                  />
+                                )}
                               </div>
-                            ))}
-                        {showBelowMin &&
-                          visibleBelowMinCount < belowMin.length && (
-                            <button
-                              onClick={() =>
-                                setVisibleBelowMinCount((c) =>
-                                  Math.min(belowMin.length, c + BATCH_INCREMENT)
-                                )
-                              }
+                              <span
+                                style={{
+                                  color: "#848483",
+                                  fontFamily: '"Geist", system-ui, sans-serif',
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  lineHeight: "18px",
+                                  minWidth: 0,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {token.symbol} on{" "}
+                                {token.chainName || "Unknown chain"}
+                              </span>
+                            </div>
+                            <span
                               style={{
-                                background: "none",
-                                border: "none",
-                                color: "#006BF4",
-                                cursor: "pointer",
+                                color: "#848483",
+                                flexShrink: 0,
                                 fontFamily: '"Geist", system-ui, sans-serif',
-                                fontSize: "12px",
+                                fontSize: 12,
                                 fontWeight: 500,
-                                padding: "8px 12px",
-                                textAlign: "center",
-                                width: "100%",
+                                lineHeight: "18px",
+                                marginLeft: 12,
                               }}
-                              type="button"
                             >
-                              Load more tokens (
-                              {belowMin.length - visibleBelowMinCount}{" "}
-                              remaining)
-                            </button>
-                          )}
+                              {getTotalBalanceInFiat(token)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -4226,52 +4078,58 @@ export function SwapAssetSelector({
                     </button>
 
                     {/* Unique chains */}
-                    {filteredChainOptions.map((t) => (
-                      <button
-                        key={`chain-${t.chainId}`}
-                        onClick={() => {
-                          setSelectedChainFilter(t.chainId!);
-                          closeChainSelector();
-                        }}
-                        style={{
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 14px",
-                          backgroundColor: "transparent",
-                          border: "none",
-                          borderBottom: "1px solid #F0F0EF",
-                          cursor: "pointer",
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        <RadioDot
-                          selected={selectedChainFilter === t.chainId}
-                        />
-                        <img
-                          alt={t.chainName}
-                          src={t.chainLogo}
-                          style={{
-                            marginLeft: 10,
-                            width: 28,
-                            height: 28,
-                            borderRadius: "999px",
-                            objectFit: "cover",
+                    {chainOptions
+                      .filter((t) =>
+                        (t.chainName || "")
+                          .toLowerCase()
+                          .includes(chainQuery.toLowerCase())
+                      )
+                      .map((t) => (
+                        <button
+                          key={`chain-${t.chainId}`}
+                          onClick={() => {
+                            setSelectedChainFilter(t.chainId!);
+                            closeChainSelector();
                           }}
-                        />
-                        <span
                           style={{
-                            fontFamily: '"Geist", system-ui, sans-serif',
-                            fontSize: 14,
-                            fontWeight: 500,
-                            marginLeft: 10,
-                            color: "#161615",
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "8px 14px",
+                            backgroundColor: "transparent",
+                            border: "none",
+                            borderBottom: "1px solid #F0F0EF",
+                            cursor: "pointer",
+                            boxSizing: "border-box",
                           }}
                         >
-                          {t.chainName}
-                        </span>
-                      </button>
-                    ))}
+                          <RadioDot
+                            selected={selectedChainFilter === t.chainId}
+                          />
+                          <img
+                            alt={t.chainName}
+                            src={t.chainLogo}
+                            style={{
+                              marginLeft: 10,
+                              width: 28,
+                              height: 28,
+                              borderRadius: "999px",
+                              objectFit: "cover",
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontFamily: '"Geist", system-ui, sans-serif',
+                              fontSize: 14,
+                              fontWeight: 500,
+                              marginLeft: 10,
+                              color: "#161615",
+                            }}
+                          >
+                            {t.chainName}
+                          </span>
+                        </button>
+                      ))}
                   </div>
                 </div>
               </div>

@@ -61,6 +61,16 @@ export type BridgeProvider = "nexus" | IntentProvider | null;
 export interface SwapIntentData {
   bridgeProvider?: BridgeProvider;
   destination: SwapIntentDestination;
+  executionWarnings?: Array<{
+    code: "INSUFFICIENT_BALANCE";
+    message: string;
+    shortfalls: Array<{
+      actualRaw: bigint;
+      chainId: number;
+      requiredRaw: bigint;
+      tokenAddress: string;
+    }>;
+  }>;
   feesAndBuffer?: {
     buffer?: string;
     bridge?:
@@ -81,6 +91,7 @@ export interface SwapIntentData {
       | string
       | null;
   };
+  isExecutable?: boolean;
   sources: SwapIntentSource[];
 }
 
@@ -98,11 +109,14 @@ export interface SwapIntentPreviewProps {
   fromToken?: SwapTokenOption;
   fromTokens?: SwapTokenOption[];
   intentData?: SwapIntentData | null;
+  isExecutable?: boolean;
   isExecuting?: boolean;
   isLoading?: boolean;
   isRefreshing?: boolean;
   mode?: NexusOneMode;
+  needsWalletConnection?: boolean;
   onAccept: () => void;
+  onConnectWallet?: () => void;
   onReject: () => void;
   onTransitionChange?: (isTransitioning: boolean) => void;
   opportunity?: NexusOneDepositMetadata;
@@ -705,7 +719,10 @@ export function SwapIntentPreview({
   activeMode,
   steps,
   explorerUrls,
+  isExecutable,
+  needsWalletConnection,
   onAccept,
+  onConnectWallet,
   onTransitionChange,
 }: SwapIntentPreviewProps) {
   const [showSourceDetails, setShowSourceDetails] = useState(false);
@@ -1471,12 +1488,32 @@ export function SwapIntentPreview({
     token: destinationVisuals.tokenLogo || "",
   };
 
-  const ctaLabel =
-    flowMode === "deposit"
-      ? "Deposit now"
-      : flowMode === "send" || hasRecipientTransfer
-        ? "Send now"
-        : "Swap now";
+  const isQuoteNonExecutable =
+    isExecutable === false || intentData?.isExecutable === false;
+  const ctaLabel = needsWalletConnection
+    ? "Connect wallet"
+    : isQuoteNonExecutable
+      ? "Insufficient balance"
+      : flowMode === "deposit"
+        ? "Deposit now"
+        : flowMode === "send" || hasRecipientTransfer
+          ? "Send now"
+          : "Swap now";
+
+  const isButtonDisabled =
+    isLoading ||
+    isRefreshing ||
+    isExecuting ||
+    quoteUnavailable ||
+    (!needsWalletConnection && isQuoteNonExecutable);
+
+  const handleButtonClick = () => {
+    if (needsWalletConnection) {
+      onConnectWallet?.();
+      return;
+    }
+    onAccept();
+  };
   const swapBufferRefundMessage = `Excess funds are refunded as USDC on ${destChainName || "the destination chain"}`;
 
   return (
@@ -2005,13 +2042,10 @@ export function SwapIntentPreview({
       <IntentProviderBanner provider={intentData?.bridgeProvider} />
 
       <Button
-        disabled={isLoading || isRefreshing || isExecuting || quoteUnavailable}
-        onClick={onAccept}
+        disabled={isButtonDisabled}
+        onClick={handleButtonClick}
         style={{
-          background:
-            isLoading || isRefreshing || isExecuting || quoteUnavailable
-              ? "#CBCBCB"
-              : "#1F1F1F",
+          background: isButtonDisabled ? "#CBCBCB" : "#1F1F1F",
           borderRadius: "10px",
           boxShadow:
             "#FFFFFF14 0px 1px 0px inset, #00000033 0px 1px 2px, #14141E40 0px 7px 18px",

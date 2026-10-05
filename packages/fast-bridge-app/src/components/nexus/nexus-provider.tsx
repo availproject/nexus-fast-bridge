@@ -7,6 +7,7 @@ import {
   type NexusNetwork,
 } from "@avail-project/nexus-core";
 import { getCoinbaseRates } from "@avail-project/nexus-core/utils";
+import type { NexusChannel } from "@/config/nexus-env";
 import { type NormalizedUserAsset, normalizeUserAssets } from "./balance-utils";
 import {
   type ChainBalance,
@@ -109,6 +110,7 @@ interface NexusContextType {
   network?: NexusNetwork;
   nexusInitError: string | null;
   nexusSDK: NexusClient | null;
+  readOnlySdk: NexusClient | null;
   resolveTokenUsdRate: (tokenSymbol: string) => Promise<number | null>;
   setAllowance: (data: LegacyAllowanceHookData | null) => void;
   setIntent: (data: LegacyIntentHookData | null) => void;
@@ -280,7 +282,12 @@ const NexusProvider = ({
     let cancelled = false;
     setNexusInitError(null);
     console.log("NEXUS CONFIG", stableConfig);
-    const nextSdk = createNexusClient({
+    const createClient = createNexusClient as (
+      config: Parameters<typeof createNexusClient>[0] & {
+        channel?: NexusChannel;
+      }
+    ) => NexusClient;
+    const nextSdk = createClient({
       clientId: "nexus-fast-bridge",
       network: stableConfig.network,
       channel: stableConfig.channel,
@@ -597,7 +604,12 @@ const NexusProvider = ({
       setNexusInitError(null);
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
-        const nextSdk = createNexusClient({
+        const createClient = createNexusClient as (
+          config: Parameters<typeof createNexusClient>[0] & {
+            channel?: NexusChannel;
+          }
+        ) => NexusClient;
+        const nextSdk = createClient({
           clientId: "nexus-fast-bridge",
           network: stableConfig.network,
           channel: stableConfig.channel,
@@ -794,6 +806,7 @@ const NexusProvider = ({
   const value = useMemo(
     () => ({
       nexusSDK,
+      readOnlySdk: sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
@@ -820,6 +833,7 @@ const NexusProvider = ({
     }),
     [
       nexusSDK,
+      sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
