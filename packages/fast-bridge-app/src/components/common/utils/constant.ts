@@ -273,6 +273,7 @@ export function getSdkSwapSupportedChainIds(
     }
   }
   supportedIds.add(SUPPORTED_CHAINS.ARC);
+  supportedIds.add(SUPPORTED_CHAINS.CITREA);
 
   return supportedIds;
 }
@@ -284,7 +285,10 @@ export function isSwapSupportedBySdkChainList(
   if (!chainId) {
     return false;
   }
-  if (Number(chainId) === SUPPORTED_CHAINS.ARC) {
+  if (
+    Number(chainId) === SUPPORTED_CHAINS.ARC ||
+    Number(chainId) === SUPPORTED_CHAINS.CITREA
+  ) {
     return true;
   }
 

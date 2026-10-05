@@ -613,6 +613,9 @@ export const isTokenSupportedForRole = (
   if (!chains || chainId === undefined) {
     return true;
   }
+  if (chainId === SUPPORTED_CHAINS.CITREA || chainId === SUPPORTED_CHAINS.ARC) {
+    return true;
+  }
   const chain = chainById(chains, chainId);
   if (!chain) {
     return false;

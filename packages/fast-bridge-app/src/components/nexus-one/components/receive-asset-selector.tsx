@@ -48,6 +48,7 @@ import {
 import {
   CITREA_CHAIN_ID,
   CITREA_STABLE_SYMBOLS,
+  findCitreaReceiveToken,
   getCitreaChainMeta,
   getCitreaReceiveTokenOptions,
 } from "../utils/citrea-tokens";
@@ -425,7 +426,7 @@ const normalizeReceiveTokenAddress = (address?: string) => {
 export const getCachedReceiveTokenMatch = (
   token?: SwapTokenOption | null
 ): SwapTokenOption | null => {
-  if (!token?.chainId || !rawTokensCache) return null;
+  if (!token?.chainId) return null;
 
   if (isArcNativeUsdc(token)) {
     return {
@@ -433,6 +434,22 @@ export const getCachedReceiveTokenMatch = (
       decimals: 18,
     };
   }
+
+  if (token.chainId === CITREA_CHAIN_ID) {
+    const citreaToken = findCitreaReceiveToken({
+      address: token.contractAddress,
+      chainId: token.chainId,
+      symbol: token.symbol,
+    });
+    if (citreaToken) {
+      return {
+        ...token,
+        ...citreaToken,
+      };
+    }
+  }
+
+  if (!rawTokensCache) return null;
 
   const chainTokens = (
     rawTokensCache.tokens[String(token.chainId)] ?? []
@@ -472,7 +489,24 @@ export const getCachedTokenByAddress = (
   name?: string;
   symbol?: string;
 } | null => {
-  if (!chainId || !address || !rawTokensCache) return null;
+  if (!chainId || !address) return null;
+
+  if (chainId === CITREA_CHAIN_ID) {
+    const citreaToken = findCitreaReceiveToken({
+      address,
+      chainId,
+    });
+    if (citreaToken) {
+      return {
+        decimals: citreaToken.decimals ?? 18,
+        logo: citreaToken.logo,
+        name: citreaToken.name,
+        symbol: citreaToken.symbol,
+      };
+    }
+  }
+
+  if (!rawTokensCache) return null;
   const chainTokens = (rawTokensCache.tokens[String(chainId)] ?? []).filter(
     (candidate) => !isExcludedTokenAddress(candidate.address)
   );
@@ -1147,6 +1181,7 @@ export function ReceiveAssetSelector({
     for (const asset of swapBalance ?? []) {
       for (const bd of asset.breakdown ?? []) {
         if (
+          bd.chain?.id !== CITREA_CHAIN_ID &&
           !isSwapSupportedBySdkChainList(
             bd.chain?.id,
             swapSupportedChainsAndTokens
@@ -1186,6 +1221,7 @@ export function ReceiveAssetSelector({
 
     return apiTokens.flatMap((token) => {
       if (
+        token.chainId !== CITREA_CHAIN_ID &&
         !isTokenSupportedForRole(
           swapSupportedChainsAndTokens,
           "destination",
@@ -1200,15 +1236,17 @@ export function ReceiveAssetSelector({
       const balance = balanceMap.get(
         getTokenBalanceKey(token.chainId, token.contractAddress) ?? ""
       );
-      const disabledReason = isTokenSupportedForRole(
-        routeSupportedChains,
-        "destination",
-        token.chainId,
-        token.contractAddress,
-        token.providers
-      )
-        ? undefined
-        : "Unavailable for the selected source";
+      const disabledReason =
+        token.chainId === CITREA_CHAIN_ID ||
+        isTokenSupportedForRole(
+          routeSupportedChains,
+          "destination",
+          token.chainId,
+          token.contractAddress,
+          token.providers
+        )
+          ? undefined
+          : "Unavailable for the selected source";
       return [
         balance
           ? { ...token, ...balance, disabledReason }
@@ -1246,18 +1284,14 @@ export function ReceiveAssetSelector({
     const nextIds = new Set(
       supportedIds ? supportedIds : Array.from(SUPPORTED_RECEIVE_CHAIN_IDS)
     );
-    if (
-      !sdkSwapSupportedChainIds ||
-      sdkSwapSupportedChainIds.has(CITREA_CHAIN_ID)
-    ) {
-      nextIds.add(CITREA_CHAIN_ID);
-    }
+    nextIds.add(CITREA_CHAIN_ID);
     nextIds.add(SUPPORTED_CHAINS.ARC);
 
     return sortChainIdsBySwapDisplayOrder(
       Array.from(nextIds).filter(
         (id) =>
           id === SUPPORTED_CHAINS.ARC ||
+          id === CITREA_CHAIN_ID ||
           (sdkSwapSupportedChainIds
             ? sdkSwapSupportedChainIds.has(id)
             : SUPPORTED_RECEIVE_CHAIN_IDS.has(id) &&

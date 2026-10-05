@@ -137,7 +137,7 @@ import {
 } from "./types";
 import { isArcNativeUsdc } from "./utils/arc-tokens";
 import { markIntentLegsFulfilled } from "./utils/better-intent-progress";
-import { findCitreaReceiveToken } from "./utils/citrea-tokens";
+import { CITREA_CHAIN_ID, findCitreaReceiveToken } from "./utils/citrea-tokens";
 import {
   type DepositSourceFilter,
   getDepositSourceId,
@@ -188,11 +188,13 @@ interface SwapHistoryEntry {
   intentData: SwapIntentData | null;
   intentExplorerUrl?: string | null;
   intentId?: string;
+  intentRequestHash?: string;
   mode: NexusOneMode;
   opportunity?: NexusOneDepositMetadata;
   recipientAddress?: string;
   requestedToAmount?: string;
   requestedToValue?: string;
+  requestHash?: string;
   sourceExplorerUrl?: string | null;
   startedAt: number;
   status: SwapHistoryStatus;
@@ -484,17 +486,203 @@ const sanitizeOpportunityForHistory = (
   };
 };
 
-const sanitizeHistoryEntry = (entry: SwapHistoryEntry): SwapHistoryEntry => ({
-  ...entry,
-  createdAt: entry.createdAt ?? entry.startedAt ?? Date.now(),
-  error: entry.error ? getReceiptErrorMessage(entry) : undefined,
-  failureDescription: entry.failureDescription
-    ? getUserFacingError(entry.failureDescription, TRANSACTION_STATUS_MESSAGE)
-    : undefined,
-  failureMessage:
-    entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
-  opportunity: sanitizeOpportunityForHistory(entry.opportunity),
-});
+const isHttpUrl = (value?: string | null): value is string =>
+  Boolean(value && /^https?:\/\//i.test(value));
+
+const getTransactionHash = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (/^0x[a-fA-F0-9]{64}$/.test(trimmed)) return trimmed;
+    if (/^[a-fA-F0-9]{64}$/.test(trimmed)) return `0x${trimmed}`;
+  }
+  return null;
+};
+
+const getIntentHash = (...values: unknown[]) => getTransactionHash(...values);
+
+const getObjectIntentHash = (value: any) =>
+  getIntentHash(
+    value?.intentHash,
+    value?.intent_hash,
+    value?.intentRequestHash,
+    value?.intent_request_hash,
+    value?.intentId,
+    value?.intent_id,
+    value?.intent?.hash,
+    value?.intent?.intentHash,
+    value?.intent?.intent_hash,
+    value?.intent?.intentRequestHash,
+    value?.intent?.intent_request_hash,
+    value?.intent?.intentId,
+    value?.intent?.intent_id,
+    value?.requestHash,
+    value?.request_hash,
+    value?.request?.hash,
+    value?.request?.requestHash,
+    value?.request?.request_hash,
+    value?.rffHash,
+    value?.rff_hash,
+    value?.rff?.hash,
+    value?.data?.intentHash,
+    value?.data?.intent_hash,
+    value?.data?.intentRequestHash,
+    value?.data?.intent_request_hash,
+    value?.data?.intentId,
+    value?.data?.intent_id,
+    value?.data?.intent?.hash,
+    value?.data?.intent?.intentHash,
+    value?.data?.intent?.intent_hash,
+    value?.data?.requestHash,
+    value?.data?.request_hash,
+    value?.data?.request?.hash,
+    value?.data?.request?.requestHash,
+    value?.data?.rffHash,
+    value?.data?.rff_hash,
+    value?.data?.rff?.hash,
+    value?.result?.intentHash,
+    value?.result?.intent_hash,
+    value?.result?.intentRequestHash,
+    value?.result?.intent_request_hash,
+    value?.result?.intentId,
+    value?.result?.intent_id,
+    value?.result?.intent?.hash,
+    value?.result?.requestHash,
+    value?.result?.request_hash,
+    value?.result?.rffHash,
+    value?.result?.rff_hash,
+    value?.step?.intentRequestHash,
+    value?.step?.intent_request_hash,
+    value?.step?.intentHash,
+    value?.step?.intent_hash,
+    value?.step?.intentId,
+    value?.step?.intent_id,
+    value?.step?.requestHash,
+    value?.step?.request_hash,
+    value?.payload?.intentRequestHash,
+    value?.payload?.intent_request_hash,
+    value?.payload?.intentHash,
+    value?.payload?.intent_hash,
+    value?.payload?.intentId,
+    value?.payload?.intent_id,
+    value?.payload?.requestHash,
+    value?.payload?.request_hash
+  );
+
+const getNexusExplorerNetwork = (network?: unknown) => {
+  const normalized =
+    typeof network === "string" ? network.trim().toLowerCase() : "";
+  if (normalized === "canary" || normalized === "testnet") return normalized;
+  return "mainnet";
+};
+
+const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
+  intentHash
+    ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
+    : null;
+
+const getEntryIntentHash = (entry?: unknown): string | null => {
+  if (!entry || typeof entry !== "object") return null;
+  const e = entry as Record<string, unknown>;
+
+  const directHash = getIntentHash(
+    e.intentRequestHash,
+    e.intent_request_hash,
+    e.requestHash,
+    e.request_hash,
+    e.intentHash,
+    e.intent_hash,
+    e.rffHash,
+    e.rff_hash,
+    e.intentId,
+    e.intent_id,
+    e.intentExplorerUrl
+  );
+  if (directHash) return directHash;
+
+  if (e.intentData && typeof e.intentData === "object") {
+    const dataHash = getObjectIntentHash(e.intentData);
+    if (dataHash) return dataHash;
+  }
+
+  if (typeof e.intentExplorerUrl === "string") {
+    const extracted = extractIntentIdFromUrl(e.intentExplorerUrl);
+    const extractedHash = getIntentHash(extracted);
+    if (extractedHash) return extractedHash;
+    if (extracted && /^[a-zA-Z0-9_-]+$/.test(extracted)) return extracted;
+  }
+
+  if (e.intentId !== undefined && e.intentId !== null) {
+    const str = String(e.intentId).trim();
+    if (str.length > 0 && /^(?:0x)?[a-zA-Z0-9_-]+$/.test(str)) {
+      return str.startsWith("0x") || !/^[a-fA-F0-9]{64}$/.test(str)
+        ? str
+        : `0x${str}`;
+    }
+  }
+
+  return null;
+};
+
+const getEntryIntentExplorerUrl = (
+  entry?: unknown,
+  network?: unknown
+): string | null => {
+  if (!entry || typeof entry !== "object") return null;
+  const e = entry as Record<string, unknown>;
+
+  if (isHttpUrl(e.intentExplorerUrl as string | null | undefined)) {
+    return (e.intentExplorerUrl as string).trim();
+  }
+
+  const hash = getEntryIntentHash(entry);
+  if (hash) {
+    return getRffExplorerUrl(network, hash);
+  }
+
+  return null;
+};
+
+const hasValidIntentExplorer = (
+  entry: Pick<SwapHistoryEntry, "intentExplorerUrl"> | unknown,
+  network?: unknown
+) => Boolean(getEntryIntentExplorerUrl(entry, network));
+
+const getHistoryExplorerUrl = (
+  entry: Pick<
+    SwapHistoryEntry,
+    "finalExplorerUrl" | "intentExplorerUrl" | "sourceExplorerUrl"
+  > &
+    Record<string, unknown>,
+  network?: unknown
+) => {
+  const directIntentUrl = getEntryIntentExplorerUrl(entry, network);
+  return (
+    [directIntentUrl, entry.finalExplorerUrl, entry.sourceExplorerUrl].find(
+      isHttpUrl
+    ) ?? null
+  );
+};
+
+const sanitizeHistoryEntry = (entry: SwapHistoryEntry): SwapHistoryEntry => {
+  const resolvedIntentUrl = getEntryIntentExplorerUrl(entry);
+  const resolvedIntentHash = getEntryIntentHash(entry);
+  return {
+    ...entry,
+    createdAt: entry.createdAt ?? entry.startedAt ?? Date.now(),
+    error: entry.error ? getReceiptErrorMessage(entry) : undefined,
+    failureDescription: entry.failureDescription
+      ? getUserFacingError(entry.failureDescription, TRANSACTION_STATUS_MESSAGE)
+      : undefined,
+    failureMessage:
+      entry.status === "timeout" ? TIMEOUT_LABEL : entry.failureMessage,
+    opportunity: sanitizeOpportunityForHistory(entry.opportunity),
+    intentId: entry.intentId ?? resolvedIntentHash ?? undefined,
+    intentExplorerUrl:
+      resolvedIntentUrl ??
+      (isHttpUrl(entry.intentExplorerUrl) ? entry.intentExplorerUrl : null),
+  };
+};
 
 const sortSwapHistoryEntries = (entries: SwapHistoryEntry[]) =>
   [...entries].sort(
@@ -537,6 +725,18 @@ const normalizeStoredHistoryEntry = (
     return null;
   }
 
+  const resolvedIntentHash = getEntryIntentHash(entry);
+  const resolvedIntentUrl = getEntryIntentExplorerUrl(entry);
+  const rawIntentId = (entry as { intentId?: unknown }).intentId;
+  const intentId =
+    resolvedIntentHash ||
+    (typeof rawIntentId === "string" || typeof rawIntentId === "number"
+      ? String(rawIntentId)
+      : undefined);
+  const intentExplorerUrl =
+    resolvedIntentUrl ??
+    (isHttpUrl(entry.intentExplorerUrl) ? entry.intentExplorerUrl : null);
+
   return {
     ...entry,
     id: entry.id,
@@ -556,11 +756,8 @@ const normalizeStoredHistoryEntry = (
         : entry.autoRefundAvailable || entry.status === "refund-initiated"
           ? "Transfer failed. Check transaction status."
           : entry.failureMessage,
-    intentId:
-      typeof (entry as { intentId?: unknown }).intentId === "string" ||
-      typeof (entry as { intentId?: unknown }).intentId === "number"
-        ? String((entry as { intentId: string | number }).intentId)
-        : undefined,
+    intentId,
+    intentExplorerUrl,
     intentData: entry.intentData ?? null,
     fromTokens: Array.isArray(entry.fromTokens) ? entry.fromTokens : [],
     opportunity: sanitizeOpportunityForHistory(entry.opportunity),
@@ -875,25 +1072,6 @@ const getNonEmptyString = (...values: unknown[]) => {
   return null;
 };
 
-const isHttpUrl = (value?: string | null): value is string =>
-  Boolean(value && /^https?:\/\//i.test(value));
-
-const hasValidIntentExplorer = (
-  entry: Pick<SwapHistoryEntry, "intentExplorerUrl">
-) => isHttpUrl(entry.intentExplorerUrl);
-
-const getHistoryExplorerUrl = (
-  entry: Pick<
-    SwapHistoryEntry,
-    "finalExplorerUrl" | "intentExplorerUrl" | "sourceExplorerUrl"
-  >
-) =>
-  [
-    entry.intentExplorerUrl,
-    entry.finalExplorerUrl,
-    entry.sourceExplorerUrl,
-  ].find(isHttpUrl) ?? null;
-
 const getFiniteNumber = (...values: unknown[]) => {
   for (const value of values) {
     if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -955,64 +1133,6 @@ const getExplorerBaseUrl = (chainId?: number, ...candidates: unknown[]) => {
       : undefined
   );
 };
-
-const getTransactionHash = (...values: unknown[]) => {
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const trimmed = value.trim();
-    if (/^0x[a-fA-F0-9]{64}$/.test(trimmed)) return trimmed;
-  }
-  return null;
-};
-
-const getIntentHash = (...values: unknown[]) => getTransactionHash(...values);
-
-const getObjectIntentHash = (value: any) =>
-  getIntentHash(
-    value?.intentHash,
-    value?.intent_hash,
-    value?.intent?.hash,
-    value?.intent?.intentHash,
-    value?.intent?.intent_hash,
-    value?.requestHash,
-    value?.request_hash,
-    value?.request?.hash,
-    value?.request?.requestHash,
-    value?.rffHash,
-    value?.rff_hash,
-    value?.rff?.hash,
-    value?.data?.intentHash,
-    value?.data?.intent_hash,
-    value?.data?.intent?.hash,
-    value?.data?.intent?.intentHash,
-    value?.data?.intent?.intent_hash,
-    value?.data?.requestHash,
-    value?.data?.request_hash,
-    value?.data?.request?.hash,
-    value?.data?.request?.requestHash,
-    value?.data?.rffHash,
-    value?.data?.rff_hash,
-    value?.data?.rff?.hash,
-    value?.result?.intentHash,
-    value?.result?.intent_hash,
-    value?.result?.intent?.hash,
-    value?.result?.requestHash,
-    value?.result?.request_hash,
-    value?.result?.rffHash,
-    value?.result?.rff_hash
-  );
-
-const getNexusExplorerNetwork = (network?: unknown) => {
-  const normalized =
-    typeof network === "string" ? network.trim().toLowerCase() : "";
-  if (normalized === "canary" || normalized === "testnet") return normalized;
-  return "mainnet";
-};
-
-const getRffExplorerUrl = (network: unknown, intentHash?: string | null) =>
-  intentHash
-    ? `https://nexus-v2.${getNexusExplorerNetwork(network)}.avail.so/rff/${intentHash}`
-    : null;
 
 type IntentExplorerUrls = {
   sourceExplorerUrl: string | null;
@@ -1963,9 +2083,15 @@ const getGenericEventHash = (event: any, step?: any) =>
     event?.hash,
     event?.data?.hash,
     event?.result?.hash,
+    event?.intentRequestHash,
+    event?.intentId,
+    event?.requestHash,
     step?.hash,
     step?.data?.hash,
-    step?.result?.hash
+    step?.result?.hash,
+    step?.intentRequestHash,
+    step?.intentId,
+    step?.requestHash
   );
 
 const getEventIntentExplorerUrl = (
@@ -2393,6 +2519,7 @@ function SwapReceiptPanel({
   ownerAddress?: string;
   visualSources?: TokenVisualSources;
 }) {
+  const { appConfig } = useRuntime();
   const { address: connectedAddress } = useAccount();
   const ownerAddress = propOwnerAddress ?? connectedAddress;
   const [showSourceDetails, setShowSourceDetails] = useState(false);
@@ -2424,11 +2551,15 @@ function SwapReceiptPanel({
     isExactOut && entry.requestedToValue ? entry.requestedToValue : undefined;
   const value = requestedExactOutValue || destination?.value;
   const displayAmount = requestedExactOutAmount || amount;
-  const showIntentExplorer = hasValidIntentExplorer(entry);
-  const intentLabel = entry.intentId
-    ? // ? `Intent #${entry.intentId}`
-      "View Intent"
-    : "View Explorer";
+  const intentExplorerUrl = getEntryIntentExplorerUrl(
+    entry,
+    appConfig.nexusNetwork
+  );
+  const showIntentExplorer = Boolean(intentExplorerUrl);
+  const intentLabel =
+    entry.intentId || getEntryIntentHash(entry)
+      ? "View Intent"
+      : "View Explorer";
   const sourceRows = getSourceRows(entry, visualSources);
   const sourceCount = sourceRows.length;
   const sourceTotalUsd = sourceRows.reduce(
@@ -2716,7 +2847,7 @@ function SwapReceiptPanel({
               Intent Explorer
             </span>
             <a
-              href={entry.intentExplorerUrl ?? undefined}
+              href={intentExplorerUrl ?? undefined}
               rel="noopener noreferrer"
               style={{ color: "#006BF4", fontFamily: uiFont, fontSize: "14px" }}
               target="_blank"
@@ -2884,6 +3015,7 @@ function SwapHistoryPanel({
   now: number;
   visualSources?: TokenVisualSources;
 }) {
+  const { appConfig } = useRuntime();
   if (entries.length === 0) {
     return (
       <div
@@ -2991,7 +3123,10 @@ function SwapHistoryPanel({
           entry.status === "failed" && Boolean(entry.autoRefundAvailable);
         const status = canShowRefund ? "refund-initiated" : entry.status;
         const sourceRows = getSourceRows(entry, visualSources);
-        const historyExplorerUrl = getHistoryExplorerUrl(entry);
+        const historyExplorerUrl = getHistoryExplorerUrl(
+          entry,
+          appConfig.nexusNetwork
+        );
 
         return (
           <div
@@ -4159,6 +4294,10 @@ function NexusOneInner({
       !toToken?.chainId ||
       !swapSupportedChainsAndTokens
     ) {
+      return;
+    }
+
+    if (toToken.chainId === CITREA_CHAIN_ID) {
       return;
     }
 
@@ -6700,7 +6839,20 @@ function NexusOneInner({
     if (!id) return;
     setSwapHistory((prev) =>
       sortSwapHistoryEntries(
-        prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry))
+        prev.map((entry) => {
+          if (entry.id !== id) return entry;
+          const merged = { ...entry, ...patch };
+          if (!merged.intentExplorerUrl) {
+            const derivedUrl = getEntryIntentExplorerUrl(
+              merged,
+              appConfig.nexusNetwork
+            );
+            if (derivedUrl) {
+              merged.intentExplorerUrl = derivedUrl;
+            }
+          }
+          return merged;
+        })
       )
     );
   };
@@ -6841,6 +6993,13 @@ function NexusOneInner({
       toToken && destinationBalance
         ? { ...toToken, ...destinationBalance }
         : toToken;
+    const initialIntentHash =
+      extractIntentIdFromUrl(intentUrlRef.current) ??
+      getObjectIntentHash(intentData);
+    const initialIntentExplorerUrl = isHttpUrl(intentUrlRef.current)
+      ? intentUrlRef.current
+      : getRffExplorerUrl(appConfig.nexusNetwork, initialIntentHash);
+
     const entry: SwapHistoryEntry = {
       id,
       mode: activeMode,
@@ -6860,10 +7019,8 @@ function NexusOneInner({
       feeUsd: intentFeeUsd,
       sourceExplorerUrl: null,
       finalExplorerUrl: null,
-      intentExplorerUrl: isHttpUrl(intentUrlRef.current)
-        ? intentUrlRef.current
-        : null,
-      intentId: extractIntentIdFromUrl(intentUrlRef.current),
+      intentExplorerUrl: initialIntentExplorerUrl,
+      intentId: initialIntentHash ?? undefined,
       autoRefundAvailable: false,
     };
 
@@ -6885,6 +7042,13 @@ function NexusOneInner({
   ) => {
     const now = Date.now();
     const startedAt = currentSwapStartedAtRef.current || now;
+    const resolvedIntentExplorerUrl =
+      patch.intentExplorerUrl ||
+      intentUrlRef.current ||
+      getEntryIntentExplorerUrl(
+        { ...currentSwapEntry, ...patch },
+        appConfig.nexusNetwork
+      );
     patchSwapHistoryEntry(currentSwapIdRef.current, {
       status,
       endedAt: now,
@@ -6893,6 +7057,9 @@ function NexusOneInner({
       finalExplorerUrl:
         explorerUrlsRef.current.destinationExplorerUrl ??
         explorerUrlsRef.current.sourceExplorerUrl,
+      ...(resolvedIntentExplorerUrl
+        ? { intentExplorerUrl: resolvedIntentExplorerUrl }
+        : {}),
       ...patch,
     });
     scheduleTerminalBalanceRefresh();
@@ -9564,6 +9731,28 @@ function NexusOneInner({
     const handlePlanEvent = (event: any) => {
       if (event.type === "status") {
         appendIntentStatusEvent(event);
+        const statusUrl = getEventIntentExplorerUrl(
+          appConfig.nexusNetwork,
+          event
+        );
+        if (statusUrl) {
+          patchCurrentIntentExplorerUrl(statusUrl);
+        } else {
+          const statusHash =
+            getObjectIntentHash(event) ||
+            getGenericEventHash(event) ||
+            getIntentHash(
+              event?.intentId,
+              event?.intent_id,
+              event?.intentRequestHash,
+              event?.intent_request_hash
+            );
+          if (statusHash) {
+            patchCurrentIntentExplorerUrl(
+              getRffExplorerUrl(appConfig.nexusNetwork, statusHash)
+            );
+          }
+        }
         return;
       }
 
@@ -9858,6 +10047,7 @@ function NexusOneInner({
           explorerUrlsRef.current.destinationExplorerUrl ||
           explorerUrlsRef.current.sourceExplorerUrl;
         let result: any = null;
+        let isExternalProviderIntent = false;
 
         if (hasCustomSwapRecipient && resolvedRecipientAddress) {
           const sdkWithOptionalTransfer = nexusSDK as any;
@@ -9883,7 +10073,18 @@ function NexusOneInner({
             );
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
+              getObjectIntentHash(result) ??
+              getObjectIntentHash(swapResult) ??
               currentSwapEntry?.intentId;
+            isExternalProviderIntent = isExternalIntentProvider(
+              getSdkIntentProvider(result, swapResult)
+            );
+            if (!intentExplorerUrl && !isExternalProviderIntent && intentId) {
+              intentExplorerUrl = getRffExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              );
+            }
             const resultFinalExplorerUrl =
               getSdkExplorerUrl(result) ||
               getExplorerTxUrl(
@@ -9914,7 +10115,17 @@ function NexusOneInner({
             );
             intentId =
               extractIntentIdFromUrl(intentExplorerUrl) ??
+              getObjectIntentHash(result) ??
               currentSwapEntry?.intentId;
+            isExternalProviderIntent = isExternalIntentProvider(
+              getSdkIntentProvider(result)
+            );
+            if (!intentExplorerUrl && !isExternalProviderIntent && intentId) {
+              intentExplorerUrl = getRffExplorerUrl(
+                appConfig.nexusNetwork,
+                intentId
+              );
+            }
 
             const latestSwapIntent = (
               swapIntentRef.current as unknown as {
@@ -9960,11 +10171,18 @@ function NexusOneInner({
           );
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
+            getObjectIntentHash(result) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
-          const isExternalProviderIntent = isExternalIntentProvider(
+          isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
+          if (!intentExplorerUrl && !isExternalProviderIntent && intentId) {
+            intentExplorerUrl = getRffExplorerUrl(
+              appConfig.nexusNetwork,
+              intentId
+            );
+          }
           const intentExplorerUrls = getSdkIntentExplorerUrls(
             result,
             swapResult,
@@ -10017,7 +10235,15 @@ function NexusOneInner({
             explorerUrlsRef.current.destinationExplorerUrl ||
             explorerUrlsRef.current.sourceExplorerUrl;
           const resolvedIntentExplorerUrl =
-            intentExplorerUrl || intentUrlRef.current;
+            (!isExternalProviderIntent &&
+              (intentExplorerUrl ||
+                intentUrlRef.current ||
+                getEntryIntentExplorerUrl(
+                  currentSwapEntry,
+                  appConfig.nexusNetwork
+                ) ||
+                getRffExplorerUrl(appConfig.nexusNetwork, intentId))) ||
+            null;
           const resolvedIntentId =
             intentId ??
             extractIntentIdFromUrl(resolvedIntentExplorerUrl) ??
@@ -10111,6 +10337,7 @@ function NexusOneInner({
           explorerUrlsRef.current.destinationExplorerUrl ||
           explorerUrlsRef.current.sourceExplorerUrl;
         let result: any = null;
+        let isExternalProviderIntent = false;
 
         const fromSourcesPayload = buildFromSourcesPayload(
           getExactOutSourceTokens()
@@ -10217,10 +10444,18 @@ function NexusOneInner({
           );
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
+            getObjectIntentHash(result) ??
+            getObjectIntentHash(swapResult) ??
             currentSwapEntry?.intentId;
-          const isExternalProviderIntent = isExternalIntentProvider(
+          isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
+          if (!intentExplorerUrl && !isExternalProviderIntent && intentId) {
+            intentExplorerUrl = getRffExplorerUrl(
+              appConfig.nexusNetwork,
+              intentId
+            );
+          }
           const intentExplorerUrls = getSdkIntentExplorerUrls(
             result,
             swapResult,
@@ -10256,11 +10491,19 @@ function NexusOneInner({
               setTransferExplorerUrl(finalExplorerUrl);
             }
           }
+          const resolvedPatchIntentUrl =
+            (!isExternalProviderIntent &&
+              (intentExplorerUrl ||
+                intentUrlRef.current ||
+                getRffExplorerUrl(appConfig.nexusNetwork, intentId))) ||
+            null;
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(!isExternalProviderIntent && intentExplorerUrl
-              ? { intentExplorerUrl }
-              : { intentExplorerUrl: null }),
+            ...(isExternalProviderIntent
+              ? { intentExplorerUrl: null }
+              : resolvedPatchIntentUrl
+                ? { intentExplorerUrl: resolvedPatchIntentUrl }
+                : {}),
             ...(intentId ? { intentId } : {}),
           });
         } else {
@@ -10289,11 +10532,18 @@ function NexusOneInner({
           );
           intentId =
             extractIntentIdFromUrl(intentExplorerUrl) ??
+            getObjectIntentHash(result) ??
             currentSwapEntry?.intentId;
           const swapResult = getSdkSwapResult(result);
-          const isExternalProviderIntent = isExternalIntentProvider(
+          isExternalProviderIntent = isExternalIntentProvider(
             getSdkIntentProvider(result, swapResult)
           );
+          if (!intentExplorerUrl && !isExternalProviderIntent && intentId) {
+            intentExplorerUrl = getRffExplorerUrl(
+              appConfig.nexusNetwork,
+              intentId
+            );
+          }
           const intentExplorerUrls = getSdkIntentExplorerUrls(
             result,
             swapResult,
@@ -10327,11 +10577,19 @@ function NexusOneInner({
           if (finalExplorerUrl) {
             setTransferExplorerUrl(finalExplorerUrl);
           }
+          const resolvedPatchIntentUrl =
+            (!isExternalProviderIntent &&
+              (intentExplorerUrl ||
+                intentUrlRef.current ||
+                getRffExplorerUrl(appConfig.nexusNetwork, intentId))) ||
+            null;
           patchCurrentSwapHistoryEntry({
             ...(finalExplorerUrl ? { finalExplorerUrl } : {}),
-            ...(!isExternalProviderIntent && intentExplorerUrl
-              ? { intentExplorerUrl }
-              : { intentExplorerUrl: null }),
+            ...(isExternalProviderIntent
+              ? { intentExplorerUrl: null }
+              : resolvedPatchIntentUrl
+                ? { intentExplorerUrl: resolvedPatchIntentUrl }
+                : {}),
             ...(intentId ? { intentId } : {}),
           });
         }
@@ -10345,7 +10603,15 @@ function NexusOneInner({
             explorerUrlsRef.current.destinationExplorerUrl ||
             explorerUrlsRef.current.sourceExplorerUrl;
           const resolvedIntentExplorerUrl =
-            intentExplorerUrl || intentUrlRef.current;
+            (!isExternalProviderIntent &&
+              (intentExplorerUrl ||
+                intentUrlRef.current ||
+                getEntryIntentExplorerUrl(
+                  currentSwapEntry,
+                  appConfig.nexusNetwork
+                ) ||
+                getRffExplorerUrl(appConfig.nexusNetwork, intentId))) ||
+            null;
           const resolvedIntentId =
             intentId ??
             extractIntentIdFromUrl(resolvedIntentExplorerUrl) ??

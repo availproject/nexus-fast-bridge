@@ -2793,15 +2793,33 @@ export function SwapAssetSelector({
     ) {
       const arcMeta = CHAIN_METADATA[SUPPORTED_CHAINS.ARC];
       options.set(SUPPORTED_CHAINS.ARC, {
-        contractAddress: "",
-        symbol: "",
-        name: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
-        decimals: 18,
         balance: "0",
         balanceInFiat: "$0.00",
         chainId: SUPPORTED_CHAINS.ARC,
-        chainName: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
         chainLogo: arcMeta.logo,
+        chainName: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
+        contractAddress: "",
+        decimals: 18,
+        name: getShortChainName(SUPPORTED_CHAINS.ARC, arcMeta.name),
+        symbol: "",
+      });
+    }
+
+    if (
+      !options.has(SUPPORTED_CHAINS.CITREA) &&
+      CHAIN_METADATA[SUPPORTED_CHAINS.CITREA]
+    ) {
+      const citreaMeta = CHAIN_METADATA[SUPPORTED_CHAINS.CITREA];
+      options.set(SUPPORTED_CHAINS.CITREA, {
+        balance: "0",
+        balanceInFiat: "$0.00",
+        chainId: SUPPORTED_CHAINS.CITREA,
+        chainLogo: citreaMeta.logo,
+        chainName: getShortChainName(SUPPORTED_CHAINS.CITREA, citreaMeta.name),
+        contractAddress: "",
+        decimals: 18,
+        name: getShortChainName(SUPPORTED_CHAINS.CITREA, citreaMeta.name),
+        symbol: "",
       });
     }
 
