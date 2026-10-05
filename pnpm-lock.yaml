@@ -28,8 +28,8 @@ importers:
   .:
     dependencies:
       '@avail-project/nexus-core':
-        specifier: github:availproject/nexus-sdk#1fd811deaaea7a2365fc551f3e0d85abc59929ac
-        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/1fd811deaaea7a2365fc551f3e0d85abc59929ac(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
+        specifier: github:availproject/nexus-sdk#ad3f5275c292ea6e7df495d0fa590a92c498e371
+        version: https://codeload.github.com/availproject/nexus-sdk/tar.gz/ad3f5275c292ea6e7df495d0fa590a92c498e371(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)
       '@marsidev/react-turnstile':
         specifier: 1.5.0
         version: 1.5.0(react-dom@19.2.2(react@19.2.2))(react@19.2.2)
@@ -151,9 +151,9 @@ packages:
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/1fd811deaaea7a2365fc551f3e0d85abc59929ac':
-    resolution: {gitHosted: true, integrity: sha512-r82tUiL+xdEBFBNyCqCjJ5XAekGXfmDwdN9uoJaF41fYeQah5/HECUzTGH82QYfutAeRDIGcdYp3LiliCCi62Q==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/1fd811deaaea7a2365fc551f3e0d85abc59929ac}
-    version: 2.2.4
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/ad3f5275c292ea6e7df495d0fa590a92c498e371':
+    resolution: {gitHosted: true, integrity: sha512-p4Zebu4KicbsWyaArkiIPfgAO3ZEPs1B6r6J5I0XHJfApx6kw19iAzdBJVzVWro7rFfEoMiglKAqzyY/M+XqxA==, tarball: https://codeload.github.com/availproject/nexus-sdk/tar.gz/ad3f5275c292ea6e7df495d0fa590a92c498e371}
+    version: 2.6.0
     engines: {node: '>=18.0.0'}
 
   '@babel/code-frame@7.29.7':
@@ -4257,7 +4257,7 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/1fd811deaaea7a2365fc551f3e0d85abc59929ac(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
+  '@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/ad3f5275c292ea6e7df495d0fa590a92c498e371(@opentelemetry/api@1.9.1)(bufferutil@4.1.0)(typescript@5.8.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@opentelemetry/api-logs': 0.219.0
       '@opentelemetry/exporter-logs-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
@@ -4723,7 +4723,7 @@ snapshots:
   '@metamask/json-rpc-engine@8.0.2':
     dependencies:
       '@metamask/rpc-errors': 6.4.0
-      '@metamask/safe-event-emitter': 3.1.2
+      '@metamask/safe-event-emitter': 3.1.3
       '@metamask/utils': 8.5.0
     transitivePeerDependencies:
       - supports-color
@@ -4731,7 +4731,7 @@ snapshots:
   '@metamask/json-rpc-middleware-stream@7.0.2':
     dependencies:
       '@metamask/json-rpc-engine': 8.0.2
-      '@metamask/safe-event-emitter': 3.1.2
+      '@metamask/safe-event-emitter': 3.1.3
       '@metamask/utils': 8.5.0
       readable-stream: 3.6.2
     transitivePeerDependencies:
@@ -4943,7 +4943,7 @@ snapshots:
   '@opentelemetry/core@2.6.1(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/semantic-conventions': 1.40.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -5005,7 +5005,7 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.40.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/resources@2.6.1(@opentelemetry/api@1.9.1)':
     dependencies:

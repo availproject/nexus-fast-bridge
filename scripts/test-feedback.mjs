@@ -15,6 +15,7 @@ try {
     "sdk-event-emission",
     "token-selection",
     "progress-status",
+    "nexus-channel",
   ];
   await build({
     entryPoints: suites.map((name) => `tests/${name}.test.ts`),

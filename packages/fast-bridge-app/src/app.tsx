@@ -6,13 +6,15 @@ import MaintenanceBanner from "@/components/maintenance-banner";
 import Navbar from "@/components/navbar";
 import NexusProvider from "@/components/nexus/nexus-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { resolveNexusChannel, resolveNexusNetwork } from "@/config/nexus-env";
 import { useRuntime } from "@/providers/runtime-context";
 import Web3Provider from "@/providers/web3-provider";
 
 const NEXUS_PROVIDER_CONFIG = {
   debug: true,
-  network: "canary",
-} as const;
+  network: resolveNexusNetwork(),
+  channel: resolveNexusChannel(),
+};
 
 function XSocialIcon() {
   return (

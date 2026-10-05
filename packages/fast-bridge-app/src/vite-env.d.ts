@@ -2,6 +2,13 @@
 
 declare global {
   interface ImportMetaEnv {
+    readonly VITE_CONFIG_NEXUS_CHANNEL?: "stable" | "preview" | string;
+    readonly VITE_CONFIG_NEXUS_NETWORK?:
+      | "mainnet"
+      | "testnet"
+      | "devnet"
+      | "canary"
+      | string;
     readonly VITE_IS_APP_DOWN?: string;
     readonly VITE_SANITY_API_TOKEN?: string;
     readonly VITE_SANITY_DATASET?: string;

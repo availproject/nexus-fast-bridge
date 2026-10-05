@@ -7,6 +7,11 @@ import {
   type NexusNetwork,
 } from "@avail-project/nexus-core";
 import { getCoinbaseRates } from "@avail-project/nexus-core/utils";
+import {
+  type NexusChannel,
+  resolveNexusChannel,
+  resolveNexusNetwork,
+} from "@/config/nexus-env";
 import { type NormalizedUserAsset, normalizeUserAssets } from "./balance-utils";
 import {
   type ChainBalance,
@@ -94,6 +99,7 @@ interface NexusContextType {
   allowance: RefObject<LegacyAllowanceHookData | null>;
   attachEventHooks: () => void;
   bridgableBalance: UserAsset[] | null;
+  channel?: NexusChannel;
   deinitializeNexus: () => Promise<void>;
   exchangeRate: Record<string, number> | null;
   fetchBridgableBalance: () => Promise<void>;
@@ -107,6 +113,7 @@ interface NexusContextType {
   network?: NexusNetwork;
   nexusInitError: string | null;
   nexusSDK: NexusClient | null;
+  readOnlySdk: NexusClient | null;
   resolveTokenUsdRate: (tokenSymbol: string) => Promise<number | null>;
   setAllowance: (data: LegacyAllowanceHookData | null) => void;
   setIntent: (data: LegacyIntentHookData | null) => void;
@@ -120,16 +127,22 @@ export const NexusContext = createContext<NexusContextType | undefined>(
   undefined
 );
 
-interface NexusProviderProps {
-  children: React.ReactNode;
-  config?: {
-    network?: NexusNetwork;
-    debug?: boolean;
-  };
+export type { NexusChannel } from "@/config/nexus-env";
+
+export interface NexusProviderConfig {
+  channel?: NexusChannel;
+  debug?: boolean;
+  network?: NexusNetwork;
 }
 
-const defaultConfig: Required<NexusProviderProps["config"]> = {
-  network: "canary",
+interface NexusProviderProps {
+  children: React.ReactNode;
+  config?: NexusProviderConfig;
+}
+
+const defaultConfig: Required<NexusProviderConfig> = {
+  network: resolveNexusNetwork(),
+  channel: resolveNexusChannel(),
   debug: true,
 };
 
@@ -221,8 +234,12 @@ const NexusProvider = ({
   config = defaultConfig,
 }: NexusProviderProps) => {
   const stableConfig = useMemo(
-    () => ({ ...defaultConfig, ...config }),
-    [config]
+    () => ({
+      debug: config?.debug ?? true,
+      network: resolveNexusNetwork(config?.network),
+      channel: resolveNexusChannel(config?.channel),
+    }),
+    [config?.channel, config?.debug, config?.network]
   );
 
   const { address } = useAccount();
@@ -270,9 +287,15 @@ const NexusProvider = ({
     let cancelled = false;
     setNexusInitError(null);
     console.log("NEXUS CONFIG", stableConfig);
-    const nextSdk = createNexusClient({
+    const createClient = createNexusClient as (
+      config: Parameters<typeof createNexusClient>[0] & {
+        channel?: NexusChannel;
+      }
+    ) => NexusClient;
+    const nextSdk = createClient({
       clientId: "nexus-fast-bridge",
       network: stableConfig.network,
+      channel: stableConfig.channel,
       debug: stableConfig.debug,
     });
 
@@ -586,9 +609,15 @@ const NexusProvider = ({
       setNexusInitError(null);
       try {
         console.log("INITIALIZE NEXUS CONFIG", stableConfig);
-        const nextSdk = createNexusClient({
+        const createClient = createNexusClient as (
+          config: Parameters<typeof createNexusClient>[0] & {
+            channel?: NexusChannel;
+          }
+        ) => NexusClient;
+        const nextSdk = createClient({
           clientId: "nexus-fast-bridge",
           network: stableConfig.network,
+          channel: stableConfig.channel,
           debug: stableConfig.debug,
         });
 
@@ -782,6 +811,7 @@ const NexusProvider = ({
   const value = useMemo(
     () => ({
       nexusSDK,
+      readOnlySdk: sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
@@ -793,7 +823,8 @@ const NexusProvider = ({
       swapSupportedChainsAndTokens: swapSupportedChainsAndTokensState,
       bridgableBalance,
       swapBalance,
-      network: config?.network,
+      network: stableConfig.network,
+      channel: stableConfig.channel,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,
@@ -807,6 +838,7 @@ const NexusProvider = ({
     }),
     [
       nexusSDK,
+      sdk,
       nexusInitError,
       initializeNexus,
       deinitializeNexus,
@@ -814,7 +846,8 @@ const NexusProvider = ({
       handleInit,
       bridgableBalance,
       swapBalance,
-      config,
+      stableConfig.channel,
+      stableConfig.network,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,

@@ -89,6 +89,7 @@ export interface ChainBalance {
   symbol: string;
   universe: "EVM";
   value: string;
+  verified?: boolean;
 }
 
 export interface TokenBalance {
@@ -99,6 +100,7 @@ export interface TokenBalance {
   name: string;
   symbol: string;
   value: string;
+  verified?: boolean;
 }
 
 export interface LegacyIntent {
@@ -124,6 +126,7 @@ export interface LegacyIntent {
       };
     };
   };
+  executionWarnings?: IntentQuote["executionWarnings"];
   feesAndBuffer: {
     buffer: string;
     bridge: {
@@ -138,6 +141,7 @@ export interface LegacyIntent {
       totalUsd?: string;
     };
   };
+  isExecutable?: boolean;
   sources: Array<{
     amount: string;
     /** Stable index assigned by the Better Intent quote and used by status legs. */
@@ -192,7 +196,9 @@ export const addIntentUsdValues = (
 export interface LegacyIntentHookData {
   allow: () => void;
   deny: () => void;
+  readonly execution?: IntentHookData["execution"];
   intent: LegacyIntent;
+  readonly isExecutable?: boolean;
   refresh: (sources?: number[] | IntentSource[]) => Promise<LegacyIntent>;
 }
 
@@ -248,6 +254,73 @@ export interface KnownTokenInfo {
   symbol: string;
 }
 
+export const getKnownTokenDecimals = (
+  chainId?: number,
+  symbol?: string,
+  _contractAddress?: string
+): number | undefined => {
+  if (!chainId) {
+    return undefined;
+  }
+  const s = symbol?.toUpperCase();
+
+  // Arc native USDC is 18 decimals
+  if (chainId === SUPPORTED_CHAINS.ARC && s === "USDC") {
+    return 18;
+  }
+  // BNB Smart Chain: BEP-20 USDC, USDT, and native BNB are 18 decimals
+  if (
+    chainId === SUPPORTED_CHAINS.BNB &&
+    (s === "USDC" || s === "USDT" || s === "BNB")
+  ) {
+    return 18;
+  }
+  // MegaETH USDM is 18 decimals; Mountain USDM on all chains is 18 decimals
+  if (s === "USDM") {
+    return 18;
+  }
+  return undefined;
+};
+
+export interface TokenLookupCandidate {
+  address?: string;
+  chain?: { id?: number };
+  chainId?: number;
+  contractAddress?: string;
+  decimals?: number;
+  logo?: string;
+  logoURI?: string;
+  name?: string;
+  symbol?: string;
+}
+
+export interface NormalizeIntentQuoteOptions {
+  balances?: Array<
+    | TokenLookupCandidate
+    | {
+        chainBalances?: TokenLookupCandidate[];
+        decimals?: number;
+        logo?: string;
+        name?: string;
+        symbol?: string;
+      }
+  > | null;
+  fromTokens?: TokenLookupCandidate[] | null;
+  tokenResolver?: (
+    chainId: number,
+    address: string
+  ) =>
+    | {
+        decimals?: number;
+        logo?: string;
+        name?: string;
+        symbol?: string;
+      }
+    | null
+    | undefined;
+  toToken?: TokenLookupCandidate | null;
+}
+
 export const findKnownToken = (
   chainId: number | undefined,
   address: string | undefined
@@ -260,8 +333,12 @@ export const findKnownToken = (
     const knownAddress = addressMap[chainId];
     if (knownAddress && sameAddress(knownAddress, address)) {
       const meta = TOKEN_METADATA[symbol as keyof typeof TOKEN_METADATA];
-      const isArcUsdc = chainId === SUPPORTED_CHAINS.ARC && symbol === "USDC";
-      const decimals = isArcUsdc ? 18 : (meta?.decimals ?? 6);
+      const specialDecimals = getKnownTokenDecimals(
+        chainId,
+        symbol,
+        knownAddress
+      );
+      const decimals = specialDecimals ?? meta?.decimals ?? 6;
       return {
         contractAddress: knownAddress,
         decimals,
@@ -291,14 +368,186 @@ export const findKnownToken = (
   return undefined;
 };
 
-export const tokenByAddress = (
+const findFromTokenResolver = (
+  chainId: number,
+  address: string,
+  options?: NormalizeIntentQuoteOptions
+): KnownTokenInfo | undefined => {
+  const resolved = options?.tokenResolver?.(chainId, address);
+  if (resolved && typeof resolved.decimals === "number") {
+    return {
+      contractAddress: address,
+      decimals: resolved.decimals,
+      logo: resolved.logo,
+      name: resolved.name ?? resolved.symbol ?? "",
+      symbol: resolved.symbol ?? "",
+    };
+  }
+  return undefined;
+};
+
+const isNativeAddress = (address: string): boolean =>
+  sameAddress(address, "0x0000000000000000000000000000000000000000") ||
+  sameAddress(address, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+
+const findFromSelectedToToken = (
+  chainId: number,
+  address: string,
+  toToken?: TokenLookupCandidate | null
+): KnownTokenInfo | undefined => {
+  if (!toToken || toToken.chainId !== chainId) {
+    return undefined;
+  }
+  const toAddress = toToken.contractAddress ?? toToken.address ?? "";
+  const matchesAddress =
+    sameAddress(toAddress, address) || (!toAddress && isNativeAddress(address));
+
+  if (!matchesAddress) {
+    return undefined;
+  }
+
+  const decimals =
+    toToken.decimals ??
+    getKnownTokenDecimals(chainId, toToken.symbol, address) ??
+    18;
+
+  return {
+    contractAddress: toAddress || address,
+    decimals,
+    logo: toToken.logo ?? toToken.logoURI,
+    name: toToken.name ?? toToken.symbol ?? "",
+    symbol: toToken.symbol ?? "",
+  };
+};
+
+const findFromSelectedFromTokens = (
+  chainId: number,
+  address: string,
+  fromTokens?: TokenLookupCandidate[] | null
+): KnownTokenInfo | undefined => {
+  if (!fromTokens) {
+    return undefined;
+  }
+  const match = fromTokens.find(
+    (t) =>
+      t.chainId === chainId &&
+      sameAddress(t.contractAddress ?? t.address ?? "", address)
+  );
+  if (match && typeof match.decimals === "number") {
+    return {
+      contractAddress: match.contractAddress ?? match.address ?? address,
+      decimals: match.decimals,
+      logo: match.logo ?? match.logoURI,
+      name: match.name ?? match.symbol ?? "",
+      symbol: match.symbol ?? "",
+    };
+  }
+  return undefined;
+};
+
+const findFromChainBalanceList = (
+  chainId: number,
+  address: string,
+  asset: NonNullable<NormalizeIntentQuoteOptions["balances"]>[number]
+): KnownTokenInfo | undefined => {
+  if (!("chainBalances" in asset && Array.isArray(asset.chainBalances))) {
+    return undefined;
+  }
+  const cbMatch = asset.chainBalances.find(
+    (cb) =>
+      cb.chain?.id === chainId &&
+      sameAddress(cb.contractAddress ?? cb.address ?? "", address)
+  );
+  if (!cbMatch || typeof cbMatch.decimals !== "number") {
+    return undefined;
+  }
+  return {
+    contractAddress: cbMatch.contractAddress ?? cbMatch.address ?? address,
+    decimals: cbMatch.decimals,
+    logo: cbMatch.logo ?? cbMatch.logoURI ?? asset.logo,
+    name: cbMatch.name ?? asset.name ?? cbMatch.symbol,
+    symbol: cbMatch.symbol ?? asset.symbol ?? "",
+  };
+};
+
+const findFromFlatBalance = (
+  chainId: number,
+  address: string,
+  asset: NonNullable<NormalizeIntentQuoteOptions["balances"]>[number]
+): KnownTokenInfo | undefined => {
+  if (
+    !("chainId" in asset) ||
+    asset.chainId !== chainId ||
+    !sameAddress(asset.contractAddress ?? asset.address ?? "", address) ||
+    typeof asset.decimals !== "number"
+  ) {
+    return undefined;
+  }
+  return {
+    contractAddress: address,
+    decimals: asset.decimals,
+    logo: asset.logo ?? asset.logoURI,
+    name: asset.name ?? asset.symbol ?? "",
+    symbol: asset.symbol ?? "",
+  };
+};
+
+const findFromBalances = (
+  chainId: number,
+  address: string,
+  balances?: NormalizeIntentQuoteOptions["balances"]
+): KnownTokenInfo | undefined => {
+  if (!balances) {
+    return undefined;
+  }
+  for (const asset of balances) {
+    const match =
+      findFromChainBalanceList(chainId, address, asset) ??
+      findFromFlatBalance(chainId, address, asset);
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
+};
+
+const findFromSupportedChains = (
   chains: SupportedChainsAndTokensResult,
   chainId: number,
   address: string
-): SupportedToken | KnownTokenInfo | undefined =>
-  chainById(chains, chainId)?.tokens?.find((token) =>
+): SupportedToken | undefined => {
+  const chainMatch = chainById(chains, chainId)?.tokens?.find((token) =>
     sameAddress(token.contractAddress ?? token.address, address)
-  ) ?? findKnownToken(chainId, address);
+  );
+  if (!chainMatch) {
+    return undefined;
+  }
+  const specialDecimals = getKnownTokenDecimals(
+    chainId,
+    chainMatch.symbol,
+    address
+  );
+  return {
+    ...chainMatch,
+    decimals: specialDecimals ?? chainMatch.decimals,
+  };
+};
+
+export const tokenByAddress = (
+  chains: SupportedChainsAndTokensResult,
+  chainId: number,
+  address: string,
+  options?: NormalizeIntentQuoteOptions
+): SupportedToken | KnownTokenInfo | undefined => {
+  return (
+    findFromTokenResolver(chainId, address, options) ??
+    findFromSelectedToToken(chainId, address, options?.toToken) ??
+    findFromSelectedFromTokens(chainId, address, options?.fromTokens) ??
+    findFromBalances(chainId, address, options?.balances) ??
+    findFromSupportedChains(chains, chainId, address) ??
+    findKnownToken(chainId, address)
+  );
+};
 
 export const populateChainsWithTokens = (
   chains: SupportedChainsAndTokensResult,
@@ -432,6 +681,11 @@ export const normalizeIntentBalances = (
     // Balances are token-specific. Symbol and decimals are display metadata
     // and are not sufficient to distinguish two contracts or two chains.
     const identity = `${entry.chainId}:${normalizeBalanceTokenAddress(entry.tokenAddress)}`;
+    const tokenVerified =
+      token && "verified" in token && typeof token.verified === "boolean"
+        ? token.verified
+        : true;
+    const isEntryVerified = entry.verified !== false && tokenVerified;
     const chainBalance: ChainBalance = {
       balance: readable,
       value: String(entry.valueUsd ?? 0),
@@ -444,6 +698,7 @@ export const normalizeIntentBalances = (
       contractAddress: entry.tokenAddress,
       decimals: entry.decimals,
       universe: "EVM",
+      verified: isEntryVerified,
     };
     const existing = grouped.get(identity);
     if (existing) {
@@ -454,6 +709,9 @@ export const normalizeIntentBalances = (
       existing.value = new Decimal(existing.value)
         .plus(entry.valueUsd ?? 0)
         .toString();
+      if (existing.verified !== undefined) {
+        existing.verified = existing.verified && isEntryVerified;
+      }
       continue;
     }
     grouped.set(identity, {
@@ -464,6 +722,7 @@ export const normalizeIntentBalances = (
       logo: token?.logo ?? entry.logo ?? "",
       name: entry.name,
       symbol: entry.symbol,
+      verified: isEntryVerified,
     });
   }
 
@@ -472,13 +731,15 @@ export const normalizeIntentBalances = (
 
 export const normalizeIntentQuote = (
   quote: IntentQuote,
-  chains: SupportedChainsAndTokensResult
+  chains: SupportedChainsAndTokensResult,
+  options?: NormalizeIntentQuoteOptions
 ): LegacyIntent => {
   const outputChain = chainById(chains, quote.output.chainId);
   const outputToken = tokenByAddress(
     chains,
     quote.output.chainId,
-    quote.output.tokenAddress
+    quote.output.tokenAddress,
+    options
   );
   const inputSymbol = quote.input[0]?.tokenSymbol;
   const knownInputMeta = inputSymbol
@@ -487,20 +748,44 @@ export const normalizeIntentQuote = (
   const isArcUsdcOutput =
     quote.output.chainId === SUPPORTED_CHAINS.ARC &&
     (outputToken?.symbol === "USDC" || inputSymbol === "USDC");
+  const knownSpecialOutputDecimals = getKnownTokenDecimals(
+    quote.output.chainId,
+    outputToken?.symbol ?? (isArcUsdcOutput ? "USDC" : undefined),
+    quote.output.tokenAddress
+  );
   const outputDecimals =
     outputToken?.decimals ??
-    (isArcUsdcOutput ? 18 : knownInputMeta?.decimals) ??
+    knownSpecialOutputDecimals ??
+    (isArcUsdcOutput ? 18 : undefined) ??
+    (outputToken?.symbol && outputToken.symbol === inputSymbol
+      ? knownInputMeta?.decimals
+      : undefined) ??
+    (outputToken?.symbol
+      ? TOKEN_METADATA[outputToken.symbol as keyof typeof TOKEN_METADATA]
+          ?.decimals
+      : undefined) ??
     18;
   const sources = quote.input.map((entry, sourceIndex) => {
     const chain = chainById(chains, entry.chainId);
-    const token = tokenByAddress(chains, entry.chainId, entry.tokenAddress);
+    const token = tokenByAddress(
+      chains,
+      entry.chainId,
+      entry.tokenAddress,
+      options
+    );
     const knownMeta = entry.tokenSymbol
       ? TOKEN_METADATA[entry.tokenSymbol as keyof typeof TOKEN_METADATA]
       : undefined;
     const isArcUsdcSource =
       entry.chainId === SUPPORTED_CHAINS.ARC && entry.tokenSymbol === "USDC";
+    const specialSourceDecimals = getKnownTokenDecimals(
+      entry.chainId,
+      entry.tokenSymbol ?? token?.symbol,
+      entry.tokenAddress
+    );
     const decimals =
       token?.decimals ??
+      specialSourceDecimals ??
       (isArcUsdcSource ? 18 : knownMeta?.decimals) ??
       outputDecimals;
     return {
@@ -547,6 +832,8 @@ export const normalizeIntentQuote = (
 
   return {
     bridgeProvider: quote.provider,
+    executionWarnings: quote.executionWarnings,
+    isExecutable: quote.isExecutable,
     destination: {
       amount: formatUnits(quote.output.amountRaw, outputDecimals),
       minAmount: formatUnits(quote.output.minAmountRaw, outputDecimals),
@@ -618,21 +905,30 @@ const normalizeRefreshSources = (
 
 export const adaptIntentHook = (
   data: IntentHookData,
-  chains: SupportedChainsAndTokensResult
+  chains: SupportedChainsAndTokensResult,
+  options?: NormalizeIntentQuoteOptions
 ): LegacyIntentHookData => ({
   allow: data.allow,
   deny: data.deny,
-  intent: normalizeIntentQuote(data.quote, chains),
+  get execution() {
+    return data.execution;
+  },
+  get isExecutable() {
+    return data.quote?.isExecutable;
+  },
+  intent: normalizeIntentQuote(data.quote, chains, options),
   refresh: async (sources) =>
     normalizeIntentQuote(
       await data.refresh(normalizeRefreshSources(sources, data.quote)),
-      chains
+      chains,
+      options
     ),
 });
 
 export const adaptAllowanceHook = (
   data: IntentAllowanceHookData,
-  chains: SupportedChainsAndTokensResult
+  chains: SupportedChainsAndTokensResult,
+  options?: NormalizeIntentQuoteOptions
 ): LegacyAllowanceHookData => ({
   allow: data.allow,
   deny: data.deny,
@@ -641,7 +937,8 @@ export const adaptAllowanceHook = (
     const token = tokenByAddress(
       chains,
       allowance.chainId,
-      allowance.tokenAddress
+      allowance.tokenAddress,
+      options
     );
     const decimals = token?.decimals ?? 18;
     return {
