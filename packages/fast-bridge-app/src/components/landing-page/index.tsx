@@ -16,44 +16,61 @@ const STYLESHEETS = [
   "/landing-new/button-hovers.css",
 ];
 
-const BLOG_ITEMS = [
+const GUIDE_ITEMS = [
   {
-    id: "megaeth",
-    imgSrc: "/landing-new/assets/blog-megaeth.jpg?v=5",
+    id: "robinhood",
+    imgSrc: "/landing-new/assets/guides/guide-robinhood.jpg?v=1",
     collapsedOffsetX: 0,
-    title: "The Fastest Chain Just Got the Fastest Bridge",
-    href: "https://blog.availproject.org/megaeth-fastbridge-the-fastest-way-to-onboard-to-the-fastest-chain/",
+    title: "How to Bridge to Robinhood Chain",
+    href: "/guides/how-to-bridge-to-robinhood-chain",
     cta: "Read more",
   },
   {
-    id: "multichain",
-    imgSrc: "/landing-new/assets/blog-multichain.jpg?v=5",
+    id: "bnb",
+    imgSrc: "/landing-new/assets/guides/guide-bnb.jpg?v=1",
+    collapsedOffsetX: 0,
+    title: "How to Bridge to BNB Chain",
+    href: "/guides/how-to-bridge-to-bnb-chain-with-fastbridge",
+    cta: "Read more",
+  },
+  {
+    id: "arc",
+    imgSrc: "/landing-new/assets/guides/guide-arc.jpg?v=1",
+    collapsedOffsetX: 0,
+    title: "How to Bridge to Arc",
+    href: "/guides/how-to-bridge-to-arc",
+    cta: "Read more",
+  },
+  {
+    id: "base",
+    imgSrc: "/landing-new/assets/guides/guide-base.jpg?v=1",
+    collapsedOffsetX: 0,
+    title: "How to Bridge to Base",
+    href: "/guides/how-to-bridge-to-base",
+    cta: "Read more",
+  },
+  {
+    id: "hidden-costs",
+    imgSrc: "/landing-new/assets/guides/guide-hidden-costs.jpg?v=1",
     collapsedOffsetX: 120,
-    title: "The Only Bridge Built For Multichain DeFi",
-    href: "https://blog.availproject.org/fastbridge-by-avail-the-fastest-way-to-move-crypto-from-multiple-chains/",
+    title: "Bridging Crypto Without the Hidden Costs: Safety, Fees, and Gas",
+    href: "/guides/bridging-crypto-without-the-hidden-costs-safety-fees-and-gas",
     cta: "Read more",
   },
   {
-    id: "monad",
-    imgSrc: "/landing-new/assets/blog-monad.jpg?v=5",
+    id: "top-bridges",
+    imgSrc: "/landing-new/assets/guides/guide-top-bridges.jpg?v=1",
     collapsedOffsetX: 120,
-    title: "Bridge to Monad From Multiple Chains, In One Transaction",
-    href: "https://blog.availproject.org/how-to-bridge-to-monad-in-under-60-seconds/",
-    cta: "Read more",
-  },
-  {
-    id: "canonical",
-    imgSrc: "/landing-new/assets/blog-canonical.jpg?v=5",
-    collapsedOffsetX: 80,
-    title: "FastBridge vs Canonical Bridge",
-    href: "https://blog.availproject.org/fastbridge-vs-canonical-bridge-why-7-days-is-too-long-for-defi/",
+    title: "Best Cross-Chain Bridges in 2026 [Compared]",
+    href: "/guides/top-cross-chain-bridges",
     cta: "Read more",
   },
 ];
+const BLOG_ITEMS = GUIDE_ITEMS;
 
 const CHAIN_LOGOS = [
   { name: "Ethereum", file: "ethereum.png", w: 136, h: 34 },
-  { name: "Arc", file: "arc.svg", w: 500, h: 171 },
+  { name: "Arc", file: "arc.svg", w: 76, h: 26 },
   { name: "Arbitrum", file: "arbitrum.png", w: 169, h: 95 },
   { name: "Optimism", file: "optimism.png", w: 121, h: 17 },
   { name: "Avalanche", file: "avalanche.png", w: 148, h: 34 },
@@ -64,6 +81,7 @@ const CHAIN_LOGOS = [
   { name: "Monad", file: "monad.png", w: 151, h: 85 },
   { name: "BNB Chain", file: "bnb-chain.png", w: 148, h: 26 },
   { name: "Citrea", file: "citrea.png", w: 106, h: 26 },
+  { name: "Robinhood", file: "robinhood.png", w: 135, h: 26 },
 ];
 
 export default function LandingPage() {
@@ -107,8 +125,8 @@ export default function LandingPage() {
 
   const getStepVideoSource = (stepIndex: number) => {
     return isWebKit()
-      ? `/landing-new/assets/hiw-step-${stepIndex + 1}-hevc.mp4?v=20`
-      : `/landing-new/assets/hiw-step-${stepIndex + 1}.webm?v=16`;
+      ? `/landing-new/assets/hiw-step-${stepIndex + 1}-hevc.mp4?v=30`
+      : `/landing-new/assets/hiw-step-${stepIndex + 1}.webm?v=30`;
   };
 
   const getStepStyle = (index: number) => {
@@ -529,24 +547,10 @@ export default function LandingPage() {
               alt=""
               className="hero__gradient"
               fetchPriority="high"
-              height="808"
-              src="/landing-new/assets/figma-export/hero-gradient-v2.jpg?v=2"
-              width="1440"
+              height="1582"
+              src="/landing-new/assets/figma-export/fb-hero.jpg?v=1"
+              width="2880"
             />
-            <video
-              autoPlay
-              className="hero__video"
-              loop
-              muted
-              playsInline
-              poster="/landing-new/assets/figma-export/hero-gradient-v2.jpg?v=2"
-              preload="metadata"
-            >
-              <source
-                src="/landing-new/assets/hero-bg-video-v2.mp4?v=5"
-                type="video/mp4"
-              />
-            </video>
           </div>
         </div>
 
@@ -573,28 +577,25 @@ export default function LandingPage() {
 
           <h1 className="hero__title">
             <span className="hero__title-desktop">
-              <span className="hero__title-line">Move Your Crypto across</span>
-              <span className="hero__title-line">
-                chains in One Transaction
-              </span>
+              <span className="hero__title-line">The Fastest Way to Move</span>
+              <span className="hero__title-line">Across Chains</span>
             </span>
             <span className="hero__title-tablet">
-              Move All Your Crypto
+              The Fastest Way to
               <br />
-              In One Transaction
+              Move Across Chains
             </span>
             <span className="hero__title-mobile">
-              <span className="hero__title-line">Move All Your</span>
-              <span className="hero__title-line">Crypto In One</span>
-              <span className="hero__title-line">Transaction</span>
+              <span className="hero__title-line">The Fastest</span>
+              <span className="hero__title-line">Way to Move</span>
+              <span className="hero__title-line">Across Chains</span>
             </span>
           </h1>
 
           <div className="hero__panel">
             <p className="hero__desc">
-              Combine your balances from multiple chains in a single move. No
-              switching networks, no managing gas, no waiting. Arrive ready to
-              trade.
+              Combine balances from multiple chains, swap and bridge in one go.{" "}
+              <span className="hero__desc-line">Arrive ready to trade.</span>
             </p>
             <div className="hero__actions">
               <button
@@ -606,7 +607,7 @@ export default function LandingPage() {
               </button>
               <a
                 className="btn btn--primary"
-                href="https://widgets.availproject.org/docs/components/swaps"
+                href="https://elements.nexus.availproject.org/docs/components/swaps"
                 rel="noopener noreferrer"
                 target="_blank"
               >
@@ -625,7 +626,7 @@ export default function LandingPage() {
         id="chains"
       >
         <p className="chains-strip__desc" data-reveal-child id="chains-desc">
-          Aggregate, swap, and spend your tokens across all major EVM chains in
+          Aggregate, swap, and move your tokens across all major EVM chains in
           one go
         </p>
 
@@ -666,9 +667,9 @@ export default function LandingPage() {
             <img
               alt=""
               className="hiw__gradient"
-              height="683"
-              src="/landing-new/assets/figma-export/hiw-hero-bg.png"
-              width="1440"
+              height="1046"
+              src="/landing-new/assets/figma-export/hiw-bg-v2.jpg?v=1"
+              width="2458"
             />
 
             <div className="hiw__curve-fill">
@@ -723,6 +724,7 @@ export default function LandingPage() {
                       }
                     }}
                     playsInline
+                    poster="/landing-new/assets/hiw-step-1-poster.jpg?v=2"
                     preload={i === 0 || isWebKit() ? "auto" : "metadata"}
                     ref={(el) => {
                       videoRefs.current[i] = el;
@@ -825,7 +827,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <span className="product-card__cta">Add assets to bridge</span>
+                <span className="product-card__cta">Add assets to send</span>
               </div>
             </div>
           </div>
@@ -871,11 +873,12 @@ export default function LandingPage() {
                   02
                 </span>
                 <span className="hiw-step__label">STEP 02</span>
-                <span className="hiw-step__heading">Review Your Swap</span>
+                <span className="hiw-step__heading">Approve Your Swap</span>
                 <p className="hiw-step__desc">
-                  Confirm the sources, expected output, fees, and price impact
-                  before signing. Need to change something? You can go back to
-                  adjust your sources.
+                  Click Approve &amp; Swap, then approve each source asset when
+                  prompted in your wallet. FastBridge will show the progress as
+                  it swaps your assets and moves them to your selected
+                  destination.
                 </p>
               </button>
             </div>
@@ -894,13 +897,11 @@ export default function LandingPage() {
                   03
                 </span>
                 <span className="hiw-step__label">STEP 03</span>
-                <span className="hiw-step__heading">
-                  Approve &amp; Swap is Complete
-                </span>
+                <span className="hiw-step__heading">Receive Your Funds</span>
                 <p className="hiw-step__desc">
-                  Confirm each source asset in your wallet. FastBridge delivers
-                  your funds to the destination in ~20 seconds with no native
-                  gas required.
+                  FastBridge delivers your funds to the destination in ~10-20
+                  seconds, with no native gas required. Track each stage in real
+                  time and view the transaction details once complete.
                 </p>
               </button>
             </div>
@@ -908,7 +909,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Blog Section */}
+      {/* Guides Section */}
       <section
         aria-labelledby="blog-carousel-heading"
         className="blog"
@@ -918,22 +919,15 @@ export default function LandingPage() {
         <div className="blog__container">
           <header className="blog__header" id="blog-carousel-heading">
             <div className="blog__header-content">
-              <h2 className="blog__title">
-                <span className="blog__title-lead">What's happening</span>
-                <em>
-                  Check out the latest
-                  <span className="blog__title-br" /> from us.
-                </em>
-              </h2>
+              <h2 className="blog__title">Guides</h2>
+              <p className="blog__subtitle">
+                Practical guides for bridging across chains, choosing the right
+                bridge, and getting the most out of FastBridge.
+              </p>
             </div>
-            <a
-              className="section-btn blog__header-btn"
-              href="https://blog.availproject.org/tag/fastbridge/"
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              View all Blogs
-            </a>
+            <Link className="section-btn blog__header-btn" to="/guides">
+              View all Guides
+            </Link>
           </header>
 
           <div className="blog__body">
@@ -949,7 +943,7 @@ export default function LandingPage() {
                 id="blog-meta-container"
               >
                 <div className="squeezy-carousel__meta-track">
-                  {BLOG_ITEMS.map((item, index) => {
+                  {GUIDE_ITEMS.map((item, index) => {
                     const isActive = index === activeBlogIndex;
                     return (
                       <div
@@ -968,17 +962,15 @@ export default function LandingPage() {
                         <div className="squeezy-carousel__item-copy">
                           <h3 className="blog__meta-title">{item.title}</h3>
                         </div>
-                        <a
+                        <Link
                           className="blog__read"
-                          href={item.href}
                           onFocus={() => selectIndex(index)}
                           onKeyDown={(e) => handleKeyDown(e, index)}
-                          rel="noopener noreferrer"
                           tabIndex={isActive ? 0 : -1}
-                          target="_blank"
+                          to={item.href}
                         >
                           {item.cta}
-                        </a>
+                        </Link>
                       </div>
                     );
                   })}
@@ -986,7 +978,7 @@ export default function LandingPage() {
 
                 <div className="blog__nav">
                   <button
-                    aria-label="Previous post"
+                    aria-label="Previous guide"
                     className="blog__nav-btn"
                     onClick={handleBlogPrev}
                     type="button"
@@ -1006,7 +998,7 @@ export default function LandingPage() {
                     </svg>
                   </button>
                   <button
-                    aria-label="Next post"
+                    aria-label="Next guide"
                     className="blog__nav-btn"
                     onClick={handleBlogNext}
                     type="button"
@@ -1035,29 +1027,24 @@ export default function LandingPage() {
               onScroll={handleScrollerScroll}
               ref={scrollerRef}
             >
-              {BLOG_ITEMS.map((item) => (
+              {GUIDE_ITEMS.map((item) => (
                 <li className="blog-card" key={item.id}>
-                  <a
-                    className="blog-card__link"
-                    href={item.href}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
+                  <Link className="blog-card__link" to={item.href}>
                     <span className="blog-card__media">
-                      <img alt="" loading="lazy" src={item.imgSrc} />
+                      <img alt="" height="200" src={item.imgSrc} width="320" />
                     </span>
                     <span className="blog-card__title">{item.title}</span>
                     <span className="blog-card__read">{item.cta}</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
 
             <div className="blog__footer">
-              <div className="blog__dots">
-                {BLOG_ITEMS.map((item, index) => (
+              <div aria-hidden="true" className="blog__dots" id="blog-dots">
+                {GUIDE_ITEMS.map((item, index) => (
                   <button
-                    aria-label={`Go to post ${index + 1}`}
+                    aria-label={`Go to slide ${index + 1}`}
                     className={`blog__dot ${index === mobileActiveIndex ? "blog__dot--active" : ""}`}
                     key={item.id}
                     onClick={() => handleMobileDotClick(index)}
@@ -1065,14 +1052,9 @@ export default function LandingPage() {
                   />
                 ))}
               </div>
-              <a
-                className="section-btn blog__footer-btn"
-                href="https://blog.availproject.org/tag/fastbridge/"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                View all Blogs
-              </a>
+              <Link className="section-btn blog__footer-btn" to="/guides">
+                View all Guides
+              </Link>
             </div>
           </div>
         </div>
@@ -1241,7 +1223,7 @@ export default function LandingPage() {
 
               <a
                 className="site-footer__cta"
-                href="https://widgets.availproject.org/docs/components/swaps"
+                href="https://docs.availproject.org/docs/nexus/get-started"
                 rel="noopener noreferrer"
                 target="_blank"
               >

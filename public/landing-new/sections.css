@@ -82,7 +82,7 @@
   gap: 50px;
   align-items: center;
   width: max-content;
-  animation: chains-scroll 78s linear infinite;
+  animation: chains-scroll 40s linear infinite;
 }
 
 @keyframes chains-scroll {
@@ -130,6 +130,12 @@
 .chains-strip__logo img[alt="Base"] {
   height: 48px;
 }
+.chains-strip__logo img[alt="Scroll"] {
+  height: 61px;
+}
+.chains-strip__logo img[alt="Kaia"] {
+  height: 46px;
+}
 .chains-strip__logo img[alt="MegaETH"] {
   height: 29px;
 }
@@ -140,6 +146,9 @@
   height: 26px;
 }
 .chains-strip__logo img[alt="Citrea"] {
+  height: 26px;
+}
+.chains-strip__logo img[alt="Robinhood"] {
   height: 26px;
 }
 .chains-strip__logo img[alt="Arc"] {
@@ -635,6 +644,7 @@
 @media (max-width: 460px) {
   .chains-strip {
     gap: 12px;
+    min-height: auto;
     padding: 32px 32px 40px;
   }
 

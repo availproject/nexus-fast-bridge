@@ -49,13 +49,14 @@
 
 .hero__gradient {
   position: absolute;
-  top: -23.28%;
+  /* fb-hero.jpg: taller than the hero so the convergence point lands below the CTAs */
+  top: 0;
   left: 50%;
   width: 100.02%;
   max-width: none;
-  height: 147.93%;
+  height: 150%;
   object-fit: cover;
-  object-position: center top;
+  object-position: 35% top;
   transform: translateX(-50%);
 }
 
@@ -66,18 +67,32 @@
   width: 100%;
   max-width: none;
   height: 100%;
-  /* Prevent iOS Safari from showing its native play button overlay */
-  pointer-events: none;
   object-fit: cover;
   object-position: center top;
+  opacity: 0;
   transform: translate(-50%, -50%);
+  transition: opacity 0.45s ease;
 }
 
-.hero__video::-webkit-media-controls,
-.hero__video::-webkit-media-controls-enclosure,
-.hero__video::-webkit-media-controls-overlay-play-button {
-  display: none !important;
-  appearance: none;
+.hero__video.is-playing {
+  opacity: 1;
+}
+
+.hero__curve-band {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 272px;
+  pointer-events: none;
+}
+
+.hero__curve-section {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -141,8 +156,10 @@
   line-height: var(--hero-title-lh);
   color: #fffffe;
   text-align: center;
-  text-transform: capitalize;
-  letter-spacing: var(--hero-title-tracking);
+  text-transform: none; /* copy is authored in title case ("to" stays lowercase) */
+  letter-spacing: var(
+    --hero-title-tracking
+  ); /* copy is authored in title case ("to" stays lowercase) */
 }
 
 .hero__title-tablet,
@@ -181,6 +198,11 @@
   text-shadow:
     0 1px 16px rgba(0, 0, 0, 0.55),
     0 0 2px rgba(0, 0, 0, 0.35);
+}
+
+/* Keep "Arrive ready to trade." together on its own line */
+.hero__desc-line {
+  display: block;
 }
 
 .hero__actions {
@@ -300,6 +322,10 @@
     display: none;
   }
 
+  .hero__curve-band {
+    display: none;
+  }
+
   .hero__gradient {
     top: 50%;
     left: 50%;
@@ -396,14 +422,15 @@
     --hero-panel-top: 32px;
   }
 
+  /* Blue sky behind the copy, streak fan filling the lower third (horizon ~72%) */
   .hero__gradient {
-    top: 50%;
+    top: -2%;
     left: 50%;
     width: 100%;
-    height: 100%;
+    height: 148%;
     object-fit: cover;
-    object-position: center;
-    transform: translate(-50%, -50%);
+    object-position: 34% 50%;
+    transform: translateX(-50%);
   }
 
   .hero__header {
@@ -437,6 +464,7 @@
 
   .hero__title-line {
     display: block;
+    white-space: nowrap;
   }
 
   .hero__title {
@@ -469,6 +497,7 @@
     font-size: 16px;
     color: #fffffe;
     text-align: center;
+    text-wrap: balance;
   }
 
   .hero__actions {
