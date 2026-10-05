@@ -71,6 +71,7 @@ export interface ChainFeatures {
   promoBannerImageUrl?: string;
   promoBannerLine1?: string;
   promoBannerLine2?: string;
+  showArcBanner?: boolean;
   showEthMascot?: boolean;
   showFluffeyMascot?: boolean;
   showPromoBanner?: boolean;
@@ -90,6 +91,7 @@ export const defaultChainFeatures: ChainFeatures = {
   analyticsFastBridgeKey: "default",
   maxBridgeAmount: 550,
   walletInitDelayMs: 0,
+  showArcBanner: false,
   showFluffeyMascot: false,
   showEthMascot: false,
   showPromoBanner: false,

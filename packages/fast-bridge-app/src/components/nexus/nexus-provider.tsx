@@ -34,6 +34,7 @@ import {
   useState,
 } from "react";
 import { useAccount, useAccountEffect } from "wagmi";
+import { resolveNexusChannel, resolveNexusNetwork } from "@/config/nexus-env";
 import { trackFastBridgeFail } from "@/lib/telemetry";
 import { getUserFacingError } from "@/lib/user-facing-error";
 import {
@@ -94,6 +95,7 @@ interface NexusContextType {
   allowance: RefObject<LegacyAllowanceHookData | null>;
   attachEventHooks: () => void;
   bridgableBalance: UserAsset[] | null;
+  channel?: "stable" | "preview";
   deinitializeNexus: () => Promise<void>;
   exchangeRate: Record<string, number> | null;
   fetchBridgableBalance: () => Promise<void>;
@@ -120,16 +122,20 @@ export const NexusContext = createContext<NexusContextType | undefined>(
   undefined
 );
 
-interface NexusProviderProps {
-  children: React.ReactNode;
-  config?: {
-    network?: NexusNetwork;
-    debug?: boolean;
-  };
+export interface NexusProviderConfig {
+  channel?: "stable" | "preview";
+  debug?: boolean;
+  network?: NexusNetwork;
 }
 
-const defaultConfig: Required<NexusProviderProps["config"]> = {
-  network: "canary",
+interface NexusProviderProps {
+  children: React.ReactNode;
+  config?: NexusProviderConfig;
+}
+
+const defaultConfig: Required<NexusProviderConfig> = {
+  network: resolveNexusNetwork(),
+  channel: resolveNexusChannel(),
   debug: true,
 };
 
@@ -221,8 +227,12 @@ const NexusProvider = ({
   config = defaultConfig,
 }: NexusProviderProps) => {
   const stableConfig = useMemo(
-    () => ({ ...defaultConfig, ...config }),
-    [config]
+    () => ({
+      debug: config?.debug ?? true,
+      network: resolveNexusNetwork(config?.network),
+      channel: resolveNexusChannel(config?.channel),
+    }),
+    [config?.channel, config?.debug, config?.network]
   );
 
   const { address } = useAccount();
@@ -273,6 +283,7 @@ const NexusProvider = ({
     const nextSdk = createNexusClient({
       clientId: "nexus-fast-bridge",
       network: stableConfig.network,
+      channel: stableConfig.channel,
       debug: stableConfig.debug,
     });
 
@@ -589,6 +600,7 @@ const NexusProvider = ({
         const nextSdk = createNexusClient({
           clientId: "nexus-fast-bridge",
           network: stableConfig.network,
+          channel: stableConfig.channel,
           debug: stableConfig.debug,
         });
 
@@ -793,7 +805,8 @@ const NexusProvider = ({
       swapSupportedChainsAndTokens: swapSupportedChainsAndTokensState,
       bridgableBalance,
       swapBalance,
-      network: config?.network,
+      network: stableConfig.network,
+      channel: stableConfig.channel,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,
@@ -814,7 +827,8 @@ const NexusProvider = ({
       handleInit,
       bridgableBalance,
       swapBalance,
-      config,
+      stableConfig.channel,
+      stableConfig.network,
       loading,
       fetchBridgableBalance,
       fetchSwapBalance,

@@ -277,6 +277,16 @@ const CHAIN_META = [
     canonicalUrl: "https://fastbridge.availproject.org/arc",
     themeColor: "#0065FF",
   },
+  {
+    slug: "robinhood",
+    title:
+      "Bridge to Robinhood from Multiple Chains in One Transaction | FastBridge",
+    description:
+      "Bridge ETH and tokens to Robinhood Chain from Ethereum, Arbitrum, Base, and other EVM chains in one seamless transaction. FastBridge offers fast, low-fee cross-chain transfers to Robinhood.",
+    imageUrl: LANDING_META_IMAGE_URL,
+    canonicalUrl: "https://fastbridge.availproject.org/robinhood",
+    themeColor: "#00C805",
+  },
 ];
 
 // Top-level regex constants required by Biome standards

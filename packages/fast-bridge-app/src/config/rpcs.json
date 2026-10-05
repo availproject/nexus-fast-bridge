@@ -11,5 +11,6 @@
   "bnb": "https://rpcs.avail.so/bsc",
   "hyperevm": "https://rpcs.avail.so/hyperevm",
   "citrea": "https://rpcs.avail.so/citrea",
-  "arc": "https://rpc.mainnet.arc.io"
+  "arc": "https://rpc.mainnet.arc.io",
+  "robinhood": "https://rpcs.avail.so/robinhood"
 }

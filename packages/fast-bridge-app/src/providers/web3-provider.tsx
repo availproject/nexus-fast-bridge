@@ -44,6 +44,27 @@ export const arc = defineChain({
   },
 });
 
+export const robinhood = defineChain({
+  id: 4663,
+  name: "Robinhood",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpcs.avail.so/robinhood"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Robinhood Explorer",
+      url: "https://robinhoodchain.blockscout.com",
+    },
+  },
+});
+
 const walletConnectProjectId = import.meta.env.VITE_WALLET_CONNECT_ID;
 
 const rpcConfig = rpcs as Record<string, string>;
@@ -61,6 +82,7 @@ const staticTransports = {
   [hyperevm.id]: http(rpcConfig.hyperevm || undefined),
   [bsc.id]: http(rpcConfig.bnb || undefined),
   [arc.id]: http(rpcConfig.arc || undefined),
+  [robinhood.id]: http(rpcConfig.robinhood || undefined),
 };
 
 const staticChains = [
@@ -76,6 +98,7 @@ const staticChains = [
   hyperevm,
   bsc,
   arc,
+  robinhood,
 ] as [Chain, ...Chain[]];
 
 const queryClient = new QueryClient();

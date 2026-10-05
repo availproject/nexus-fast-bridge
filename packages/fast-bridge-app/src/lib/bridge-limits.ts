@@ -27,6 +27,13 @@ export const GLOBAL_MAX_AMOUNT_BY_TOKEN_AND_CHAIN: Record<
     [SUPPORTED_CHAINS.CITREA]: 500,
     [SUPPORTED_CHAINS.MEGAETH]: 500,
   },
+  // Bridging to Robinhood: $200 cap
+  ETH: {
+    [SUPPORTED_CHAINS.ROBINHOOD]: 200,
+  },
+  USDG: {
+    [SUPPORTED_CHAINS.ROBINHOOD]: 200,
+  },
 };
 
 /**
