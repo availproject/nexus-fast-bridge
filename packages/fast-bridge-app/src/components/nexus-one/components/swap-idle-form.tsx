@@ -33,6 +33,7 @@ interface SwapIdleFormProps {
   destinationGasFeeUsd?: string;
   fromTokens: SwapTokenOption[];
   getTokenUsdRate?: (token: SwapTokenOption) => number;
+  hasQuoteError?: boolean;
   intentData?: any;
   isExpanded?: boolean;
   isLoadingBalances?: boolean;
@@ -691,6 +692,7 @@ export function SwapIdleForm({
   isSourcePickerDisabled = false,
   onSetPercent,
   destinationGasFeeUsd,
+  hasQuoteError = false,
   intentData,
   totalFeeUsd,
   isMultiAssetMode = false,
@@ -1592,7 +1594,10 @@ export function SwapIdleForm({
   };
 
   const warningMessage = React.useMemo(() => {
-    if (needsWalletConnection) {
+    if (needsWalletConnection || hasQuoteError) {
+      return null;
+    }
+    if (isExactIn && isQuoteLoading) {
       return null;
     }
     const hasAnySourceAmountExceeded = sourceRowsToRender.some(
@@ -1619,6 +1624,9 @@ export function SwapIdleForm({
     return null;
   }, [
     needsWalletConnection,
+    hasQuoteError,
+    isExactIn,
+    isQuoteLoading,
     sourceRowsToRender,
     amount,
     fromTokens,

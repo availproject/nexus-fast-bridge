@@ -7175,9 +7175,7 @@ function NexusOneInner({
       cachePredictiveBaselineFromIntent(sortedIntent);
       setIntentData(sortedIntent);
       setIntentToAmount(sortedIntent.destination?.amount || undefined);
-      if (!hasExactInSourceBalanceExceeded) {
-        setSwapQuoteIssue(null);
-      }
+      setSwapQuoteIssue(null);
 
       if (
         isMultiAssetMode &&
@@ -9418,6 +9416,7 @@ function NexusOneInner({
 
   const insufficientSourceIssue = useMemo(() => {
     if (needsWalletConnection) return null;
+    if (txError) return null;
     if (swapQuoteIssue?.type === "insufficientSources") return swapQuoteIssue;
     if (hasExactInSourceBalanceExceeded) {
       return {
@@ -9444,6 +9443,7 @@ function NexusOneInner({
     return null;
   }, [
     needsWalletConnection,
+    txError,
     swapQuoteIssue,
     hasExactInSourceBalanceExceeded,
     receiveAmountIssue,
@@ -9507,9 +9507,7 @@ function NexusOneInner({
     }
 
     setTxError(null);
-    if (!hasExactInSourceBalanceExceeded) {
-      setSwapQuoteIssue(null);
-    }
+    setSwapQuoteIssue(null);
 
     if (
       !background &&
@@ -12322,6 +12320,7 @@ function NexusOneInner({
           quoteRefreshing ||
           Boolean(blockingQuoteIssue) ||
           isExactInNonExecutable) ||
+      Boolean(txError) ||
       hasBlockingProviderQuoteError;
   const isDepositCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -12334,7 +12333,7 @@ function NexusOneInner({
         isQuoteUnavailableForAutoSourceFlow) ||
       Boolean(blockingQuoteIssue);
   const isDepositCtaBlocked =
-    isDepositCtaDisabled || hasBlockingProviderQuoteError;
+    isDepositCtaDisabled || Boolean(txError) || hasBlockingProviderQuoteError;
   const sendNeedsRecipient = activeMode === "send" && !recipientAddress;
   const isSendCtaDisabled = needsWalletConnection
     ? !hasConnectWalletHandler || walletConnectBusy
@@ -12351,12 +12350,13 @@ function NexusOneInner({
   const isQuotePending =
     isExactOutPaymentQuotePending ||
     (!hasCurrentExactOutPaymentIntent && (quoteRefreshing || intentLoading));
-  const isSendCtaBlocked = isSendCtaDisabled || hasBlockingProviderQuoteError;
+  const isSendCtaBlocked =
+    isSendCtaDisabled || Boolean(txError) || hasBlockingProviderQuoteError;
   const quoteCtaLabel = (fallback: string) => {
     if (needsWalletConnection) return walletCtaLabel;
     if (effectiveNexusInitError) return "Unable to load";
     if (isBalancesLoading) return "Fetching balances...";
-    if (hasBlockingProviderQuoteError) return "Quote unavailable";
+    if (hasBlockingProviderQuoteError || txError) return "Quote unavailable";
     if (receiveMaxCalculating) return "Calculating...";
     if (isQuotePending) {
       return "Fetching quotes...";
@@ -12380,6 +12380,7 @@ function NexusOneInner({
     if (!toToken) return "Select token";
     if (hasSameOwnerSendRecipient) return "Change recipient";
     if (sendNeedsRecipient) return "Add recipient";
+    if (hasBlockingProviderQuoteError || txError) return "Quote unavailable";
     if (receiveMaxCalculating) return "Calculating...";
     if (isQuotePending) {
       return "Fetching quotes...";
@@ -13385,6 +13386,7 @@ function NexusOneInner({
                       : fromTokens
                   }
                   getTokenUsdRate={(t) => getTokenUsdRate(t).toNumber()}
+                  hasQuoteError={Boolean(txError)}
                   intentData={intentData}
                   isLoadingBalances={isBalancesLoading}
                   isMultiAssetMode={isMultiAssetMode}
@@ -13455,9 +13457,7 @@ function NexusOneInner({
                   <StatusAlert message={effectiveNexusInitError} type="error" />
                 )}
 
-                {txError && !blockingQuoteIssue && (
-                  <StatusAlert message={txError} type="error" />
-                )}
+                {txError && <StatusAlert message={txError} type="error" />}
 
                 {/* CTA Button */}
                 <div
@@ -13605,9 +13605,7 @@ function NexusOneInner({
                       />
                     )}
 
-                    {txError && !blockingQuoteIssue && (
-                      <StatusAlert message={txError} type="error" />
-                    )}
+                    {txError && <StatusAlert message={txError} type="error" />}
 
                     <div
                       style={{
@@ -13783,9 +13781,7 @@ function NexusOneInner({
                   <StatusAlert message={effectiveNexusInitError} type="error" />
                 )}
 
-                {txError && !blockingQuoteIssue && (
-                  <StatusAlert message={txError} type="error" />
-                )}
+                {txError && <StatusAlert message={txError} type="error" />}
 
                 <div
                   style={{
