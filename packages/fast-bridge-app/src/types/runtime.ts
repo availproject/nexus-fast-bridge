@@ -54,7 +54,7 @@ export interface ChainFeatures {
   hideMegaethSourceForUsdm?: boolean;
   mapUsdmDisplaySymbolToUsdc?: boolean;
   mapUsdmToUsdcBalance?: boolean;
-  maxBridgeAmount: number;
+  maxBridgeAmount?: number;
   maxBridgeAmountByDestinationChainId?: Record<number, number>;
   maxBridgeAmountByTokenAndChain?: Record<string, Record<number, number>>;
   pageDescription?: string;
@@ -89,7 +89,6 @@ export interface ChainFeatures {
 export const defaultChainFeatures: ChainFeatures = {
   slug: "default",
   analyticsFastBridgeKey: "default",
-  maxBridgeAmount: 550,
   walletInitDelayMs: 0,
   showArcBanner: false,
   showFluffeyMascot: false,
@@ -102,7 +101,6 @@ export const defaultChainFeatures: ChainFeatures = {
   mapUsdmDisplaySymbolToUsdc: false,
   mapUsdmToUsdcBalance: false,
   denyIntentOnReset: true,
-  maxBridgeAmountByTokenAndChain: {},
   tokenDenyListByChainId: {},
   tokenLogoOverrideBySymbol: {},
   allowanceLogoOverrideByChainId: {},

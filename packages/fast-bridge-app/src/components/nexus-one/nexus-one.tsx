@@ -260,17 +260,9 @@ type PredictiveQuoteBaseline = {
   updatedAt: number;
 };
 
-const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
-  [SUPPORTED_CHAINS.MEGAETH]: 5000,
-  [SUPPORTED_CHAINS.CITREA]: 2000,
-  [SUPPORTED_CHAINS.ARC]: 5000,
-  [SUPPORTED_CHAINS.ROBINHOOD]: 200,
-};
+const DESTINATION_RECEIVE_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {};
 
-const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {
-  [SUPPORTED_CHAINS.MEGAETH]: 500,
-  [SUPPORTED_CHAINS.CITREA]: 500,
-};
+const SOURCE_SEND_LIMIT_USD_BY_CHAIN_ID: Record<number, number> = {};
 
 const SCIENTIFIC_DECIMAL_REGEX = /^-?(?:\d+\.?\d*|\.\d+)e[+-]?\d+$/i;
 const QUOTE_REFRESH_INTERVAL_MS = 30000;
