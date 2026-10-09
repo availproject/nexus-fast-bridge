@@ -17,6 +17,7 @@ allowBuilds:
   "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/1fd811deaaea7a2365fc551f3e0d85abc59929ac": true
   "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/99e470e5da7d31da3e8c1cef76f73339d48bdcf8": true
   "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/ad3f5275c292ea6e7df495d0fa590a92c498e371": true
+  "@avail-project/nexus-core@https://codeload.github.com/availproject/nexus-sdk/tar.gz/406208886cbd1f24d9e4c83cc6166e32b5a37b24": true
 
 blockExoticSubdeps: false
 
