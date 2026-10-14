@@ -128,6 +128,9 @@ These buckets control display only. They must not be sent as the canonical telem
 | Middleware subcode | User message summary |
 | --- | --- |
 | `NO_ROUTABLE_SOURCE` | The selected sources cannot be used for this route |
+| `VALUE_ABOVE_CEILING` | The swap value exceeds provider limit (`details.maxValueUsd`); reduce the swap value |
+| `INPUT_BELOW_DEPOSIT_FEE` | The source amount is too low to cover deposit fee; increase the source amount |
+| `NO_ROUTE_TO_DESTINATION` | No route is available to this destination with allowed providers; choose another destination |
 | `INTENT_REFUSED` | No provider can complete the selected route and amount |
 | `PROVIDER_UNAVAILABLE` | Providers are temporarily unavailable |
 | `NO_PROVIDERS_ENABLED` | No provider is enabled for the route |

@@ -1241,7 +1241,12 @@ export function SwapIdleForm({
   };
 
   const isExactIn = swapType === "exactIn";
-  const showSourceRouteSkeleton = !isExactIn && sourceRouteStatus === "loading";
+  const showSourceRouteSkeleton =
+    !isExactIn &&
+    (sourceRouteStatus === "loading" ||
+      isQuoteLoading ||
+      isReceiveAmountLoading) &&
+    fromTokens.length === 0;
   const sourceRouteHelper =
     sourceRouteStatus === "insufficient" ? sourceRouteMessage : undefined;
   const receiveBalanceLabel = formatTokenBalanceLabel(toToken);
@@ -1714,57 +1719,73 @@ export function SwapIdleForm({
               minWidth: 0,
             }}
           >
-            <input
-              onBlur={() => {
-                if (token) handleBlurAmount(index);
-                setFocusedRow(null);
-                setFocusedPanel(null);
-              }}
-              onChange={(e) => {
-                handleSourceInputChange(index, token, e.target.value);
-              }}
-              onFocus={() => {
-                setFocusedRow(index);
-                setFocusedPanel("send");
-              }}
-              placeholder={token?.userAmountMode === "usd" ? "$0" : "0"}
-              ref={(element) => {
-                if (!inModal) {
-                  sourceInputRefs.current[index] = element;
+            {!isExactIn &&
+            (sourceRouteStatus === "loading" || isQuoteLoading) &&
+            (!token?.userAmount || token.userAmount === "0") &&
+            focusedRow !== index ? (
+              <div
+                style={{
+                  backgroundColor: "#E5E5EB",
+                  borderRadius: "6px",
+                  height: "28px",
+                  width: "72px",
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.5s ease-in-out infinite",
+                }}
+              />
+            ) : (
+              <input
+                onBlur={() => {
+                  if (token) handleBlurAmount(index);
+                  setFocusedRow(null);
+                  setFocusedPanel(null);
+                }}
+                onChange={(e) => {
+                  handleSourceInputChange(index, token, e.target.value);
+                }}
+                onFocus={() => {
+                  setFocusedRow(index);
+                  setFocusedPanel("send");
+                }}
+                placeholder={token?.userAmountMode === "usd" ? "$0" : "0"}
+                ref={(element) => {
+                  if (!inModal) {
+                    sourceInputRefs.current[index] = element;
+                  }
+                }}
+                style={{
+                  boxSizing: "border-box",
+                  color: isInputErrored ? "#E06A26" : "#1F1F1F",
+                  fontFamily: '"Geist", system-ui, sans-serif',
+                  fontSize: "clamp(22px, 5.5vw, 28px)",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  lineHeight: "32px",
+                  letterSpacing: "-0.28px",
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  padding: 0,
+                  width: "100%",
+                  minWidth: 0,
+                  transition: "color 0.15s ease",
+                }}
+                type="text"
+                value={
+                  token
+                    ? focusedRow === index
+                      ? token.userAmount || ""
+                      : formatAmountInputDisplay(token.userAmount || "")
+                    : focusedRow === index
+                      ? (emptyRowAmounts[index] ??
+                        (!isMultiAssetMode ? amount : ""))
+                      : formatAmountInputDisplay(
+                          emptyRowAmounts[index] ??
+                            (!isMultiAssetMode ? amount : "")
+                        )
                 }
-              }}
-              style={{
-                boxSizing: "border-box",
-                color: isInputErrored ? "#E06A26" : "#1F1F1F",
-                fontFamily: '"Geist", system-ui, sans-serif',
-                fontSize: "clamp(22px, 5.5vw, 28px)",
-                fontStyle: "normal",
-                fontWeight: 500,
-                lineHeight: "32px",
-                letterSpacing: "-0.28px",
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                padding: 0,
-                width: "100%",
-                minWidth: 0,
-                transition: "color 0.15s ease",
-              }}
-              type="text"
-              value={
-                token
-                  ? focusedRow === index
-                    ? token.userAmount || ""
-                    : formatAmountInputDisplay(token.userAmount || "")
-                  : focusedRow === index
-                    ? (emptyRowAmounts[index] ??
-                      (!isMultiAssetMode ? amount : ""))
-                    : formatAmountInputDisplay(
-                        emptyRowAmounts[index] ??
-                          (!isMultiAssetMode ? amount : "")
-                      )
-              }
-            />
+              />
+            )}
           </div>
 
           {/* Right: Select assets or Token Pill + Cross */}
@@ -2021,7 +2042,21 @@ export function SwapIdleForm({
             }}
             type="button"
           >
-            {token?.userAmountMode === "usd" ? (
+            {!isExactIn &&
+            (sourceRouteStatus === "loading" || isQuoteLoading) &&
+            (!token?.userAmount || token.userAmount === "0") &&
+            (!token?.userAmountUsd || token.userAmountUsd === "0") ? (
+              <div
+                style={{
+                  backgroundColor: "#E5E5EB",
+                  borderRadius: "4px",
+                  height: "14px",
+                  width: "48px",
+                  animation:
+                    "nexusSwapSkeletonShimmer 1.5s ease-in-out infinite",
+                }}
+              />
+            ) : token?.userAmountMode === "usd" ? (
               <>
                 ≈ {(() => {
                   const tokenBal =

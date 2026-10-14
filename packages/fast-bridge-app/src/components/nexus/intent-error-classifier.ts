@@ -1,4 +1,7 @@
-import { getIntentQuoteFailure } from "@avail-project/nexus-core";
+import {
+  getIntentQuoteFailure,
+  type IntentQuoteFailure,
+} from "@avail-project/nexus-core";
 
 export type IntentErrorBucket =
   | "user_rejected"
@@ -35,6 +38,8 @@ const INSUFFICIENT_GAS_PATTERN =
   /gas required exceeds allowance|insufficient funds for gas/i;
 
 const quoteFailureMessages: Record<string, string> = {
+  INPUT_BELOW_DEPOSIT_FEE:
+    "The source amount is too low to cover the deposit fee. Increase the source amount.",
   INSUFFICIENT_APPROVAL_GAS:
     "You need more native gas on the source chain to approve this token.",
   INSUFFICIENT_BALANCE:
@@ -44,6 +49,8 @@ const quoteFailureMessages: Record<string, string> = {
   NO_PROVIDERS_ENABLED: "No quote provider is enabled for this route.",
   NO_ROUTABLE_SOURCE:
     "None of the selected assets can be used for this route. Try another source asset.",
+  NO_ROUTE_TO_DESTINATION:
+    "No route is available to this destination with the allowed providers. Choose another destination supported by the allowed providers.",
   PROVIDER_UNAVAILABLE:
     "Quote providers are temporarily unavailable. Please try again.",
   QUOTE_PRICE_OUTLIER:
@@ -52,6 +59,8 @@ const quoteFailureMessages: Record<string, string> = {
     "A reliable price is not available for this route. Try another asset or network.",
   SAME_CHAIN_GAS_DROP_UNSUPPORTED:
     "This route cannot provide the requested destination gas.",
+  VALUE_ABOVE_CEILING:
+    "The swap value exceeds the provider limit for this route. Reduce the swap value.",
 };
 
 const stringifyDetails = (value: unknown) => {
@@ -112,7 +121,11 @@ export const isUserRejectedIntentError = (error: unknown) => {
 const classifyQuoteFailure = (
   error: unknown
 ): ClassifiedIntentError | undefined => {
-  const quoteFailure = getIntentQuoteFailure(error);
+  const quoteFailure =
+    getIntentQuoteFailure(error) ??
+    ((error as ErrorLike)?.details?.intentQuoteFailure as
+      | IntentQuoteFailure
+      | undefined);
   if (!quoteFailure) {
     return undefined;
   }
@@ -128,6 +141,17 @@ const classifyQuoteFailure = (
     ...quoteFailure.details,
   };
 
+  let message = quoteFailureMessages[quoteFailure.subcode];
+  if (quoteFailure.subcode === "VALUE_ABOVE_CEILING") {
+    const maxValueUsd = quoteFailure.details?.maxValueUsd;
+    if (
+      (typeof maxValueUsd === "number" && !Number.isNaN(maxValueUsd)) ||
+      (typeof maxValueUsd === "string" && maxValueUsd.trim().length > 0)
+    ) {
+      message = `The swap value exceeds the provider limit of $${maxValueUsd}. Reduce the swap value.`;
+    }
+  }
+
   return {
     bucket:
       quoteFailure.subcode === "INSUFFICIENT_BALANCE" ||
@@ -135,7 +159,7 @@ const classifyQuoteFailure = (
         ? "insufficient_funds"
         : "quote_provider",
     message:
-      quoteFailureMessages[quoteFailure.subcode] ??
+      message ??
       "A quote is not available for this route. Try another amount, asset, or network.",
     retryable: quoteFailure.retryable,
     technicalDetails: [
@@ -145,11 +169,87 @@ const classifyQuoteFailure = (
   };
 };
 
+const classifyBackendRouteError = (
+  code: string,
+  value: ErrorLike
+): ClassifiedIntentError | undefined => {
+  if (
+    code === "backend/value_above_ceiling" ||
+    code === "validation/value_above_ceiling"
+  ) {
+    const maxValueUsd = value.details?.maxValueUsd;
+    const maxPart =
+      (typeof maxValueUsd === "number" && !Number.isNaN(maxValueUsd)) ||
+      (typeof maxValueUsd === "string" && maxValueUsd.trim().length > 0)
+        ? ` of $${maxValueUsd}`
+        : "";
+    return {
+      bucket: "quote_provider",
+      message: `The swap value exceeds the provider limit${maxPart}. Reduce the swap value.`,
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  if (
+    code === "backend/input_below_deposit_fee" ||
+    code === "validation/input_below_deposit_fee"
+  ) {
+    return {
+      bucket: "quote_provider",
+      message:
+        "The source amount is too low to cover the deposit fee. Increase the source amount.",
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  if (
+    code === "backend/no_route_to_destination" ||
+    code === "validation/no_route_to_destination"
+  ) {
+    return {
+      bucket: "quote_provider",
+      message:
+        "No route is available to this destination with the allowed providers. Choose another destination supported by the allowed providers.",
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  if (code === "backend/no_routable_source") {
+    return {
+      bucket: "quote_provider",
+      message:
+        "None of the selected assets can be used for this route. Try another source asset.",
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  if (code === "backend/token_not_supported") {
+    return {
+      bucket: "quote_provider",
+      message:
+        "This token is not supported for the selected route. Try another asset or network.",
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  return undefined;
+};
+
 const classifyNonQuoteError = (
   value: ErrorLike,
   code: string,
   message: string
 ): ClassifiedIntentError => {
+  const routeError = classifyBackendRouteError(code, value);
+  if (routeError) {
+    return routeError;
+  }
+
   if (
     code === "validation/insufficient_balance" ||
     INSUFFICIENT_BALANCE_PATTERN.test(message)

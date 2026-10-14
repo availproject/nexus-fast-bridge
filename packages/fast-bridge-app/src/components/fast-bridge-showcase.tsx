@@ -33,9 +33,11 @@ type DestinationPair = NonNullable<
   NonNullable<NexusOneConfig["prefill"]>["destination"]
 >;
 
-const ARC_USDC_DESTINATION_PAIR: DestinationPair = {
-  chain: SUPPORTED_CHAINS.ARC,
-  token: "0x0000000000000000000000000000000000000000",
+const ARBITRUM_USDC_DESTINATION_PAIR: DestinationPair = {
+  chain: SUPPORTED_CHAINS.ARBITRUM,
+  token: TOKEN_CONTRACT_ADDRESSES.USDC[
+    SUPPORTED_CHAINS.ARBITRUM
+  ] as `0x${string}`,
 };
 
 const tokenAddresses = TOKEN_CONTRACT_ADDRESSES as Record<
@@ -112,7 +114,7 @@ const FastBridgeShowcase = () => {
     }
 
     if (isAppRoute) {
-      return ARC_USDC_DESTINATION_PAIR;
+      return ARBITRUM_USDC_DESTINATION_PAIR;
     }
 
     return getPreferredDestinationPair(
