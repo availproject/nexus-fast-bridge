@@ -512,7 +512,7 @@ export default function AboutPage() {
               </button>
               <a
                 className="seo-banner__btn seo-banner__btn--secondary"
-                href="https://elements.nexus.availproject.org/docs/components/swaps"
+                href="https://docs.availproject.org/docs/nexus/widgets/components/swaps"
                 rel="noopener noreferrer"
                 target="_blank"
               >
