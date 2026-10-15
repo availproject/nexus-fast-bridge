@@ -239,13 +239,18 @@ test("does not invent one source-token total for mixed-token intents", () => {
   assert.deepEqual(normalized.feesAndBuffer.bridge, {
     caGas: "0",
     caGasUsd: "0.001",
+    depositRaw: "0",
+    depositUsd: "0.001",
+    fulfillmentRaw: "0",
     fulfillmentUsd: "0.005",
+    fulfilmentUsd: "0.005",
+    networkFeeUsd: "0.006",
     protocol: "0",
     protocolUsd: "0.002",
     solver: "0",
     solverUsd: "0.003",
     total: "0",
-    totalUsd: "0.006",
+    totalUsd: "0.011",
   });
   const withFallbackRates = addIntentUsdValues(normalized, () => 99);
   assert.equal(withFallbackRates.destination.value, "0.000001");

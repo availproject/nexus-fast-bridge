@@ -82,15 +82,28 @@ export function EstimatedFeesDisclosure({
         ? raw.mul(destinationUsdRate)
         : undefined;
     };
+    const depositUsd = data?.depositUsd ?? data?.caGasUsd;
+    const fulfillmentUsd = data?.fulfillmentUsd ?? data?.fulfilmentUsd;
+    const solverUsd = data?.solverUsd;
+    const protocolUsd = data?.protocolUsd;
+
     const collection = parseDecimal(data?.collection);
     const fulfilment = parseDecimal(data?.fulfilment);
     const executionGas =
-      feeInUsd(data?.caGasUsd, data?.caGas) ??
-      (collection || fulfilment
-        ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
-        : undefined);
-    const protocol = feeInUsd(data?.protocolUsd, data?.protocol);
-    const solver = feeInUsd(data?.solverUsd, data?.solver);
+      depositUsd !== undefined || fulfillmentUsd !== undefined
+        ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
+        : (feeInUsd(data?.caGasUsd, data?.caGas) ??
+          (collection || fulfilment
+            ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
+            : undefined));
+    const protocol =
+      protocolUsd !== undefined
+        ? parseDecimal(protocolUsd)
+        : feeInUsd(data?.protocolUsd, data?.protocol);
+    const solver =
+      solverUsd !== undefined
+        ? parseDecimal(solverUsd)
+        : feeInUsd(data?.solverUsd, data?.solver);
     const bridgeGasSupplied = parseDecimal(data?.gasSupplied);
     const destinationGasSupplied =
       bridgeGasSupplied ??
@@ -102,7 +115,9 @@ export function EstimatedFeesDisclosure({
             label: isBetterIntentQuote ? "Network Fee" : "Execution Gas Fee",
             value: executionGas ?? new Decimal(0),
           },
-          { label: "Protocol Fee", value: protocol ?? new Decimal(0) },
+          ...(protocol && protocol.gt(0)
+            ? [{ label: "Protocol Fee", value: protocol }]
+            : []),
           { label: "Solver Fee", value: solver ?? new Decimal(0) },
           ...(destinationGasSupplied?.gt(0)
             ? [{ label: "Gas Sponsorship", value: destinationGasSupplied }]
