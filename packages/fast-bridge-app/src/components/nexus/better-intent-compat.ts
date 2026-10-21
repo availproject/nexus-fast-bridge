@@ -127,12 +127,30 @@ export interface LegacyIntent {
     };
   };
   executionWarnings?: IntentQuote["executionWarnings"];
+  fees?: {
+    deposit: string;
+    fulfillment: string;
+    protocol: string;
+    solver: string;
+    depositUsd: string;
+    fulfillmentUsd: string;
+    fulfilmentUsd: string;
+    protocolUsd: string;
+    solverUsd: string;
+    totalUsd: string;
+    networkFeeUsd: string;
+  };
   feesAndBuffer: {
     buffer: string;
     bridge: {
       caGas: string;
       caGasUsd?: string;
+      depositRaw?: string;
+      depositUsd?: string;
+      fulfillmentRaw?: string;
       fulfillmentUsd?: string;
+      fulfilmentUsd?: string;
+      networkFeeUsd?: string;
       protocol: string;
       protocolUsd?: string;
       solver: string;
@@ -826,12 +844,37 @@ export const normalizeIntentQuote = (
           )
           .toString()
       : undefined;
+  const depositUsd =
+    quote.fees.depositUsd ??
+    (quote.fees as unknown as Record<string, string | undefined>).depositUsd ??
+    "0";
+  const fulfillmentUsd =
+    quote.fees.fulfillmentUsd ??
+    (quote.fees as unknown as Record<string, string | undefined>)
+      .fulfilmentUsd ??
+    (quote.fees as unknown as Record<string, string | undefined>)
+      .fulfillmentUsd ??
+    "0";
+  const protocolUsd =
+    quote.fees.protocolUsd ??
+    (quote.fees as unknown as Record<string, string | undefined>).protocolUsd ??
+    "0";
+  const solverUsd =
+    quote.fees.solverUsd ??
+    (quote.fees as unknown as Record<string, string | undefined>).solverUsd ??
+    "0";
+
+  const networkFeeUsd = new Decimal(depositUsd || 0).add(fulfillmentUsd || 0);
+  const totalFeeUsdDec = networkFeeUsd
+    .add(solverUsd || 0)
+    .add(protocolUsd || 0);
+  const displayedFeeTotalUsd = totalFeeUsdDec.toString();
+
   const displayedFeeTotalRaw =
-    quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
-  const displayedFeeTotalUsd = new Decimal(quote.fees.depositUsd)
-    .plus(quote.fees.protocolUsd)
-    .plus(quote.fees.solverUsd)
-    .toString();
+    quote.fees.depositRaw +
+    (quote.fees.fulfillmentRaw ?? 0n) +
+    quote.fees.protocolRaw +
+    quote.fees.solverRaw;
 
   return {
     bridgeProvider: quote.provider,
@@ -868,6 +911,33 @@ export const normalizeIntentQuote = (
         },
       },
     },
+    fees: {
+      deposit:
+        quote.fees.depositRaw?.toString() ??
+        (quote.fees as unknown as Record<string, string | undefined>).deposit ??
+        "0",
+      fulfillment:
+        (quote.fees.fulfillmentRaw ?? 0n).toString() ??
+        (quote.fees as unknown as Record<string, string | undefined>)
+          .fulfillment ??
+        "0",
+      protocol:
+        quote.fees.protocolRaw?.toString() ??
+        (quote.fees as unknown as Record<string, string | undefined>)
+          .protocol ??
+        "0",
+      solver:
+        quote.fees.solverRaw?.toString() ??
+        (quote.fees as unknown as Record<string, string | undefined>).solver ??
+        "0",
+      depositUsd,
+      fulfillmentUsd,
+      fulfilmentUsd: fulfillmentUsd,
+      protocolUsd,
+      solverUsd,
+      totalUsd: displayedFeeTotalUsd,
+      networkFeeUsd: networkFeeUsd.toString(),
+    },
     feesAndBuffer: {
       buffer: "0",
       bridge: {
@@ -875,12 +945,17 @@ export const normalizeIntentQuote = (
         // source-side network fee is `depositRaw`; `caGasRaw` is not shown
         // separately because it can overlap other fee components.
         caGas: formatUnits(quote.fees.depositRaw, outputDecimals),
-        caGasUsd: quote.fees.depositUsd,
-        fulfillmentUsd: quote.fees.fulfillmentUsd,
+        caGasUsd: depositUsd,
+        depositRaw: quote.fees.depositRaw?.toString(),
+        depositUsd,
+        fulfillmentRaw: (quote.fees.fulfillmentRaw ?? 0n).toString(),
+        fulfillmentUsd,
+        fulfilmentUsd: fulfillmentUsd,
+        networkFeeUsd: networkFeeUsd.toString(),
         protocol: formatUnits(quote.fees.protocolRaw, outputDecimals),
-        protocolUsd: quote.fees.protocolUsd,
+        protocolUsd,
         solver: formatUnits(quote.fees.solverRaw, outputDecimals),
-        solverUsd: quote.fees.solverUsd,
+        solverUsd,
         total: formatUnits(displayedFeeTotalRaw, outputDecimals),
         totalUsd: displayedFeeTotalUsd,
       },

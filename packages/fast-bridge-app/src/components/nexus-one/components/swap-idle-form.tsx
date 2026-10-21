@@ -1360,31 +1360,60 @@ export function SwapIdleForm({
   };
 
   const feeAmountValue = React.useMemo(() => {
+    const rawBridge = intentData?.feesAndBuffer?.bridge;
+    const rawFees = (
+      intentData as unknown as { fees?: Record<string, string | undefined> }
+    )?.fees;
+    const bridgeFeeData =
+      rawBridge && typeof rawBridge === "object"
+        ? rawBridge
+        : rawFees && typeof rawFees === "object"
+          ? rawFees
+          : undefined;
+
     const isBetterIntentFee = isBetterIntentProvider(
       intentData?.bridgeProvider
     );
-    const destinationUsdRate = toToken
-      ? parseDecimal(getTokenUsdRate?.(toToken))
-      : undefined;
+
+    // If we have explicit USD fee components from Better Intent:
+    const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
+    const fulfillmentUsd =
+      bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
+    const solverUsd = bridgeFeeData?.solverUsd;
+    const protocolUsd = bridgeFeeData?.protocolUsd;
+
+    if (
+      depositUsd !== undefined ||
+      fulfillmentUsd !== undefined ||
+      solverUsd !== undefined ||
+      protocolUsd !== undefined
+    ) {
+      const networkFee = new Decimal(depositUsd || 0).add(fulfillmentUsd || 0);
+      const total = networkFee.add(solverUsd || 0).add(protocolUsd || 0);
+      return total.lt(0.01) ? "0.00" : total.toFixed(2);
+    }
+
     const normalizedTotalUsd = parseDecimal(totalFeeUsd);
     if (normalizedTotalUsd?.gte(0)) {
       return normalizedTotalUsd.lt(0.01)
         ? "0.00"
         : normalizedTotalUsd.toFixed(2);
     }
-    if (isBetterIntentFee && !destinationUsdRate?.gt(0)) {
-      return "--";
-    }
-    const rawBridge = intentData?.feesAndBuffer?.bridge;
+
     const quotedBridgeTotalUsd =
       rawBridge && typeof rawBridge === "object"
         ? parseDecimal(rawBridge.totalUsd)
         : undefined;
-    if (isBetterIntentFee && quotedBridgeTotalUsd?.gte(0)) {
+    if (quotedBridgeTotalUsd?.gte(0)) {
       return quotedBridgeTotalUsd.lt(0.01)
         ? "0.00"
         : quotedBridgeTotalUsd.toFixed(2);
     }
+
+    const destinationUsdRate = toToken
+      ? parseDecimal(getTokenUsdRate?.(toToken))
+      : undefined;
+
     const bridgeTotal =
       typeof rawBridge === "string"
         ? parseDecimal(rawBridge)
@@ -1396,14 +1425,24 @@ export function SwapIdleForm({
           : bridgeTotal;
       return displayedTotal.lt(0.01) ? "0.00" : displayedTotal.toFixed(2);
     }
+    if (isBetterIntentFee && !destinationUsdRate?.gt(0)) {
+      return "--";
+    }
     return "0.00";
   }, [getTokenUsdRate, intentData, toToken, totalFeeUsd]);
 
   // Fees breakdown for fees tooltip
   const feeBreakdown = React.useMemo(() => {
     const rawBridge = intentData?.feesAndBuffer?.bridge;
+    const rawFees = (
+      intentData as unknown as { fees?: Record<string, string | undefined> }
+    )?.fees;
     const bridgeFeeData =
-      rawBridge && typeof rawBridge === "object" ? rawBridge : undefined;
+      rawBridge && typeof rawBridge === "object"
+        ? rawBridge
+        : rawFees && typeof rawFees === "object"
+          ? rawFees
+          : undefined;
 
     const isBetterIntentFee = isBetterIntentProvider(
       intentData?.bridgeProvider
@@ -1421,6 +1460,12 @@ export function SwapIdleForm({
         : undefined;
     };
 
+    const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
+    const fulfillmentUsd =
+      bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
+    const solverUsd = bridgeFeeData?.solverUsd;
+    const protocolUsd = bridgeFeeData?.protocolUsd;
+
     const caGas = feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas);
     const collection = parseDecimal(bridgeFeeData?.collection);
     const fulfilment = parseDecimal(bridgeFeeData?.fulfilment);
@@ -1428,18 +1473,25 @@ export function SwapIdleForm({
       parseDecimal(intentData?.destination?.gas?.value) ??
       parseDecimal(destinationGasFeeUsd);
 
-    const executionFee =
-      caGas ??
-      (collection !== undefined || fulfilment !== undefined
-        ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
-        : undefined) ??
-      destGasVal;
+    const networkFee =
+      depositUsd !== undefined || fulfillmentUsd !== undefined
+        ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
+        : (caGas ??
+          (collection !== undefined || fulfilment !== undefined
+            ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
+            : undefined) ??
+          destGasVal);
 
-    const solverFee = feeInUsd(bridgeFeeData?.solverUsd, bridgeFeeData?.solver);
-    const protocolFee = feeInUsd(
-      bridgeFeeData?.protocolUsd,
-      bridgeFeeData?.protocol
-    );
+    const solverFee =
+      solverUsd !== undefined
+        ? parseDecimal(solverUsd)
+        : feeInUsd(bridgeFeeData?.solverUsd, bridgeFeeData?.solver);
+
+    const protocolFee =
+      protocolUsd !== undefined
+        ? parseDecimal(protocolUsd)
+        : feeInUsd(bridgeFeeData?.protocolUsd, bridgeFeeData?.protocol);
+
     const formatFeeStr = (dec: Decimal | undefined) => {
       if (!dec || dec.lte(0)) return "$0.00";
       if (dec.lt(0.01)) return "<$0.01";
@@ -1448,7 +1500,7 @@ export function SwapIdleForm({
 
     return {
       hasProtocolFees: Boolean(protocolFee && protocolFee.gt(0)),
-      networkFees: formatFeeStr(executionFee),
+      networkFees: formatFeeStr(networkFee),
       protocolFees: formatFeeStr(protocolFee),
       solverFees: formatFeeStr(solverFee),
     };
@@ -3351,7 +3403,7 @@ export function SwapIdleForm({
             )}
           </div>
 
-          {/* Right: Max Slippage [Auto] 0.2% (i) */}
+          {/* Right: Max Slippage 0.5% Auto (i) */}
           <div
             style={{
               alignItems: "center",
@@ -3378,6 +3430,18 @@ export function SwapIdleForm({
               <>
                 <span
                   style={{
+                    color: "#111827",
+                    fontFamily: '"Geist", system-ui, sans-serif',
+                    fontSize: "15px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "normal",
+                  }}
+                >
+                  0.5%
+                </span>
+                <span
+                  style={{
                     alignItems: "center",
                     background: "#EEF2FF",
                     borderRadius: "999px",
@@ -3392,18 +3456,6 @@ export function SwapIdleForm({
                   }}
                 >
                   Auto
-                </span>
-                <span
-                  style={{
-                    color: "#111827",
-                    fontFamily: '"Geist", system-ui, sans-serif',
-                    fontSize: "15px",
-                    fontStyle: "normal",
-                    fontWeight: 500,
-                    lineHeight: "normal",
-                  }}
-                >
-                  0.2%
                 </span>
                 <div
                   onMouseEnter={() => setTooltip("slippage-info")}

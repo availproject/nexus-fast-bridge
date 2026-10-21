@@ -276,7 +276,7 @@ const ASSET_SELECTOR_DRAWER_HEIGHT = "calc(100% - 72px)";
 const NEXUS_ONE_LIST_MIN_HEIGHT = "min(560px, 90dvh)";
 const BASIS_POINTS = 10000;
 const PREDICTIVE_EXACT_IN_DISCOUNT_BPS = 50;
-const PREDICTIVE_EXACT_OUT_SLIPPAGE_BPS = 20; // 0.2% slippage
+const PREDICTIVE_EXACT_OUT_SLIPPAGE_BPS = 50; // 0.5% slippage
 const PREDICTIVE_QUOTE_DISPLAY_DECIMALS = 8;
 const ETHEREUM_MAINNET_CHAIN_ID = 1;
 const SDK_EXACT_OUT_STABLE_SYMBOLS = new Set([
@@ -7191,15 +7191,23 @@ function NexusOneInner({
         const quotedFeeTotalUsd = isBetterIntentFee
           ? parseFiatNumber(bridgeFeeData?.totalUsd)
           : undefined;
+        const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
+        const fulfillmentUsd =
+          bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
+        const solverUsd = bridgeFeeData?.solverUsd;
+        const protocolUsd = bridgeFeeData?.protocolUsd;
+
         const collectionFee = parseFiatNumber(bridgeFeeData?.collection);
         const fulfilmentFee = parseFiatNumber(bridgeFeeData?.fulfilment);
         const executionGasFee =
-          parseFiatNumber(bridgeFeeData?.caGas) ??
-          (collectionFee !== undefined || fulfilmentFee !== undefined
-            ? (collectionFee ?? new Decimal(0)).plus(
-                fulfilmentFee ?? new Decimal(0)
-              )
-            : undefined);
+          depositUsd !== undefined || fulfillmentUsd !== undefined
+            ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
+            : (parseFiatNumber(bridgeFeeData?.caGas) ??
+              (collectionFee !== undefined || fulfilmentFee !== undefined
+                ? (collectionFee ?? new Decimal(0)).plus(
+                    fulfilmentFee ?? new Decimal(0)
+                  )
+                : undefined));
         const bridgeGasSuppliedFee = parseFiatNumber(
           bridgeFeeData?.gasSupplied
         );
@@ -7207,11 +7215,19 @@ function NexusOneInner({
           getIntentDestinationGasUsdValue(sortedIntent);
         const gasSuppliedFee =
           bridgeGasSuppliedFee ?? destinationGasSuppliedFee;
+        const solverFee =
+          solverUsd !== undefined
+            ? parseFiatNumber(solverUsd)
+            : parseFiatNumber(bridgeFeeData?.solver);
+        const protocolFee =
+          protocolUsd !== undefined
+            ? parseFiatNumber(protocolUsd)
+            : parseFiatNumber(bridgeFeeData?.protocol);
         const bridgeComponentsTotal = bridgeFeeData
           ? [
               executionGasFee,
-              parseFiatNumber(bridgeFeeData.protocol),
-              parseFiatNumber(bridgeFeeData.solver),
+              protocolFee,
+              solverFee,
               gasSuppliedFee,
             ].reduce<Decimal>(
               (sum, value) => sum.plus(value ?? new Decimal(0)),
