@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-// import { loadLastChain } from "@/providers/runtime-context";
-
 const STYLESHEETS = [
   "/landing-new/base.css",
   "/landing-new/hero.css",
@@ -14,9 +12,12 @@ const STYLESHEETS = [
 
 const TOC_ITEMS = [
   { id: "tldr", label: "TL;DR" },
-  { id: "why", label: "Why multi-source matters" },
-  { id: "picks", label: "Our top picks" },
   { id: "table", label: "Side-by-side comparison" },
+  { id: "what", label: "What is a cross-chain bridge?" },
+  { id: "criteria", label: "How we picked the best bridges" },
+  { id: "why", label: "Why multi-source matters" },
+  { id: "picks", label: "The 8 best bridges reviewed" },
+  { id: "risks", label: "Bridge risks & past hacks" },
   { id: "fees", label: "Fee comparison" },
   { id: "choose", label: "How to choose" },
   { id: "how", label: "How intent bridges work" },
@@ -27,8 +28,6 @@ export default function TopCrossChainBridgesPage() {
   const [activeId, setActiveId] = useState<string>("tldr");
 
   const handleBridgeClick = () => {
-    // const lastChain = loadLastChain();
-    // navigate(`/${lastChain}`);
     navigate("/app");
   };
 
@@ -64,7 +63,8 @@ export default function TopCrossChainBridgesPage() {
   }, []);
 
   useEffect(() => {
-    document.title = "Best Cross-Chain Bridges in 2026 [Compared]";
+    document.title =
+      "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared";
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);
@@ -162,10 +162,12 @@ export default function TopCrossChainBridgesPage() {
 
         <div className="page-hero__content">
           <h1 className="page-hero__title" id="seo-page-title">
-            Top Cross-Chain Bridges In 2026
+            Top 8 Cross-Chain Bridges in 2026: Fees, Speed &amp; Security
+            Compared
           </h1>
           <p className="page-hero__subtitle">
-            An independent guide to choosing the right bridge for your use case.
+            An independent guide comparing architecture, fees, settlement speed,
+            and security models across the leading crypto bridges.
           </p>
         </div>
       </section>
@@ -220,7 +222,9 @@ export default function TopCrossChainBridgesPage() {
               </p>
               <p>
                 The best cross-chain bridge in 2026 depends on what you&apos;re
-                moving and where from. Here&apos;s the short version:
+                moving, where you&apos;re moving it, and how much risk you are
+                comfortable with. Here is the short version of the top 8 crypto
+                bridges:
               </p>
               <ul className="seo-tldr-list">
                 <li>
@@ -228,10 +232,10 @@ export default function TopCrossChainBridgesPage() {
                     01
                   </span>
                   <span>
-                    <strong>FastBridge by Avail</strong>, best for consolidating
-                    assets from multiple chains in one transaction. The only
-                    bridge with native multi-source support. Offers cross-chain
-                    swaps and gas abstraction. Supports all major EVM chains.
+                    <strong>FastBridge by Avail</strong> &mdash; best for
+                    consolidating assets from multiple source chains in one
+                    transaction, cross-chain swaps, and zero-gas onboarding
+                    across all major EVM networks.
                   </span>
                 </li>
                 <li>
@@ -239,9 +243,9 @@ export default function TopCrossChainBridgesPage() {
                     02
                   </span>
                   <span>
-                    <strong>Across</strong>, best for fast single-asset
-                    transfers with deep liquidity on major EVM routes (ETH, USDC
-                    between Ethereum, Arbitrum, Optimism, Base).
+                    <strong>Across Protocol</strong> &mdash; best for fast,
+                    capital-efficient single-asset transfers with deep liquidity
+                    on major EVM rollups (ETH, WETH, USDC).
                   </span>
                 </li>
                 <li>
@@ -249,9 +253,10 @@ export default function TopCrossChainBridgesPage() {
                     03
                   </span>
                   <span>
-                    <strong>Stargate</strong>, best for the widest chain
-                    coverage including non-EVM networks. Supports 80+
-                    blockchains.
+                    <strong>Stargate</strong> &mdash; best for broad chain
+                    coverage, connecting 80+ EVM and non-EVM blockchains
+                    (including Solana and Aptos) through LayerZero liquidity
+                    pools.
                   </span>
                 </li>
                 <li>
@@ -259,18 +264,298 @@ export default function TopCrossChainBridgesPage() {
                     04
                   </span>
                   <span>
-                    <strong>deBridge</strong>, best for intent-based transfers
-                    with native Solana and Tron support.
+                    <strong>deBridge</strong> &mdash; best for high-speed
+                    intent-based transfers with native Solana and Tron support,
+                    guaranteed pricing, and a 0-TVL security model.
+                  </span>
+                </li>
+                <li>
+                  <span aria-hidden="true" className="seo-tldr-list__rank">
+                    05
+                  </span>
+                  <span>
+                    <strong>Relay</strong> &mdash; best for instant rollup
+                    micro-transfers, sub-3-second execution, and automatic
+                    destination gas delivery.
+                  </span>
+                </li>
+                <li>
+                  <span aria-hidden="true" className="seo-tldr-list__rank">
+                    06
+                  </span>
+                  <span>
+                    <strong>Circle CCTP</strong> &mdash; best for 1:1
+                    zero-slippage native USDC transfers across 30+ chains via
+                    official burn-and-mint infrastructure.
+                  </span>
+                </li>
+                <li>
+                  <span aria-hidden="true" className="seo-tldr-list__rank">
+                    07
+                  </span>
+                  <span>
+                    <strong>Wormhole (Portal)</strong> &mdash; best for
+                    heterogeneous cross-ecosystem messaging and token transfers
+                    connecting EVM, Solana, Sui, and Cosmos.
+                  </span>
+                </li>
+                <li>
+                  <span aria-hidden="true" className="seo-tldr-list__rank">
+                    08
+                  </span>
+                  <span>
+                    <strong>Jumper Exchange (LI.FI)</strong> &mdash; best bridge
+                    and DEX aggregator for discovering and comparing optimal
+                    routes across 30+ bridging protocols.
                   </span>
                 </li>
               </ul>
               <p>
-                All four are non-custodial and deliver native assets. They
-                differ substantially in architecture, speed, asset coverage, and
-                whether they support pulling from multiple source chains at
-                once.
+                All 8 protocols differ substantially in their underlying
+                verification models, speed, fee schedules, asset coverage, and
+                whether they support pulling funds from multiple chains at once.
               </p>
             </div>
+          </section>
+
+          <section aria-labelledby="table-heading" id="table">
+            <h2 id="table-heading">Side-by-side comparison</h2>
+            <p>
+              Compare the 8 leading cross-chain bridges across execution model,
+              ideal use cases, settlement speed, security architecture, and fee
+              structures.
+            </p>
+            <div className="seo-table-wrap">
+              <table className="seo-table--compare">
+                <thead>
+                  <tr>
+                    <th scope="col">Protocol</th>
+                    <th scope="col">Execution Model</th>
+                    <th scope="col">Best For</th>
+                    <th scope="col">Speed</th>
+                    <th scope="col">Security Model</th>
+                    <th scope="col">Fees</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="seo-row-highlight">
+                    <td>
+                      <strong>FastBridge</strong> (by Avail)
+                    </td>
+                    <td>Intent-based / multi-source solver</td>
+                    <td>
+                      Consolidating assets across chains, swaps, zero-gas
+                      onboarding
+                    </td>
+                    <td>~10&ndash;20 sec</td>
+                    <td>
+                      Avail Nexus verification &amp; non-custodial solvers
+                      (0-TVL)
+                    </td>
+                    <td>~0.05% protocol + minimal solver spread</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Across Protocol</strong>
+                    </td>
+                    <td>Optimistic intent-based</td>
+                    <td>Fast EVM-to-EVM transfers (ETH &amp; USDC)</td>
+                    <td>~10 sec</td>
+                    <td>UMA optimistic oracle &amp; relayer network</td>
+                    <td>Relayer fee + LP spread (~0.05%&ndash;0.15%)</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Stargate</strong>
+                    </td>
+                    <td>Unified liquidity pools</td>
+                    <td>Broad chain coverage (80+ chains) &amp; stablecoins</td>
+                    <td>1&ndash;5 min</td>
+                    <td>LayerZero messaging (DVNs) + pool liquidity</td>
+                    <td>~0.06% protocol fee + pool rebalancing fee</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>deBridge</strong>
+                    </td>
+                    <td>0-TVL, intent-based (DLN)</td>
+                    <td>
+                      Guaranteed-rate swaps &amp; Solana/Tron-to-EVM transfers
+                    </td>
+                    <td>1&ndash;4 sec (Solana), 3&ndash;5 sec (EVM)</td>
+                    <td>0-TVL relayer validation (no pooled funds)</td>
+                    <td>~0.04% + flat tx fee (no hidden spread)</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Relay</strong>
+                    </td>
+                    <td>Intent-based relayer</td>
+                    <td>
+                      Fast micro-transfers &amp; automatic destination gas
+                    </td>
+                    <td>~1&ndash;3 sec</td>
+                    <td>Relay oracle &amp; solver capital verification</td>
+                    <td>
+                      0% native bridging, $0.02 flat + 0.01%&ndash;0.15% for
+                      swaps
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Circle CCTP</strong>
+                    </td>
+                    <td>Burn-and-mint (canonical)</td>
+                    <td>
+                      Zero-slippage native USDC transfers across supported
+                      chains
+                    </td>
+                    <td>10&ndash;20 min (standard), ~10&ndash;30 sec (fast)</td>
+                    <td>
+                      Circle native attestation service (centralized/canonical)
+                    </td>
+                    <td>0% standard protocol fee (network gas only)</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Wormhole</strong>
+                    </td>
+                    <td>Guardian validator set &amp; messaging</td>
+                    <td>
+                      Multi-chain arbitrary messaging and broad ecosystem
+                      bridging
+                    </td>
+                    <td>1&ndash;15 min</td>
+                    <td>19-of-19 Guardian validator multisig</td>
+                    <td>Low relayer fee + destination execution gas</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Jumper Exchange</strong>
+                    </td>
+                    <td>Multi-bridge &amp; DEX aggregator</td>
+                    <td>
+                      Finding the fastest or cheapest route across 30+ bridges
+                    </td>
+                    <td>Varies by route (~15 sec &ndash; 10 min)</td>
+                    <td>
+                      Smart contract routing layer (inherits bridge security)
+                    </td>
+                    <td>0.25% LI.FI fee on select routes + bridge fees</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section aria-labelledby="what-heading" id="what">
+            <h2 id="what-heading">What is a cross-chain bridge?</h2>
+            <p>
+              A standard decentralized exchange (DEX) swaps tokens on the same
+              blockchain &mdash; for example, trading ETH for USDC on Ethereum.
+              A cross-chain bridge does something fundamentally different: it
+              transfers value and messages between distinct, independent
+              blockchains, such as moving ETH from Ethereum to Base, or USDC
+              from Solana to Arbitrum.
+            </p>
+            <p>
+              Blockchains are sovereign state machines. They operate in
+              isolation with separate ledgers, consensus rules, and virtual
+              machines. Ethereum has no native awareness of what happens on
+              Arbitrum, Solana, or Avalanche. Without bridges, moving funds
+              across ecosystems requires depositing onto a centralized exchange
+              (CEX), undergoing identity checks (KYC), paying withdrawal fees,
+              and waiting through exchange processing delays.
+            </p>
+            <p>
+              Cross-chain bridges bridge this gap directly from your
+              non-custodial Web3 wallet. Over the past several years, bridging
+              technology has evolved through distinct generations:
+            </p>
+            <ul>
+              <li>
+                <strong>Lock-and-mint bridges:</strong> The earliest model,
+                where tokens are locked in a smart contract on the source chain
+                and a synthetic &quot;wrapped&quot; equivalent (e.g. wETH or
+                soETH) is minted on the destination. While widely adopted
+                historically, this created massive honeypots that became the
+                target of major multi-hundred-million-dollar exploits.
+              </li>
+              <li>
+                <strong>Liquidity pool bridges:</strong> Protocols maintain
+                pools of native tokens on multiple chains and rebalance them as
+                transfers occur. This avoids synthetic wrapped tokens but
+                introduces pool rebalancing fees and slippage risks.
+              </li>
+              <li>
+                <strong>Intent-based / solver bridges:</strong> The modern gold
+                standard in 2026. Instead of locking funds in shared pools,
+                users declare an intent (e.g., &quot;deliver 1,000 USDC on
+                Base&quot;). Independent market makers (solvers) fill the order
+                immediately with their own liquidity, delivering native tokens
+                in seconds. Solvers are reimbursed on-chain after cryptographic
+                verification.
+              </li>
+              <li>
+                <strong>Multi-source bridges:</strong> The newest breakthrough
+                pioneered by FastBridge. Rather than being restricted to one
+                source chain, users can pull balances from multiple source
+                blockchains simultaneously and consolidate them into a single
+                destination asset in one signature.
+              </li>
+            </ul>
+          </section>
+
+          <section aria-labelledby="criteria-heading" id="criteria">
+            <h2 id="criteria-heading">
+              How we picked the best cross-chain bridges
+            </h2>
+            <p>
+              To establish an objective, trustworthy ranking, we evaluated
+              dozens of active cross-chain protocols, liquidity networks, and
+              aggregators. Every bridge featured in this guide was evaluated
+              against six core criteria:
+            </p>
+            <ul>
+              <li>
+                <strong>Security model &amp; verification mechanism:</strong>{" "}
+                How cross-chain state is verified (intent solvers, optimistic
+                dispute windows, canonical burn-and-mint, or validator
+                multisigs), whether the protocol relies on vulnerable wrapped
+                tokens, and whether user funds are exposed to shared smart
+                contract liquidity pools.
+              </li>
+              <li>
+                <strong>Transparent fee schedule:</strong> Whether the protocol
+                publishes its fee structure openly, avoids predatory relayer
+                spreads, and displays an upfront itemized breakdown of protocol
+                fees, execution gas, and slippage before the user signs.
+              </li>
+              <li>
+                <strong>Settlement speed &amp; finality:</strong> Real-world
+                median delivery time under normal and congested network
+                conditions, differentiating between sub-minute intent fills and
+                longer canonical settlement windows.
+              </li>
+              <li>
+                <strong>Chain coverage &amp; asset depth:</strong> Ecosystem
+                reach across EVM Layer 1s, Layer 2 rollups, SVM/Solana, and
+                non-EVM networks, as well as liquidity depth for primary assets
+                (ETH, BTC, USDC, USDT) to minimize price impact.
+              </li>
+              <li>
+                <strong>Incident history &amp; track record:</strong> Public
+                transparency regarding security audits, formal verification, bug
+                bounty programs, and historical handling of smart contract or
+                validator vulnerabilities.
+              </li>
+              <li>
+                <strong>User experience &amp; features:</strong> Practical
+                convenience, including gas abstraction (paying fees without
+                holding native gas tokens on every source chain), cross-chain
+                swaps, and multi-source balance consolidation.
+              </li>
+            </ul>
           </section>
 
           <section aria-labelledby="why-heading" id="why">
@@ -331,12 +616,14 @@ export default function TopCrossChainBridgesPage() {
           </div>
 
           <section aria-labelledby="picks-heading" id="picks">
-            <h2 id="picks-heading">Our top picks</h2>
+            <h2 id="picks-heading">
+              The 8 Best Cross-Chain Bridges in 2026 Reviewed
+            </h2>
             <p>
-              Four bridges that meaningfully cover the market. Each is
-              non-custodial and delivers native assets. They differ on
-              architecture, speed, coverage, and whether they support pulling
-              from multiple source chains at once.
+              Below is our comprehensive, structured review of the top 8
+              cross-chain bridges in 2026. Each protocol is evaluated across
+              supported chains, fee schedules, settlement speed, security
+              architecture, key trade-offs, and intended user persona.
             </p>
 
             <div className="seo-picks">
@@ -346,9 +633,9 @@ export default function TopCrossChainBridgesPage() {
                   <h3 className="seo-pick__name">FastBridge</h3>
                 </div>
                 <p className="seo-pick__tagline">
-                  <strong>Best for:</strong> consolidating assets from multiple
-                  chains; cross-chain swaps; onboarding to new EVM L2s without
-                  managing gas.
+                  <strong>Best for:</strong> Consolidating assets from multiple
+                  chains in one transaction, cross-chain swaps, and zero-gas EVM
+                  onboarding.
                 </p>
                 <figure className="seo-pick__screenshot seo-pick__screenshot--filled seo-pick__screenshot--wide">
                   <a
@@ -371,25 +658,45 @@ export default function TopCrossChainBridgesPage() {
                 <p>
                   FastBridge is a unified cross-chain bridge built by Avail and
                   powered by <strong>Avail Nexus</strong>, an intent-based
-                  coordination layer. It is the only bridge in this guide that
-                  natively supports multi-source transactions: add the source
-                  tokens and chains you want to bridge from, select the
-                  destination chain and the token you want to receive, and
-                  FastBridge handles the rest in one signed transaction.
+                  coordination layer. It is the only bridge on the market with
+                  native multi-source support: select assets across multiple
+                  origin chains, pick your destination token, and execute the
+                  entire transfer in a single signed transaction.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> All major EVM L1s and
+                    L2s, including Ethereum, Arbitrum, Optimism, Base, Polygon,
+                    Avalanche, BNB Chain, HyperEVM, Monad, MegaETH, and Citrea.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Transparent protocol fee of ~0.05%
+                    plus competitive solver spread. Fees can be paid directly in
+                    USDC or USDT, eliminating the need to maintain gas tokens on
+                    every source chain.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> Settle transfers in approximately
+                    10&ndash;20 seconds.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Intent-based coordination
+                    layer backed by Avail Nexus. Non-custodial independent
+                    solvers fulfill orders with their own capital and receive
+                    reimbursement on-chain only after cryptographic verification
+                    of delivery. Zero wrapped tokens; native asset delivery.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Focused specifically on EVM and
+                  EVM-compatible rollups. Non-EVM chains like Solana are not
+                  natively supported in the current release.
                 </p>
                 <p>
-                  FastBridge also supports <strong>cross-chain swaps</strong>,
-                  you can send any token(s) and receive a different token at the
-                  destination. Swaps between different tokens might show a small
-                  price impact before you confirm. Transactions settle in
-                  approximately <strong>10&ndash;20 seconds</strong>. No native
-                  gas tokens required on any source chain, fees can be paid in
-                  USDC or USDT.
-                </p>
-                <p>
-                  FastBridge supports all major EVM chains, including Ethereum,
-                  Arbitrum, Optimism, Base, Polygon, Avalanche, BNB Chain,
-                  HyperEVM, Monad, MegaETH, and Citrea.
+                  <strong>Who it&apos;s for:</strong> DeFi users with fragmented
+                  capital across multiple rollups who want to merge balances in
+                  one click, execute destination token swaps, and onboard to new
+                  L2s without holding native gas tokens.
                 </p>
                 <button
                   className="seo-pick__link"
@@ -412,8 +719,8 @@ export default function TopCrossChainBridgesPage() {
                   <h3 className="seo-pick__name">Across Protocol</h3>
                 </div>
                 <p className="seo-pick__tagline">
-                  <strong>Best for:</strong> fast single-asset transfers between
-                  major EVM chains; deep liquidity on ETH and USDC routes.
+                  <strong>Best for:</strong> Fast single-asset transfers between
+                  major EVM chains with deep liquidity on ETH and USDC routes.
                 </p>
                 <figure className="seo-pick__screenshot seo-pick__screenshot--filled seo-pick__screenshot--wide">
                   <a
@@ -435,16 +742,45 @@ export default function TopCrossChainBridgesPage() {
                 </figure>
                 <p>
                   Across is a mature intent-based bridge that uses a competitive
-                  relayer network to fulfil user intents. It is particularly
-                  strong for ETH, WBTC, USDC, and USDT transfers between
-                  Ethereum, Arbitrum, Optimism, Base, and BSC, and has expanded
-                  to include Solana and Hyperliquid. Non-custodial, native asset
-                  delivery, no wrapped tokens.
+                  relayer network to fulfill user intents with exceptional
+                  speed. It is particularly strong for high-volume routes
+                  connecting Ethereum, Arbitrum, Optimism, Base, and Polygon.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 25+ networks including
+                    Ethereum, Arbitrum, Optimism, Base, Polygon, Blast, Linea,
+                    ZKsync, Solana, and Hyperliquid.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Dynamic route-based fee comprised of
+                    a minimal LP fee (~0.04%&ndash;0.10%) and relayer fee that
+                    fluctuates with destination liquidity pool rebalancing
+                    needs.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> ~10 seconds median fill time on
+                    major EVM corridors.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Optimistic verification
+                    powered by UMA&apos;s Optimistic Oracle. Competing relayers
+                    fill orders immediately with their own capital and are
+                    reimbursed from shared single-sided liquidity pools after an
+                    optimistic dispute window.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Operates strictly on a
+                  single-chain in, single-chain out model. Liquidity is
+                  concentrated in blue-chip assets (ETH, WETH, USDC, USDT),
+                  offering limited depth for long-tail tokens.
                 </p>
                 <p>
-                  Each transfer is chain-to-chain: Across does not support
-                  consolidating from multiple source chains in a single
-                  transaction.
+                  <strong>Who it&apos;s for:</strong> Users moving standard
+                  tokens (ETH, USDC) between high-volume EVM rollups who
+                  prioritize sub-minute execution and battle-tested relayer
+                  depth.
                 </p>
                 <a
                   className="seo-pick__link"
@@ -462,8 +798,8 @@ export default function TopCrossChainBridgesPage() {
                   <h3 className="seo-pick__name">Stargate</h3>
                 </div>
                 <p className="seo-pick__tagline">
-                  <strong>Best for:</strong> broad chain coverage including
-                  non-EVM networks; large native asset transfers.
+                  <strong>Best for:</strong> Broad chain coverage including
+                  non-EVM networks and large native asset transfers.
                 </p>
                 <figure className="seo-pick__screenshot seo-pick__screenshot--filled seo-pick__screenshot--wide">
                   <a
@@ -485,17 +821,43 @@ export default function TopCrossChainBridgesPage() {
                 </figure>
                 <p>
                   Stargate is a composable omnichain asset bridge built on
-                  LayerZero. The current version supports{" "}
-                  <strong>80+ blockchains</strong>, including EVM networks,
-                  Solana, and other non-EVM chains. It delivers native assets
-                  (USDC, USDT, ETH, BTC, OFTs) with instant guaranteed finality,
-                  typically in seconds. Non-custodial.
+                  LayerZero. It delivers native assets (USDC, USDT, ETH, BTC,
+                  OFTs) with instant guaranteed finality across the largest set
+                  of connected blockchains.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 80+ blockchains across
+                    EVM ecosystems, Solana, Aptos, Sei, and multiple non-EVM
+                    chains.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Protocol fee of ~0.06% combined with
+                    a pool rebalancing fee. Transfers into pools with surplus
+                    liquidity receive discounts, while transfers into depleted
+                    pools incur higher rebalancing costs.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> 1 to 5 minutes, depending on the
+                    block confirmation speed of the source blockchain.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Secured by LayerZero V2
+                    messaging using Decentralized Verifier Networks (DVNs) and
+                    unified liquidity pools. Transfers use Omnichain Fungible
+                    Token (OFT) standards and pool reserves without custodial
+                    wrapped tokens.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Pool-based model exposes users to
+                  pool rebalancing slippage and temporary liquidity imbalances
+                  on specific routes. Single-source only.
                 </p>
                 <p>
-                  The UX offers multiple routing options based on speed and
-                  fees, which gives flexibility but can introduce friction.
-                  Stargate does not offer multi-source input, each transfer is a
-                  single source-to-destination route.
+                  <strong>Who it&apos;s for:</strong> Users who need to move
+                  stablecoins or native assets to or from non-EVM networks and
+                  long-tail blockchains that smaller bridges do not support.
                 </p>
                 <a
                   className="seo-pick__link"
@@ -513,8 +875,8 @@ export default function TopCrossChainBridgesPage() {
                   <h3 className="seo-pick__name">deBridge</h3>
                 </div>
                 <p className="seo-pick__tagline">
-                  <strong>Best for:</strong> intent-based transfers with native
-                  Solana and Tron support; solver-driven pricing.
+                  <strong>Best for:</strong> Intent-based transfers with native
+                  Solana and Tron support and guaranteed pricing.
                 </p>
                 <figure className="seo-pick__screenshot seo-pick__screenshot--filled seo-pick__screenshot--wide">
                   <a
@@ -537,18 +899,44 @@ export default function TopCrossChainBridgesPage() {
                 <p>
                   deBridge operates the{" "}
                   <strong>DLN (deBridge Liquidity Network)</strong>, a 0-TVL
-                  intent-based execution layer where competing solvers fulfil
-                  orders using their own liquidity. It supports{" "}
-                  <strong>25+ chains</strong> including Ethereum, Solana, Tron,
-                  BNB Chain, Arbitrum, Optimism, Polygon, Avalanche, and Base.
-                  Transfers typically settle in{" "}
-                  <strong>1&ndash;4 seconds</strong> with native asset delivery.
-                  Fees are transparent: a flat component plus 4 bps on the
-                  input. Non-custodial.
+                  intent-based execution layer where competing solvers fulfill
+                  orders using their own liquidity without pooled smart contract
+                  risks.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 25+ blockchains including
+                    Ethereum, Solana, Tron, BNB Chain, Arbitrum, Optimism,
+                    Polygon, Avalanche, and Base.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Flat fee component plus a transparent
+                    ~0.04%&ndash;0.10% margin on the input, with zero slippage
+                    on limit orders.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> 1 to 4 seconds on Solana routes, 3
+                    to 5 seconds on EVM networks.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> 0-TVL architecture with no
+                    centralized liquidity pool honeypot. Solvers assume
+                    execution risk and transfer native assets directly to users;
+                    validation is attested by the deBridge validator set before
+                    reimbursement.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Single-source only. Swaps
+                  requiring off-chain solver liquidity rely on active
+                  market-maker depth, which can widen spreads during volatile
+                  market events.
                 </p>
                 <p>
-                  Like Across and Stargate, deBridge handles one source and one
-                  destination per transaction.
+                  <strong>Who it&apos;s for:</strong> Active traders frequently
+                  moving funds between EVM networks and Solana or Tron who
+                  prioritize lightning-fast execution and strict slippage
+                  guarantees.
                 </p>
                 <a
                   className="seo-pick__link"
@@ -559,144 +947,430 @@ export default function TopCrossChainBridgesPage() {
                   debridge.finance
                 </a>
               </article>
+
+              <article className="seo-pick">
+                <div className="seo-pick__head">
+                  <span className="seo-pick__rank">05</span>
+                  <h3 className="seo-pick__name">Relay</h3>
+                </div>
+                <p className="seo-pick__tagline">
+                  <strong>Best for:</strong> Sub-second EVM rollup
+                  micro-transfers, dApp embedded bridging, and automatic
+                  destination gas top-ups.
+                </p>
+                <p>
+                  Relay is a cross-chain execution and bridging engine developed
+                  by Reservoir. Built primarily for consumer dApps, embedded
+                  wallet payments, and rollup hopping, it focuses on eliminating
+                  gas friction and delivering transfers in 1&ndash;3 seconds.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 85+ chains, spanning
+                    Ethereum, Arbitrum, Base, Optimism, Zora, Polygon, Blast,
+                    Linea, Degen, and numerous emerging L3s.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> 0% platform fee for same-token
+                    bridging; $0.02 flat fee plus 0.01% for stablecoins and up
+                    to 0.15% for minor token swaps, plus destination gas.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> 1 to 3 seconds median settlement
+                    time.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Relayer-backed intent model
+                    where solvers front execution capital. The Relay oracle
+                    attests to the origin deposit and destination fill before
+                    the solver is reimbursed from the protocol.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Primarily architected for
+                  low-to-medium value transfers and wallet UX; large
+                  institutional transfers may experience route constraints.
+                  Single-source only.
+                </p>
+                <p>
+                  <strong>Who it&apos;s for:</strong> Users making frequent,
+                  smaller transfers to new EVM rollups or L3s who don&apos;t
+                  have destination gas tokens and want automatic gas top-ups.
+                </p>
+                <a
+                  className="seo-pick__link"
+                  href="https://relay.link/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  relay.link
+                </a>
+              </article>
+
+              <article className="seo-pick">
+                <div className="seo-pick__head">
+                  <span className="seo-pick__rank">06</span>
+                  <h3 className="seo-pick__name">Circle CCTP</h3>
+                </div>
+                <p className="seo-pick__tagline">
+                  <strong>Best for:</strong> Zero-slippage, 1:1 native USDC
+                  transfers across EVM and non-EVM blockchains with no pool
+                  liquidity risk.
+                </p>
+                <p>
+                  Circle&apos;s Cross-Chain Transfer Protocol (CCTP) is an
+                  on-chain permissionless utility that facilitates 1:1 transfers
+                  of native USDC across blockchains through an official
+                  burn-and-mint mechanism.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 30+ supported chains
+                    including Ethereum, Arbitrum, Base, Optimism, Polygon PoS,
+                    Avalanche, Solana, Sui, and Noble (Cosmos).
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> 0% protocol fee from Circle for
+                    standard bridging; users only pay source and destination
+                    blockchain gas fees. Third-party fast relayers charge minor
+                    convenience fees (~0.05%&ndash;0.15%).
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> Standard transfers take ~10&ndash;20
+                    minutes depending on source chain block finality. Express
+                    relays and solver-integrated frontends settle in seconds.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Native burn-and-mint
+                    mechanism managed directly by Circle&apos;s attestation
+                    service. USDC is permanently burned on origin and minted
+                    fresh on destination. Zero pool liquidity risk, zero wrapped
+                    tokens, zero slippage.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Strictly supports USDC; does not
+                  bridge ETH, BTC, USDT, or other tokens. Standard protocol
+                  transfers require waiting for full chain finality.
+                </p>
+                <p>
+                  <strong>Who it&apos;s for:</strong> Whales, institutions, and
+                  DeFi protocols moving significant quantities of USDC who
+                  require absolute 1:1 capital efficiency and zero slippage.
+                </p>
+                <a
+                  className="seo-pick__link"
+                  href="https://www.circle.com/en/cross-chain-transfer-protocol"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  circle.com/cctp
+                </a>
+              </article>
+
+              <article className="seo-pick">
+                <div className="seo-pick__head">
+                  <span className="seo-pick__rank">07</span>
+                  <h3 className="seo-pick__name">Wormhole (Portal)</h3>
+                </div>
+                <p className="seo-pick__tagline">
+                  <strong>Best for:</strong> Cross-ecosystem arbitrary messaging
+                  and token bridging between EVM, Solana, Cosmos, Aptos, and
+                  Sui.
+                </p>
+                <p>
+                  Wormhole is a foundational cross-chain messaging protocol
+                  connecting diverse blockchain ecosystems. Portal is the
+                  flagship token bridge built on Wormhole, facilitating
+                  transfers of both native and wrapped assets across disparate
+                  blockchain virtual machines.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 30+ networks spanning
+                    Ethereum, Solana, Arbitrum, Base, Polygon, Avalanche, BNB
+                    Chain, Sui, Aptos, Near, and Algorand.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Nominal relayer fee plus network gas
+                    fees; no high fixed protocol fee markup.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> 1 to 15 minutes depending on the
+                    consensus finality of the source blockchain.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> 19-of-19 Guardian validator
+                    set composed of major institutional node operators
+                    (including Jump Crypto, Figment, and Everstake). Guardians
+                    validate origin state changes and issue Verifiable Action
+                    Approvals (VAAs).
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> On non-native routes, relies on
+                  lock-and-mint wrapping which introduces synthetic tokens and
+                  counterparty risk. User interface can feel complex compared to
+                  modern intent bridges.
+                </p>
+                <p>
+                  <strong>Who it&apos;s for:</strong> Users bridging assets
+                  between ecosystems with fundamentally different architectures
+                  (such as Solana, Sui, Aptos, and EVM) that lack direct intent
+                  bridge connectivity.
+                </p>
+                <a
+                  className="seo-pick__link"
+                  href="https://portalbridge.com/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  portalbridge.com
+                </a>
+              </article>
+
+              <article className="seo-pick">
+                <div className="seo-pick__head">
+                  <span className="seo-pick__rank">08</span>
+                  <h3 className="seo-pick__name">Jumper Exchange (LI.FI)</h3>
+                </div>
+                <p className="seo-pick__tagline">
+                  <strong>Best for:</strong> Bridge and DEX aggregation to
+                  discover the lowest fees and fastest route across all major
+                  bridge protocols.
+                </p>
+                <p>
+                  Jumper Exchange, powered by the LI.FI liquidity aggregation
+                  protocol, is a multi-chain DEX and bridge aggregator. Rather
+                  than maintaining its own bridging pools, Jumper queries dozens
+                  of bridges and decentralized exchanges to compute and execute
+                  the optimal routing path for any token pair.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Chains supported:</strong> 60+ chains including all
+                    major EVM networks, Solana, and emerging Layer 2s.
+                  </li>
+                  <li>
+                    <strong>Fees:</strong> Aggregates quotes from underlying
+                    bridges. LI.FI charges an optional 0.25% integrator fee on
+                    select routes in addition to underlying bridge protocol and
+                    DEX swap fees.
+                  </li>
+                  <li>
+                    <strong>Speed:</strong> Depends on the selected route;
+                    ranges from ~15 seconds with intent bridges (Across,
+                    deBridge) to 10+ minutes with canonical bridges.
+                  </li>
+                  <li>
+                    <strong>Security model:</strong> Aggregation and smart
+                    contract routing architecture. Inherits the underlying
+                    security model of whichever bridge and DEX route is
+                    selected.
+                  </li>
+                </ul>
+                <p>
+                  <strong>Trade-offs:</strong> Introduces an extra smart
+                  contract interaction layer, requiring token approvals to the
+                  LI.FI contract. Multiple contract layers can increase overall
+                  gas overhead and vulnerability surface area.
+                </p>
+                <p>
+                  <strong>Who it&apos;s for:</strong> Users seeking an
+                  all-in-one route comparator who want to automatically find the
+                  cheapest or quickest path without manually checking individual
+                  bridge interfaces.
+                </p>
+                <a
+                  className="seo-pick__link"
+                  href="https://jumper.exchange/"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  jumper.exchange
+                </a>
+              </article>
             </div>
           </section>
 
-          <div className="seo-banner seo-banner--streaks">
-            <div className="seo-banner__copy">
-              <p className="seo-banner__eyebrow">Try FastBridge</p>
-              <p className="seo-banner__title">
-                The only bridge with
-                <br />
-                <span className="seo-banner__title-line">
-                  native multi-source support.
-                </span>
-              </p>
-              <p className="seo-banner__body">
-                Move and swap tokens from multiple chains in one transaction, no
-                gas tokens needed.
-              </p>
-            </div>
-            <button
-              className="seo-banner__btn"
-              onClick={handleBridgeClick}
-              type="button"
-            >
-              Bridge Now
-            </button>
-          </div>
-
-          <section aria-labelledby="table-heading" id="table">
-            <h2 id="table-heading">Side-by-side comparison</h2>
+          <section aria-labelledby="risks-heading" id="risks">
+            <h2 id="risks-heading">Cross-chain bridge risks and past hacks</h2>
             <p>
-              The differences between these four bridges are most visible side
-              by side. Multi-source input, cross-chain swaps, and gas
-              abstraction are the capabilities that meaningfully separate
-              FastBridge from the rest.
+              Cross-chain bridges represent some of the highest-value attack
+              surfaces in decentralized finance. Between 2021 and 2025, more
+              than <strong>$2.5 billion in digital assets</strong> was lost to
+              bridge exploits. Understanding the mechanics behind these
+              vulnerabilities is essential for safeguarding your capital.
+            </p>
+
+            <h3>Why bridges are prime targets</h3>
+            <p>
+              Blockchains cannot natively verify state transitions on other
+              blockchains without intermediate consensus or cryptographic
+              proofs. Traditional bridges solved this by locking large sums of
+              capital in smart contract &quot;vaults&quot; on one chain while
+              minting wrapped tokens on another. These massive pools created
+              irresistible honeypots: draining a single smart contract or
+              compromising a handful of validator keys allowed hackers to make
+              off with hundreds of millions of dollars in a single transaction.
+            </p>
+
+            <h3>Bridge security models &amp; vulnerability profiles</h3>
+            <ul>
+              <li>
+                <strong>
+                  Lock-and-mint / wrapped token pools (Highest risk):
+                </strong>{" "}
+                Requires locking assets in a shared contract to mint synthetic
+                derivatives. If the vault is exploited or forged signatures are
+                accepted, the synthetic tokens lose 100% of their backing and
+                collapse to zero.
+              </li>
+              <li>
+                <strong>
+                  Multisig &amp; validator committees (Key compromise risk):
+                </strong>{" "}
+                Relies on a federated group of node operators to sign
+                cross-chain messages. If attackers compromise a quorum of
+                private keys (via phishing, insider threats, or server
+                vulnerabilities), they can authorize fraudulent withdrawals.
+              </li>
+              <li>
+                <strong>
+                  Liquidity pools &amp; AMMs (Pool drainage &amp; rebalancing
+                  risk):
+                </strong>{" "}
+                Uses paired token pools on each side of the bridge. While
+                avoiding synthetic wrapped assets, these designs remain
+                vulnerable to smart contract bugs, pool drainage, and high
+                slippage during volatile market events.
+              </li>
+              <li>
+                <strong>
+                  Intent-based / solver networks (0-TVL &mdash; lowest systemic
+                  risk):
+                </strong>{" "}
+                Private solvers front their own liquidity to fulfill user
+                intents and are reimbursed on-chain only after proof of
+                delivery. Because there is no large centralized pool of user
+                funds locked up, there is no honeypot to drain. If a solver
+                fails to deliver, the user retains or recovers their original
+                capital.
+              </li>
+              <li>
+                <strong>Canonical burn-and-mint (Issuer attestation):</strong>{" "}
+                Utilized by native asset issuers like Circle (CCTP). Eliminates
+                wrapped tokens and liquidity pools by destroying tokens on the
+                source chain and minting authentic native tokens on the
+                destination. The primary consideration is reliance on the
+                issuer&apos;s centralized attestation service.
+              </li>
+            </ul>
+
+            <h3>Notable historical bridge exploits</h3>
+            <p>
+              A review of the largest exploits in crypto history highlights how
+              specific architectural flaws were weaponized:
             </p>
             <div className="seo-table-wrap">
               <table className="seo-table--compare">
                 <thead>
                   <tr>
-                    <th scope="col" />
-                    <th className="seo-col-highlight" scope="col">
-                      FastBridge
-                    </th>
-                    <th scope="col">Across</th>
-                    <th scope="col">Stargate</th>
-                    <th scope="col">deBridge</th>
+                    <th scope="col">Protocol</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Amount Lost</th>
+                    <th scope="col">Root Cause</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Architecture</td>
-                    <td className="seo-col-highlight">Intent / solver</td>
-                    <td>Intent / solver</td>
-                    <td>Unified liquidity pools (LayerZero)</td>
-                    <td>Intent / solver (0-TVL)</td>
-                  </tr>
-                  <tr>
-                    <td>Settlement speed</td>
-                    <td className="seo-col-highlight">~10&ndash;20 seconds</td>
-                    <td>Seconds</td>
-                    <td>Seconds</td>
-                    <td>1&ndash;4 seconds</td>
-                  </tr>
-                  <tr>
-                    <td>Multi-source input</td>
-                    <td className="seo-col-highlight">
-                      <span className="seo-check">&check; Native</span>
-                    </td>
                     <td>
-                      <span className="seo-cross">&mdash;</span>
+                      <strong>Ronin Bridge</strong>
                     </td>
+                    <td>March 2022</td>
+                    <td>~$624 million</td>
                     <td>
-                      <span className="seo-cross">&mdash;</span>
-                    </td>
-                    <td>
-                      <span className="seo-cross">&mdash;</span>
+                      Compromised validator keys. Attackers gained control of 5
+                      out of 9 validator private keys through spear-phishing,
+                      allowing unauthorized withdrawals.
                     </td>
                   </tr>
                   <tr>
-                    <td>Native asset delivery</td>
-                    <td className="seo-col-highlight">
-                      <span className="seo-check">&check;</span>
-                    </td>
                     <td>
-                      <span className="seo-check">&check;</span>
+                      <strong>Wormhole Portal</strong>
                     </td>
+                    <td>February 2022</td>
+                    <td>~$325 million</td>
                     <td>
-                      <span className="seo-check">&check;</span>
-                    </td>
-                    <td>
-                      <span className="seo-check">&check;</span>
+                      Smart contract signature verification bypass. A flaw in
+                      the Solana contract allowed the attacker to forge a
+                      validator signature and mint 120,000 unbacked wETH.
                     </td>
                   </tr>
                   <tr>
-                    <td>Gas abstraction</td>
-                    <td className="seo-col-highlight">
-                      <span className="seo-check">
-                        &check; Pay in USDC/USDT
-                      </span>
-                    </td>
                     <td>
-                      <span className="seo-cross">&mdash;</span>
+                      <strong>Nomad Bridge</strong>
                     </td>
+                    <td>August 2022</td>
+                    <td>~$190 million</td>
                     <td>
-                      <span className="seo-cross">&mdash;</span>
-                    </td>
-                    <td>
-                      <span className="seo-cross">&mdash;</span>
+                      Improper initialization. A contract upgrade set the
+                      trusted root to 0x00, causing all messages to be
+                      auto-approved and enabling copy-paste public looting.
                     </td>
                   </tr>
                   <tr>
-                    <td>Self-custodial</td>
-                    <td className="seo-col-highlight">
-                      <span className="seo-check">&check;</span>
-                    </td>
                     <td>
-                      <span className="seo-check">&check;</span>
+                      <strong>Harmony Horizon</strong>
                     </td>
+                    <td>June 2022</td>
+                    <td>~$100 million</td>
                     <td>
-                      <span className="seo-check">&check;</span>
-                    </td>
-                    <td>
-                      <span className="seo-check">&check;</span>
+                      Multisig key compromise. Attackers breached 2 out of 5
+                      signing keys securing the bridge, draining multiple asset
+                      pools.
                     </td>
                   </tr>
                   <tr>
-                    <td>Chain coverage</td>
-                    <td className="seo-col-highlight">
-                      All major EVM chains (incl. Monad, MegaETH, Citrea,
-                      HyperEVM)
+                    <td>
+                      <strong>LI.FI Routing Contract</strong>
                     </td>
-                    <td>Major EVM + Solana + Hyperliquid</td>
-                    <td>80+ (EVM + non-EVM incl. Solana)</td>
-                    <td>25+ (EVM + Solana + Tron)</td>
+                    <td>July 2024</td>
+                    <td>~$11.6 million</td>
+                    <td>
+                      Smart contract facet vulnerability. An unvalidated call in
+                      a newly deployed facet allowed draining tokens from
+                      wallets with active infinite approvals.
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
+            <h3>Best practices for safe cross-chain bridging</h3>
+            <ul>
+              <li>
+                <strong>Prefer intent-based or 0-TVL bridges:</strong> Choose
+                protocols like FastBridge, Across, or deBridge where liquidity
+                is supplied by solvers rather than pooled in vulnerable vaults.
+              </li>
+              <li>
+                <strong>Bridge native assets:</strong> Avoid holding synthetic
+                wrapped tokens (like wETH or any proprietary bridge tokens) that
+                carry unbacked de-pegging risk if an exploit occurs.
+              </li>
+              <li>
+                <strong>Revoke infinite token allowances:</strong> Never keep
+                unlimited ERC-20 spending allowances open. Use tools like
+                revoke.cash to revoke token permissions after completing your
+                bridge transaction.
+              </li>
+              <li>
+                <strong>Verify official URLs:</strong> Phishing frontends
+                frequently replicate bridge UIs. Always verify URLs and bookmark
+                reputable entry points.
+              </li>
+            </ul>
           </section>
 
           <section aria-labelledby="fees-heading" id="fees">
@@ -719,13 +1393,13 @@ export default function TopCrossChainBridgesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Stargate</td>
-                    <td>~0.06%</td>
+                  <tr className="seo-row-highlight">
                     <td>
-                      <span className="seo-cross">&mdash;</span>
+                      <strong>FastBridge</strong>
                     </td>
-                    <td>Liquidity pools</td>
+                    <td>~0.05%</td>
+                    <td>~0.02&ndash;0.05%</td>
+                    <td>Intents (multi-source, swaps)</td>
                   </tr>
                   <tr>
                     <td>Across</td>
@@ -739,13 +1413,41 @@ export default function TopCrossChainBridgesPage() {
                     <td>~0.1&ndash;0.3%</td>
                     <td>RFQ / market-maker</td>
                   </tr>
-                  <tr className="seo-row-highlight">
+                  <tr>
+                    <td>Relay</td>
+                    <td>0% native, $0.02 flat</td>
+                    <td>0.01%&ndash;0.15% (swaps)</td>
+                    <td>Intents (solvers)</td>
+                  </tr>
+                  <tr>
+                    <td>Stargate</td>
+                    <td>~0.06%</td>
                     <td>
-                      <strong>FastBridge</strong>
+                      <span className="seo-cross">&mdash;</span>
                     </td>
-                    <td>~0.05%</td>
-                    <td>~0.02&ndash;0.05%</td>
-                    <td>Intents (multi-source, swaps)</td>
+                    <td>Liquidity pools + rebalance fee</td>
+                  </tr>
+                  <tr>
+                    <td>Circle CCTP</td>
+                    <td>0% protocol fee</td>
+                    <td>
+                      <span className="seo-cross">&mdash;</span>
+                    </td>
+                    <td>Burn-and-mint (gas only)</td>
+                  </tr>
+                  <tr>
+                    <td>Wormhole</td>
+                    <td>Nominal relayer fee</td>
+                    <td>
+                      <span className="seo-cross">&mdash;</span>
+                    </td>
+                    <td>Guardian messaging multisig</td>
+                  </tr>
+                  <tr>
+                    <td>Jumper (LI.FI)</td>
+                    <td>0.25% (select routes)</td>
+                    <td>Underlying route dependent</td>
+                    <td>DEX &amp; bridge aggregator</td>
                   </tr>
                 </tbody>
               </table>
@@ -762,7 +1464,8 @@ export default function TopCrossChainBridgesPage() {
                 </p>
                 <p className="seo-choice__answer">
                   <strong>FastBridge</strong> &mdash; the only native
-                  multi-source option, with support for new EVM chains.
+                  multi-source option, with support for new EVM chains and
+                  zero-gas onboarding.
                 </p>
               </div>
               <div className="seo-choice">
@@ -785,11 +1488,29 @@ export default function TopCrossChainBridgesPage() {
               </div>
               <div className="seo-choice">
                 <p className="seo-choice__scenario">
-                  Large stablecoin volume on a cost-sensitive route.
+                  Sub-second rollup transfers with gas top-ups.
                 </p>
                 <p className="seo-choice__answer">
-                  Compare quotes. FastBridge can process up to{" "}
-                  <strong>$10M in a single transfer</strong>.
+                  <strong>Relay</strong> &mdash; ideal for micro-transfers and
+                  dApps where you lack native destination gas.
+                </p>
+              </div>
+              <div className="seo-choice">
+                <p className="seo-choice__scenario">
+                  Large native USDC transfers with zero slippage.
+                </p>
+                <p className="seo-choice__answer">
+                  <strong>Circle CCTP</strong> &mdash; official 1:1
+                  burn-and-mint settlement across 30+ chains.
+                </p>
+              </div>
+              <div className="seo-choice">
+                <p className="seo-choice__scenario">
+                  Comparing routes across multiple bridges automatically.
+                </p>
+                <p className="seo-choice__answer">
+                  <strong>Jumper Exchange</strong> &mdash; aggregates 30+
+                  bridges and DEXs to find the optimal path.
                 </p>
               </div>
             </div>

@@ -316,12 +316,13 @@ export function portableTextToHtml(
 const FALLBACK_POSTS: CMSBlogPost[] = [
   {
     slug: "top-cross-chain-bridges",
-    title: "Best Cross-Chain Bridges in 2026 [Compared]",
-    seoTitle: "Best Cross-Chain Bridges in 2026 [Compared]",
+    title: "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared",
+    seoTitle:
+      "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared",
     seoDescription:
-      "Compare the best cross-chain bridges in 2026: FastBridge, Across, Stargate and deBridge. Fees, settlement speed, chain coverage and multi-source support.",
+      "Compare the top 8 cross-chain bridges in 2026: FastBridge, Across, Stargate, deBridge, Relay, Circle CCTP, Wormhole, and Jumper. Fees, speed, security models, and features compared.",
     excerpt:
-      "Compare the best cross-chain bridges in 2026 including FastBridge, Across, Stargate, and deBridge.",
+      "Compare the top 8 cross-chain bridges in 2026 including FastBridge, Across, Stargate, deBridge, Relay, Circle CCTP, Wormhole, and Jumper.",
     content: `
       <h2>TL;DR</h2>
       <p>The best cross-chain bridge in 2026 depends on what you're moving and where from. FastBridge is the only bridge with native multi-source support, allowing you to consolidate assets across multiple chains in a single transaction.</p>
