@@ -319,7 +319,9 @@ export default function TopCrossChainBridgesPage() {
           </section>
 
           <section aria-labelledby="table-heading" id="table">
-            <h2 id="table-heading">Side-by-side comparison</h2>
+            <h2 id="table-heading">
+              The 8 Best Cross-Chain Bridges in 2026 Reviewed
+            </h2>
             <p>
               Compare the 8 leading cross-chain bridges across execution model,
               ideal use cases, settlement speed, security architecture, and fee
