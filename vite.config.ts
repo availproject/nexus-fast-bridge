@@ -41,7 +41,15 @@ export default defineConfig({
       process: "vite-plugin-node-polyfills/shims/process",
     },
   },
-  envPrefix: ["VITE_"],
+  // Only variables listed here reach the client bundle. List only values that
+  // are safe to publish, never a secret.
+  envPrefix: [
+    "VITE_APP_BASE_PATH",
+    "VITE_CONFIG_NEXUS_",
+    "VITE_IS_APP_DOWN",
+    "VITE_TURNSTILE_SITE_KEY",
+    "VITE_WALLET_CONNECT_ID",
+  ],
   build: {
     outDir: "apps/root/dist",
     emptyOutDir: true,

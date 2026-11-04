@@ -376,7 +376,7 @@ export default function GuideDetailPage({
 
           <div
             className="cms-article-body"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: Sanitized html/markdown body content from Sanity CMS
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: Rendered from content/guides by guide-markdown.ts, which allows no raw HTML
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
