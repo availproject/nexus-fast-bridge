@@ -26,6 +26,7 @@ flowchart LR
 - `packages/fast-bridge-app/src/config/rpcs.json`: RPC configuration when a registry entry consumes it.
 - `packages/fast-bridge-app/src/types/runtime.ts`: `AppConfig`, `ChainFeatures`, and their defaults.
 - `packages/fast-bridge-app/src/providers/runtime-context.tsx`: route-to-runtime resolution.
+- `content/guides/*.md` and `public/guide-images/`: the guides and their images; see `docs/publishing-guides.md`.
 - `vite.config.ts`: the single root build, with `@` aliased to the shared source directory.
 - `apps/root/dist`: generated production output; it is not a separate application source tree.
 

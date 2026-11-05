@@ -21,6 +21,8 @@ const rootDir = path.resolve(__dirname, "..");
 const distDir = path.resolve(rootDir, "apps/root/dist");
 const indexPath = path.join(distDir, "index.html");
 
+const SITE_URL = "https://fastbridge.availproject.org";
+
 const LANDING_META_IMAGE_URL =
   "https://files.availproject.org/nexus-fast-bridge/meta/fastbridge-meta-2.png";
 
@@ -346,6 +348,23 @@ function getLastModDate(relativeFilePath) {
   return new Date().toISOString().split("T")[0];
 }
 
+// Guide titles and descriptions come from Markdown files and go straight into
+// HTML attributes. "$" is included because these strings are used as
+// String.replace replacements, where "$&" and similar have a special meaning.
+function escapeForHtmlMeta(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/\$/g, "&#36;");
+}
+
+// Social networks need absolute image URLs.
+function toAbsoluteUrl(url) {
+  return url.startsWith("/") ? `${SITE_URL}${url}` : url;
+}
+
 function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
   const { title, description, imageUrl, canonicalUrl, themeColor, props } =
     pageMeta;
@@ -392,58 +411,56 @@ function injectMetaAndContent(baseHtml, pageMeta, renderedHtml = "") {
   }
 
   if (renderedHtml) {
-    html = html.replace(RE_ROOT_DIV, `<div id="root">${renderedHtml}</div>`);
+    html = html.replace(
+      RE_ROOT_DIV,
+      () => `<div id="root">${renderedHtml}</div>`
+    );
   }
 
   if (props) {
     const safeDataJson = JSON.stringify(props).replace(/</g, "\\u003c");
     const scriptTag = `<script id="__FASTBRIDGE_DATA__" type="application/json">${safeDataJson}</script>`;
-    html = html.replace("</body>", `${scriptTag}\n  </body>`);
+    html = html.replace("</body>", () => `${scriptTag}\n  </body>`);
   }
 
   return html;
 }
 
+// Not wrapped in try/catch on purpose: guides are local files now, so a failure
+// here is a real problem and must fail the build rather than ship without guides.
 async function loadCmsPosts(viteServer) {
-  try {
-    const cmsMod = await viteServer.ssrLoadModule(
-      "./packages/fast-bridge-app/src/lib/cms.ts"
-    );
-    const cmsPosts = await cmsMod.fetchBlogPosts();
+  const cmsMod = await viteServer.ssrLoadModule(
+    "./packages/fast-bridge-app/src/lib/cms.ts"
+  );
+  const cmsPosts = await cmsMod.fetchBlogPosts();
 
-    const guidesListingPage = STATIC_PAGES.find((p) => p.slug === "guides");
-    if (guidesListingPage) {
-      guidesListingPage.props = { initialPosts: cmsPosts };
+  const guidesListingPage = STATIC_PAGES.find((p) => p.slug === "guides");
+  if (guidesListingPage) {
+    guidesListingPage.props = { initialPosts: cmsPosts };
+  }
+
+  const existingSlugs = new Set(STATIC_PAGES.map((p) => p.slug));
+
+  for (const post of cmsPosts) {
+    const fullSlug = `guides/${post.slug}`;
+    if (!existingSlugs.has(fullSlug)) {
+      STATIC_PAGES.push({
+        slug: fullSlug,
+        title: escapeForHtmlMeta(post.seoTitle || post.title),
+        description: escapeForHtmlMeta(post.seoDescription),
+        imageUrl: toAbsoluteUrl(post.coverImage || LANDING_META_IMAGE_URL),
+        canonicalUrl: `${SITE_URL}/${fullSlug}`,
+        themeColor: "#19191A",
+        stylesheets: SEO_PAGE_STYLESHEETS,
+        componentPath:
+          "./packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
+        srcFile:
+          "packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
+        priority: "0.8",
+        props: { initialPost: post },
+      });
+      existingSlugs.add(fullSlug);
     }
-
-    const existingSlugs = new Set(STATIC_PAGES.map((p) => p.slug));
-
-    for (const post of cmsPosts) {
-      const fullSlug = `guides/${post.slug}`;
-      if (!existingSlugs.has(fullSlug)) {
-        STATIC_PAGES.push({
-          slug: fullSlug,
-          title: post.seoTitle || post.title,
-          description: post.seoDescription,
-          imageUrl: post.coverImage || LANDING_META_IMAGE_URL,
-          canonicalUrl: `https://fastbridge.availproject.org/${fullSlug}`,
-          themeColor: "#19191A",
-          stylesheets: SEO_PAGE_STYLESHEETS,
-          componentPath:
-            "./packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
-          srcFile:
-            "packages/fast-bridge-app/src/components/guides-page/guide-detail.tsx",
-          priority: "0.8",
-          props: { initialPost: post },
-        });
-        existingSlugs.add(fullSlug);
-      }
-    }
-  } catch (cmsErr) {
-    console.warn(
-      "⚠️ Could not load CMS posts for static generation:",
-      cmsErr.message
-    );
   }
 }
 

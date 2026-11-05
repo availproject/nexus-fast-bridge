@@ -35,6 +35,7 @@ Chain routes all render the same shared application. Chain identity and behavior
 - [Architecture](docs/architecture.md)
 - [Adding chains](docs/adding-chains.md)
 - [Customization](docs/customization.md)
+- [Publishing guides](docs/publishing-guides.md)
 - [Agent workflow](AGENTS.md)
 
 ## Core Rules
