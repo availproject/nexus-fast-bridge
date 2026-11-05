@@ -1005,22 +1005,15 @@ export function SwapIntentPreview({
       : undefined;
   };
   const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
-  const fulfillmentUsd =
-    bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
   const solverUsd = bridgeFeeData?.solverUsd;
   const protocolUsd = bridgeFeeData?.protocolUsd;
 
   const collectionFeeNumber = parseDecimal(bridgeFeeData?.collection);
-  const fulfilmentFeeNumber = parseDecimal(bridgeFeeData?.fulfilment);
   const executionGasFeeNumber =
-    depositUsd !== undefined || fulfillmentUsd !== undefined
-      ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
+    depositUsd !== undefined
+      ? new Decimal(depositUsd || 0)
       : (feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas) ??
-        (collectionFeeNumber !== undefined || fulfilmentFeeNumber !== undefined
-          ? (collectionFeeNumber ?? new Decimal(0)).plus(
-              fulfilmentFeeNumber ?? new Decimal(0)
-            )
-          : undefined));
+        collectionFeeNumber);
   const protocolFeeNumber =
     protocolUsd !== undefined
       ? parseDecimal(protocolUsd)
@@ -1031,13 +1024,9 @@ export function SwapIntentPreview({
       : feeInUsd(bridgeFeeData?.solverUsd, bridgeFeeData?.solver);
   const bridgeTotalNumber = isBetterIntentQuote
     ? depositUsd !== undefined ||
-      fulfillmentUsd !== undefined ||
       solverUsd !== undefined ||
       protocolUsd !== undefined
-      ? new Decimal(depositUsd || 0)
-          .add(fulfillmentUsd || 0)
-          .add(solverUsd || 0)
-          .add(protocolUsd || 0)
+      ? new Decimal(depositUsd || 0).add(solverUsd || 0).add(protocolUsd || 0)
       : (parseDecimal(bridgeFeeData?.totalUsd) ??
         feeInUsd(undefined, bridgeFeeData?.total))
     : typeof bridgeFees === "string"

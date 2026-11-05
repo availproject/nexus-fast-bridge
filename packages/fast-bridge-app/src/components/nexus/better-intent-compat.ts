@@ -864,17 +864,14 @@ export const normalizeIntentQuote = (
     (quote.fees as unknown as Record<string, string | undefined>).solverUsd ??
     "0";
 
-  const networkFeeUsd = new Decimal(depositUsd || 0).add(fulfillmentUsd || 0);
+  const networkFeeUsd = new Decimal(depositUsd || 0);
   const totalFeeUsdDec = networkFeeUsd
     .add(solverUsd || 0)
     .add(protocolUsd || 0);
   const displayedFeeTotalUsd = totalFeeUsdDec.toString();
 
   const displayedFeeTotalRaw =
-    quote.fees.depositRaw +
-    (quote.fees.fulfillmentRaw ?? 0n) +
-    quote.fees.protocolRaw +
-    quote.fees.solverRaw;
+    quote.fees.depositRaw + quote.fees.protocolRaw + quote.fees.solverRaw;
 
   return {
     bridgeProvider: quote.provider,
