@@ -17,7 +17,6 @@ const TOC_ITEMS = [
   { id: "criteria", label: "How we picked the best bridges" },
   { id: "why", label: "Why multi-source matters" },
   { id: "picks", label: "The 8 best bridges reviewed" },
-  { id: "risks", label: "Bridge risks & past hacks" },
   { id: "fees", label: "Fee comparison" },
   { id: "choose", label: "How to choose" },
   { id: "how", label: "How intent bridges work" },
@@ -688,18 +687,29 @@ export default function TopCrossChainBridgesPage() {
                     reimbursement on-chain only after cryptographic verification
                     of delivery. Zero wrapped tokens; native asset delivery.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Focused specifically on EVM and
+                    EVM-compatible rollups. Non-EVM chains like Solana are not
+                    natively supported in the current release.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> DeFi users with
+                    fragmented capital across multiple rollups who want to merge
+                    balances in one click, execute destination token swaps, and
+                    onboard to new L2s without holding native gas tokens.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Focused specifically on EVM and
+                    EVM-compatible rollups. Non-EVM chains like Solana are not
+                    natively supported in the current release.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> DeFi users with
+                    fragmented capital across multiple rollups who want to merge
+                    balances in one click, execute destination token swaps, and
+                    onboard to new L2s without holding native gas tokens.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Focused specifically on EVM and
-                  EVM-compatible rollups. Non-EVM chains like Solana are not
-                  natively supported in the current release.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> DeFi users with fragmented
-                  capital across multiple rollups who want to merge balances in
-                  one click, execute destination token swaps, and onboard to new
-                  L2s without holding native gas tokens.
-                </p>
                 <button
                   className="seo-pick__link"
                   onClick={handleBridgeClick}
@@ -771,19 +781,19 @@ export default function TopCrossChainBridgesPage() {
                     reimbursed from shared single-sided liquidity pools after an
                     optimistic dispute window.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Operates strictly on a
+                    single-chain in, single-chain out model. Liquidity is
+                    concentrated in blue-chip assets (ETH, WETH, USDC, USDT),
+                    offering limited depth for long-tail tokens.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users moving standard
+                    tokens (ETH, USDC) between high-volume EVM rollups who
+                    prioritize sub-minute execution and battle-tested relayer
+                    depth.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Operates strictly on a
-                  single-chain in, single-chain out model. Liquidity is
-                  concentrated in blue-chip assets (ETH, WETH, USDC, USDT),
-                  offering limited depth for long-tail tokens.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Users moving standard
-                  tokens (ETH, USDC) between high-volume EVM rollups who
-                  prioritize sub-minute execution and battle-tested relayer
-                  depth.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://across.to/"
@@ -850,17 +860,27 @@ export default function TopCrossChainBridgesPage() {
                     Token (OFT) standards and pool reserves without custodial
                     wrapped tokens.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Pool-based model exposes users
+                    to pool rebalancing slippage and temporary liquidity
+                    imbalances on specific routes. Single-source only.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users who need to move
+                    stablecoins or native assets to or from non-EVM networks and
+                    long-tail blockchains that smaller bridges do not support.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Pool-based model exposes users
+                    to pool rebalancing slippage and temporary liquidity
+                    imbalances on specific routes. Single-source only.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users who need to move
+                    stablecoins or native assets to or from non-EVM networks and
+                    long-tail blockchains that smaller bridges do not support.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Pool-based model exposes users to
-                  pool rebalancing slippage and temporary liquidity imbalances
-                  on specific routes. Single-source only.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Users who need to move
-                  stablecoins or native assets to or from non-EVM networks and
-                  long-tail blockchains that smaller bridges do not support.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://stargate.finance/"
@@ -927,19 +947,31 @@ export default function TopCrossChainBridgesPage() {
                     validation is attested by the deBridge validator set before
                     reimbursement.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Single-source only. Swaps
+                    requiring off-chain solver liquidity rely on active
+                    market-maker depth, which can widen spreads during volatile
+                    market events.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Active traders
+                    frequently moving funds between EVM networks and Solana or
+                    Tron who prioritize lightning-fast execution and strict
+                    slippage guarantees.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Single-source only. Swaps
+                    requiring off-chain solver liquidity rely on active
+                    market-maker depth, which can widen spreads during volatile
+                    market events.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Active traders
+                    frequently moving funds between EVM networks and Solana or
+                    Tron who prioritize lightning-fast execution and strict
+                    slippage guarantees.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Single-source only. Swaps
-                  requiring off-chain solver liquidity rely on active
-                  market-maker depth, which can widen spreads during volatile
-                  market events.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Active traders frequently
-                  moving funds between EVM networks and Solana or Tron who
-                  prioritize lightning-fast execution and strict slippage
-                  guarantees.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://debridge.finance/"
@@ -987,18 +1019,18 @@ export default function TopCrossChainBridgesPage() {
                     attests to the origin deposit and destination fill before
                     the solver is reimbursed from the protocol.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Primarily architected for
+                    low-to-medium value transfers and wallet UX; large
+                    institutional transfers may experience route constraints.
+                    Single-source only.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users making frequent,
+                    smaller transfers to new EVM rollups or L3s who don&apos;t
+                    have destination gas tokens and want automatic gas top-ups.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Primarily architected for
-                  low-to-medium value transfers and wallet UX; large
-                  institutional transfers may experience route constraints.
-                  Single-source only.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Users making frequent,
-                  smaller transfers to new EVM rollups or L3s who don&apos;t
-                  have destination gas tokens and want automatic gas top-ups.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://relay.link/"
@@ -1049,17 +1081,27 @@ export default function TopCrossChainBridgesPage() {
                     fresh on destination. Zero pool liquidity risk, zero wrapped
                     tokens, zero slippage.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Strictly supports USDC; does
+                    not bridge ETH, BTC, USDT, or other tokens. Standard
+                    protocol transfers require waiting for full chain finality.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Whales, institutions,
+                    and DeFi protocols moving significant quantities of USDC who
+                    require absolute 1:1 capital efficiency and zero slippage.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Strictly supports USDC; does
+                    not bridge ETH, BTC, USDT, or other tokens. Standard
+                    protocol transfers require waiting for full chain finality.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Whales, institutions,
+                    and DeFi protocols moving significant quantities of USDC who
+                    require absolute 1:1 capital efficiency and zero slippage.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Strictly supports USDC; does not
-                  bridge ETH, BTC, USDT, or other tokens. Standard protocol
-                  transfers require waiting for full chain finality.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Whales, institutions, and
-                  DeFi protocols moving significant quantities of USDC who
-                  require absolute 1:1 capital efficiency and zero slippage.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://www.circle.com/en/cross-chain-transfer-protocol"
@@ -1108,19 +1150,31 @@ export default function TopCrossChainBridgesPage() {
                     validate origin state changes and issue Verifiable Action
                     Approvals (VAAs).
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> On non-native routes, relies on
+                    lock-and-mint wrapping which introduces synthetic tokens and
+                    counterparty risk. User interface can feel complex compared
+                    to modern intent bridges.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users bridging assets
+                    between ecosystems with fundamentally different
+                    architectures (such as Solana, Sui, Aptos, and EVM) that
+                    lack direct intent bridge connectivity.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> On non-native routes, relies on
+                    lock-and-mint wrapping which introduces synthetic tokens and
+                    counterparty risk. User interface can feel complex compared
+                    to modern intent bridges.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users bridging assets
+                    between ecosystems with fundamentally different
+                    architectures (such as Solana, Sui, Aptos, and EVM) that
+                    lack direct intent bridge connectivity.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> On non-native routes, relies on
-                  lock-and-mint wrapping which introduces synthetic tokens and
-                  counterparty risk. User interface can feel complex compared to
-                  modern intent bridges.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Users bridging assets
-                  between ecosystems with fundamentally different architectures
-                  (such as Solana, Sui, Aptos, and EVM) that lack direct intent
-                  bridge connectivity.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://portalbridge.com/"
@@ -1170,19 +1224,31 @@ export default function TopCrossChainBridgesPage() {
                     security model of whichever bridge and DEX route is
                     selected.
                   </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Introduces an extra smart
+                    contract interaction layer, requiring token approvals to the
+                    LI.FI contract. Multiple contract layers can increase
+                    overall gas overhead and vulnerability surface area.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users seeking an
+                    all-in-one route comparator who want to automatically find
+                    the cheapest or quickest path without manually checking
+                    individual bridge interfaces.
+                  </li>
+                  <li>
+                    <strong>Trade-offs:</strong> Introduces an extra smart
+                    contract interaction layer, requiring token approvals to the
+                    LI.FI contract. Multiple contract layers can increase
+                    overall gas overhead and vulnerability surface area.
+                  </li>
+                  <li>
+                    <strong>Who it&apos;s for:</strong> Users seeking an
+                    all-in-one route comparator who want to automatically find
+                    the cheapest or quickest path without manually checking
+                    individual bridge interfaces.
+                  </li>
                 </ul>
-                <p>
-                  <strong>Trade-offs:</strong> Introduces an extra smart
-                  contract interaction layer, requiring token approvals to the
-                  LI.FI contract. Multiple contract layers can increase overall
-                  gas overhead and vulnerability surface area.
-                </p>
-                <p>
-                  <strong>Who it&apos;s for:</strong> Users seeking an
-                  all-in-one route comparator who want to automatically find the
-                  cheapest or quickest path without manually checking individual
-                  bridge interfaces.
-                </p>
                 <a
                   className="seo-pick__link"
                   href="https://jumper.exchange/"
@@ -1193,186 +1259,6 @@ export default function TopCrossChainBridgesPage() {
                 </a>
               </article>
             </div>
-          </section>
-
-          <section aria-labelledby="risks-heading" id="risks">
-            <h2 id="risks-heading">Cross-chain bridge risks and past hacks</h2>
-            <p>
-              Cross-chain bridges represent some of the highest-value attack
-              surfaces in decentralized finance. Between 2021 and 2025, more
-              than <strong>$2.5 billion in digital assets</strong> was lost to
-              bridge exploits. Understanding the mechanics behind these
-              vulnerabilities is essential for safeguarding your capital.
-            </p>
-
-            <h3>Why bridges are prime targets</h3>
-            <p>
-              Blockchains cannot natively verify state transitions on other
-              blockchains without intermediate consensus or cryptographic
-              proofs. Traditional bridges solved this by locking large sums of
-              capital in smart contract &quot;vaults&quot; on one chain while
-              minting wrapped tokens on another. These massive pools created
-              irresistible honeypots: draining a single smart contract or
-              compromising a handful of validator keys allowed hackers to make
-              off with hundreds of millions of dollars in a single transaction.
-            </p>
-
-            <h3>Bridge security models &amp; vulnerability profiles</h3>
-            <ul>
-              <li>
-                <strong>
-                  Lock-and-mint / wrapped token pools (Highest risk):
-                </strong>{" "}
-                Requires locking assets in a shared contract to mint synthetic
-                derivatives. If the vault is exploited or forged signatures are
-                accepted, the synthetic tokens lose 100% of their backing and
-                collapse to zero.
-              </li>
-              <li>
-                <strong>
-                  Multisig &amp; validator committees (Key compromise risk):
-                </strong>{" "}
-                Relies on a federated group of node operators to sign
-                cross-chain messages. If attackers compromise a quorum of
-                private keys (via phishing, insider threats, or server
-                vulnerabilities), they can authorize fraudulent withdrawals.
-              </li>
-              <li>
-                <strong>
-                  Liquidity pools &amp; AMMs (Pool drainage &amp; rebalancing
-                  risk):
-                </strong>{" "}
-                Uses paired token pools on each side of the bridge. While
-                avoiding synthetic wrapped assets, these designs remain
-                vulnerable to smart contract bugs, pool drainage, and high
-                slippage during volatile market events.
-              </li>
-              <li>
-                <strong>
-                  Intent-based / solver networks (0-TVL &mdash; lowest systemic
-                  risk):
-                </strong>{" "}
-                Private solvers front their own liquidity to fulfill user
-                intents and are reimbursed on-chain only after proof of
-                delivery. Because there is no large centralized pool of user
-                funds locked up, there is no honeypot to drain. If a solver
-                fails to deliver, the user retains or recovers their original
-                capital.
-              </li>
-              <li>
-                <strong>Canonical burn-and-mint (Issuer attestation):</strong>{" "}
-                Utilized by native asset issuers like Circle (CCTP). Eliminates
-                wrapped tokens and liquidity pools by destroying tokens on the
-                source chain and minting authentic native tokens on the
-                destination. The primary consideration is reliance on the
-                issuer&apos;s centralized attestation service.
-              </li>
-            </ul>
-
-            <h3>Notable historical bridge exploits</h3>
-            <p>
-              A review of the largest exploits in crypto history highlights how
-              specific architectural flaws were weaponized:
-            </p>
-            <div className="seo-table-wrap">
-              <table className="seo-table--compare">
-                <thead>
-                  <tr>
-                    <th scope="col">Protocol</th>
-                    <th scope="col">Date</th>
-                    <th scope="col">Amount Lost</th>
-                    <th scope="col">Root Cause</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>
-                      <strong>Ronin Bridge</strong>
-                    </td>
-                    <td>March 2022</td>
-                    <td>~$624 million</td>
-                    <td>
-                      Compromised validator keys. Attackers gained control of 5
-                      out of 9 validator private keys through spear-phishing,
-                      allowing unauthorized withdrawals.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Wormhole Portal</strong>
-                    </td>
-                    <td>February 2022</td>
-                    <td>~$325 million</td>
-                    <td>
-                      Smart contract signature verification bypass. A flaw in
-                      the Solana contract allowed the attacker to forge a
-                      validator signature and mint 120,000 unbacked wETH.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Nomad Bridge</strong>
-                    </td>
-                    <td>August 2022</td>
-                    <td>~$190 million</td>
-                    <td>
-                      Improper initialization. A contract upgrade set the
-                      trusted root to 0x00, causing all messages to be
-                      auto-approved and enabling copy-paste public looting.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Harmony Horizon</strong>
-                    </td>
-                    <td>June 2022</td>
-                    <td>~$100 million</td>
-                    <td>
-                      Multisig key compromise. Attackers breached 2 out of 5
-                      signing keys securing the bridge, draining multiple asset
-                      pools.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>LI.FI Routing Contract</strong>
-                    </td>
-                    <td>July 2024</td>
-                    <td>~$11.6 million</td>
-                    <td>
-                      Smart contract facet vulnerability. An unvalidated call in
-                      a newly deployed facet allowed draining tokens from
-                      wallets with active infinite approvals.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>Best practices for safe cross-chain bridging</h3>
-            <ul>
-              <li>
-                <strong>Prefer intent-based or 0-TVL bridges:</strong> Choose
-                protocols like FastBridge, Across, or deBridge where liquidity
-                is supplied by solvers rather than pooled in vulnerable vaults.
-              </li>
-              <li>
-                <strong>Bridge native assets:</strong> Avoid holding synthetic
-                wrapped tokens (like wETH or any proprietary bridge tokens) that
-                carry unbacked de-pegging risk if an exploit occurs.
-              </li>
-              <li>
-                <strong>Revoke infinite token allowances:</strong> Never keep
-                unlimited ERC-20 spending allowances open. Use tools like
-                revoke.cash to revoke token permissions after completing your
-                bridge transaction.
-              </li>
-              <li>
-                <strong>Verify official URLs:</strong> Phishing frontends
-                frequently replicate bridge UIs. Always verify URLs and bookmark
-                reputable entry points.
-              </li>
-            </ul>
           </section>
 
           <section aria-labelledby="fees-heading" id="fees">
