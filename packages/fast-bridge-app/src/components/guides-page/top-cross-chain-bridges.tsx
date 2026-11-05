@@ -698,17 +698,6 @@ export default function TopCrossChainBridgesPage() {
                     balances in one click, execute destination token swaps, and
                     onboard to new L2s without holding native gas tokens.
                   </li>
-                  <li>
-                    <strong>Trade-offs:</strong> Focused specifically on EVM and
-                    EVM-compatible rollups. Non-EVM chains like Solana are not
-                    natively supported in the current release.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> DeFi users with
-                    fragmented capital across multiple rollups who want to merge
-                    balances in one click, execute destination token swaps, and
-                    onboard to new L2s without holding native gas tokens.
-                  </li>
                 </ul>
                 <button
                   className="seo-pick__link"
@@ -870,16 +859,6 @@ export default function TopCrossChainBridgesPage() {
                     stablecoins or native assets to or from non-EVM networks and
                     long-tail blockchains that smaller bridges do not support.
                   </li>
-                  <li>
-                    <strong>Trade-offs:</strong> Pool-based model exposes users
-                    to pool rebalancing slippage and temporary liquidity
-                    imbalances on specific routes. Single-source only.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> Users who need to move
-                    stablecoins or native assets to or from non-EVM networks and
-                    long-tail blockchains that smaller bridges do not support.
-                  </li>
                 </ul>
                 <a
                   className="seo-pick__link"
@@ -946,18 +925,6 @@ export default function TopCrossChainBridgesPage() {
                     execution risk and transfer native assets directly to users;
                     validation is attested by the deBridge validator set before
                     reimbursement.
-                  </li>
-                  <li>
-                    <strong>Trade-offs:</strong> Single-source only. Swaps
-                    requiring off-chain solver liquidity rely on active
-                    market-maker depth, which can widen spreads during volatile
-                    market events.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> Active traders
-                    frequently moving funds between EVM networks and Solana or
-                    Tron who prioritize lightning-fast execution and strict
-                    slippage guarantees.
                   </li>
                   <li>
                     <strong>Trade-offs:</strong> Single-source only. Swaps
@@ -1091,16 +1058,6 @@ export default function TopCrossChainBridgesPage() {
                     and DeFi protocols moving significant quantities of USDC who
                     require absolute 1:1 capital efficiency and zero slippage.
                   </li>
-                  <li>
-                    <strong>Trade-offs:</strong> Strictly supports USDC; does
-                    not bridge ETH, BTC, USDT, or other tokens. Standard
-                    protocol transfers require waiting for full chain finality.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> Whales, institutions,
-                    and DeFi protocols moving significant quantities of USDC who
-                    require absolute 1:1 capital efficiency and zero slippage.
-                  </li>
                 </ul>
                 <a
                   className="seo-pick__link"
@@ -1149,18 +1106,6 @@ export default function TopCrossChainBridgesPage() {
                     (including Jump Crypto, Figment, and Everstake). Guardians
                     validate origin state changes and issue Verifiable Action
                     Approvals (VAAs).
-                  </li>
-                  <li>
-                    <strong>Trade-offs:</strong> On non-native routes, relies on
-                    lock-and-mint wrapping which introduces synthetic tokens and
-                    counterparty risk. User interface can feel complex compared
-                    to modern intent bridges.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> Users bridging assets
-                    between ecosystems with fundamentally different
-                    architectures (such as Solana, Sui, Aptos, and EVM) that
-                    lack direct intent bridge connectivity.
                   </li>
                   <li>
                     <strong>Trade-offs:</strong> On non-native routes, relies on
@@ -1223,18 +1168,6 @@ export default function TopCrossChainBridgesPage() {
                     contract routing architecture. Inherits the underlying
                     security model of whichever bridge and DEX route is
                     selected.
-                  </li>
-                  <li>
-                    <strong>Trade-offs:</strong> Introduces an extra smart
-                    contract interaction layer, requiring token approvals to the
-                    LI.FI contract. Multiple contract layers can increase
-                    overall gas overhead and vulnerability surface area.
-                  </li>
-                  <li>
-                    <strong>Who it&apos;s for:</strong> Users seeking an
-                    all-in-one route comparator who want to automatically find
-                    the cheapest or quickest path without manually checking
-                    individual bridge interfaces.
                   </li>
                   <li>
                     <strong>Trade-offs:</strong> Introduces an extra smart
