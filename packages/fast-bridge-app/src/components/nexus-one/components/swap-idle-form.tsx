@@ -1377,18 +1377,15 @@ export function SwapIdleForm({
 
     // If we have explicit USD fee components from Better Intent:
     const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
-    const fulfillmentUsd =
-      bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
     const solverUsd = bridgeFeeData?.solverUsd;
     const protocolUsd = bridgeFeeData?.protocolUsd;
 
     if (
       depositUsd !== undefined ||
-      fulfillmentUsd !== undefined ||
       solverUsd !== undefined ||
       protocolUsd !== undefined
     ) {
-      const networkFee = new Decimal(depositUsd || 0).add(fulfillmentUsd || 0);
+      const networkFee = new Decimal(depositUsd || 0);
       const total = networkFee.add(solverUsd || 0).add(protocolUsd || 0);
       return total.lt(0.01) ? "0.00" : total.toFixed(2);
     }
@@ -1461,26 +1458,19 @@ export function SwapIdleForm({
     };
 
     const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
-    const fulfillmentUsd =
-      bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
     const solverUsd = bridgeFeeData?.solverUsd;
     const protocolUsd = bridgeFeeData?.protocolUsd;
 
     const caGas = feeInUsd(bridgeFeeData?.caGasUsd, bridgeFeeData?.caGas);
     const collection = parseDecimal(bridgeFeeData?.collection);
-    const fulfilment = parseDecimal(bridgeFeeData?.fulfilment);
     const destGasVal =
       parseDecimal(intentData?.destination?.gas?.value) ??
       parseDecimal(destinationGasFeeUsd);
 
     const networkFee =
-      depositUsd !== undefined || fulfillmentUsd !== undefined
-        ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
-        : (caGas ??
-          (collection !== undefined || fulfilment !== undefined
-            ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
-            : undefined) ??
-          destGasVal);
+      depositUsd !== undefined
+        ? new Decimal(depositUsd || 0)
+        : (caGas ?? collection ?? destGasVal);
 
     const solverFee =
       solverUsd !== undefined

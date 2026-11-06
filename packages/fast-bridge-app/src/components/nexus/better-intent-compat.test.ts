@@ -145,7 +145,7 @@ test("respects explicit empty directional support and rejects missing tokens", (
 test("allows a provider-tagged token when the route catalog omits its token list", () => {
   const catalog = [
     {
-      id: 5042,
+      id: 9999,
       providers: ["relay"],
       asDestination: ["relay"],
       tokens: [],
@@ -156,7 +156,7 @@ test("allows a provider-tagged token when the route catalog omits its token list
     isTokenSupportedForRole(
       catalog,
       "destination",
-      5042,
+      9999,
       "0x3600000000000000000000000000000000000000",
       ["relay"]
     ),
@@ -166,7 +166,7 @@ test("allows a provider-tagged token when the route catalog omits its token list
     isTokenSupportedForRole(
       catalog,
       "destination",
-      5042,
+      9999,
       "0xb67f50fde86e09b5da963c4251cbd4788b151ed5",
       ["nexus-v2"]
     ),
@@ -244,13 +244,13 @@ test("does not invent one source-token total for mixed-token intents", () => {
     fulfillmentRaw: "0",
     fulfillmentUsd: "0.005",
     fulfilmentUsd: "0.005",
-    networkFeeUsd: "0.006",
+    networkFeeUsd: "0.001",
     protocol: "0",
     protocolUsd: "0.002",
     solver: "0",
     solverUsd: "0.003",
     total: "0",
-    totalUsd: "0.011",
+    totalUsd: "0.006",
   });
   const withFallbackRates = addIntentUsdValues(normalized, () => 99);
   assert.equal(withFallbackRates.destination.value, "0.000001");

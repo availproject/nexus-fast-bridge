@@ -58,11 +58,15 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
     }
 
     let isMounted = true;
-    fetchBlogPosts().then((fetched) => {
-      if (isMounted) {
-        setPosts(fetched);
-      }
-    });
+    fetchBlogPosts()
+      .then((fetched) => {
+        if (isMounted) {
+          setPosts(fetched);
+        }
+      })
+      .catch((error) => {
+        console.warn("Could not load guides:", error);
+      });
 
     return () => {
       isMounted = false;

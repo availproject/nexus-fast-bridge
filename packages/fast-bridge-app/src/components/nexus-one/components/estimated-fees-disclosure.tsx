@@ -83,19 +83,14 @@ export function EstimatedFeesDisclosure({
         : undefined;
     };
     const depositUsd = data?.depositUsd ?? data?.caGasUsd;
-    const fulfillmentUsd = data?.fulfillmentUsd ?? data?.fulfilmentUsd;
     const solverUsd = data?.solverUsd;
     const protocolUsd = data?.protocolUsd;
 
     const collection = parseDecimal(data?.collection);
-    const fulfilment = parseDecimal(data?.fulfilment);
     const executionGas =
-      depositUsd !== undefined || fulfillmentUsd !== undefined
-        ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
-        : (feeInUsd(data?.caGasUsd, data?.caGas) ??
-          (collection || fulfilment
-            ? (collection ?? new Decimal(0)).plus(fulfilment ?? new Decimal(0))
-            : undefined));
+      depositUsd !== undefined
+        ? new Decimal(depositUsd || 0)
+        : (feeInUsd(data?.caGasUsd, data?.caGas) ?? collection);
     const protocol =
       protocolUsd !== undefined
         ? parseDecimal(protocolUsd)

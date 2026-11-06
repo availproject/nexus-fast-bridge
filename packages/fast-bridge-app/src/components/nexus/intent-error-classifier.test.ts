@@ -110,3 +110,39 @@ test("classifies quote failure with NO_ROUTE_TO_DESTINATION", () => {
   );
   assert.ok(result.technicalDetails?.includes("DESTINATION_NOT_SERVED"));
 });
+
+test("classifies BackendError with limit exceeded message", () => {
+  const result = classifyIntentError(
+    new Error(
+      "BackendError: The swap value exceeds the supported limit. Reduce the amount."
+    )
+  );
+
+  assert.equal(result.bucket, "quote_provider");
+  assert.equal(result.retryable, false);
+  assert.equal(
+    result.message,
+    "The swap value exceeds the supported limit. Reduce the amount."
+  );
+});
+
+test("classifies quote failure with LIMIT_EXCEEDED subcode", () => {
+  const result = classifyIntentError({
+    details: {
+      intentQuoteFailure: {
+        subcode: "LIMIT_EXCEEDED",
+        retryable: false,
+        sourceVerdicts: [],
+        providerReasons: [],
+        details: {},
+      },
+    },
+  });
+
+  assert.equal(result.bucket, "quote_provider");
+  assert.equal(result.retryable, false);
+  assert.equal(
+    result.message,
+    "The swap value exceeds the supported limit. Reduce the amount."
+  );
+});

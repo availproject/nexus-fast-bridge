@@ -61,7 +61,7 @@ const GUIDE_ITEMS = [
     id: "top-bridges",
     imgSrc: "/landing-new/assets/guides/guide-top-bridges.jpg?v=1",
     collapsedOffsetX: 120,
-    title: "Best Cross-Chain Bridges in 2026 [Compared]",
+    title: "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared",
     href: "/guides/top-cross-chain-bridges",
     cta: "Read more",
   },

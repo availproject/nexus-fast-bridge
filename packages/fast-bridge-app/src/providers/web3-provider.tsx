@@ -141,8 +141,6 @@ export function initGlobalAppKit() {
       },
       allWallets: "SHOW",
       enableEIP6963: true,
-      featuredWalletIds: [],
-      excludeWalletIds: [],
       defaultAccountTypes: { eip155: "eoa" },
       themeMode: "light",
       themeVariables: {

@@ -3657,21 +3657,11 @@ function NexusOneInner({
     let active = true;
     const requestId = ++sourceCatalogRequestIdRef.current;
     const timer = setTimeout(() => {
-      const readableAmount = isSwapExactOut ? amount.trim() : "";
-      let amountRaw: bigint | undefined;
-      try {
-        amountRaw = readableAmount
-          ? parseUnits(readableAmount, toToken.decimals)
-          : undefined;
-      } catch {
-        amountRaw = undefined;
-      }
       void getRouteSupportedChains({
         destinations: [
           {
             chainId: toToken.chainId,
             tokenAddress: toToken.contractAddress as `0x${string}`,
-            amountRaw,
           },
         ],
       })
@@ -3691,12 +3681,11 @@ function NexusOneInner({
       clearTimeout(timer);
     };
   }, [
-    amount,
     getRouteSupportedChains,
-    isSwapExactOut,
     nexusSDK,
     readOnlySdk,
-    toToken,
+    toToken?.chainId,
+    toToken?.contractAddress,
   ]);
 
   useEffect(() => {
@@ -3711,36 +3700,12 @@ function NexusOneInner({
     let active = true;
     const requestId = ++destinationCatalogRequestIdRef.current;
     const timer = setTimeout(() => {
-      const readableAmounts = concreteSources.map(
-        (token) =>
-          token.userAmount ||
-          (concreteSources.length === 1 && !isSwapExactOut ? amount : "")
-      );
-      const includeAmounts = readableAmounts.every(
-        (value) => Number(value) > 0
-      );
-      const sources = concreteSources.map((token, index) => {
-        let amountRaw: bigint | undefined;
-        try {
-          amountRaw = includeAmounts
-            ? parseUnits(readableAmounts[index]!, token.decimals)
-            : undefined;
-        } catch {
-          amountRaw = undefined;
-        }
-        return {
-          chainId: token.chainId,
-          tokenAddress: token.contractAddress as `0x${string}`,
-          amountRaw,
-        };
-      });
-      const hasPartialAmounts = sources.some(
-        (source) => source.amountRaw === undefined
-      );
+      const sources = concreteSources.map((token) => ({
+        chainId: token.chainId,
+        tokenAddress: token.contractAddress as `0x${string}`,
+      }));
       void getRouteSupportedChains({
-        sources: hasPartialAmounts
-          ? sources.map(({ amountRaw: _amountRaw, ...source }) => source)
-          : sources,
+        sources,
       })
         .then((catalog) => {
           if (active && requestId === destinationCatalogRequestIdRef.current) {
@@ -3760,14 +3725,7 @@ function NexusOneInner({
       active = false;
       clearTimeout(timer);
     };
-  }, [
-    amount,
-    fromTokens,
-    getRouteSupportedChains,
-    isSwapExactOut,
-    nexusSDK,
-    readOnlySdk,
-  ]);
+  }, [fromTokens, getRouteSupportedChains, nexusSDK, readOnlySdk]);
   useEffect(() => {
     if (swapStep !== "choose-swap-asset") return;
 
@@ -4344,7 +4302,9 @@ function NexusOneInner({
     if (
       activeMode === "deposit" ||
       !toToken?.chainId ||
-      !swapSupportedChainsAndTokens
+      !swapSupportedChainsAndTokens ||
+      txError ||
+      hasBlockingProviderQuoteError
     ) {
       return;
     }
@@ -4359,7 +4319,12 @@ function NexusOneInner({
       toToken.chainId,
       toToken.contractAddress
     );
-    const isAllowedForSources = destinationOptionCatalog
+    const hasValidDestinationCatalog =
+      destinationOptionCatalog &&
+      Array.isArray(destinationOptionCatalog.chains) &&
+      destinationOptionCatalog.chains.length > 0;
+
+    const isAllowedForSources = hasValidDestinationCatalog
       ? isTokenSupportedForRole(
           destinationOptionCatalog,
           "destination",
@@ -4374,13 +4339,14 @@ function NexusOneInner({
 
     clearPendingSwapIntent();
     setToToken(undefined);
-    setAmount("");
   }, [
     activeMode,
     destinationOptionCatalog,
+    hasBlockingProviderQuoteError,
     swapSupportedChainsAndTokens,
     toToken?.chainId,
     toToken?.contractAddress,
+    txError,
   ]);
 
   const resetExactOutSourcesToAuto = () => {
@@ -7192,22 +7158,14 @@ function NexusOneInner({
           ? parseFiatNumber(bridgeFeeData?.totalUsd)
           : undefined;
         const depositUsd = bridgeFeeData?.depositUsd ?? bridgeFeeData?.caGasUsd;
-        const fulfillmentUsd =
-          bridgeFeeData?.fulfillmentUsd ?? bridgeFeeData?.fulfilmentUsd;
         const solverUsd = bridgeFeeData?.solverUsd;
         const protocolUsd = bridgeFeeData?.protocolUsd;
 
         const collectionFee = parseFiatNumber(bridgeFeeData?.collection);
-        const fulfilmentFee = parseFiatNumber(bridgeFeeData?.fulfilment);
         const executionGasFee =
-          depositUsd !== undefined || fulfillmentUsd !== undefined
-            ? new Decimal(depositUsd || 0).add(fulfillmentUsd || 0)
-            : (parseFiatNumber(bridgeFeeData?.caGas) ??
-              (collectionFee !== undefined || fulfilmentFee !== undefined
-                ? (collectionFee ?? new Decimal(0)).plus(
-                    fulfilmentFee ?? new Decimal(0)
-                  )
-                : undefined));
+          depositUsd !== undefined
+            ? new Decimal(depositUsd || 0)
+            : (parseFiatNumber(bridgeFeeData?.caGas) ?? collectionFee);
         const bridgeGasSuppliedFee = parseFiatNumber(
           bridgeFeeData?.gasSupplied
         );

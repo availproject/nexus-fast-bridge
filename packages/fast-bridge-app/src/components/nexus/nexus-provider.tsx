@@ -540,7 +540,7 @@ const NexusProvider = ({
             activeSdk.getBalancesForSwap(),
             getCoinbaseRates(),
           ]),
-          15_000
+          30_000
         );
 
       const currentList = list;
@@ -704,7 +704,7 @@ const NexusProvider = ({
       if (!activeSdk) {
         return;
       }
-      const updatedBalance = await withTimeout(Promise.resolve([]), 15_000);
+      const updatedBalance = await withTimeout(Promise.resolve([]), 30_000);
       const chains = supportedChainsAndTokens.current ?? [];
       setBridgableBalance(
         normalizeUserAssetFiatValues(
@@ -714,7 +714,6 @@ const NexusProvider = ({
     } catch (error) {
       console.error("Error fetching bridgable balance:", error);
       const errorMsg = getUserFacingError(error, BALANCES_ERROR_MSG);
-      setNexusInitError(errorMsg);
       trackFastBridgeFail({
         failure_type: "balance_fetch",
         reason: errorMsg,
@@ -732,7 +731,7 @@ const NexusProvider = ({
       }
       const updatedBalance = await withTimeout(
         activeSdk.getBalancesForSwap(),
-        15_000
+        30_000
       );
       const normalizedBalance = normalizeIntentBalances(
         updatedBalance,
@@ -751,11 +750,11 @@ const NexusProvider = ({
         updatedBalance
       );
       setSwapBalance(normalizedSwapBalance);
+      setNexusInitError(null);
       return normalizedSwapBalance;
     } catch (error) {
       console.error("Error fetching swap balance:", error);
       const errorMsg = getUserFacingError(error, BALANCES_ERROR_MSG);
-      setNexusInitError(errorMsg);
       trackFastBridgeFail({
         failure_type: "balance_fetch",
         reason: errorMsg,

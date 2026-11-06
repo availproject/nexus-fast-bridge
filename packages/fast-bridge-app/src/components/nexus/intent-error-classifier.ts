@@ -36,6 +36,13 @@ const INSUFFICIENT_BALANCE_PATTERN =
   /insufficient balance|sources are not enough|source.+not enough/i;
 const INSUFFICIENT_GAS_PATTERN =
   /gas required exceeds allowance|insufficient funds for gas/i;
+const LIMIT_EXCEEDED_PATTERN =
+  /exceeds (?:the )?(?:supported )?limit|value exceeds/i;
+const INPUT_BELOW_DEPOSIT_FEE_PATTERN = /below deposit fee/i;
+const NO_ROUTE_PATTERN = /no route (?:is )?available/i;
+const NO_ROUTABLE_SOURCE_PATTERN = /no routable source/i;
+const TOKEN_NOT_SUPPORTED_PATTERN = /token not supported/i;
+const ERROR_PREFIX_PATTERN = /^(?:(?:[\w.]*Error|COSMOS|Internal error):\s*)+/i;
 
 const quoteFailureMessages: Record<string, string> = {
   INPUT_BELOW_DEPOSIT_FEE:
@@ -61,6 +68,8 @@ const quoteFailureMessages: Record<string, string> = {
     "This route cannot provide the requested destination gas.",
   VALUE_ABOVE_CEILING:
     "The swap value exceeds the provider limit for this route. Reduce the swap value.",
+  LIMIT_EXCEEDED:
+    "The swap value exceeds the supported limit. Reduce the amount.",
 };
 
 const stringifyDetails = (value: unknown) => {
@@ -142,7 +151,10 @@ const classifyQuoteFailure = (
   };
 
   let message = quoteFailureMessages[quoteFailure.subcode];
-  if (quoteFailure.subcode === "VALUE_ABOVE_CEILING") {
+  if (
+    quoteFailure.subcode === "VALUE_ABOVE_CEILING" ||
+    quoteFailure.subcode === "LIMIT_EXCEEDED"
+  ) {
     const maxValueUsd = quoteFailure.details?.maxValueUsd;
     if (
       (typeof maxValueUsd === "number" && !Number.isNaN(maxValueUsd)) ||
@@ -171,21 +183,29 @@ const classifyQuoteFailure = (
 
 const classifyBackendRouteError = (
   code: string,
-  value: ErrorLike
+  value: ErrorLike,
+  message = ""
 ): ClassifiedIntentError | undefined => {
-  if (
+  const isLimitExceeded =
     code === "backend/value_above_ceiling" ||
-    code === "validation/value_above_ceiling"
-  ) {
+    code === "validation/value_above_ceiling" ||
+    code === "LIMIT_EXCEEDED" ||
+    LIMIT_EXCEEDED_PATTERN.test(message);
+
+  if (isLimitExceeded) {
     const maxValueUsd = value.details?.maxValueUsd;
     const maxPart =
       (typeof maxValueUsd === "number" && !Number.isNaN(maxValueUsd)) ||
       (typeof maxValueUsd === "string" && maxValueUsd.trim().length > 0)
         ? ` of $${maxValueUsd}`
         : "";
+    const cleanMessage =
+      message && LIMIT_EXCEEDED_PATTERN.test(message)
+        ? message
+        : `The swap value exceeds the provider limit${maxPart}. Reduce the swap value.`;
     return {
       bucket: "quote_provider",
-      message: `The swap value exceeds the provider limit${maxPart}. Reduce the swap value.`,
+      message: cleanMessage,
       retryable: false,
       technicalDetails: getTechnicalDetails(value),
     };
@@ -193,7 +213,8 @@ const classifyBackendRouteError = (
 
   if (
     code === "backend/input_below_deposit_fee" ||
-    code === "validation/input_below_deposit_fee"
+    code === "validation/input_below_deposit_fee" ||
+    INPUT_BELOW_DEPOSIT_FEE_PATTERN.test(message)
   ) {
     return {
       bucket: "quote_provider",
@@ -206,7 +227,8 @@ const classifyBackendRouteError = (
 
   if (
     code === "backend/no_route_to_destination" ||
-    code === "validation/no_route_to_destination"
+    code === "validation/no_route_to_destination" ||
+    NO_ROUTE_PATTERN.test(message)
   ) {
     return {
       bucket: "quote_provider",
@@ -217,7 +239,10 @@ const classifyBackendRouteError = (
     };
   }
 
-  if (code === "backend/no_routable_source") {
+  if (
+    code === "backend/no_routable_source" ||
+    NO_ROUTABLE_SOURCE_PATTERN.test(message)
+  ) {
     return {
       bucket: "quote_provider",
       message:
@@ -227,7 +252,10 @@ const classifyBackendRouteError = (
     };
   }
 
-  if (code === "backend/token_not_supported") {
+  if (
+    code === "backend/token_not_supported" ||
+    TOKEN_NOT_SUPPORTED_PATTERN.test(message)
+  ) {
     return {
       bucket: "quote_provider",
       message:
@@ -245,7 +273,7 @@ const classifyNonQuoteError = (
   code: string,
   message: string
 ): ClassifiedIntentError => {
-  const routeError = classifyBackendRouteError(code, value);
+  const routeError = classifyBackendRouteError(code, value, message);
   if (routeError) {
     return routeError;
   }
@@ -321,7 +349,8 @@ const classifyNonQuoteError = (
 
 export const classifyIntentError = (error: unknown): ClassifiedIntentError => {
   const value = (error ?? {}) as ErrorLike;
-  const message = value.message ?? (typeof error === "string" ? error : "");
+  const rawMessage = value.message ?? (typeof error === "string" ? error : "");
+  const message = rawMessage.replace(ERROR_PREFIX_PATTERN, "").trim();
 
   if (isUserRejectedIntentError(error)) {
     return {

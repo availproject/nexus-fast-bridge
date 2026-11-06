@@ -881,6 +881,22 @@ html {
   color: var(--fg-body, #525252);
 }
 
+.seo-pick ul {
+  padding-left: 1.25rem !important;
+  margin: 0 0 1em 0 !important;
+}
+
+.seo-pick ul li {
+  margin-bottom: 0.5em;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fg-body, #525252);
+}
+
+.seo-pick ul li strong {
+  color: var(--fg-primary, #161615);
+}
+
 .seo-pick__link {
   display: inline-flex;
   gap: 6px;
