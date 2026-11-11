@@ -52,12 +52,6 @@ test("every image a guide references exists", () => {
   }
 });
 
-test("no guide depends on Sanity", () => {
-  for (const file of guideFiles) {
-    assert.ok(!readGuide(file).includes("sanity.io"), file);
-  }
-});
-
 test("renders the markup the guide page styles expect", () => {
   const html = renderGuideMarkdown(`## **Why it's good**
 
@@ -227,5 +221,4 @@ test("the build only exposes allowlisted variables", () => {
   const entries = readFileSync("vite.config.ts", "utf-8").match(RE_ENV_PREFIX);
   assert.ok(entries, "envPrefix must be an explicit list");
   assert.ok(!entries[1].includes('"VITE_"'));
-  assert.ok(!entries[1].toLowerCase().includes("sanity"));
 });

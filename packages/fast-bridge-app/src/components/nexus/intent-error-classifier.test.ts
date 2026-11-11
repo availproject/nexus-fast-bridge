@@ -146,3 +146,18 @@ test("classifies quote failure with LIMIT_EXCEEDED subcode", () => {
     "The swap value exceeds the supported limit. Reduce the amount."
   );
 });
+
+test("maps the no-provider quote error to the quote unavailable message", () => {
+  const result = classifyIntentError({
+    category: "validation",
+    code: "validation/quote_failed",
+    message:
+      "No provider could quote this intent, please try removing or adding assets",
+  });
+
+  assert.equal(result.bucket, "quote_provider");
+  assert.equal(
+    result.message,
+    "Quote unavailable. Please modify the input asset(s) and try again"
+  );
+});

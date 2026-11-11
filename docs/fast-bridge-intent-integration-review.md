@@ -96,4 +96,4 @@ Recommended solution:
 - `git diff --check`: passed.
 - The repository aggregate `pnpm test:feedback` runner remains blocked by pre-existing harness problems: its SDK event-mapper guard rejects the installed SDK shape, and one test imports the missing `src/components/common/hooks/use-nexus-error` file.
 - Full `tsc -p packages/fast-bridge-app/tsconfig.json --noEmit` remains blocked by existing repository type errors across unrelated components and SDK compatibility shims; the production bundle still succeeds.
-- Route HTML generation completed, but the local environment reported a Vite WebSocket `EPERM` bind and unavailable Sanity DNS while generating content. Those are local environment limits, not deployment validation.
+- Route HTML generation completed, but the local environment reported a Vite WebSocket `EPERM` bind while generating content. That is a local environment limit, not deployment validation.

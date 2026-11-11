@@ -49,4 +49,4 @@ Headings (`##`, `###`), paragraphs, lists, **bold**, *italic*, links, images and
 
 For safety, raw HTML is shown as plain text, apart from `<u>` for underlining. Links must start with `https://`, `http://`, `mailto:`, `/` or `#`, and images with `https://` or `/`. Anything else is dropped.
 
-Please write alt text for new images, between the square brackets. The migrated guides have none because Sanity held none.
+Please write alt text for new images, between the square brackets. Some older guides have none yet.
