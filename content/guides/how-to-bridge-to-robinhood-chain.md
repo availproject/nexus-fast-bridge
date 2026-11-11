@@ -96,7 +96,7 @@ Click Approve & Swap, then approve each source asset when prompted in your walle
 
 ![](/guide-images/how-to-bridge-to-robinhood-chain/4.jpg)
 
-When the transfer is complete, FastBridge displays the exact amount you have received, the assets used and the total fees. You can also open the available explorer links, or check your address on the [Robinhood Chain Blockscout explorer](https://robinhoodchain.blockscout.com), to verify the completed transaction.
+When the transfer is complete, FastBridge displays the exact amount you have received, the assets used and the total fees. You can also open the available explorer links, or check your address on the Robinhood Chain Blockscout explorer, to verify the completed transaction.
 
 ### **Move to Robinhood Chain in one flow**
 
