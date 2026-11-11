@@ -42,6 +42,9 @@ const INPUT_BELOW_DEPOSIT_FEE_PATTERN = /below deposit fee/i;
 const NO_ROUTE_PATTERN = /no route (?:is )?available/i;
 const NO_ROUTABLE_SOURCE_PATTERN = /no routable source/i;
 const TOKEN_NOT_SUPPORTED_PATTERN = /token not supported/i;
+const NO_PROVIDER_QUOTE_PATTERN = /no provider could quote/i;
+const QUOTE_UNAVAILABLE_MESSAGE =
+  "Quote unavailable. Please modify the input asset(s) and try again";
 const ERROR_PREFIX_PATTERN = /^(?:(?:[\w.]*Error|COSMOS|Internal error):\s*)+/i;
 
 const quoteFailureMessages: Record<string, string> = {
@@ -247,6 +250,15 @@ const classifyBackendRouteError = (
       bucket: "quote_provider",
       message:
         "None of the selected assets can be used for this route. Try another source asset.",
+      retryable: false,
+      technicalDetails: getTechnicalDetails(value),
+    };
+  }
+
+  if (NO_PROVIDER_QUOTE_PATTERN.test(message)) {
+    return {
+      bucket: "quote_provider",
+      message: QUOTE_UNAVAILABLE_MESSAGE,
       retryable: false,
       technicalDetails: getTechnicalDetails(value),
     };
