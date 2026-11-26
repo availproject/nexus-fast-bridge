@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { type CMSBlogPost, fetchBlogPosts } from "@/lib/cms";
+import { updatePageSeo } from "@/lib/seo";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
@@ -74,6 +75,13 @@ export default function GuidesPage({ initialPosts }: GuidesPageProps = {}) {
   }, [posts.length]);
 
   useEffect(() => {
+    updatePageSeo({
+      canonicalPath: "/guides",
+      title: "Cross-Chain Bridges Guide: How to Bridge Crypto | FastBridge",
+      description:
+        "Explore practical cross-chain bridge guides, crypto tutorials, and bridge comparisons. Learn how to move stablecoins and tokens across Ethereum, Arbitrum, Base, and more.",
+    });
+
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);

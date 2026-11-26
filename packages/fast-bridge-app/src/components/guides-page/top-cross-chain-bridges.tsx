@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { updatePageSeo } from "@/lib/seo";
 
 const STYLESHEETS = [
   "/landing-new/base.css",
@@ -62,8 +63,13 @@ export default function TopCrossChainBridgesPage() {
   }, []);
 
   useEffect(() => {
-    document.title =
-      "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared";
+    updatePageSeo({
+      canonicalPath: "/guides/top-cross-chain-bridges",
+      title:
+        "Top 8 Cross-Chain Bridges in 2026: Fees, Speed & Security Compared",
+      description:
+        "Compare the top 8 cross-chain bridges in 2026: FastBridge, Across, Stargate, deBridge, Relay, Circle CCTP, Wormhole, and Jumper. Fees, speed, security models, and features compared.",
+    });
     window.scrollTo(0, 0);
     document.documentElement.scrollTo(0, 0);
     document.body.scrollTo(0, 0);

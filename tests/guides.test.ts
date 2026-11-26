@@ -6,6 +6,7 @@ import {
   parseGuideFile,
   renderGuideMarkdown,
 } from "../packages/fast-bridge-app/src/lib/guide-markdown";
+import { buildCanonicalUrl } from "../packages/fast-bridge-app/src/lib/seo";
 
 const GUIDES_DIR = "content/guides";
 const RE_IMAGE_PATH = /\/guide-images\/[^")\s]+/g;
@@ -221,4 +222,15 @@ test("the build only exposes allowlisted variables", () => {
   const entries = readFileSync("vite.config.ts", "utf-8").match(RE_ENV_PREFIX);
   assert.ok(entries, "envPrefix must be an explicit list");
   assert.ok(!entries[1].includes('"VITE_"'));
+});
+
+test("buildCanonicalUrl produces self-referencing guide URLs", () => {
+  assert.equal(
+    buildCanonicalUrl("/guides"),
+    "https://fastbridge.availproject.org/guides"
+  );
+  assert.equal(
+    buildCanonicalUrl("guides/top-cross-chain-bridges"),
+    "https://fastbridge.availproject.org/guides/top-cross-chain-bridges"
+  );
 });

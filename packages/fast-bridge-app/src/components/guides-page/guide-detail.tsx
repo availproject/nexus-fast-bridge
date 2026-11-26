@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { type CMSBlogPost, fetchBlogPostBySlug } from "@/lib/cms";
+import { updatePageSeo } from "@/lib/seo";
 
 // import { loadLastChain } from "@/providers/runtime-context";
 
@@ -154,14 +155,23 @@ export default function GuideDetailPage({
   }, [slug, post?.slug]);
 
   useEffect(() => {
+    const activeSlug = post?.slug ?? slug;
+    if (activeSlug) {
+      updatePageSeo({
+        canonicalPath: `/guides/${activeSlug}`,
+        title: post ? post.seoTitle || post.title : undefined,
+        description: post ? post.seoDescription || post.excerpt : undefined,
+        imageUrl: post?.coverImage,
+      });
+    }
+
     if (!post) {
       return;
     }
-    document.title = post.seoTitle || post.title;
     if (post.toc.length > 0) {
       setActiveId(post.toc[0].id);
     }
-  }, [post]);
+  }, [post, slug]);
 
   useEffect(() => {
     if (!post || post.toc.length === 0) {
